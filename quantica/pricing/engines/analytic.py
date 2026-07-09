@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 from scipy.stats import norm
 
+from quantica.pricing.engines._common import unpack
 from quantica.pricing.greeks import Greeks
 
 if TYPE_CHECKING:
@@ -46,7 +47,7 @@ class AnalyticEuropeanEngine:
         time to expiry) the price collapses to the discounted intrinsic value
         of the forward, :math:`\max(\omega (S e^{-qT} - K e^{-rT}), 0)`.
         """
-        S, K, r, q, sigma, T, omega = _unpack(instrument, process)
+        S, K, r, q, sigma, T, omega = unpack(instrument, process)
         disc_spot = S * math.exp(-q * T)
         disc_strike = K * math.exp(-r * T)
 
@@ -70,7 +71,7 @@ class AnalyticEuropeanEngine:
             If :math:`\sigma = 0` or :math:`T = 0`, where the Greeks are not
             well defined (delta becomes a step, gamma a Dirac spike).
         """
-        S, K, r, q, sigma, T, omega = _unpack(instrument, process)
+        S, K, r, q, sigma, T, omega = unpack(instrument, process)
         if sigma == 0.0 or T == 0.0:
             raise ValueError("Greeks are undefined in the zero-vol / zero-expiry limit")
 
@@ -92,22 +93,6 @@ class AnalyticEuropeanEngine:
             + omega * q * S * disc_q * _cdf(omega * d1)
         )
         return Greeks(delta=delta, gamma=gamma, vega=vega, theta=theta, rho=rho)
-
-
-def _unpack(
-    instrument: EuropeanOption,
-    process: BlackScholesProcess,
-) -> tuple[float, float, float, float, float, float, int]:
-    """Pull the scalar model parameters out of the instrument and process."""
-    return (
-        process.spot,
-        instrument.strike,
-        process.rate,
-        process.div,
-        process.vol,
-        instrument.expiry,
-        instrument.option_type.sign,
-    )
 
 
 def _d1_d2(S: float, K: float, r: float, q: float, sigma: float, T: float) -> tuple[float, float]:
