@@ -26,7 +26,8 @@ coverage.xml
 # Notebooks
 .ipynb_checkpoints/
 
-# OS / editor
+# OS / editor / tooling
 .DS_Store
 .idea/
 .vscode/
+.claude/
