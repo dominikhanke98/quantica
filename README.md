@@ -24,7 +24,7 @@ Pricing follows an **Instrument / Process / Engine** separation:
 | --- | --- | --- |
 | **Instrument** | *What* is the contract? | `EuropeanOption` (strike, expiry, payoff) |
 | **Process** | *How* does the market move? | `BlackScholesProcess` (spot, rate, div, vol) |
-| **Engine** | *How* do we price it numerically? | `AnalyticEuropeanEngine` *(tree, MC, PDE next)* |
+| **Engine** | *How* do we price it numerically? | `AnalyticEuropeanEngine`, `BinomialEngine` *(MC, PDE next)* |
 
 ```python
 from quantica import (
@@ -32,6 +32,7 @@ from quantica import (
     BlackScholesProcess,
     OptionType,
     AnalyticEuropeanEngine,
+    BinomialEngine,
 )
 
 option = EuropeanOption(strike=100.0, expiry=1.0, option_type=OptionType.CALL)
@@ -40,6 +41,11 @@ process = BlackScholesProcess(spot=100.0, rate=0.05, div=0.0, vol=0.2)
 option.set_engine(AnalyticEuropeanEngine())
 option.npv(process)      # 10.4506  (Black–Scholes closed form)
 option.greeks(process)   # Greeks(delta=..., gamma=..., vega=..., theta=..., rho=...)
+
+# Re-price the same contract with a different engine — the basis of the
+# cross-method convergence test:
+option.set_engine(BinomialEngine(steps=5000))
+option.npv(process)      # 10.4502  (CRR binomial tree)
 ```
 
 Recover the volatility implied by a quoted price (Brent, with a vega-driven
@@ -75,8 +81,32 @@ recovery across a wide grid of strikes, maturities, and vols (calls and puts),
 handles the no-solution cases (below intrinsic / above the upper bound) with
 clear errors, and agrees with QuantLib's implied-vol solver to `rtol≈1e-6`.
 
-The multi-engine convergence table (skill §6) is generated once a second engine
-exists.
+The **binomial (CRR) engine** converges to the analytic price at first order
+`O(1/N)` (verified by a log-error/log-N slope of ≈ −1 along an even-N
+subsequence, handling the even/odd sawtooth), satisfies put–call parity exactly
+on the lattice, and matches QuantLib's own CRR engine to an `O(1/N)` grid
+difference.
+
+### Convergence table
+
+Cross-method convergence of the CRR tree to the closed form, generated
+reproducibly by [`scripts/convergence_table.py`](scripts/convergence_table.py)
+(rerun it to regenerate — do not hand-edit):
+
+European call — S=100, K=100, r=0.05, q=0, sigma=0.2, T=1
+
+| Method | Price | Abs. error vs analytic |
+| --- | ---: | ---: |
+| Black–Scholes (analytic) | 10.45058357 | — (reference) |
+| Binomial CRR (N=10) | 10.25340904 | 1.97e-01 |
+| Binomial CRR (N=50) | 10.41069154 | 3.99e-02 |
+| Binomial CRR (N=100) | 10.43061166 | 2.00e-02 |
+| Binomial CRR (N=500) | 10.44658514 | 4.00e-03 |
+| Binomial CRR (N=1000) | 10.44858410 | 2.00e-03 |
+| Binomial CRR (N=5000) | 10.45018364 | 4.00e-04 |
+
+The absolute error halves each time `N` doubles — the signature of `O(1/N)`
+convergence.
 
 ## Development
 
