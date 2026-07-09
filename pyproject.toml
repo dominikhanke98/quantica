@@ -76,6 +76,9 @@ ignore = ["N803", "N806"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["N802", "N803", "N806"]
+# Report scripts intentionally emit typographic en/em dashes (their stdout is
+# embedded verbatim in the README), so allow "ambiguous" Unicode there.
+"scripts/**/*.py" = ["RUF001"]
 
 [tool.ruff.format]
 docstring-code-format = true
