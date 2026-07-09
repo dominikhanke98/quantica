@@ -74,3 +74,22 @@ def test_discount_and_forward_reject_negative_time() -> None:
         p.discount_factor(-1.0)
     with pytest.raises(ValueError, match="t must be non-negative"):
         p.forward(-1.0)
+
+
+def test_bump_helpers_return_new_process_with_one_field_changed() -> None:
+    p = BlackScholesProcess(spot=100.0, rate=0.05, vol=0.2, div=0.01)
+    assert p.with_spot(110.0) == BlackScholesProcess(spot=110.0, rate=0.05, vol=0.2, div=0.01)
+    assert p.with_rate(0.03) == BlackScholesProcess(spot=100.0, rate=0.03, vol=0.2, div=0.01)
+    assert p.with_vol(0.25) == BlackScholesProcess(spot=100.0, rate=0.05, vol=0.25, div=0.01)
+    assert p.with_div(0.02) == BlackScholesProcess(spot=100.0, rate=0.05, vol=0.2, div=0.02)
+    # The original is untouched (frozen; bumps are copies).
+    assert p == BlackScholesProcess(spot=100.0, rate=0.05, vol=0.2, div=0.01)
+
+
+def test_bump_helpers_revalidate() -> None:
+    # A bump that produces an invalid state is rejected by __post_init__.
+    p = BlackScholesProcess(spot=100.0, rate=0.05, vol=0.2)
+    with pytest.raises(ValueError, match="spot must be positive"):
+        p.with_spot(-1.0)
+    with pytest.raises(ValueError, match="vol must be non-negative"):
+        p.with_vol(-0.1)

@@ -11,6 +11,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from quantica.pricing.greeks import Greeks
     from quantica.pricing.instruments import EuropeanOption
     from quantica.pricing.processes import BlackScholesProcess
 
@@ -35,4 +36,23 @@ class PricingEngine(Protocol):
         ...
 
 
-__all__ = ["PricingEngine"]
+@runtime_checkable
+class GreeksEngine(PricingEngine, Protocol):
+    """A pricing engine that can also report first-order sensitivities.
+
+    Kept separate from :class:`PricingEngine` because computing Greeks is a
+    distinct capability: some engines (e.g. a bare Monte Carlo price) price
+    without providing analytic sensitivities. An instrument's ``greeks`` method
+    requires the attached engine to satisfy this narrower Protocol.
+    """
+
+    def greeks(
+        self,
+        instrument: EuropeanOption,
+        process: BlackScholesProcess,
+    ) -> Greeks:
+        """Return the Greeks of ``instrument`` under ``process``."""
+        ...
+
+
+__all__ = ["GreeksEngine", "PricingEngine"]

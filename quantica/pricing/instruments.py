@@ -17,6 +17,7 @@ from quantica.core.types import FloatLike, OptionType
 
 if TYPE_CHECKING:
     from quantica.pricing.engines import PricingEngine
+    from quantica.pricing.greeks import Greeks
     from quantica.pricing.processes import BlackScholesProcess
 
 
@@ -91,3 +92,25 @@ class EuropeanOption:
         if self._engine is None:
             raise RuntimeError("no pricing engine attached; call set_engine(...) before npv()")
         return self._engine.calculate(self, process)
+
+    def greeks(self, process: BlackScholesProcess) -> Greeks:
+        """First-order sensitivities under ``process`` via the attached engine.
+
+        Raises
+        ------
+        RuntimeError
+            If no engine has been attached, or the attached engine does not
+            support Greeks (i.e. is not a
+            :class:`~quantica.pricing.engines.GreeksEngine`).
+        """
+        # Imported here to keep the runtime isinstance check local; the type is
+        # only needed for the capability check, not the class definition.
+        from quantica.pricing.engines import GreeksEngine
+
+        if self._engine is None:
+            raise RuntimeError("no pricing engine attached; call set_engine(...) before greeks()")
+        if not isinstance(self._engine, GreeksEngine):
+            raise RuntimeError(
+                f"attached engine {type(self._engine).__name__} does not support Greeks"
+            )
+        return self._engine.greeks(self, process)

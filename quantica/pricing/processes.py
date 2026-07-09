@@ -7,7 +7,7 @@ contract or numerical method.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -66,3 +66,23 @@ class BlackScholesProcess:
         if t < 0.0:
             raise ValueError(f"t must be non-negative, got {t}")
         return float(self.spot * np.exp((self.rate - self.div) * t))
+
+    # -- bumped copies (support bump-and-reval Greek validation) ------------- #
+    # The process is frozen, so a bump returns a *new* process. These make the
+    # finite-difference Greek checks read cleanly, e.g. ``proc.with_spot(s)``.
+
+    def with_spot(self, spot: float) -> BlackScholesProcess:
+        """Return a copy with the spot replaced by ``spot``."""
+        return replace(self, spot=spot)
+
+    def with_vol(self, vol: float) -> BlackScholesProcess:
+        """Return a copy with the volatility replaced by ``vol``."""
+        return replace(self, vol=vol)
+
+    def with_rate(self, rate: float) -> BlackScholesProcess:
+        """Return a copy with the risk-free rate replaced by ``rate``."""
+        return replace(self, rate=rate)
+
+    def with_div(self, div: float) -> BlackScholesProcess:
+        """Return a copy with the dividend yield replaced by ``div``."""
+        return replace(self, div=div)
