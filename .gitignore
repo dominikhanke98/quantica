@@ -30,4 +30,6 @@ coverage.xml
 .DS_Store
 .idea/
 .vscode/
-.claude/
+# Ignore local Claude Code state, but track shared project skills.
+.claude/*
+!.claude/skills/
