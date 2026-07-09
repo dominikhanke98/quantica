@@ -12,6 +12,7 @@ from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
 from quantica.pricing.greeks import Greeks
 from quantica.pricing.instruments import EuropeanOption
 from quantica.pricing.processes import BlackScholesProcess
+from quantica.pricing.volatility import implied_volatility
 
 __all__ = [
     "AnalyticEuropeanEngine",
@@ -19,4 +20,5 @@ __all__ = [
     "EuropeanOption",
     "Greeks",
     "OptionType",
+    "implied_volatility",
 ]
