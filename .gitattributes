@@ -1,0 +1,8 @@
+# Normalize line endings to LF in the repository so diffs and CI (Linux) stay
+# consistent regardless of the OS a contributor is on.
+* text=auto eol=lf
+
+# Binary assets should never be touched.
+*.png binary
+*.jpg binary
+*.pdf binary
