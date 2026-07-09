@@ -9,10 +9,12 @@ The narrative is deliberately that of *model validation*: every numerical
 method is cross-checked against at least one other method and, where a
 reference exists, benchmarked against QuantLib within a stated tolerance.
 
-> **Status:** Phase 1 (derivatives pricing) in progress. This commit sets up
-> the project skeleton and the pricing primitives — the option contract, the
-> Black–Scholes market process, and the engine interface. Numerical engines
-> (analytic, binomial, Monte Carlo, Crank–Nicolson PDE) follow.
+> **Status:** Phase 1 (derivatives pricing) in progress. Implemented so far: the
+> pricing primitives (option contract, Black–Scholes market process, engine
+> interface) and the **first engine — the closed-form Black–Scholes analytic
+> pricer with price and Greeks**, validated against QuantLib. The remaining
+> engines (binomial tree, Monte Carlo, Crank–Nicolson PDE) and the cross-method
+> convergence table follow.
 
 ## Architecture
 
@@ -22,19 +24,45 @@ Pricing follows an **Instrument / Process / Engine** separation:
 | --- | --- | --- |
 | **Instrument** | *What* is the contract? | `EuropeanOption` (strike, expiry, payoff) |
 | **Process** | *How* does the market move? | `BlackScholesProcess` (spot, rate, div, vol) |
-| **Engine** | *How* do we price it numerically? | analytic, tree, MC, PDE *(coming next)* |
+| **Engine** | *How* do we price it numerically? | `AnalyticEuropeanEngine` *(tree, MC, PDE next)* |
 
 ```python
-from quantica import EuropeanOption, BlackScholesProcess, OptionType
+from quantica import (
+    EuropeanOption,
+    BlackScholesProcess,
+    OptionType,
+    AnalyticEuropeanEngine,
+)
 
 option = EuropeanOption(strike=100.0, expiry=1.0, option_type=OptionType.CALL)
 process = BlackScholesProcess(spot=100.0, rate=0.05, div=0.0, vol=0.2)
 
-# Once an engine exists, the same option is priced by swapping engines —
-# which is exactly what makes the cross-method convergence test natural:
-# option.set_engine(AnalyticEuropeanEngine())
-# price = option.npv(process)
+option.set_engine(AnalyticEuropeanEngine())
+option.npv(process)      # 10.4506  (Black–Scholes closed form)
+option.greeks(process)   # Greeks(delta=..., gamma=..., vega=..., theta=..., rho=...)
 ```
+
+The same `option` will be re-priced by swapping the engine once the tree, MC,
+and PDE engines land — which is what makes the cross-method convergence test
+natural.
+
+## Validation
+
+Every numerical method is validated as its own deliverable (see the
+`numerical-validation` skill). The analytic engine currently passes:
+
+- **Analytical sanity** — known textbook values (Hull), put–call parity to
+  machine precision, arbitrage bounds, monotonicity in spot and vol, and the
+  `σ→0` / `T→0` / deep-ITM limits.
+- **Greeks** — every analytic Greek (delta, gamma, vega, theta, rho) matches a
+  central bump-and-reval finite difference.
+- **QuantLib benchmark** — price *and* all five Greeks agree with QuantLib's
+  `AnalyticEuropeanEngine` to `rtol≈1e-10`, using matched conventions
+  (continuous compounding, `Actual/365`, `NullCalendar`). Run with
+  `pytest -m benchmark`.
+
+The multi-engine convergence table (skill §6) is generated once a second engine
+exists.
 
 ## Development
 
