@@ -10,6 +10,7 @@ from __future__ import annotations
 from quantica.core.types import OptionType
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
 from quantica.pricing.engines.binomial import BinomialEngine
+from quantica.pricing.engines.montecarlo import MCResult, MonteCarloEngine
 from quantica.pricing.greeks import Greeks
 from quantica.pricing.instruments import EuropeanOption
 from quantica.pricing.processes import BlackScholesProcess
@@ -21,6 +22,8 @@ __all__ = [
     "BlackScholesProcess",
     "EuropeanOption",
     "Greeks",
+    "MCResult",
+    "MonteCarloEngine",
     "OptionType",
     "implied_volatility",
 ]
