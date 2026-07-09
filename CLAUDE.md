@@ -180,3 +180,15 @@ Apps by track: **Streamlit + Plotly** (pricing, portfolio), **Gradio on Hugging 
 - **Keep quant logic out of `apps/`** — if you're tempted to compute in the UI, it belongs in the package.
 - When a design decision has trade-offs, **surface them briefly** rather than silently picking — the author is a domain expert and wants to make the call.
 - Update this file when a durable architectural decision changes; keep it dense.
+
+---
+
+## 11. Session close-out (standing procedure)
+
+End **every** working session with:
+
+1. **Update `PROGRESS.md`** (repo root) — the running state file: steps completed, the next step, open design notes, and how to resume. Keep it concise and factual.
+2. **Only commit on a green gate.** Run `ruff format --check . && ruff check . && mypy quantica && pytest` first; never commit red.
+3. **Commit coherently** — small, meaningful commits (§6), including the `PROGRESS.md` update, so the next session resumes from a clean, described state.
+
+`PROGRESS.md` is the transient session ledger; this file (`CLAUDE.md`) remains the durable brief. When they disagree, `CLAUDE.md` wins.
