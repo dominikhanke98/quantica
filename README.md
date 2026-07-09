@@ -11,10 +11,11 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 
 > **Status:** Phase 1 (derivatives pricing) in progress. Implemented so far: the
 > pricing primitives (option contract, Black–Scholes market process, engine
-> interface) and the **first engine — the closed-form Black–Scholes analytic
-> pricer with price and Greeks**, validated against QuantLib. The remaining
-> engines (binomial tree, Monte Carlo, Crank–Nicolson PDE) and the cross-method
-> convergence table follow.
+> interface), an implied-volatility solver, and **three engines — the analytic
+> Black–Scholes pricer (price + Greeks), the CRR binomial tree, and a Monte
+> Carlo engine with variance reduction** — cross-validated for convergence and
+> benchmarked against QuantLib. The Crank–Nicolson PDE engine and the four-way
+> convergence test follow.
 
 ## Architecture
 
@@ -24,15 +25,17 @@ Pricing follows an **Instrument / Process / Engine** separation:
 | --- | --- | --- |
 | **Instrument** | *What* is the contract? | `EuropeanOption` (strike, expiry, payoff) |
 | **Process** | *How* does the market move? | `BlackScholesProcess` (spot, rate, div, vol) |
-| **Engine** | *How* do we price it numerically? | `AnalyticEuropeanEngine`, `BinomialEngine` *(MC, PDE next)* |
+| **Engine** | *How* do we price it numerically? | `AnalyticEuropeanEngine`, `BinomialEngine`, `MonteCarloEngine` *(PDE next)* |
 
 ```python
+import numpy as np
 from quantica import (
     EuropeanOption,
     BlackScholesProcess,
     OptionType,
     AnalyticEuropeanEngine,
     BinomialEngine,
+    MonteCarloEngine,
 )
 
 option = EuropeanOption(strike=100.0, expiry=1.0, option_type=OptionType.CALL)
@@ -46,6 +49,12 @@ option.greeks(process)   # Greeks(delta=..., gamma=..., vega=..., theta=..., rho
 # cross-method convergence test:
 option.set_engine(BinomialEngine(steps=5000))
 option.npv(process)      # 10.4502  (CRR binomial tree)
+
+# Monte Carlo with a seeded generator, antithetic + control-variate variance
+# reduction, and the standard error on the estimate:
+mc = MonteCarloEngine(1_000_000, rng=np.random.default_rng(0),
+                      antithetic=True, control_variate=True)
+result = mc.estimate(option, process)   # MCResult(price=..., std_error=..., n_paths=...)
 ```
 
 Recover the volatility implied by a quoted price (Brent, with a vega-driven
@@ -57,9 +66,9 @@ from quantica import implied_volatility
 implied_volatility(10.4506, option, process)   # -> 0.2  (process.vol is ignored)
 ```
 
-The same `option` will be re-priced by swapping the engine once the tree, MC,
-and PDE engines land — which is what makes the cross-method convergence test
-natural.
+Swapping the engine to re-price the *same* `option` is exactly what makes the
+cross-method convergence test natural; the Crank–Nicolson PDE engine is the last
+to land.
 
 ## Validation
 
@@ -87,26 +96,38 @@ subsequence, handling the even/odd sawtooth), satisfies put–call parity exactl
 on the lattice, and matches QuantLib's own CRR engine to an `O(1/N)` grid
 difference.
 
+The **Monte Carlo engine** simulates the exact GBM terminal price (no
+time-stepping bias) from an injected, seeded `Generator`, reports the standard
+error, and lands within ~3 SE of the analytic price. Antithetic and control-variate
+variance reduction materially shrink the SE at equal path count (measured VRF
+≈ 2× and ≈ 7× respectively for the ATM call below).
+
 ### Convergence table
 
-Cross-method convergence of the CRR tree to the closed form, generated
+Cross-method convergence of all four engines to the closed form, generated
 reproducibly by [`scripts/convergence_table.py`](scripts/convergence_table.py)
-(rerun it to regenerate — do not hand-edit):
+(seeded Monte Carlo; rerun it to regenerate — do not hand-edit):
 
 European call — S=100, K=100, r=0.05, q=0, sigma=0.2, T=1
+(Monte Carlo: 1,000,000 paths, seed 20240709)
 
-| Method | Price | Abs. error vs analytic |
-| --- | ---: | ---: |
-| Black–Scholes (analytic) | 10.45058357 | — (reference) |
-| Binomial CRR (N=10) | 10.25340904 | 1.97e-01 |
-| Binomial CRR (N=50) | 10.41069154 | 3.99e-02 |
-| Binomial CRR (N=100) | 10.43061166 | 2.00e-02 |
-| Binomial CRR (N=500) | 10.44658514 | 4.00e-03 |
-| Binomial CRR (N=1000) | 10.44858410 | 2.00e-03 |
-| Binomial CRR (N=5000) | 10.45018364 | 4.00e-04 |
+| Method | Price | Abs. error vs analytic | Note |
+| --- | ---: | ---: | --- |
+| Black–Scholes (analytic) | 10.45058357 | — | reference |
+| Binomial CRR (N=10) | 10.25340904 | 1.97e-01 | O(1/N) |
+| Binomial CRR (N=50) | 10.41069154 | 3.99e-02 | O(1/N) |
+| Binomial CRR (N=100) | 10.43061166 | 2.00e-02 | O(1/N) |
+| Binomial CRR (N=500) | 10.44658514 | 4.00e-03 | O(1/N) |
+| Binomial CRR (N=1000) | 10.44858410 | 2.00e-03 | O(1/N) |
+| Binomial CRR (N=5000) | 10.45018364 | 4.00e-04 | O(1/N) |
+| Monte Carlo (naive) | 10.45100434 | 4.21e-04 | SE 1.5e-02, VRF 1.0× |
+| Monte Carlo (antithetic) | 10.44977472 | 8.09e-04 | SE 1.0e-02, VRF 2.0× |
+| Monte Carlo (control variate) | 10.44881692 | 1.77e-03 | SE 5.6e-03, VRF 6.9× |
 
-The absolute error halves each time `N` doubles — the signature of `O(1/N)`
-convergence.
+The CRR absolute error halves each time `N` doubles — the signature of `O(1/N)`
+convergence — while the Monte Carlo error is statistical, bounded by its standard
+error, which the variance-reduction techniques shrink (VRF = variance-reduction
+factor vs naive at equal path count).
 
 ## Development
 
