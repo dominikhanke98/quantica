@@ -1,0 +1,38 @@
+"""Numerical pricing engines.
+
+This module defines only the *interface* an engine must satisfy. Concrete
+engines (analytic Black--Scholes, binomial tree, Monte Carlo, Crank--Nicolson
+PDE) are added in later steps of Phase 1 (CLAUDE.md §8) and register themselves
+here.
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from quantica.pricing.instruments import EuropeanOption
+    from quantica.pricing.processes import BlackScholesProcess
+
+
+@runtime_checkable
+class PricingEngine(Protocol):
+    """Protocol for a numerical method that prices an instrument.
+
+    An engine is a small, stateless strategy object: it takes an instrument
+    and the market process and returns a present value. Keeping engines behind
+    this Protocol is what lets a single instrument be re-priced by swapping the
+    engine, which in turn makes cross-method convergence tests natural
+    (CLAUDE.md §4).
+    """
+
+    def calculate(
+        self,
+        instrument: EuropeanOption,
+        process: BlackScholesProcess,
+    ) -> float:
+        """Return the present value of ``instrument`` under ``process``."""
+        ...
+
+
+__all__ = ["PricingEngine"]
