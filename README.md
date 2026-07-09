@@ -42,6 +42,15 @@ option.npv(process)      # 10.4506  (Black–Scholes closed form)
 option.greeks(process)   # Greeks(delta=..., gamma=..., vega=..., theta=..., rho=...)
 ```
 
+Recover the volatility implied by a quoted price (Brent, with a vega-driven
+Newton fast path):
+
+```python
+from quantica import implied_volatility
+
+implied_volatility(10.4506, option, process)   # -> 0.2  (process.vol is ignored)
+```
+
 The same `option` will be re-priced by swapping the engine once the tree, MC,
 and PDE engines land — which is what makes the cross-method convergence test
 natural.
@@ -60,6 +69,11 @@ Every numerical method is validated as its own deliverable (see the
   `AnalyticEuropeanEngine` to `rtol≈1e-10`, using matched conventions
   (continuous compounding, `Actual/365`, `NullCalendar`). Run with
   `pytest -m benchmark`.
+
+The **implied-volatility solver** passes a price→IV→price round-trip and known-vol
+recovery across a wide grid of strikes, maturities, and vols (calls and puts),
+handles the no-solution cases (below intrinsic / above the upper bound) with
+clear errors, and agrees with QuantLib's implied-vol solver to `rtol≈1e-6`.
 
 The multi-engine convergence table (skill §6) is generated once a second engine
 exists.
