@@ -10,12 +10,16 @@ in later steps and attached to an instrument via ``set_engine``.
 from __future__ import annotations
 
 from quantica.core.types import OptionType
+from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
+from quantica.pricing.greeks import Greeks
 from quantica.pricing.instruments import EuropeanOption
 from quantica.pricing.processes import BlackScholesProcess
 
 __all__ = [
+    "AnalyticEuropeanEngine",
     "BlackScholesProcess",
     "EuropeanOption",
+    "Greeks",
     "OptionType",
 ]
 
