@@ -1,9 +1,10 @@
-"""QuantLib benchmark for the analytic engine — the effective challenge (skill §4).
+"""QuantLib benchmarks for the pricing engines — the effective challenge (skill §4).
 
-Independently re-priced against QuantLib's ``AnalyticEuropeanEngine``. We match
-QuantLib to ~1e-12 because both use the same continuous-compounding
-Black--Scholes--Merton model; the only care needed is aligning conventions so
-the year fraction is exactly ``T``:
+The analytic engine is re-priced against QuantLib's ``AnalyticEuropeanEngine``
+(price and all Greeks), and the CRR tree against QuantLib's own CRR
+``BinomialVanillaEngine``. We match QuantLib's analytic engine to ~1e-12 because
+both use the same continuous-compounding Black--Scholes--Merton model; the only
+care needed is aligning conventions so the year fraction is exactly ``T``:
 
 * ``Actual365Fixed`` day count with expiry set ``round(365*T)`` days out, so
   ``yearFraction == T`` exactly (no day-count drift);
@@ -12,7 +13,8 @@ the year fraction is exactly ``T``:
   our ``e^{-rT}`` / ``e^{-qT}`` discounting and continuous dividend yield.
 
 QuantLib's Greek conventions match ours: ``vega``/``rho`` are per unit (not per
-1%) and ``theta`` is per year (``VanillaOption.theta()``), so no rescaling.
+1%) and ``theta`` is per year (``VanillaOption.theta()``), so no rescaling. The
+two CRR trees differ only by an ``O(1/N)`` lattice-placement discrepancy.
 
 Run with ``pytest -m benchmark`` (needs the ``benchmark`` extra installed).
 """
@@ -23,6 +25,7 @@ import numpy as np
 import pytest
 from quantica.pricing import (
     AnalyticEuropeanEngine,
+    BinomialEngine,
     BlackScholesProcess,
     EuropeanOption,
     OptionType,
@@ -39,8 +42,8 @@ STRIKE, EXPIRY = 105.0, 1.0
 _EVAL_DATE = (15, 6, 2020)  # arbitrary; only relative dates matter
 
 
-def _ql_option(kind: OptionType):  # type: ignore[no-untyped-def]
-    """Build the QuantLib analytic European option matching our conventions."""
+def _ql_parts(kind: OptionType):  # type: ignore[no-untyped-def]
+    """Build the shared QuantLib payoff, exercise, and process for our conventions."""
     today = ql.Date(*_EVAL_DATE)
     ql.Settings.instance().evaluationDate = today
     day_count = ql.Actual365Fixed()
@@ -54,8 +57,13 @@ def _ql_option(kind: OptionType):  # type: ignore[no-untyped-def]
 
     ql_kind = ql.Option.Call if kind is OptionType.CALL else ql.Option.Put
     payoff = ql.PlainVanillaPayoff(ql_kind, STRIKE)
-    expiry_date = today + ql.Period(round(365 * EXPIRY), ql.Days)
-    exercise = ql.EuropeanExercise(expiry_date)
+    exercise = ql.EuropeanExercise(today + ql.Period(round(365 * EXPIRY), ql.Days))
+    return payoff, exercise, process
+
+
+def _ql_option(kind: OptionType):  # type: ignore[no-untyped-def]
+    """The QuantLib analytic European option."""
+    payoff, exercise, process = _ql_parts(kind)
     option = ql.VanillaOption(payoff, exercise)
     option.setPricingEngine(ql.AnalyticEuropeanEngine(process))
     return option
@@ -85,3 +93,24 @@ def test_greeks_match_quantlib(kind: OptionType) -> None:
     assert np.isclose(ours.vega, ql_opt.vega(), rtol=1e-10)
     assert np.isclose(ours.rho, ql_opt.rho(), rtol=1e-10)
     assert np.isclose(ours.theta, ql_opt.theta(), rtol=1e-10)
+
+
+_CRR_STEPS = 200
+
+
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_crr_matches_quantlib(kind: OptionType) -> None:
+    # Both are CRR trees converging to the same Black--Scholes price, but the
+    # two libraries place their lattices slightly differently, so at finite N
+    # they agree only to an O(1/N) grid difference (~8e-5 at N=200). Convergence
+    # to the analytic price itself is covered in test_binomial.py.
+    proc = BlackScholesProcess(spot=SPOT, rate=RATE, div=DIV, vol=VOL)
+    option = EuropeanOption(strike=STRIKE, expiry=EXPIRY, option_type=kind)
+    ours = BinomialEngine(steps=_CRR_STEPS).calculate(option, proc)
+
+    payoff, exercise, process = _ql_parts(kind)
+    ql_option = ql.VanillaOption(payoff, exercise)
+    ql_option.setPricingEngine(ql.BinomialVanillaEngine(process, "crr", _CRR_STEPS))
+    theirs = ql_option.NPV()
+
+    assert abs(ours - theirs) < 5e-4
