@@ -12,6 +12,7 @@ from __future__ import annotations
 from quantica.core.types import OptionType
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
 from quantica.pricing.engines.binomial import BinomialEngine
+from quantica.pricing.engines.finitediff import FiniteDifferenceEngine
 from quantica.pricing.engines.montecarlo import MCResult, MonteCarloEngine
 from quantica.pricing.greeks import Greeks
 from quantica.pricing.instruments import EuropeanOption
@@ -23,6 +24,7 @@ __all__ = [
     "BinomialEngine",
     "BlackScholesProcess",
     "EuropeanOption",
+    "FiniteDifferenceEngine",
     "Greeks",
     "MCResult",
     "MonteCarloEngine",
