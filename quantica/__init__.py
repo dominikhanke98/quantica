@@ -15,6 +15,7 @@ from quantica.pricing.engines.asian import AsianMonteCarloEngine, geometric_asia
 from quantica.pricing.engines.barrier import BarrierMonteCarloEngine, barrier_price
 from quantica.pricing.engines.binomial import BinomialEngine
 from quantica.pricing.engines.finitediff import FiniteDifferenceEngine
+from quantica.pricing.engines.heston import HestonFFTEngine, heston_characteristic_function
 from quantica.pricing.engines.lsm import LongstaffSchwartzEngine
 from quantica.pricing.engines.montecarlo import MCResult, MonteCarloEngine
 from quantica.pricing.greeks import Greeks
@@ -43,6 +44,7 @@ __all__ = [
     "ExerciseStyle",
     "FiniteDifferenceEngine",
     "Greeks",
+    "HestonFFTEngine",
     "HestonProcess",
     "LongstaffSchwartzEngine",
     "MCResult",
@@ -52,6 +54,7 @@ __all__ = [
     "VanillaOption",
     "barrier_price",
     "geometric_asian_price",
+    "heston_characteristic_function",
     "implied_volatility",
 ]
 
