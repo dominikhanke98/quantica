@@ -6,8 +6,8 @@ Running state file for `quantica`. Updated at the end of each working session
 **Current phase:** Phase 1 pricing core complete (European options, four ways).
 Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
 
-Phase-4 roadmap: **American ✓** → **LSM ✓** → exotics (path-dependent MC: Asian,
-barrier) → Heston + calibration → Merton jump-diffusion.
+Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** (path-dependent MC:
+Asian, barrier) → Heston + calibration → Merton jump-diffusion.
 
 ## Completed
 
@@ -62,16 +62,26 @@ barrier) → Heston + calibration → Merton jump-diffusion.
   recovers more value); no-dividend call recovers European; SE ~ 1/√n; seeded
   determinism.
 
-## Next — Phase 4, step 3: exotics (path-dependent Monte Carlo)
+- **Phase 4, step 3 — path-dependent exotics** — `GBMPathSimulator`
+  (`engines/_paths.py`) extracted from LSM (shared full-path GBM + antithetic;
+  LSM behaviour unchanged). **Asian** (`engines/asian.py`): `geometric_asian_price`
+  closed form (QuantLib-exact with aligned dates); `AsianMonteCarloEngine` prices
+  arithmetic/geometric, with the geometric payoff as a control variate for the
+  arithmetic price (VRF ~880×). **Barrier** (`engines/barrier.py`): `barrier_price`
+  Reiner–Rubinstein closed form (QuantLib-exact, all 8 types); `BarrierMonteCarloEngine`
+  with discrete monitoring and an optional Brownian-bridge correction. Validated:
+  geometric MC↔closed form (3 SE); discrete-monitoring bias direction + shrinkage;
+  bridge recovers the continuous price and beats discrete at fixed step count;
+  in-out parity exact.
 
-- Reuse the LSM full-path GBM simulator to price **Asian** (arithmetic-average)
-  and **barrier** (knock-in/out) options by Monte Carlo; validate against
-  QuantLib's analytic/MC engines where available and against closed forms where
-  they exist (geometric-average Asian has one; barrier options have Reiner–Rubinstein
-  formulas).
-- Consider extracting the GBM path simulator (currently inside `lsm.py`) into a
-  shared helper once this second consumer lands (§2.6, extract on second use).
-- Then (roadmap): Heston + calibration → Merton jump-diffusion.
+## Next — Phase 4, step 4: Heston stochastic volatility + calibration
+
+- Heston model (`HestonProcess`): CIR variance; price European options via the
+  Carr–Madan FFT / characteristic-function integral; validate against QuantLib's
+  `AnalyticHestonEngine`.
+- Calibration: fit Heston params to a vanilla implied-vol surface (least squares
+  over the closed-form prices); report fit quality; reuse `implied_volatility`.
+- Then (roadmap): Merton jump-diffusion.
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
   surface, convergence table. Thin UI over the tested core; zero pricing logic in

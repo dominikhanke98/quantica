@@ -19,7 +19,9 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > (`max(continuation, intrinsic)`; the PDE as a linear complementarity problem
 > solved by PSOR), joined by **Longstaff–Schwartz Monte Carlo** — cross-validated
 > against each other and QuantLib and by exact structural theorems, since there is
-> no closed form.
+> no closed form. And **path-dependent exotics** — Asian options (with a
+> geometric-average control variate) and barrier options (with the discrete-monitoring
+> bias corrected by a Brownian bridge).
 
 ## Architecture
 
@@ -212,6 +214,42 @@ The validation strategy adapts to the missing analytic reference:
 
 The analytic and terminal-only Monte Carlo engines cleanly reject American
 options (the latter directing to LSM).
+
+### Path-dependent exotics — Asian and barrier options
+
+Two path-dependent families are priced by Monte Carlo over a shared exact-GBM
+path simulator (no path-discretisation bias), each with a highlighted validation
+idea.
+
+**Asian (average-price) options.** The payoff is on the *average* of the
+underlying. The **geometric** average is lognormal, so it has a closed form
+([`geometric_asian_price`](quantica/pricing/engines/asian.py), matched to
+QuantLib to machine precision) — the analytic anchor. The **arithmetic** average
+has no closed form, so it is priced by Monte Carlo.
+
+> **Highlighted insight — a control variate motivated by finance.** The
+> arithmetic and geometric averages of the *same* path are almost perfectly
+> correlated, and the geometric payoff's mean is known exactly (its closed form).
+> Using it as a control variate for the arithmetic price gives a **measured
+> variance-reduction factor of ~880×** — the standard error drops by ~30× at the
+> same path count. Unlike a generic control, this one comes from a real
+> relationship between two traded contracts.
+
+**Barrier options (knock-in / knock-out).** The vanilla payoff is switched on or
+off if the underlying touches a barrier. The continuous-monitoring price is the
+Reiner–Rubinstein closed form ([`barrier_price`](quantica/pricing/engines/barrier.py),
+matched to QuantLib to machine precision across all eight types), but a real
+contract is *discretely* monitored.
+
+> **Highlighted insight — the discrete-monitoring bias, named and corrected.**
+> Discrete Monte Carlo misses barrier crossings *between* observation dates, so
+> it under-detects hits: a knock-out is biased **high**, a knock-in **low**. The
+> bias shrinks as monitoring frequency rises. Rather than only brute-forcing more
+> steps, the **Brownian-bridge correction** analytically restores each step's
+> continuous crossing probability — at 50 steps it cuts the knock-out bias from
+> **≈ 24 standard errors to under 1**, recovering the continuous price. In-out
+> parity (knock-in + knock-out = vanilla) holds exactly on shared paths as a
+> structural check.
 
 ## Development
 
