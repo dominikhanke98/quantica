@@ -50,11 +50,6 @@ class GBMPathSimulator:
         self.rng = rng
         self.antithetic = antithetic
 
-    @property
-    def n_samples(self) -> int:
-        """Number of independent samples (halved under antithetic pairing)."""
-        return self.n_paths // 2 if self.antithetic else self.n_paths
-
     def draw_normals(self, n_steps: int) -> FloatArray:
         """Standard normals of shape ``(n_paths, n_steps)`` (antithetic mirrors rows)."""
         if self.antithetic:

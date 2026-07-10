@@ -156,3 +156,16 @@ def test_asian_instrument_validation() -> None:
             averaging=AveragingType.ARITHMETIC,
             n_averaging_dates=0,
         )
+
+
+def test_asian_is_european_exercise() -> None:
+    from quantica.core.types import ExerciseStyle
+
+    assert (
+        _asian(100.0, OptionType.CALL, AveragingType.ARITHMETIC).exercise is ExerciseStyle.EUROPEAN
+    )
+
+
+def test_engine_rejects_too_few_paths() -> None:
+    with pytest.raises(ValueError, match="n_paths must be at least 2"):
+        AsianMonteCarloEngine(1, rng=np.random.default_rng(0))

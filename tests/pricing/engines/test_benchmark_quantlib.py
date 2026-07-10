@@ -30,11 +30,13 @@ import pytest
 from quantica.pricing import (
     AmericanOption,
     AnalyticEuropeanEngine,
+    BarrierType,
     BinomialEngine,
     BlackScholesProcess,
     EuropeanOption,
     FiniteDifferenceEngine,
     OptionType,
+    barrier_price,
     geometric_asian_price,
 )
 
@@ -236,3 +238,28 @@ def test_geometric_asian_matches_quantlib(kind: OptionType) -> None:
     option.setPricingEngine(ql.AnalyticDiscreteGeometricAveragePriceAsianEngine(process))
 
     assert np.isclose(ours, option.NPV(), rtol=1e-12, atol=1e-12)
+
+
+# --------------------------------------------------------------------------- #
+# Reiner--Rubinstein barrier closed form vs QuantLib's AnalyticBarrierEngine
+# --------------------------------------------------------------------------- #
+
+_QL_BARRIER = {
+    BarrierType.DOWN_AND_OUT: (ql.Barrier.DownOut, 90.0),
+    BarrierType.DOWN_AND_IN: (ql.Barrier.DownIn, 90.0),
+    BarrierType.UP_AND_OUT: (ql.Barrier.UpOut, 120.0),
+    BarrierType.UP_AND_IN: (ql.Barrier.UpIn, 120.0),
+}
+
+
+@pytest.mark.parametrize("barrier_type", list(_QL_BARRIER))
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_barrier_closed_form_matches_quantlib(barrier_type: BarrierType, kind: OptionType) -> None:
+    ql_barrier, level = _QL_BARRIER[barrier_type]
+    ours = barrier_price(SPOT, STRIKE, level, RATE, DIV, VOL, EXPIRY, barrier_type, kind)
+
+    payoff, exercise, process = _ql_parts(kind)
+    ql_option = ql.BarrierOption(ql_barrier, level, 0.0, payoff, exercise)
+    ql_option.setPricingEngine(ql.AnalyticBarrierEngine(process))
+
+    assert np.isclose(ours, ql_option.NPV(), rtol=1e-11, atol=1e-11)

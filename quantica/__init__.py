@@ -12,6 +12,7 @@ from __future__ import annotations
 from quantica.core.types import AveragingType, BarrierType, ExerciseStyle, OptionType
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
 from quantica.pricing.engines.asian import AsianMonteCarloEngine, geometric_asian_price
+from quantica.pricing.engines.barrier import BarrierMonteCarloEngine, barrier_price
 from quantica.pricing.engines.binomial import BinomialEngine
 from quantica.pricing.engines.finitediff import FiniteDifferenceEngine
 from quantica.pricing.engines.lsm import LongstaffSchwartzEngine
@@ -33,6 +34,7 @@ __all__ = [
     "AsianMonteCarloEngine",
     "AsianOption",
     "AveragingType",
+    "BarrierMonteCarloEngine",
     "BarrierOption",
     "BarrierType",
     "BinomialEngine",
@@ -46,6 +48,7 @@ __all__ = [
     "MonteCarloEngine",
     "OptionType",
     "VanillaOption",
+    "barrier_price",
     "geometric_asian_price",
     "implied_volatility",
 ]
