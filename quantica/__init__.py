@@ -13,6 +13,7 @@ from quantica.core.types import ExerciseStyle, OptionType
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
 from quantica.pricing.engines.binomial import BinomialEngine
 from quantica.pricing.engines.finitediff import FiniteDifferenceEngine
+from quantica.pricing.engines.lsm import LongstaffSchwartzEngine
 from quantica.pricing.engines.montecarlo import MCResult, MonteCarloEngine
 from quantica.pricing.greeks import Greeks
 from quantica.pricing.instruments import AmericanOption, EuropeanOption, VanillaOption
@@ -28,6 +29,7 @@ __all__ = [
     "ExerciseStyle",
     "FiniteDifferenceEngine",
     "Greeks",
+    "LongstaffSchwartzEngine",
     "MCResult",
     "MonteCarloEngine",
     "OptionType",
