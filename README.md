@@ -9,13 +9,15 @@ The narrative is deliberately that of *model validation*: every numerical
 method is cross-checked against at least one other method and, where a
 reference exists, benchmarked against QuantLib within a stated tolerance.
 
-> **Status:** Phase 1 (derivatives pricing) in progress. Implemented so far: the
-> pricing primitives (option contract, Black–Scholes market process, engine
-> interface), an implied-volatility solver, and **all four engines — the analytic
-> Black–Scholes pricer (price + Greeks), the CRR binomial tree, a Monte Carlo
-> engine with variance reduction, and a Crank–Nicolson PDE solver** — cross-validated
-> for convergence and benchmarked against QuantLib. The four-way cross-method
-> convergence test is next.
+> **Status:** Phase 1 (European derivatives pricing) core complete: the pricing
+> primitives, an implied-volatility solver, and **four engines — analytic
+> Black–Scholes (price + Greeks), CRR binomial tree, Monte Carlo with variance
+> reduction, and a Crank–Nicolson PDE solver** — cross-validated four ways and
+> benchmarked against QuantLib. Now in a **derivatives-deepening track** (Phase 4,
+> ahead of the portfolio/risk phases): first up, **American options** — the tree
+> and PDE generalize to early exercise (`max(continuation, intrinsic)`; the PDE
+> as a linear complementarity problem solved by PSOR), validated against QuantLib
+> and by exact structural theorems since there is no closed form.
 
 ## Architecture
 
@@ -158,6 +160,34 @@ and Monte Carlo within ~3 standard errors — and the QuantLib benchmarks
 independently reconcile each engine against an industry reference. Independent
 reimplementation plus benchmarking *is* model validation; this table and test
 are that argument in miniature.
+
+### American options — validating without a closed form
+
+American options (early exercise permitted any time before expiry) have **no
+closed-form price**, so Black–Scholes can no longer be the anchor. The
+generalization is deliberately minimal — the lattice takes
+`max(continuation, intrinsic)` at each node, and the PDE becomes a linear
+complementarity problem (`V ≥ intrinsic`) solved per time step by projected SOR
+on the *same* Crank–Nicolson tridiagonal system. The validation strategy adapts:
+
+- **Cross-method** — the tree and the PDE agree on the American price to their
+  combined discretisation tolerance (≈ 2 × 10⁻³ at N = 2000 / 300×300 grid).
+- **QuantLib benchmark** — matched against QuantLib's American CRR engine
+  (agreement ≈ 3 × 10⁻⁵) and its American finite-difference engine (≈ 10⁻³),
+  behind `-m benchmark`.
+- **Exact structural theorems** (the strongest checks available without an
+  analytic price):
+  - *No-dividend American call = European call.* Early exercise of a call on a
+    non-dividend-paying stock is never optimal, so on a given engine the two
+    prices are **identical to machine/solver precision** — the tree never takes
+    the intrinsic branch and the PDE obstacle never binds. This is a sharp,
+    zero-tolerance correctness check.
+  - *Early-exercise premium ≥ 0.* American ≥ European on the same engine/grid
+    (no discretisation slack), for both puts and calls, with the American put
+    showing a strictly positive premium.
+
+The analytic and Monte Carlo engines cleanly reject American options (the latter
+awaits a Longstaff–Schwartz regression scheme).
 
 ## Development
 

@@ -3,7 +3,12 @@
 Running state file for `quantica`. Updated at the end of each working session
 (see CLAUDE.md §"Session close-out"). Concise and factual.
 
-**Current phase:** Phase 1 — Derivatives pricing (European options, four ways).
+**Current phase:** Phase 1 pricing core complete (European options, four ways).
+Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
+
+Phase-4 roadmap: **American (done)** → Longstaff–Schwartz LSM (American via MC)
+→ exotics (path-dependent MC: Asian, barrier) → Heston stochastic vol +
+calibration → Merton jump-diffusion.
 
 ## Completed
 
@@ -39,16 +44,29 @@ Running state file for `quantica`. Updated at the end of each working session
 - **Convergence table** — `scripts/convergence_table.py` (seeded, reproducible),
   spans analytic / CRR / MC / PDE; embedded verbatim in the README, which frames
   it as the effective-challenge centrepiece.
+- **Phase 4, step 1 — American options** — `ExerciseStyle` enum; `VanillaOption`
+  base with `EuropeanOption` / `AmericanOption` subclasses (shared payoff + engine
+  seam). `BinomialEngine` early exercise via `max(continuation, intrinsic)`;
+  `FiniteDifferenceEngine` via the LCP (projected SOR on the CN tridiagonal
+  system). Analytic + MC engines reject American. Validated by tree↔PDE
+  cross-agreement, QuantLib American benchmarks, and exact theorems
+  (no-dividend American call = European to machine precision; premium ≥ 0).
 
 ## Next
 
-- **Step 8 — thin Streamlit + Plotly app** (`apps/pricing_app.py`), built last:
-  sliders → live price, Greek profiles, implied-vol surface, the convergence
-  table figure. Thin UI over the tested core — zero pricing logic in `apps/`.
+- **Phase 4, step 2 — Longstaff–Schwartz LSM**: American via Monte Carlo
+  (regression on in-the-money continuation values); validate against the tree/PDE
+  American prices already in place.
+- Then: exotics (path-dependent MC — Asian, barrier) → Heston + calibration →
+  Merton jump-diffusion (see roadmap at top).
+- **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
+  (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
+  surface, convergence table. Thin UI over the tested core; zero pricing logic in
+  `apps/`.
 
-Phase-1 pricing core (steps 1–7) is complete; the app is the remaining Phase-1
-deliverable. Note the documented Rannacher/L-stability caveat in
-`finitediff.py` if PDE Greeks are ever added.
+Note the documented Rannacher/L-stability caveat in `finitediff.py` if PDE Greeks
+are ever added; the American PDE uses PSOR (Brennan–Schwartz would be a faster
+direct alternative for vanillas).
 
 ## Open design notes
 
