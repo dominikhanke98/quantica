@@ -143,6 +143,22 @@ error quarters each time the grid doubles (`O(h²)`), while the Monte Carlo erro
 is statistical, bounded by its standard error, which the variance-reduction
 techniques shrink (VRF = variance-reduction factor vs naive at equal path count).
 
+**Why this is the effective challenge.** The four methods derive from genuinely
+independent mathematical foundations — a closed-form integral (analytic), a
+discrete no-arbitrage lattice (CRR tree), a finite-difference solve of the
+governing PDE (Crank–Nicolson), and stochastic sampling of the terminal
+distribution (Monte Carlo). They share no code path, yet they converge to the
+*same* price, each at its characteristic error order. That agreement is the
+evidence that the implementation is correct: a bug in any one engine would break
+the consensus rather than hide in it. The
+[four-way cross-method test](tests/pricing/test_cross_method.py) enforces this
+across strikes, maturities, and calls/puts with a non-zero dividend yield —
+anchoring CRR and PDE to the analytic price within their discretisation bounds
+and Monte Carlo within ~3 standard errors — and the QuantLib benchmarks
+independently reconcile each engine against an industry reference. Independent
+reimplementation plus benchmarking *is* model validation; this table and test
+are that argument in miniature.
+
 ## Development
 
 ```bash

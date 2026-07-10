@@ -30,15 +30,25 @@ Running state file for `quantica`. Updated at the end of each working session
   log-price grid, CN scheme, tridiagonal solve; second-order `O(h²)` convergence
   verified by a log-log slope of ≈ −2; parity up to discretisation; QuantLib FD
   benchmark.
+- **Step 7 — four-way cross-method convergence test** —
+  `tests/pricing/test_cross_method.py`: prices the same option under all four
+  engines across strikes / maturities / call-put with non-zero dividend, each
+  anchored to analytic to a justified per-method tolerance (CRR `O(1/N)` < 2e-3
+  at N=2000; PDE `O(h²)` < 1.5e-3 at 500×500; MC within 3 SE, seeded). Completes
+  the derivatives-pricing core.
 - **Convergence table** — `scripts/convergence_table.py` (seeded, reproducible),
-  now spans analytic / CRR / MC / PDE; output embedded verbatim in the README.
+  spans analytic / CRR / MC / PDE; embedded verbatim in the README, which frames
+  it as the effective-challenge centrepiece.
 
 ## Next
 
-- **Step 7 — four-way cross-method convergence test**: assert analytic / CRR /
-  MC / PDE all agree on one instrument within stated tolerances (single test
-  tying the engines together). All four pricers now exist.
-- **Step 8 — thin Streamlit + Plotly app** (`apps/pricing_app.py`), built last.
+- **Step 8 — thin Streamlit + Plotly app** (`apps/pricing_app.py`), built last:
+  sliders → live price, Greek profiles, implied-vol surface, the convergence
+  table figure. Thin UI over the tested core — zero pricing logic in `apps/`.
+
+Phase-1 pricing core (steps 1–7) is complete; the app is the remaining Phase-1
+deliverable. Note the documented Rannacher/L-stability caveat in
+`finitediff.py` if PDE Greeks are ever added.
 
 ## Open design notes
 
