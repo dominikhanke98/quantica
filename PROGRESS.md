@@ -76,11 +76,37 @@ Asian, barrier) → Heston + calibration → Merton jump-diffusion.
 
 ## Next — Phase 4, step 4: Heston stochastic volatility + calibration
 
-- Heston model (`HestonProcess`): CIR variance; price European options via the
-  Carr–Madan FFT / characteristic-function integral; validate against QuantLib's
+Enough of the plan to resume cold:
+
+- **Process abstraction generalizes (resolves the ignored-vol TODO).** Heston
+  adds a *second stochastic factor* — the variance follows CIR
+  `dv = κ(θ − v)dt + ξ√v dW₂`, correlated (ρ) with spot. `BlackScholesProcess`
+  can no longer be *the* market carrier, so introduce a `HestonProcess` (params:
+  `v0, kappa, theta, xi, rho`) and factor out a common market carrier
+  (`spot, rate, div`) from the vol/variance dynamics. **This is where the
+  long-deferred "ignored-vol market carrier" note below finally has enough
+  information to be resolved** — a `Market`/quote type carrying only
+  `spot, rate, div`, with each process owning its own vol/variance parameters,
+  is the natural shape once a non-BS process exists. Keep the engine seam
+  (`instrument.set_engine(...).npv(process)`) intact.
+- **Pricing via the characteristic function.** Heston has a closed-form
+  characteristic function; price European options by the Carr–Madan FFT (or the
+  Gil-Pelaez / Lewis single-integral form). Watch the well-known CF branch-cut
+  issue — use the "little Heston trap" (Albrecher et al.) formulation of the
+  complex square root for numerical stability. Validate against QuantLib's
   `AnalyticHestonEngine`.
-- Calibration: fit Heston params to a vanilla implied-vol surface (least squares
-  over the closed-form prices); report fit quality; reuse `implied_volatility`.
+- **Sanity limit — reduces to Black–Scholes.** With `xi → 0` (deterministic
+  variance) and `v0 = theta = σ²`, the Heston price must collapse to the
+  Black–Scholes price; assert this to tight tolerance (the free structural check,
+  analogous to the no-dividend-call theorem for American).
+- **Calibration** as nonlinear least squares: fit `(v0, kappa, theta, xi, rho)`
+  to a vanilla implied-vol surface by minimizing squared error over the CF prices
+  (`scipy.optimize.least_squares`); reuse the step-3 `implied_volatility` solver
+  to move between price and IV. **Name the caveats rather than hide them:**
+  parameter identifiability is weak (κ and θ trade off; ξ and ρ both shape the
+  smile/skew), so report fit quality and parameter stability, and respect the
+  **Feller condition** `2κθ ≥ ξ²` (variance stays positive) — flag when a fit
+  violates it.
 - Then (roadmap): Merton jump-diffusion.
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
@@ -93,12 +119,14 @@ direct alternative for vanillas).
 
 ## Open design notes
 
-- **Ignored-vol market carrier (TODO).** `implied_volatility` and
-  `MonteCarloEngine`/tests take a `BlackScholesProcess` whose `vol` is a
-  placeholder in IV's case (the unknown being solved for). It's documented and
-  tested (answer independent of the passed vol), but the `vol=…` argument reads
-  oddly. Consider a dedicated market/quote type carrying only `spot, rate, div`,
-  or a `process.without_vol()` view — revisit if a third consumer appears.
+- **Ignored-vol market carrier (TODO — resolve at Heston, step 4).**
+  `implied_volatility` and `MonteCarloEngine`/tests take a `BlackScholesProcess`
+  whose `vol` is a placeholder in IV's case (the unknown being solved for). It's
+  documented and tested (answer independent of the passed vol), but the `vol=…`
+  argument reads oddly. Deliberately deferred until a *second* process type
+  exists: Heston (step 4) introduces `HestonProcess`, which is the natural point
+  to factor a `Market`/quote carrier (`spot, rate, div`) out of the vol/variance
+  dynamics. See the Heston plan under "Next".
 - **`estimate()` vs `npv` for MC stats.** The standard error is exposed via
   `MonteCarloEngine.estimate()` rather than threading a stats flag through the
   generic `npv`/`PricingEngine` seam. Deliberate; revisit only if other engines
