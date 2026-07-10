@@ -6,9 +6,9 @@ Running state file for `quantica`. Updated at the end of each working session
 **Current phase:** Phase 1 pricing core complete (European options, four ways).
 Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
 
-Phase-4 roadmap: **American (done)** → Longstaff–Schwartz LSM (American via MC)
-→ exotics (path-dependent MC: Asian, barrier) → Heston stochastic vol +
-calibration → Merton jump-diffusion.
+Phase-4 roadmap: **American ✓** → LSM (Longstaff–Schwartz, American via MC) →
+exotics (path-dependent MC: Asian, barrier) → Heston + calibration → Merton
+jump-diffusion.
 
 ## Completed
 
@@ -52,13 +52,33 @@ calibration → Merton jump-diffusion.
   cross-agreement, QuantLib American benchmarks, and exact theorems
   (no-dividend American call = European to machine precision; premium ≥ 0).
 
-## Next
+## Next — Phase 4, step 2: Longstaff–Schwartz Monte Carlo (LSM)
 
-- **Phase 4, step 2 — Longstaff–Schwartz LSM**: American via Monte Carlo
-  (regression on in-the-money continuation values); validate against the tree/PDE
-  American prices already in place.
-- Then: exotics (path-dependent MC — Asian, barrier) → Heston + calibration →
-  Merton jump-diffusion (see roadmap at top).
+American exercise by simulation. Enough of the plan to resume cold:
+
+- **Reference/validation**: LSM prices validate against the **existing American
+  tree/PDE prices** (already in place, QuantLib-benchmarked) — no new oracle
+  needed.
+- **Algorithm**: simulate full GBM paths; step backward through exercise dates;
+  at each date regress the (discounted) continuation value on a basis of the
+  spot, **using in-the-money paths only** (out-of-money paths carry no exercise
+  decision and only add regression noise); exercise where immediate intrinsic >
+  fitted continuation; value each path by its **realized cashflow** along the
+  resulting policy (not the fitted continuation).
+- **Correctness signature**: realized-cashflow LSM is a **low-bias lower-bound**
+  estimator (a sub-optimal exercise policy can only under-value). So LSM landing
+  **at or slightly below** the tree/PDE reference (within a few standard errors)
+  is the *expected* result — a small negative gap is correct, not a bug. Report
+  the standard error and judge against it, per the MC discipline already used.
+- **API**: configurable basis functions (e.g. polynomial degree, default a few
+  monomials in S); reuses the seeded-`Generator` / antithetic machinery.
+- **Engine work**: needs **full-path** GBM simulation — the current
+  `MonteCarloEngine` simulates the *terminal* price only, so add a path
+  simulator (time grid of exercise dates) either by extending it or in a sibling
+  LSM engine. Keep the terminal-only European fast path intact.
+
+- Then (roadmap): exotics (path-dependent MC — Asian, barrier) → Heston +
+  calibration → Merton jump-diffusion.
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
   surface, convergence table. Thin UI over the tested core; zero pricing logic in
