@@ -85,6 +85,11 @@ Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Hest
   reduces to Black–Scholes as xi→0 (~2e-7, the featured anchor); CF correct at
   t=0 / u=0; put–call parity; arbitrage-free monotonicity; alpha/grid stability;
   QuantLib AnalyticHestonEngine benchmark (~1e-7, integer-day maturities).
+  Short-maturity diagnostic: an apparent ~1.9e-2 "error" at T=0.1 was a day-count
+  artifact (round(365·0.1)=36 days ≈ 0.0986 yr); an independent scipy-quadrature
+  truth confirmed our FFT is exact to ~1e-13 there, i.e. more accurate than
+  QuantLib's *default* AnalyticHestonEngine at short expiry — so benchmarks use
+  integer-day maturities to align conventions.
 
 ## Next — Phase 4, step 4c: Heston calibration
 
