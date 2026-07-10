@@ -23,7 +23,7 @@ from quantica.pricing.instruments import (
     EuropeanOption,
     VanillaOption,
 )
-from quantica.pricing.processes import BlackScholesProcess
+from quantica.pricing.processes import BlackScholesProcess, HestonProcess, Market
 from quantica.pricing.volatility import implied_volatility
 
 __all__ = [
@@ -41,8 +41,10 @@ __all__ = [
     "ExerciseStyle",
     "FiniteDifferenceEngine",
     "Greeks",
+    "HestonProcess",
     "LongstaffSchwartzEngine",
     "MCResult",
+    "Market",
     "MonteCarloEngine",
     "OptionType",
     "VanillaOption",

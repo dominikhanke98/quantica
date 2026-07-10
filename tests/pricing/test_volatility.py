@@ -23,18 +23,19 @@ from quantica.pricing import (
     AnalyticEuropeanEngine,
     BlackScholesProcess,
     EuropeanOption,
+    Market,
     OptionType,
     implied_volatility,
 )
 
 ENGINE = AnalyticEuropeanEngine()
 
-# A market whose vol field is a placeholder — the solver ignores it.
-MARKET = BlackScholesProcess(spot=100.0, rate=0.05, div=0.02, vol=0.0)
+# The solver takes just a Market (spot, rate, div) — volatility is the unknown.
+MARKET = Market(spot=100.0, rate=0.05, div=0.02)
 
 
-def _price(option: EuropeanOption, sigma: float, market: BlackScholesProcess = MARKET) -> float:
-    return ENGINE.calculate(option, market.with_vol(sigma))
+def _price(option: EuropeanOption, sigma: float, market: Market = MARKET) -> float:
+    return ENGINE.calculate(option, BlackScholesProcess.from_market(market, sigma))
 
 
 # --------------------------------------------------------------------------- #
@@ -64,7 +65,7 @@ def test_price_iv_price_round_trip(
 
     # Recovering the volatility itself is only well-posed where vega is not
     # vanishing; elsewhere many vols give the same (bound-pinned) price.
-    vega = ENGINE.greeks(option, MARKET.with_vol(sigma)).vega
+    vega = ENGINE.greeks(option, BlackScholesProcess.from_market(MARKET, sigma)).vega
     if vega >= _IDENTIFIABLE_VEGA:
         assert iv == pytest.approx(sigma, rel=1e-6, abs=1e-7)
 
@@ -73,16 +74,6 @@ def test_recovers_known_volatility() -> None:
     option = EuropeanOption(strike=100.0, expiry=1.0, option_type=OptionType.CALL)
     target = _price(option, 0.2)  # 10.4506-ish family with dividends
     assert implied_volatility(target, option, MARKET) == pytest.approx(0.2, rel=1e-9)
-
-
-def test_ignores_process_vol_field() -> None:
-    # The same answer regardless of the (ignored) vol carried by the process.
-    option = EuropeanOption(strike=110.0, expiry=1.0, option_type=OptionType.CALL)
-    target = _price(option, 0.3)
-    a = implied_volatility(target, option, MARKET.with_vol(0.0))
-    b = implied_volatility(target, option, MARKET.with_vol(0.999))
-    assert a == pytest.approx(b, rel=1e-12)
-    assert a == pytest.approx(0.3, rel=1e-8)
 
 
 # --------------------------------------------------------------------------- #
@@ -193,9 +184,9 @@ ql = pytest.importorskip("QuantLib")
 def test_implied_vol_matches_quantlib(kind: OptionType, sigma: float) -> None:
     spot, rate, div = 100.0, 0.05, 0.02
     strike, expiry = 105.0, 1.0
-    market = BlackScholesProcess(spot=spot, rate=rate, div=div, vol=0.0)
+    market = Market(spot=spot, rate=rate, div=div)
     option = EuropeanOption(strike=strike, expiry=expiry, option_type=kind)
-    target = ENGINE.calculate(option, market.with_vol(sigma))
+    target = ENGINE.calculate(option, BlackScholesProcess.from_market(market, sigma))
     ours = implied_volatility(target, option, market)
 
     today = ql.Date(15, 6, 2020)

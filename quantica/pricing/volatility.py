@@ -35,10 +35,11 @@ from scipy.optimize import brentq
 
 from quantica.core.types import OptionType
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
+from quantica.pricing.processes import BlackScholesProcess
 
 if TYPE_CHECKING:
     from quantica.pricing.instruments import EuropeanOption
-    from quantica.pricing.processes import BlackScholesProcess
+    from quantica.pricing.processes import Market
 
 __all__ = ["implied_volatility"]
 
@@ -59,7 +60,7 @@ _ENGINE = AnalyticEuropeanEngine()
 def implied_volatility(
     price: float,
     option: EuropeanOption,
-    process: BlackScholesProcess,
+    market: Market,
     *,
     tol: float = _DEFAULT_PRICE_TOL,
     max_iter: int = _DEFAULT_MAX_ITER,
@@ -73,10 +74,9 @@ def implied_volatility(
         Observed option price to invert.
     option : EuropeanOption
         The contract (strike, expiry, call/put).
-    process : BlackScholesProcess
-        The market state. Its ``spot``, ``rate`` and ``div`` are used; **its
-        ``vol`` is ignored** — volatility is precisely the unknown being solved
-        for.
+    market : Market
+        The market state (spot, rate, dividend). Volatility is precisely the
+        unknown being solved for, so — unlike a pricing call — no vol is passed.
     tol : float, optional
         Convergence tolerance on the absolute price residual.
     max_iter : int, optional
@@ -98,10 +98,10 @@ def implied_volatility(
         band (below discounted intrinsic, or at/above the upper bound), so that
         no finite positive implied volatility exists.
     """
-    S = process.spot
+    S = market.spot
     K = option.strike
-    r = process.rate
-    q = process.div
+    r = market.rate
+    q = market.div
     T = option.expiry
 
     if T <= 0.0:
@@ -134,10 +134,10 @@ def implied_volatility(
         )
 
     def price_at(sigma: float) -> float:
-        return _ENGINE.calculate(option, process.with_vol(sigma))
+        return _ENGINE.calculate(option, BlackScholesProcess.from_market(market, sigma))
 
     def vega_at(sigma: float) -> float:
-        return _ENGINE.greeks(option, process.with_vol(sigma)).vega
+        return _ENGINE.greeks(option, BlackScholesProcess.from_market(market, sigma)).vega
 
     # Establish a bracket [lo, hi] with price_at(lo) < price < price_at(hi).
     # price_at(_VOL_FLOOR) ~ lower < price holds by the checks above.
