@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """Generate the European-option convergence table for the README.
 
-Prices one canonical European call three ways — the analytic Black--Scholes
-engine, the CRR binomial engine at a range of step counts, and the Monte Carlo
-engine (naive and with variance reduction) — and prints a GitHub-flavoured
-Markdown table of prices and absolute errors against the analytic reference.
+Prices one canonical European call four ways — the analytic Black--Scholes
+engine, the CRR binomial engine at a range of step counts, the Crank--Nicolson
+PDE engine at a range of grid resolutions, and the Monte Carlo engine (naive and
+with variance reduction) — and prints a GitHub-flavoured Markdown table of prices
+and absolute errors against the analytic reference.
 
 The Monte Carlo rows use an explicit, seeded ``numpy.random.Generator`` (never
 the global RNG), so the whole table reproduces byte-for-byte on every run; the
@@ -23,6 +24,7 @@ from quantica.pricing import (
     BinomialEngine,
     BlackScholesProcess,
     EuropeanOption,
+    FiniteDifferenceEngine,
     MonteCarloEngine,
     OptionType,
 )
@@ -35,6 +37,7 @@ VOL = 0.20
 STRIKE = 100.0
 EXPIRY = 1.0
 STEP_COUNTS = (10, 50, 100, 500, 1000, 5000)
+PDE_GRIDS = (50, 100, 200, 400)  # space steps == time steps
 MC_PATHS = 1_000_000
 MC_SEED = 20240709
 
@@ -59,6 +62,12 @@ def main() -> None:
     for n in STEP_COUNTS:
         price = BinomialEngine(steps=n).calculate(option, process)
         rows.append((f"Binomial CRR (N={n})", price, f"{abs(price - analytic):.2e}", "O(1/N)"))
+
+    for m in PDE_GRIDS:
+        price = FiniteDifferenceEngine(space_steps=m, time_steps=m).calculate(option, process)
+        rows.append(
+            (f"Crank–Nicolson PDE ({m}×{m})", price, f"{abs(price - analytic):.2e}", "O(h²)")
+        )
 
     naive_se: float | None = None
     for label, antithetic, control in MC_CONFIGS:

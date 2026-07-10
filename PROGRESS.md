@@ -26,17 +26,18 @@ Running state file for `quantica`. Updated at the end of each working session
   simulation, injected seeded `Generator`, antithetic + control variates,
   `estimate()` exposes the standard error; within ~3 SE of analytic; variance
   reduction demonstrated (VRF ~2× antithetic, ~7× control).
+- **Step 6 — Crank–Nicolson PDE engine** — `FiniteDifferenceEngine`: BS PDE on a
+  log-price grid, CN scheme, tridiagonal solve; second-order `O(h²)` convergence
+  verified by a log-log slope of ≈ −2; parity up to discretisation; QuantLib FD
+  benchmark.
 - **Convergence table** — `scripts/convergence_table.py` (seeded, reproducible),
-  spans analytic / CRR / MC; output embedded verbatim in the README.
+  now spans analytic / CRR / MC / PDE; output embedded verbatim in the README.
 
 ## Next
 
-- **Step 6 — Crank–Nicolson PDE engine** (`engines/finitediff.py`): price via a
-  CN finite-difference scheme; validate convergence to analytic under grid
-  refinement; QuantLib FD benchmark.
 - **Step 7 — four-way cross-method convergence test**: assert analytic / CRR /
-  MC / PDE all agree on one instrument within stated tolerances; extend the
-  convergence table to include the PDE row.
+  MC / PDE all agree on one instrument within stated tolerances (single test
+  tying the engines together). All four pricers now exist.
 - **Step 8 — thin Streamlit + Plotly app** (`apps/pricing_app.py`), built last.
 
 ## Open design notes
