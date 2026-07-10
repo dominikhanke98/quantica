@@ -21,6 +21,22 @@ Dirichlet boundaries use the discounted-intrinsic asymptotics
 :math:`S \to 0` and :math:`S \to \infty` limits, so a wide-enough domain makes
 the boundary error negligible against the interior discretisation error.
 
+Stability caveat (relevant only for future PDE Greeks)
+------------------------------------------------------
+Crank--Nicolson is A-stable but **not L-stable**: it damps high-frequency error
+modes only weakly. The vanilla payoff has a kink at the strike (and, for
+digitals, a jump), so those non-smooth initial data excite high-frequency modes
+that CN fails to damp, producing spurious oscillations concentrated near the
+strike. The *price* is smooth enough that this is invisible at the tolerances
+here, but higher-order Greeks (gamma, and worse) read off a CN grid can ring.
+The standard remedy is **Rannacher start-up**: replace the first one or two CN
+steps with two half-steps of fully implicit (backward) Euler, which is L-stable
+and annihilates the offending modes before CN takes over, restoring second-order
+accuracy with clean Greeks. This engine prices only (no PDE Greeks yet), so
+Rannacher is not implemented — noted here so it is applied if/when PDE
+sensitivities are added. See Giles & Carter (2006), "Convergence analysis of
+Crank--Nicolson and Rannacher time-marching".
+
 References
 ----------
 Wilmott, Howison & Dewynne (1995), *The Mathematics of Financial Derivatives*,
