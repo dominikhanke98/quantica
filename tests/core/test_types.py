@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from quantica.core.types import OptionType
+from quantica.core.types import ExerciseStyle, OptionType
 
 
 def test_option_type_sign() -> None:
@@ -18,3 +18,9 @@ def test_option_type_str() -> None:
 def test_option_type_members_are_distinct() -> None:
     assert OptionType.CALL is not OptionType.PUT
     assert {OptionType.CALL, OptionType.PUT} == set(OptionType)
+
+
+def test_exercise_style_str_and_members() -> None:
+    assert str(ExerciseStyle.EUROPEAN) == "european"
+    assert str(ExerciseStyle.AMERICAN) == "american"
+    assert ExerciseStyle.EUROPEAN is not ExerciseStyle.AMERICAN

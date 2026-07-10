@@ -28,6 +28,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from quantica.pricing import (
+    AmericanOption,
     AnalyticEuropeanEngine,
     BinomialEngine,
     BlackScholesProcess,
@@ -144,3 +145,52 @@ def test_crank_nicolson_matches_quantlib(kind: OptionType) -> None:
 
     assert abs(ours - theirs) < 2e-3  # O(h^2) inter-library grid difference
     assert abs(ours - analytic) < 1e-3  # both converge to the same BS price
+
+
+# --------------------------------------------------------------------------- #
+# American exercise (no analytic reference — QuantLib is the benchmark)
+# --------------------------------------------------------------------------- #
+
+_AMERICAN_CRR_STEPS = 500
+_AMERICAN_FD_STEPS = 300
+
+
+def _ql_american_exercise():  # type: ignore[no-untyped-def]
+    today = ql.Date(*_EVAL_DATE)
+    return ql.AmericanExercise(today, today + ql.Period(round(365 * EXPIRY), ql.Days))
+
+
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_american_crr_matches_quantlib(kind: OptionType) -> None:
+    # Same CRR lattice with early exercise; matched conventions, so agreement is
+    # tight (~3e-5 at N=500 — the two libraries build the tree almost identically).
+    proc = BlackScholesProcess(spot=SPOT, rate=RATE, div=DIV, vol=VOL)
+    option = AmericanOption(strike=STRIKE, expiry=EXPIRY, option_type=kind)
+    ours = BinomialEngine(steps=_AMERICAN_CRR_STEPS).calculate(option, proc)
+
+    payoff, _, process = _ql_parts(kind)
+    ql_option = ql.VanillaOption(payoff, _ql_american_exercise())
+    ql_option.setPricingEngine(ql.BinomialVanillaEngine(process, "crr", _AMERICAN_CRR_STEPS))
+    theirs = ql_option.NPV()
+
+    assert abs(ours - theirs) < 5e-4
+
+
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_american_fd_matches_quantlib(kind: OptionType) -> None:
+    # Both solve the American free-boundary PDE (ours via Crank--Nicolson + PSOR);
+    # the schemes differ, so they agree to an O(h^2) grid difference (~1e-3 here).
+    proc = BlackScholesProcess(spot=SPOT, rate=RATE, div=DIV, vol=VOL)
+    option = AmericanOption(strike=STRIKE, expiry=EXPIRY, option_type=kind)
+    ours = FiniteDifferenceEngine(
+        space_steps=_AMERICAN_FD_STEPS, time_steps=_AMERICAN_FD_STEPS
+    ).calculate(option, proc)
+
+    payoff, _, process = _ql_parts(kind)
+    ql_option = ql.VanillaOption(payoff, _ql_american_exercise())
+    ql_option.setPricingEngine(
+        ql.FdBlackScholesVanillaEngine(process, _AMERICAN_FD_STEPS, _AMERICAN_FD_STEPS)
+    )
+    theirs = ql_option.NPV()
+
+    assert abs(ours - theirs) < 3e-3

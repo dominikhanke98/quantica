@@ -1,11 +1,11 @@
-"""Tests for the EuropeanOption contract and payoff."""
+"""Tests for the vanilla option contracts, payoff, and exercise style."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from quantica.core.types import OptionType
-from quantica.pricing.instruments import EuropeanOption
+from quantica.core.types import ExerciseStyle, OptionType
+from quantica.pricing.instruments import AmericanOption, EuropeanOption, VanillaOption
 from quantica.pricing.processes import BlackScholesProcess
 
 
@@ -81,6 +81,52 @@ def test_set_engine_delegates_and_chains() -> None:
     returned = call.set_engine(StubEngine())
     assert returned is call  # chainable
     assert call.npv(process) == pytest.approx(42.0)
+
+
+# --------------------------------------------------------------------------- #
+# Exercise style (European vs American)
+# --------------------------------------------------------------------------- #
+
+
+def test_exercise_style_of_each_subclass() -> None:
+    assert EuropeanOption(100.0, 1.0, OptionType.CALL).exercise is ExerciseStyle.EUROPEAN
+    assert AmericanOption(100.0, 1.0, OptionType.PUT).exercise is ExerciseStyle.AMERICAN
+
+
+def test_base_vanilla_option_has_no_exercise_style() -> None:
+    base = VanillaOption(100.0, 1.0, OptionType.CALL)
+    with pytest.raises(NotImplementedError, match="EuropeanOption or AmericanOption"):
+        _ = base.exercise
+
+
+def test_american_shares_the_intrinsic_payoff() -> None:
+    # Payoff (immediate-exercise value) is identical to the European terminal one.
+    spots = np.array([80.0, 100.0, 120.0])
+    american = AmericanOption(100.0, 1.0, OptionType.PUT)
+    european = EuropeanOption(100.0, 1.0, OptionType.PUT)
+    np.testing.assert_allclose(american.payoff(spots), european.payoff(spots))
+    np.testing.assert_allclose(american.payoff(spots), np.array([20.0, 0.0, 0.0]))
+
+
+def test_set_engine_preserves_concrete_type() -> None:
+    # set_engine returns Self, so chaining keeps the American type (not the base).
+    class StubEngine:
+        def calculate(self, instrument: VanillaOption, process: BlackScholesProcess) -> float:
+            return 1.0
+
+    american = AmericanOption(100.0, 1.0, OptionType.PUT).set_engine(StubEngine())
+    assert isinstance(american, AmericanOption)
+
+
+def test_same_terms_different_style_are_unequal() -> None:
+    assert AmericanOption(100.0, 1.0, OptionType.PUT) != EuropeanOption(100.0, 1.0, OptionType.PUT)
+
+
+def test_american_validates_strike_and_expiry() -> None:
+    with pytest.raises(ValueError, match="strike must be positive"):
+        AmericanOption(0.0, 1.0, OptionType.PUT)
+    with pytest.raises(ValueError, match="expiry must be non-negative"):
+        AmericanOption(100.0, -1.0, OptionType.PUT)
 
 
 def test_engine_excluded_from_equality() -> None:
