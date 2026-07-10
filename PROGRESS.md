@@ -6,9 +6,8 @@ Running state file for `quantica`. Updated at the end of each working session
 **Current phase:** Phase 1 pricing core complete (European options, four ways).
 Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
 
-Phase-4 roadmap: **American ✓** → LSM (Longstaff–Schwartz, American via MC) →
-exotics (path-dependent MC: Asian, barrier) → Heston + calibration → Merton
-jump-diffusion.
+Phase-4 roadmap: **American ✓** → **LSM ✓** → exotics (path-dependent MC: Asian,
+barrier) → Heston + calibration → Merton jump-diffusion.
 
 ## Completed
 
@@ -51,34 +50,28 @@ jump-diffusion.
   system). Analytic + MC engines reject American. Validated by tree↔PDE
   cross-agreement, QuantLib American benchmarks, and exact theorems
   (no-dividend American call = European to machine precision; premium ≥ 0).
+- **Phase 4, step 2 — Longstaff–Schwartz Monte Carlo** — `LongstaffSchwartzEngine`
+  (`engines/lsm.py`): full-path exact log-GBM simulation on an exercise-date grid;
+  backward induction regressing discounted continuation on a monomial basis
+  (strike-scaled) using in-the-money paths only; value by realized cashflows.
+  Configurable `exercise_dates` / `basis_degree` (default 50 / 3), seeded
+  `Generator`, antithetic, `estimate()` exposes the SE. Reuses `MCResult`; the
+  terminal-only `MonteCarloEngine` fast path is untouched. Validated against the
+  tree/PDE American references within ~3 SE, with the low-bias/lower-bound
+  signature confirmed (mean over seeds sits ~5e-3 below reference; richer basis
+  recovers more value); no-dividend call recovers European; SE ~ 1/√n; seeded
+  determinism.
 
-## Next — Phase 4, step 2: Longstaff–Schwartz Monte Carlo (LSM)
+## Next — Phase 4, step 3: exotics (path-dependent Monte Carlo)
 
-American exercise by simulation. Enough of the plan to resume cold:
-
-- **Reference/validation**: LSM prices validate against the **existing American
-  tree/PDE prices** (already in place, QuantLib-benchmarked) — no new oracle
-  needed.
-- **Algorithm**: simulate full GBM paths; step backward through exercise dates;
-  at each date regress the (discounted) continuation value on a basis of the
-  spot, **using in-the-money paths only** (out-of-money paths carry no exercise
-  decision and only add regression noise); exercise where immediate intrinsic >
-  fitted continuation; value each path by its **realized cashflow** along the
-  resulting policy (not the fitted continuation).
-- **Correctness signature**: realized-cashflow LSM is a **low-bias lower-bound**
-  estimator (a sub-optimal exercise policy can only under-value). So LSM landing
-  **at or slightly below** the tree/PDE reference (within a few standard errors)
-  is the *expected* result — a small negative gap is correct, not a bug. Report
-  the standard error and judge against it, per the MC discipline already used.
-- **API**: configurable basis functions (e.g. polynomial degree, default a few
-  monomials in S); reuses the seeded-`Generator` / antithetic machinery.
-- **Engine work**: needs **full-path** GBM simulation — the current
-  `MonteCarloEngine` simulates the *terminal* price only, so add a path
-  simulator (time grid of exercise dates) either by extending it or in a sibling
-  LSM engine. Keep the terminal-only European fast path intact.
-
-- Then (roadmap): exotics (path-dependent MC — Asian, barrier) → Heston +
-  calibration → Merton jump-diffusion.
+- Reuse the LSM full-path GBM simulator to price **Asian** (arithmetic-average)
+  and **barrier** (knock-in/out) options by Monte Carlo; validate against
+  QuantLib's analytic/MC engines where available and against closed forms where
+  they exist (geometric-average Asian has one; barrier options have Reiner–Rubinstein
+  formulas).
+- Consider extracting the GBM path simulator (currently inside `lsm.py`) into a
+  shared helper once this second consumer lands (§2.6, extract on second use).
+- Then (roadmap): Heston + calibration → Merton jump-diffusion.
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
   surface, convergence table. Thin UI over the tested core; zero pricing logic in

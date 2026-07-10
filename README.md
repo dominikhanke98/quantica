@@ -14,10 +14,12 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > Black–Scholes (price + Greeks), CRR binomial tree, Monte Carlo with variance
 > reduction, and a Crank–Nicolson PDE solver** — cross-validated four ways and
 > benchmarked against QuantLib. Now in a **derivatives-deepening track** (Phase 4,
-> ahead of the portfolio/risk phases): first up, **American options** — the tree
-> and PDE generalize to early exercise (`max(continuation, intrinsic)`; the PDE
-> as a linear complementarity problem solved by PSOR), validated against QuantLib
-> and by exact structural theorems since there is no closed form.
+> ahead of the portfolio/risk phases): **American options**, priced three
+> independent ways — the tree and PDE generalize to early exercise
+> (`max(continuation, intrinsic)`; the PDE as a linear complementarity problem
+> solved by PSOR), joined by **Longstaff–Schwartz Monte Carlo** — cross-validated
+> against each other and QuantLib and by exact structural theorems, since there is
+> no closed form.
 
 ## Architecture
 
@@ -164,30 +166,52 @@ are that argument in miniature.
 ### American options — validating without a closed form
 
 American options (early exercise permitted any time before expiry) have **no
-closed-form price**, so Black–Scholes can no longer be the anchor. The
-generalization is deliberately minimal — the lattice takes
-`max(continuation, intrinsic)` at each node, and the PDE becomes a linear
-complementarity problem (`V ≥ intrinsic`) solved per time step by projected SOR
-on the *same* Crank–Nicolson tridiagonal system. The validation strategy adapts:
+closed-form price**, so Black–Scholes can no longer be the anchor. Three
+independent methods price them and are cross-validated against each other:
 
-- **Cross-method** — the tree and the PDE agree on the American price to their
-  combined discretisation tolerance (≈ 2 × 10⁻³ at N = 2000 / 300×300 grid).
+- **Binomial tree** — the lattice takes `max(continuation, intrinsic)` at each
+  node (early exercise is one line in the existing backward induction).
+- **Crank–Nicolson PDE** — the PDE becomes a linear complementarity problem
+  (`V ≥ intrinsic`) solved per time step by projected SOR on the *same*
+  tridiagonal system.
+- **Longstaff–Schwartz Monte Carlo (LSM)** — simulate full GBM paths (exact
+  log-stepping, no path bias); at each exercise date regress the discounted
+  continuation value on a monomial basis of the spot using **only in-the-money
+  paths**, exercise where intrinsic beats the fitted continuation, and value each
+  path by its **realized cashflow** under that policy.
+
+The validation strategy adapts to the missing analytic reference:
+
+- **Cross-method** — tree and PDE agree to their combined discretisation
+  tolerance (≈ 2 × 10⁻³ at N = 2000 / 300×300 grid); LSM agrees with them within
+  a few standard errors.
 - **QuantLib benchmark** — matched against QuantLib's American CRR engine
   (agreement ≈ 3 × 10⁻⁵) and its American finite-difference engine (≈ 10⁻³),
   behind `-m benchmark`.
 - **Exact structural theorems** (the strongest checks available without an
   analytic price):
   - *No-dividend American call = European call.* Early exercise of a call on a
-    non-dividend-paying stock is never optimal, so on a given engine the two
-    prices are **identical to machine/solver precision** — the tree never takes
-    the intrinsic branch and the PDE obstacle never binds. This is a sharp,
-    zero-tolerance correctness check.
+    non-dividend-paying stock is never optimal, so on a given engine the tree and
+    PDE prices are **identical to machine/solver precision** — the tree never
+    takes the intrinsic branch and the PDE obstacle never binds — and LSM
+    recovers the European price within statistical error. A sharp correctness
+    check.
   - *Early-exercise premium ≥ 0.* American ≥ European on the same engine/grid
     (no discretisation slack), for both puts and calls, with the American put
     showing a strictly positive premium.
 
-The analytic and Monte Carlo engines cleanly reject American options (the latter
-awaits a Longstaff–Schwartz regression scheme).
+> **Highlighted validation insight — LSM is a lower bound, by design.** LSM
+> values each path with a *sub-optimal* (regression-estimated) exercise policy,
+> which can only leave value on the table, so the estimator is **biased low**.
+> Averaged over seeds it lands **at or just below** the tree/PDE reference
+> (measured ≈ 5 × 10⁻³ below) — and a richer regression basis, giving a better
+> policy, provably moves the estimate *up* toward the reference. LSM sitting
+> slightly below the tree/PDE price is therefore the **expected correctness
+> signature, not a failure** — reading that gap correctly is itself part of the
+> effective challenge.
+
+The analytic and terminal-only Monte Carlo engines cleanly reject American
+options (the latter directing to LSM).
 
 ## Development
 
