@@ -22,7 +22,27 @@ Tolerances (explicit and justified per method, not one blanket number)
 * **Monte Carlo**, ``500_000`` paths, antithetic + control variate, seeded — a
   random estimate, so the tolerance is statistical, ``|estimate - analytic| <=
   3 * standard_error`` (~99.7% band), *not* a fixed absolute number. Seeds are
-  fixed per case for reproducibility.
+  fixed for reproducibility.
+
+Monte Carlo calibration and the 3-SE band
+-----------------------------------------
+``test_monte_carlo_estimator_is_calibrated`` re-runs the estimator over a fixed
+sequence of seeds (0-19) on one representative contract and checks each estimate
+against the 3-SE band. This verifies the *estimator's calibration across the
+sampling distribution* — that the reported standard error is an honest gauge of
+the estimator's dispersion — rather than merely that it happens to be correct on
+a single draw. A biased estimator or an under-reported SE would push estimates
+outside the band systematically across the seeds.
+
+The band width follows from a false-failure-rate budget. For a correctly
+calibrated estimator the studentised error is ~N(0, 1), so it lands outside
+3 SE with probability ``2 * (1 - Phi(3)) ~= 0.27%``. Across the seeded Monte
+Carlo assertions in this module — 20 calibration seeds plus the 18 contracts in
+``test_four_methods_agree`` (38 total) — the expected number of spurious
+failures is ``38 * 0.0027 ~= 0.10``, comfortably below 1. So with fixed seeds
+the suite is deterministic *and* a correctly calibrated estimator is
+overwhelmingly likely to pass, while a genuine mis-calibration would show up as
+a systematic breach rather than a one-off.
 """
 
 from __future__ import annotations
@@ -52,6 +72,8 @@ PDE_STEPS = 500
 PDE_TOL = 1.5e-3
 MC_PATHS = 500_000
 MC_SIGMAS = 3.0
+# Fixed seed sequence for the Monte Carlo calibration check (deterministic CI).
+MC_CALIBRATION_SEEDS = tuple(range(20))
 
 # Contract grid: three strikes (ITM / ATM / OTM) x three maturities x call/put.
 _STRIKES = (80.0, 100.0, 120.0)
@@ -106,10 +128,29 @@ def test_all_four_mutually_agree_on_a_representative_contract() -> None:
         option, MARKET
     )
     mc = MonteCarloEngine(
-        MC_PATHS, rng=np.random.default_rng(2024), antithetic=True, control_variate=True
+        MC_PATHS, rng=np.random.default_rng(0), antithetic=True, control_variate=True
     ).estimate(option, MARKET)
 
     prices = {"analytic": reference, "crr": crr, "pde": pde, "mc": mc.price}
     spread = max(prices.values()) - min(prices.values())
     # All four within a band set by the coarsest error present (3 MC standard errors).
     assert spread <= 3.0 * mc.std_error + CRR_TOL + PDE_TOL
+
+
+def test_monte_carlo_estimator_is_calibrated() -> None:
+    # Re-run the estimator over a fixed sequence of seeds and check each estimate
+    # against the 3-SE band. This probes calibration across the sampling
+    # distribution (is the reported SE an honest gauge of dispersion?), not just
+    # correctness on one lucky draw. See the module docstring for the
+    # false-failure-rate budget that motivates the 3-SE choice.
+    option = EuropeanOption(strike=105.0, expiry=1.0, option_type=OptionType.CALL)
+    reference = ANALYTIC.calculate(option, MARKET)
+    for seed in MC_CALIBRATION_SEEDS:
+        mc = MonteCarloEngine(
+            MC_PATHS,
+            rng=np.random.default_rng(seed),
+            antithetic=True,
+            control_variate=True,
+        ).estimate(option, MARKET)
+        sigmas = abs(mc.price - reference) / mc.std_error
+        assert sigmas <= MC_SIGMAS, f"seed {seed}: estimate {sigmas:.2f} SE from analytic"
