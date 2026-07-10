@@ -40,3 +40,18 @@ class OptionType(Enum):
 
     def __str__(self) -> str:
         return self.name.lower()
+
+
+class ExerciseStyle(Enum):
+    """When the holder may exercise.
+
+    ``EUROPEAN`` — only at expiry (closed-form Black--Scholes applies).
+    ``AMERICAN`` — at any time up to expiry (no closed form; priced by lattice
+    or PDE with an early-exercise/free-boundary condition).
+    """
+
+    EUROPEAN = "european"
+    AMERICAN = "american"
+
+    def __str__(self) -> str:
+        return self.value

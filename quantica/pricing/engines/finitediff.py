@@ -21,6 +21,21 @@ Dirichlet boundaries use the discounted-intrinsic asymptotics
 :math:`S \to 0` and :math:`S \to \infty` limits, so a wide-enough domain makes
 the boundary error negligible against the interior discretisation error.
 
+American exercise (linear complementarity)
+------------------------------------------
+An American option adds the early-exercise constraint :math:`V \ge g`, where
+:math:`g = \max(\omega(S-K), 0)` is the immediate-exercise (intrinsic) value.
+Each Crank--Nicolson step then solves not a linear system but a **linear
+complementarity problem**: at every node either the PDE holds and :math:`V > g`,
+or :math:`V = g` and holding is sub-optimal. We solve it with **projected SOR**
+(PSOR) — Gauss--Seidel over-relaxation with a :math:`\max(\cdot, g)` projection
+after each node update — iterated to convergence per step and warm-started from
+the previous step's values, which keeps the sweep count small. The far-field
+Dirichlet value becomes :math:`\max(\text{European discounted intrinsic},\, g)`,
+so the deep-ITM American put boundary is the undiscounted intrinsic
+:math:`K - S` (immediate exercise) while a no-dividend call boundary stays the
+European value.
+
 Stability caveat (relevant only for future PDE Greeks)
 ------------------------------------------------------
 Crank--Nicolson is A-stable but **not L-stable**: it damps high-frequency error
@@ -52,20 +67,25 @@ from typing import TYPE_CHECKING
 import numpy as np
 from scipy.linalg import solve_banded
 
-from quantica.core.types import FloatArray
+from quantica.core.types import ExerciseStyle, FloatArray
 from quantica.pricing.engines._common import unpack
 
 if TYPE_CHECKING:
-    from quantica.pricing.instruments import EuropeanOption
+    from quantica.pricing.instruments import VanillaOption
     from quantica.pricing.processes import BlackScholesProcess
 
 _DEFAULT_SPACE_STEPS = 200
 _DEFAULT_TIME_STEPS = 200
 _DEFAULT_NUM_STD = 6.0
 
+# Projected SOR parameters for the American LCP (see _psor_solve).
+_PSOR_RELAXATION = 1.2  # over-relaxation factor omega in (1, 2)
+_PSOR_TOL = 1e-9  # convergence tol on the max node update (<< discretisation error)
+_PSOR_MAX_ITER = 10_000  # safety cap; warm-started sweeps converge in a handful
+
 
 class FiniteDifferenceEngine:
-    """Crank--Nicolson PDE pricer for a :class:`EuropeanOption`.
+    """Crank--Nicolson PDE pricer for a vanilla option (European or American).
 
     Parameters
     ----------
@@ -83,8 +103,11 @@ class FiniteDifferenceEngine:
     Notes
     -----
     Satisfies the :class:`~quantica.pricing.engines.PricingEngine` protocol
-    (price only). Second-order accurate: halving both step sizes cuts the error
-    by ~4.
+    (price only). A European option is solved directly (tridiagonal solve per
+    step) and is second-order accurate — halving both step sizes cuts the error
+    by ~4. An American option solves the early-exercise LCP per step by projected
+    SOR (see the module docstring); convergence is slightly below second order
+    near the free boundary but still fast.
     """
 
     def __init__(
@@ -105,11 +128,12 @@ class FiniteDifferenceEngine:
 
     def calculate(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> float:
         """Present value of ``instrument`` under ``process`` via Crank--Nicolson."""
         S, K, r, q, sigma, T, omega = unpack(instrument, process)
+        american = instrument.exercise is ExerciseStyle.AMERICAN
 
         # Degenerate (no diffusion) limit: discounted intrinsic on the forward,
         # matching the analytic sigma->0 / T->0 result.
@@ -153,12 +177,20 @@ class FiniteDifferenceEngine:
         ab[1, :] = m_diag  # main diagonal
         ab[2, :-1] = m_lower  # subdiagonal
 
-        values: FloatArray = np.maximum(omega * (spot_grid - K), 0.0)  # payoff at tau = 0
+        # Immediate-exercise (intrinsic) value; the payoff at tau = 0 and, for an
+        # American option, the obstacle the solution must stay above.
+        intrinsic: FloatArray = np.maximum(omega * (spot_grid - K), 0.0)
+        values: FloatArray = intrinsic.copy()
+        obstacle = intrinsic[1:-1]  # interior obstacle for the American LCP
         s_min = float(spot_grid[0])
         s_max = float(spot_grid[-1])
 
         def boundary(spot: float, tau: float) -> float:
-            return max(omega * (spot * math.exp(-q * tau) - K * math.exp(-r * tau)), 0.0)
+            european = max(omega * (spot * math.exp(-q * tau) - K * math.exp(-r * tau)), 0.0)
+            if not american:
+                return european
+            # American far field: the larger of continuation and immediate exercise.
+            return max(european, max(omega * (spot - K), 0.0))
 
         for n in range(n_t):
             tau_now = n * dt
@@ -173,8 +205,64 @@ class FiniteDifferenceEngine:
             rhs[0] -= m_lower * boundary(s_min, tau_next)
             rhs[-1] -= m_upper * boundary(s_max, tau_next)
 
-            values[1:-1] = solve_banded((1, 1), ab, rhs)
+            if american:
+                values[1:-1] = _psor_solve(m_lower, m_diag, m_upper, rhs, obstacle, interior)
+            else:
+                values[1:-1] = solve_banded((1, 1), ab, rhs)
             values[0] = boundary(s_min, tau_next)
             values[-1] = boundary(s_max, tau_next)
 
         return float(values[i_spot])
+
+
+def _psor_solve(
+    lower: float,
+    diag: float,
+    upper: float,
+    rhs: FloatArray,
+    obstacle: FloatArray,
+    warm: FloatArray,
+) -> FloatArray:
+    r"""Projected SOR for the American LCP on the interior nodes.
+
+    Solves ``M v = rhs`` subject to ``v >= obstacle``, where ``M`` is the constant
+    tridiagonal Crank--Nicolson matrix (sub-diagonal ``lower``, diagonal ``diag``,
+    super-diagonal ``upper``). Each sweep is Gauss--Seidel with over-relaxation
+    followed by the projection ``v_i <- max(v_i, obstacle_i)`` that enforces early
+    exercise. ``warm`` (the previous time step's interior values) seeds the
+    iteration, so it converges in a handful of sweeps.
+
+    Boundary contributions are already folded into ``rhs``, so node 0 has no
+    sub-diagonal term and node n-1 no super-diagonal term.
+
+    The work is done in Python floats: the sweep is inherently sequential (each
+    node uses its just-updated neighbour), so a NumPy vectorised form buys
+    nothing and the per-element overhead is lower this way.
+    """
+    n = rhs.size
+    v = [max(float(warm[i]), float(obstacle[i])) for i in range(n)]  # feasible start
+    b = rhs.tolist()
+    g = obstacle.tolist()
+    relax = _PSOR_RELAXATION
+    inv_diag = 1.0 / diag
+
+    for _ in range(_PSOR_MAX_ITER):
+        err = 0.0
+        for i in range(n):
+            residual = b[i]
+            if i > 0:
+                residual -= lower * v[i - 1]
+            if i < n - 1:
+                residual -= upper * v[i + 1]
+            candidate = v[i] + relax * (residual * inv_diag - v[i])
+            if candidate < g[i]:
+                candidate = g[i]
+            change = abs(candidate - v[i])
+            if change > err:
+                err = change
+            v[i] = candidate
+        if err < _PSOR_TOL:
+            break
+
+    result: FloatArray = np.asarray(v, dtype=np.float64)
+    return result

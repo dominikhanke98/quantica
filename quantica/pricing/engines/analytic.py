@@ -19,12 +19,21 @@ from typing import TYPE_CHECKING
 
 from scipy.stats import norm
 
+from quantica.core.types import ExerciseStyle
 from quantica.pricing.engines._common import unpack
 from quantica.pricing.greeks import Greeks
 
 if TYPE_CHECKING:
-    from quantica.pricing.instruments import EuropeanOption
+    from quantica.pricing.instruments import VanillaOption
     from quantica.pricing.processes import BlackScholesProcess
+
+
+def _require_european(instrument: VanillaOption) -> None:
+    if instrument.exercise is not ExerciseStyle.EUROPEAN:
+        raise ValueError(
+            "the analytic engine prices European exercise only; "
+            "price American options with the binomial or finite-difference engine"
+        )
 
 
 class AnalyticEuropeanEngine:
@@ -38,7 +47,7 @@ class AnalyticEuropeanEngine:
 
     def calculate(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> float:
         r"""Present value :math:`V = \omega [S e^{-qT} N(\omega d_1) - K e^{-rT} N(\omega d_2)]`.
@@ -46,7 +55,13 @@ class AnalyticEuropeanEngine:
         In the degenerate :math:`\sigma\sqrt{T} \to 0` limit (zero vol or zero
         time to expiry) the price collapses to the discounted intrinsic value
         of the forward, :math:`\max(\omega (S e^{-qT} - K e^{-rT}), 0)`.
+
+        Raises
+        ------
+        ValueError
+            If the option is not European (there is no closed form).
         """
+        _require_european(instrument)
         S, K, r, q, sigma, T, omega = unpack(instrument, process)
         disc_spot = S * math.exp(-q * T)
         disc_strike = K * math.exp(-r * T)
@@ -60,7 +75,7 @@ class AnalyticEuropeanEngine:
 
     def greeks(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> Greeks:
         r"""Analytic first-order Greeks (see :class:`~quantica.pricing.greeks.Greeks`).
@@ -68,9 +83,11 @@ class AnalyticEuropeanEngine:
         Raises
         ------
         ValueError
-            If :math:`\sigma = 0` or :math:`T = 0`, where the Greeks are not
-            well defined (delta becomes a step, gamma a Dirac spike).
+            If the option is not European, or :math:`\sigma = 0` or :math:`T = 0`,
+            where the Greeks are not well defined (delta becomes a step, gamma a
+            Dirac spike).
         """
+        _require_european(instrument)
         S, K, r, q, sigma, T, omega = unpack(instrument, process)
         if sigma == 0.0 or T == 0.0:
             raise ValueError("Greeks are undefined in the zero-vol / zero-expiry limit")

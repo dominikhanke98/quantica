@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, NamedTuple
 
 if TYPE_CHECKING:
-    from quantica.pricing.instruments import EuropeanOption
+    from quantica.pricing.instruments import VanillaOption
     from quantica.pricing.processes import BlackScholesProcess
 
 
@@ -29,7 +29,7 @@ class BSParams(NamedTuple):
     sign: int  # omega
 
 
-def unpack(instrument: EuropeanOption, process: BlackScholesProcess) -> BSParams:
+def unpack(instrument: VanillaOption, process: BlackScholesProcess) -> BSParams:
     """Bundle the scalar model parameters from an instrument and process."""
     return BSParams(
         spot=process.spot,

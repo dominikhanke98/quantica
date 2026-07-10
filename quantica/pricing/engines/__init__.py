@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from quantica.pricing.greeks import Greeks
-    from quantica.pricing.instruments import EuropeanOption
+    from quantica.pricing.instruments import VanillaOption
     from quantica.pricing.processes import BlackScholesProcess
 
 
@@ -29,7 +29,7 @@ class PricingEngine(Protocol):
 
     def calculate(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> float:
         """Return the present value of ``instrument`` under ``process``."""
@@ -48,7 +48,7 @@ class GreeksEngine(PricingEngine, Protocol):
 
     def greeks(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> Greeks:
         """Return the Greeks of ``instrument`` under ``process``."""

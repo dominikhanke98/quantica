@@ -1,4 +1,4 @@
-r"""Cox--Ross--Rubinstein binomial-tree engine for European options.
+r"""Cox--Ross--Rubinstein binomial-tree engine for vanilla options.
 
 A recombining binomial lattice under the risk-neutral measure with continuous
 dividend yield. Over a step :math:`\Delta t = T/N` the spot moves up by
@@ -9,11 +9,14 @@ risk-neutral up-probability
 
     p = \frac{e^{(r-q)\Delta t} - d}{u - d}.
 
-The European value is the discounted risk-neutral expectation of the terminal
-payoff, computed by backward induction over the lattice. As :math:`N\to\infty`
-the price converges to Black--Scholes at first order, :math:`O(1/N)` (with the
-familiar even/odd-:math:`N` oscillation as the strike moves relative to the
-terminal nodes).
+The value is the discounted risk-neutral expectation of the payoff, computed by
+backward induction over the lattice. For a **European** option this is a plain
+roll-back; for an **American** option early exercise is handled by taking
+:math:`\max(\text{continuation}, \text{intrinsic})` at every node — the whole
+generalisation is that one line, which is the point: the lattice machinery is
+unchanged. As :math:`N\to\infty` the European price converges to Black--Scholes
+at first order, :math:`O(1/N)` (with the familiar even/odd-:math:`N` oscillation
+as the strike moves relative to the terminal nodes).
 
 References
 ----------
@@ -28,17 +31,18 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from quantica.core.types import ExerciseStyle
 from quantica.pricing.engines._common import unpack
 
 if TYPE_CHECKING:
-    from quantica.pricing.instruments import EuropeanOption
+    from quantica.pricing.instruments import VanillaOption
     from quantica.pricing.processes import BlackScholesProcess
 
 _DEFAULT_STEPS = 256
 
 
 class BinomialEngine:
-    """CRR binomial-tree pricer for a :class:`EuropeanOption`.
+    """CRR binomial-tree pricer for a vanilla option (European or American).
 
     Parameters
     ----------
@@ -61,7 +65,7 @@ class BinomialEngine:
 
     def calculate(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> float:
         """Present value of ``instrument`` under ``process`` on the CRR lattice."""
@@ -81,15 +85,25 @@ class BinomialEngine:
         d = 1.0 / u
         disc = math.exp(-r * dt)
         p = (math.exp((r - q) * dt) - d) / (u - d)
+        american = instrument.exercise is ExerciseStyle.AMERICAN
 
         # Terminal spot at node j (j up-moves, N-j down-moves): S * u^(2j - N).
         j = np.arange(n + 1)
         terminal_spot = S * u ** (2 * j - n)
         values = np.maximum(omega * (terminal_spot - K), 0.0)
 
-        # Backward induction: V_i <- disc * (p * V_up + (1-p) * V_down).
+        # Backward induction: V_i <- disc * (p * V_up + (1-p) * V_down). For an
+        # American option, also allow immediate exercise at each node:
+        # V_i <- max(continuation, intrinsic).
         one_minus_p = 1.0 - p
         for _ in range(n):
-            values = disc * (p * values[1:] + one_minus_p * values[:-1])
+            continuation = disc * (p * values[1:] + one_minus_p * values[:-1])
+            if american:
+                level = continuation.size - 1  # intervals at this time layer
+                spot = S * u ** (2 * np.arange(level + 1) - level)
+                intrinsic = np.maximum(omega * (spot - K), 0.0)
+                values = np.maximum(continuation, intrinsic)
+            else:
+                values = continuation
 
         return float(values[0])

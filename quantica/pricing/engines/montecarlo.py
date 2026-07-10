@@ -36,11 +36,11 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quantica.core.types import FloatArray
+from quantica.core.types import ExerciseStyle, FloatArray
 from quantica.pricing.engines._common import unpack
 
 if TYPE_CHECKING:
-    from quantica.pricing.instruments import EuropeanOption
+    from quantica.pricing.instruments import VanillaOption
     from quantica.pricing.processes import BlackScholesProcess
 
 # Below this control-variate variance the control carries no information
@@ -109,7 +109,7 @@ class MonteCarloEngine:
 
     def calculate(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> float:
         """Present value (the point estimate; see :meth:`estimate` for the SE)."""
@@ -117,10 +117,23 @@ class MonteCarloEngine:
 
     def estimate(
         self,
-        instrument: EuropeanOption,
+        instrument: VanillaOption,
         process: BlackScholesProcess,
     ) -> MCResult:
-        """Price ``instrument`` under ``process`` with its Monte Carlo standard error."""
+        """Price ``instrument`` under ``process`` with its Monte Carlo standard error.
+
+        Raises
+        ------
+        ValueError
+            If the option is American. Pricing early exercise by simulation needs
+            a regression scheme (Longstaff--Schwartz), which is future work; use
+            the binomial or finite-difference engine for American options.
+        """
+        if instrument.exercise is not ExerciseStyle.EUROPEAN:
+            raise ValueError(
+                "the Monte Carlo engine prices European exercise only "
+                "(American via Longstaff--Schwartz is future work)"
+            )
         S, K, r, q, sigma, T, omega = unpack(instrument, process)
         disc = np.exp(-r * T)
 
