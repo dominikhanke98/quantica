@@ -43,6 +43,7 @@ import numpy as np
 
 from quantica.core.types import ExerciseStyle, FloatArray
 from quantica.pricing.engines._common import unpack
+from quantica.pricing.engines._paths import GBMPathSimulator
 from quantica.pricing.engines.montecarlo import MCResult
 
 if TYPE_CHECKING:
@@ -99,10 +100,9 @@ class LongstaffSchwartzEngine:
         if basis_degree < 1:
             raise ValueError(f"basis_degree must be at least 1, got {basis_degree}")
         self.n_paths = n_paths
-        self.rng = rng
         self.exercise_dates = exercise_dates
         self.basis_degree = basis_degree
-        self.antithetic = antithetic
+        self._sim = GBMPathSimulator(n_paths, rng=rng, antithetic=antithetic)
 
     def calculate(
         self,
@@ -135,7 +135,7 @@ class LongstaffSchwartzEngine:
         dt = T / n_steps
         disc_step = float(np.exp(-r * dt))
 
-        paths = self._simulate_paths(S, r, q, sigma, dt, n_steps)
+        paths = self._sim.simulate(spot=S, rate=r, div=q, vol=sigma, dt=dt, n_steps=n_steps)
         intrinsic = np.maximum(omega * (paths - K), 0.0)
 
         # Backward induction over exercise dates t_{M-1}, ..., t_1. `cashflow`
@@ -155,7 +155,7 @@ class LongstaffSchwartzEngine:
             cashflow[exercised] = intrinsic[exercised, step]  # take intrinsic at t_step
         cashflow *= disc_step  # discount t_1 -> t_0
 
-        samples = self._combine_antithetic(cashflow)
+        samples = self._sim.combine_antithetic(cashflow)
         mean = float(samples.mean())
         std_error = float(samples.std(ddof=1) / np.sqrt(samples.size))
         # The value at t=0 cannot be below immediate exercise (S_0 is known).
@@ -163,28 +163,6 @@ class LongstaffSchwartzEngine:
         return MCResult(price=price, std_error=std_error, n_paths=self.n_paths)
 
     # -- internals ---------------------------------------------------------- #
-
-    def _simulate_paths(
-        self, spot: float, rate: float, div: float, vol: float, dt: float, n_steps: int
-    ) -> FloatArray:
-        """Full GBM paths, exact log-Euler: shape ``(n_paths, n_steps + 1)``."""
-        drift = (rate - div - 0.5 * vol * vol) * dt
-        vol_step = vol * np.sqrt(dt)
-        log_increments = drift + vol_step * self._draw_normals(n_steps)
-        log_paths = np.cumsum(log_increments, axis=1)
-        paths = np.empty((self.n_paths, n_steps + 1), dtype=np.float64)
-        paths[:, 0] = spot
-        paths[:, 1:] = spot * np.exp(log_paths)
-        return paths
-
-    def _draw_normals(self, n_steps: int) -> FloatArray:
-        """Standard normals of shape ``(n_paths, n_steps)`` (antithetic mirrors rows)."""
-        if self.antithetic:
-            half = self.n_paths // 2
-            base = self.rng.standard_normal((half, n_steps))
-            return np.concatenate([base, -base], axis=0)
-        draws: FloatArray = self.rng.standard_normal((self.n_paths, n_steps))
-        return draws
 
     def _fit_continuation(
         self, spot: FloatArray, discounted_future: FloatArray, strike: float
@@ -199,11 +177,3 @@ class LongstaffSchwartzEngine:
         coeffs, *_ = np.linalg.lstsq(design, discounted_future, rcond=None)
         fitted: FloatArray = design @ coeffs
         return fitted
-
-    def _combine_antithetic(self, per_path: FloatArray) -> FloatArray:
-        """Average antithetic path pairs into independent samples (identity otherwise)."""
-        if self.antithetic:
-            half = self.n_paths // 2
-            combined: FloatArray = 0.5 * (per_path[:half] + per_path[half : 2 * half])
-            return combined
-        return per_path
