@@ -35,6 +35,8 @@ from quantica.pricing import (
     BlackScholesProcess,
     EuropeanOption,
     FiniteDifferenceEngine,
+    HestonFFTEngine,
+    HestonProcess,
     OptionType,
     barrier_price,
     geometric_asian_price,
@@ -263,3 +265,49 @@ def test_barrier_closed_form_matches_quantlib(barrier_type: BarrierType, kind: O
     ql_option.setPricingEngine(ql.AnalyticBarrierEngine(process))
 
     assert np.isclose(ours, ql_option.NPV(), rtol=1e-11, atol=1e-11)
+
+
+# --------------------------------------------------------------------------- #
+# Heston FFT engine vs QuantLib's AnalyticHestonEngine
+# --------------------------------------------------------------------------- #
+
+# Heston parameters (Feller-satisfying).
+_HESTON = {"v0": 0.04, "kappa": 1.5, "theta": 0.04, "xi": 0.3, "rho": -0.6}
+# Integer-day maturities, so T = days / 365 is exactly QuantLib's Actual/365 year
+# fraction — otherwise a rounded day count masks the FFT accuracy at short T.
+_HESTON_DAYS = [30, 90, 365, 1095]
+
+
+@pytest.mark.parametrize("days", _HESTON_DAYS)
+@pytest.mark.parametrize(
+    "kind, strike", [(OptionType.CALL, 90.0), (OptionType.CALL, 110.0), (OptionType.PUT, 100.0)]
+)
+def test_heston_matches_quantlib(days: int, kind: OptionType, strike: float) -> None:
+    expiry = days / 365.0
+    process = HestonProcess(spot=SPOT, rate=RATE, div=DIV, **_HESTON)
+    option = EuropeanOption(strike=strike, expiry=expiry, option_type=kind)
+    ours = HestonFFTEngine().calculate(option, process)
+
+    today = ql.Date(*_EVAL_DATE)
+    ql.Settings.instance().evaluationDate = today
+    day_count = ql.Actual365Fixed()
+    r_ts = ql.YieldTermStructureHandle(ql.FlatForward(today, RATE, day_count))
+    q_ts = ql.YieldTermStructureHandle(ql.FlatForward(today, DIV, day_count))
+    ql_process = ql.HestonProcess(
+        r_ts,
+        q_ts,
+        ql.QuoteHandle(ql.SimpleQuote(SPOT)),
+        _HESTON["v0"],
+        _HESTON["kappa"],
+        _HESTON["theta"],
+        _HESTON["xi"],
+        _HESTON["rho"],
+    )
+    ql_kind = ql.Option.Call if kind is OptionType.CALL else ql.Option.Put
+    ql_option = ql.VanillaOption(
+        ql.PlainVanillaPayoff(ql_kind, strike),
+        ql.EuropeanExercise(today + ql.Period(days, ql.Days)),
+    )
+    ql_option.setPricingEngine(ql.AnalyticHestonEngine(ql.HestonModel(ql_process)))
+
+    assert abs(ours - ql_option.NPV()) < 1e-5
