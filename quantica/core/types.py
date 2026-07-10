@@ -55,3 +55,45 @@ class ExerciseStyle(Enum):
 
     def __str__(self) -> str:
         return self.value
+
+
+class AveragingType(Enum):
+    """How an Asian option averages the underlying over the monitoring dates.
+
+    ``ARITHMETIC`` — the arithmetic mean (no closed form under GBM).
+    ``GEOMETRIC`` — the geometric mean (a lognormal, hence a closed form; the
+    natural control variate for the arithmetic average).
+    """
+
+    ARITHMETIC = "arithmetic"
+    GEOMETRIC = "geometric"
+
+    def __str__(self) -> str:
+        return self.value
+
+
+class BarrierType(Enum):
+    """The four single-barrier knock styles.
+
+    Named ``<direction>_AND_<knock>``: ``direction`` is where the barrier sits
+    relative to spot (``UP`` above, ``DOWN`` below); ``knock`` is whether hitting
+    it activates (``IN``) or extinguishes (``OUT``) the option.
+    """
+
+    UP_AND_OUT = "up-and-out"
+    UP_AND_IN = "up-and-in"
+    DOWN_AND_OUT = "down-and-out"
+    DOWN_AND_IN = "down-and-in"
+
+    @property
+    def is_up(self) -> bool:
+        """True if the barrier is above the spot (an *up* barrier)."""
+        return self in (BarrierType.UP_AND_OUT, BarrierType.UP_AND_IN)
+
+    @property
+    def is_knock_in(self) -> bool:
+        """True if hitting the barrier *activates* the option (a knock-*in*)."""
+        return self in (BarrierType.UP_AND_IN, BarrierType.DOWN_AND_IN)
+
+    def __str__(self) -> str:
+        return self.value

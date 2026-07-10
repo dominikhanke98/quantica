@@ -7,20 +7,32 @@ an *instrument* is the contract, a *process* is the market dynamics, and an
 
 from __future__ import annotations
 
-from quantica.core.types import ExerciseStyle, OptionType
+from quantica.core.types import AveragingType, BarrierType, ExerciseStyle, OptionType
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
+from quantica.pricing.engines.asian import AsianMonteCarloEngine, geometric_asian_price
 from quantica.pricing.engines.binomial import BinomialEngine
 from quantica.pricing.engines.finitediff import FiniteDifferenceEngine
 from quantica.pricing.engines.lsm import LongstaffSchwartzEngine
 from quantica.pricing.engines.montecarlo import MCResult, MonteCarloEngine
 from quantica.pricing.greeks import Greeks
-from quantica.pricing.instruments import AmericanOption, EuropeanOption, VanillaOption
+from quantica.pricing.instruments import (
+    AmericanOption,
+    AsianOption,
+    BarrierOption,
+    EuropeanOption,
+    VanillaOption,
+)
 from quantica.pricing.processes import BlackScholesProcess
 from quantica.pricing.volatility import implied_volatility
 
 __all__ = [
     "AmericanOption",
     "AnalyticEuropeanEngine",
+    "AsianMonteCarloEngine",
+    "AsianOption",
+    "AveragingType",
+    "BarrierOption",
+    "BarrierType",
     "BinomialEngine",
     "BlackScholesProcess",
     "EuropeanOption",
@@ -32,5 +44,6 @@ __all__ = [
     "MonteCarloEngine",
     "OptionType",
     "VanillaOption",
+    "geometric_asian_price",
     "implied_volatility",
 ]

@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Self
 
 import numpy as np
 
-from quantica.core.types import ExerciseStyle, FloatLike, OptionType
+from quantica.core.types import AveragingType, BarrierType, ExerciseStyle, FloatLike, OptionType
 
 if TYPE_CHECKING:
     from quantica.pricing.engines import PricingEngine
@@ -151,3 +151,71 @@ class AmericanOption(VanillaOption):
     @property
     def exercise(self) -> ExerciseStyle:
         return ExerciseStyle.AMERICAN
+
+
+@dataclass
+class AsianOption(VanillaOption):
+    """A European-exercise Asian (average-price) option.
+
+    The payoff is the vanilla intrinsic on the *average* of the underlying over
+    ``n_averaging_dates`` equally spaced observations up to expiry, rather than on
+    the terminal spot. Priced by Monte Carlo; the geometric average also has a
+    closed form.
+
+    Parameters
+    ----------
+    averaging : AveragingType
+        Arithmetic or geometric average (keyword-only).
+    n_averaging_dates : int, optional
+        Number of equally spaced averaging observations up to expiry
+        (keyword-only, default 52).
+    """
+
+    averaging: AveragingType = field(kw_only=True)
+    n_averaging_dates: int = field(default=52, kw_only=True)
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.n_averaging_dates < 1:
+            raise ValueError(f"n_averaging_dates must be at least 1, got {self.n_averaging_dates}")
+
+    @property
+    def exercise(self) -> ExerciseStyle:
+        return ExerciseStyle.EUROPEAN
+
+
+@dataclass
+class BarrierOption(VanillaOption):
+    """A European-exercise single-barrier option (knock-in / knock-out).
+
+    The vanilla payoff is activated (knock-in) or extinguished (knock-out)
+    according to whether the underlying touches ``barrier`` at any of
+    ``n_monitoring_dates`` equally spaced observations (discrete monitoring).
+
+    Parameters
+    ----------
+    barrier : float
+        Barrier level ``H``, must be positive (keyword-only).
+    barrier_type : BarrierType
+        Up/down and knock-in/out (keyword-only).
+    n_monitoring_dates : int, optional
+        Number of equally spaced barrier observations up to expiry (keyword-only,
+        default 52).
+    """
+
+    barrier: float = field(kw_only=True)
+    barrier_type: BarrierType = field(kw_only=True)
+    n_monitoring_dates: int = field(default=52, kw_only=True)
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if self.barrier <= 0.0:
+            raise ValueError(f"barrier must be positive, got {self.barrier}")
+        if self.n_monitoring_dates < 1:
+            raise ValueError(
+                f"n_monitoring_dates must be at least 1, got {self.n_monitoring_dates}"
+            )
+
+    @property
+    def exercise(self) -> ExerciseStyle:
+        return ExerciseStyle.EUROPEAN

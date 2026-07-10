@@ -35,6 +35,7 @@ from quantica.pricing import (
     EuropeanOption,
     FiniteDifferenceEngine,
     OptionType,
+    geometric_asian_price,
 )
 
 ql = pytest.importorskip("QuantLib")  # skip cleanly if the benchmark extra is absent
@@ -194,3 +195,44 @@ def test_american_fd_matches_quantlib(kind: OptionType) -> None:
     theirs = ql_option.NPV()
 
     assert abs(ours - theirs) < 3e-3
+
+
+# --------------------------------------------------------------------------- #
+# Geometric Asian closed form vs QuantLib's analytic discrete-geometric engine
+# --------------------------------------------------------------------------- #
+
+# 73 monitoring dates: 365 / 73 = 5 days each, so QuantLib's Actual/365 fixing
+# times are exactly i*T/n and the two conventions align to machine precision.
+_ASIAN_DATES = 73
+
+
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_geometric_asian_matches_quantlib(kind: OptionType) -> None:
+    ours = geometric_asian_price(SPOT, STRIKE, RATE, DIV, VOL, EXPIRY, _ASIAN_DATES, kind)
+
+    today = ql.Date(*_EVAL_DATE)
+    ql.Settings.instance().evaluationDate = today
+    day_count = ql.Actual365Fixed()
+    spot_h = ql.QuoteHandle(ql.SimpleQuote(SPOT))
+    r_ts = ql.YieldTermStructureHandle(ql.FlatForward(today, RATE, day_count))
+    q_ts = ql.YieldTermStructureHandle(ql.FlatForward(today, DIV, day_count))
+    vol_ts = ql.BlackVolTermStructureHandle(
+        ql.BlackConstantVol(today, ql.NullCalendar(), VOL, day_count)
+    )
+    process = ql.BlackScholesMertonProcess(spot_h, q_ts, r_ts, vol_ts)
+
+    ql_kind = ql.Option.Call if kind is OptionType.CALL else ql.Option.Put
+    fixings = [
+        today + ql.Period(365 * i // _ASIAN_DATES, ql.Days) for i in range(1, _ASIAN_DATES + 1)
+    ]
+    option = ql.DiscreteAveragingAsianOption(
+        ql.Average.Geometric,
+        0.0,
+        0,
+        fixings,
+        ql.PlainVanillaPayoff(ql_kind, STRIKE),
+        ql.EuropeanExercise(fixings[-1]),
+    )
+    option.setPricingEngine(ql.AnalyticDiscreteGeometricAveragePriceAsianEngine(process))
+
+    assert np.isclose(ours, option.NPV(), rtol=1e-12, atol=1e-12)
