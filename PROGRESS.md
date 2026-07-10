@@ -6,8 +6,8 @@ Running state file for `quantica`. Updated at the end of each working session
 **Current phase:** Phase 1 pricing core complete (European options, four ways).
 Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
 
-Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** (path-dependent MC:
-Asian, barrier) → Heston + calibration → Merton jump-diffusion.
+Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
+(calibration next) → Merton jump-diffusion.
 
 ## Completed
 
@@ -73,40 +73,36 @@ Asian, barrier) → Heston + calibration → Merton jump-diffusion.
   geometric MC↔closed form (3 SE); discrete-monitoring bias direction + shrinkage;
   bridge recovers the continuous price and beats discrete at fixed step count;
   in-out parity exact.
+- **Phase 4, step 4a — Heston process refactor** — factored a lightweight frozen
+  `Market` carrier (spot, rate, div) out of the processes; `BlackScholesProcess`
+  stays flat/backward-compatible and gains `.market`/`from_market`; new
+  `HestonProcess` (v0, kappa, theta, xi, rho + `feller_satisfied`). Resolved the
+  ignored-vol TODO: `implied_volatility` now takes a `Market` (no placeholder vol).
+- **Phase 4, step 4b — Heston pricer** — `HestonFFTEngine` (`engines/heston.py`):
+  Carr–Madan FFT of the characteristic function, with the branch-cut-stable
+  "little Heston trap" CF from the start; strike placed on an exact FFT node
+  (no interpolation); puts via parity; configurable alpha/n_fft/eta. Validated:
+  reduces to Black–Scholes as xi→0 (~2e-7, the featured anchor); CF correct at
+  t=0 / u=0; put–call parity; arbitrage-free monotonicity; alpha/grid stability;
+  QuantLib AnalyticHestonEngine benchmark (~1e-7, integer-day maturities).
 
-## Next — Phase 4, step 4: Heston stochastic volatility + calibration
+## Next — Phase 4, step 4c: Heston calibration
 
-Enough of the plan to resume cold:
+The process refactor (4a) and the FFT pricer (4b) are done and pushed. Remaining:
 
-- **Process abstraction generalizes (resolves the ignored-vol TODO).** Heston
-  adds a *second stochastic factor* — the variance follows CIR
-  `dv = κ(θ − v)dt + ξ√v dW₂`, correlated (ρ) with spot. `BlackScholesProcess`
-  can no longer be *the* market carrier, so introduce a `HestonProcess` (params:
-  `v0, kappa, theta, xi, rho`) and factor out a common market carrier
-  (`spot, rate, div`) from the vol/variance dynamics. **This is where the
-  long-deferred "ignored-vol market carrier" note below finally has enough
-  information to be resolved** — a `Market`/quote type carrying only
-  `spot, rate, div`, with each process owning its own vol/variance parameters,
-  is the natural shape once a non-BS process exists. Keep the engine seam
-  (`instrument.set_engine(...).npv(process)`) intact.
-- **Pricing via the characteristic function.** Heston has a closed-form
-  characteristic function; price European options by the Carr–Madan FFT (or the
-  Gil-Pelaez / Lewis single-integral form). Watch the well-known CF branch-cut
-  issue — use the "little Heston trap" (Albrecher et al.) formulation of the
-  complex square root for numerical stability. Validate against QuantLib's
-  `AnalyticHestonEngine`.
-- **Sanity limit — reduces to Black–Scholes.** With `xi → 0` (deterministic
-  variance) and `v0 = theta = σ²`, the Heston price must collapse to the
-  Black–Scholes price; assert this to tight tolerance (the free structural check,
-  analogous to the no-dividend-call theorem for American).
 - **Calibration** as nonlinear least squares: fit `(v0, kappa, theta, xi, rho)`
-  to a vanilla implied-vol surface by minimizing squared error over the CF prices
-  (`scipy.optimize.least_squares`); reuse the step-3 `implied_volatility` solver
-  to move between price and IV. **Name the caveats rather than hide them:**
-  parameter identifiability is weak (κ and θ trade off; ξ and ρ both shape the
-  smile/skew), so report fit quality and parameter stability, and respect the
-  **Feller condition** `2κθ ≥ ξ²` (variance stays positive) — flag when a fit
-  violates it.
+  to a vanilla implied-vol surface (a grid of strikes × maturities) by minimizing
+  squared error over the `HestonFFTEngine` prices (`scipy.optimize.least_squares`);
+  reuse the step-3 `implied_volatility` solver to move between price and IV.
+  Report fit quality (RMSE in vol points) and the calibrated params.
+- **Name the caveats rather than hide them:** parameter identifiability is weak
+  (κ and θ trade off; ξ and ρ both shape the smile/skew), so report parameter
+  stability across starting points / bootstraps, and respect the **Feller
+  condition** `2κθ ≥ ξ²` — the `HestonProcess.feller_satisfied` flag is already in
+  place; surface it when a fit violates it.
+- **Validation idea**: round-trip — generate a surface from known Heston params,
+  calibrate, and recover the params (up to the identifiability caveats); check the
+  fitted surface reprices the inputs within tolerance.
 - Then (roadmap): Merton jump-diffusion.
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
@@ -119,14 +115,9 @@ direct alternative for vanillas).
 
 ## Open design notes
 
-- **Ignored-vol market carrier (TODO — resolve at Heston, step 4).**
-  `implied_volatility` and `MonteCarloEngine`/tests take a `BlackScholesProcess`
-  whose `vol` is a placeholder in IV's case (the unknown being solved for). It's
-  documented and tested (answer independent of the passed vol), but the `vol=…`
-  argument reads oddly. Deliberately deferred until a *second* process type
-  exists: Heston (step 4) introduces `HestonProcess`, which is the natural point
-  to factor a `Market`/quote carrier (`spot, rate, div`) out of the vol/variance
-  dynamics. See the Heston plan under "Next".
+- **Ignored-vol market carrier — RESOLVED (step 4a).** `implied_volatility` now
+  takes a `Market` (spot, rate, div); there is no placeholder vol to ignore. The
+  `Market` carrier is shared by `BlackScholesProcess` and `HestonProcess`.
 - **`estimate()` vs `npv` for MC stats.** The standard error is exposed via
   `MonteCarloEngine.estimate()` rather than threading a stats flag through the
   generic `npv`/`PricingEngine` seam. Deliberate; revisit only if other engines

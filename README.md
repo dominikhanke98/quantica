@@ -19,9 +19,11 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > (`max(continuation, intrinsic)`; the PDE as a linear complementarity problem
 > solved by PSOR), joined by **Longstaff–Schwartz Monte Carlo** — cross-validated
 > against each other and QuantLib and by exact structural theorems, since there is
-> no closed form. And **path-dependent exotics** — Asian options (with a
+> no closed form. **Path-dependent exotics** — Asian options (with a
 > geometric-average control variate) and barrier options (with the discrete-monitoring
-> bias corrected by a Brownian bridge).
+> bias corrected by a Brownian bridge). And **Heston stochastic volatility**, priced
+> by the Carr–Madan FFT of the characteristic function (with the branch-cut-stable
+> "little Heston trap" formulation), anchored by its Black–Scholes limit.
 
 ## Architecture
 
@@ -250,6 +252,41 @@ contract is *discretely* monitored.
 > **≈ 24 standard errors to under 1**, recovering the continuous price. In-out
 > parity (knock-in + knock-out = vanilla) holds exactly on shared paths as a
 > structural check.
+
+### Heston stochastic volatility — Fourier pricing
+
+The Heston model gives the variance its own stochastic factor (a mean-reverting
+CIR process, correlated with the spot). This forced the market-data abstraction
+to generalize: a lightweight [`Market`](quantica/pricing/processes.py) carrier
+(spot, rate, dividend) is now shared by both `BlackScholesProcess` and
+`HestonProcess`, and `implied_volatility` takes just a `Market` — there is no
+longer a placeholder volatility to ignore.
+
+Heston has no simple closed form, but its *characteristic function* is known, so
+European options are priced by the [Carr–Madan FFT](quantica/pricing/engines/heston.py):
+the option value is a Fourier integral of the CF, evaluated by one FFT. Two
+highlighted ideas:
+
+> **Highlighted insight — the Black–Scholes limit is the free correctness anchor.**
+> As the vol-of-vol `ξ → 0` with `v0 = θ = σ²`, the variance becomes deterministic
+> and Heston must collapse to Black–Scholes. The FFT price matches
+> `AnalyticEuropeanEngine` to **~2 × 10⁻⁷** across strikes and maturities — a sharp,
+> reference-free check on the whole CF-and-transform pipeline, exactly analogous to
+> the no-dividend-call theorem for American options.
+
+> **Highlighted insight — the branch cut, handled from the start.** The Heston CF
+> contains a complex square root and logarithm; the textbook-naive formulation
+> crosses the logarithm's branch cut for longer maturities, producing
+> discontinuities that silently corrupt the integration. We use the **"little
+> Heston trap"** (Albrecher et al.) formulation — `g = (β−d)/(β+d)` with a `−dτ`
+> exponent — which stays on the principal branch and is stable at all maturities.
+
+The characteristic function is checked directly at its known values (`φ(u)=1` at
+`u=0`; `φ = S₀^{iu}` at `t=0`), put–call parity holds, prices are arbitrage-free
+(monotone in strike), and the price is stable across the damping factor `α` and
+the FFT grid — `α` is exposed as a numerical knob, not hard-coded silently. The
+FFT matches QuantLib's `AnalyticHestonEngine` to ~10⁻⁷ once day-count conventions
+are aligned (behind `pytest -m benchmark`).
 
 ## Development
 
