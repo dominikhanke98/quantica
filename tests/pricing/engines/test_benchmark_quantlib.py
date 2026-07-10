@@ -1,10 +1,12 @@
 """QuantLib benchmarks for the pricing engines — the effective challenge (skill §4).
 
 The analytic engine is re-priced against QuantLib's ``AnalyticEuropeanEngine``
-(price and all Greeks), and the CRR tree against QuantLib's own CRR
-``BinomialVanillaEngine``. We match QuantLib's analytic engine to ~1e-12 because
-both use the same continuous-compounding Black--Scholes--Merton model; the only
-care needed is aligning conventions so the year fraction is exactly ``T``:
+(price and all Greeks), the CRR tree against QuantLib's own CRR
+``BinomialVanillaEngine``, and the Crank--Nicolson PDE against QuantLib's
+``FdBlackScholesVanillaEngine``. We match QuantLib's analytic engine to ~1e-12
+because both use the same continuous-compounding Black--Scholes--Merton model;
+the only care needed is aligning conventions so the year fraction is exactly
+``T``:
 
 * ``Actual365Fixed`` day count with expiry set ``round(365*T)`` days out, so
   ``yearFraction == T`` exactly (no day-count drift);
@@ -14,7 +16,9 @@ care needed is aligning conventions so the year fraction is exactly ``T``:
 
 QuantLib's Greek conventions match ours: ``vega``/``rho`` are per unit (not per
 1%) and ``theta`` is per year (``VanillaOption.theta()``), so no rescaling. The
-two CRR trees differ only by an ``O(1/N)`` lattice-placement discrepancy.
+two CRR trees differ only by an ``O(1/N)`` lattice-placement discrepancy, and
+the two FD schemes by an ``O(h^2)`` grid discrepancy — both families converge to
+the same Black--Scholes price.
 
 Run with ``pytest -m benchmark`` (needs the ``benchmark`` extra installed).
 """
@@ -28,6 +32,7 @@ from quantica.pricing import (
     BinomialEngine,
     BlackScholesProcess,
     EuropeanOption,
+    FiniteDifferenceEngine,
     OptionType,
 )
 
@@ -114,3 +119,28 @@ def test_crr_matches_quantlib(kind: OptionType) -> None:
     theirs = ql_option.NPV()
 
     assert abs(ours - theirs) < 5e-4
+
+
+_FD_STEPS = 400
+
+
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_crank_nicolson_matches_quantlib(kind: OptionType) -> None:
+    # Both are finite-difference PDE solvers converging to the same Black--Scholes
+    # price; the schemes/grids differ, so at a finite grid they agree to an
+    # O(h^2) difference (~6e-4 at 400x400). We assert that inter-library agreement
+    # and that our price is within its discretisation error of the analytic value.
+    proc = BlackScholesProcess(spot=SPOT, rate=RATE, div=DIV, vol=VOL)
+    option = EuropeanOption(strike=STRIKE, expiry=EXPIRY, option_type=kind)
+    ours = FiniteDifferenceEngine(space_steps=_FD_STEPS, time_steps=_FD_STEPS).calculate(
+        option, proc
+    )
+    analytic = AnalyticEuropeanEngine().calculate(option, proc)
+
+    payoff, exercise, process = _ql_parts(kind)
+    ql_option = ql.VanillaOption(payoff, exercise)
+    ql_option.setPricingEngine(ql.FdBlackScholesVanillaEngine(process, _FD_STEPS, _FD_STEPS))
+    theirs = ql_option.NPV()
+
+    assert abs(ours - theirs) < 2e-3  # O(h^2) inter-library grid difference
+    assert abs(ours - analytic) < 1e-3  # both converge to the same BS price
