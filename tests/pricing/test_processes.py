@@ -5,7 +5,12 @@ from __future__ import annotations
 import math
 
 import pytest
-from quantica.pricing.processes import BlackScholesProcess, HestonProcess, Market
+from quantica.pricing.processes import (
+    BlackScholesProcess,
+    HestonProcess,
+    Market,
+    MertonProcess,
+)
 
 
 def test_construction_and_fields() -> None:
@@ -151,6 +156,26 @@ def test_heston_feller_condition() -> None:
         spot=100.0, rate=0.05, v0=0.04, kappa=0.5, theta=0.04, xi=0.5, rho=-0.5
     )
     assert not violated.feller_satisfied  # 2*0.5*0.04 = 0.04 < 0.25
+
+
+def test_merton_construction_and_market_view() -> None:
+    p = MertonProcess(spot=100.0, rate=0.05, vol=0.2, lam=0.75, mu_j=-0.1, sigma_j=0.15, div=0.02)
+    assert p.spot == 100.0 and p.vol == 0.2 and p.lam == 0.75 and p.mu_j == -0.1
+    assert p.market == Market(spot=100.0, rate=0.05, div=0.02)
+    assert p.discount_factor(1.0) == pytest.approx(math.exp(-0.05))
+    # The jump compensator leaves the forward at the plain no-jump value.
+    assert p.forward(1.0) == pytest.approx(100.0 * math.exp(0.05 - 0.02))
+    assert p.compensator == pytest.approx(math.exp(-0.1 + 0.5 * 0.15**2) - 1.0)
+    assert (
+        MertonProcess.from_market(
+            Market(spot=100.0, rate=0.05, div=0.02),
+            vol=0.2,
+            lam=0.75,
+            mu_j=-0.1,
+            sigma_j=0.15,
+        )
+        == p
+    )
 
 
 @pytest.mark.parametrize(
