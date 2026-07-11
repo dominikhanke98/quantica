@@ -27,6 +27,9 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > **calibrated to an implied-vol surface** by nonlinear least squares — validated by
 > synthetic parameter recovery, benchmarked against QuantLib's own calibrator, with
 > the model's identifiability limits and the Feller condition reported honestly.
+> Finally **Merton jump-diffusion**, priced two independent ways — the closed-form
+> Poisson-weighted Black–Scholes series and the Carr–Madan FFT — which cross-validate
+> each other to ~10⁻⁷, completing the derivatives-pricing deepening track.
 
 ## Architecture
 
@@ -352,6 +355,51 @@ lands at **0.245 vol-point RMSE** with small but *structured* residuals (the mod
 known short-maturity skew limitation), Feller satisfied. Regenerate the whole report
 — recovery table, smile-fit slice, and identifiability — with
 `python scripts/heston_calibration_report.py`.
+
+### Merton jump-diffusion — two methods, cross-validated against each other
+
+The last pricer in the derivatives track is Merton (1976) jump-diffusion, which
+adds a compound-Poisson jump to the Black–Scholes diffusion
+([`MertonProcess`](quantica/pricing/processes.py): diffusion vol `σ`, jump
+intensity `λ`, jump mean `μ_J`, jump vol `σ_J`, composing the same `Market`
+carrier). It is priced **two independent ways**:
+
+- **Closed form** — a Poisson-weighted sum of Black–Scholes prices
+  ([`MertonClosedFormEngine`](quantica/pricing/engines/merton.py)): conditional on
+  `n` jumps the option is an ordinary Black–Scholes option with inflated variance
+  and a shifted forward, so the price is `Σ_n P(n)·BS_n` — each `BS_n` delegated to
+  the existing `AnalyticEuropeanEngine`. The series is truncated at a documented
+  tolerance (the Poisson tail, bounded by `max(S, K)`, caps the truncation error).
+- **Characteristic function + FFT** — Merton's CF (diffusion × compound-Poisson)
+  plugs straight into the **same Carr–Madan transform** reused from the Heston
+  engine (factored into [`_carr_madan.py`](quantica/pricing/engines/_carr_madan.py)
+  now that a second model needs it).
+
+> **Highlighted insight — the two methods are each other's validation.** The
+> closed-form Poisson sum and the CF/FFT price agree to **~2 × 10⁻⁷** across strikes,
+> maturities and call/put — a self-anchored cross-check that needs no external
+> reference, exactly the role Heston's Black–Scholes limit plays. (QuantLib ships
+> `Merton76Process` but does not expose a jump-diffusion *engine* in its Python
+> wrapper, so this agreement *is* the rigorous check.) On top of it: `λ → 0`
+> collapses to Black–Scholes, the CF is exact at its known points (`φ(0)=1`,
+> `φ = S₀^{iu}` at `t=0`), put–call parity holds, the Poisson series converges
+> geometrically with the truncation error provably under tolerance, and the FFT is
+> stable across `α` and the grid.
+
+> **Highlighted insight — jumps are the fingerprint of the short-dated smile.** With
+> the *same* baseline diffusion vol (15%), Merton and Heston generate very different
+> implied-vol smiles. A downward jump can move the spot far in little time, so
+> Merton's short-dated smile is steep; a stochastic-vol diffusion needs time to
+> spread the terminal distribution, so Heston's is milder and more persistent. This
+> is the "why Black–Scholes fails" story told two ways
+> (`python scripts/jump_diffusion_smile.py`):
+
+```
+| Model  | smile width T=0.1 | smile width T=1.0 | short/long ratio |
+| ------ | ----------------: | ----------------: | ---------------: |
+| Merton |          17.2 pts |           3.4 pts |             5.1× |
+| Heston |           8.0 pts |           6.5 pts |             1.2× |
+```
 
 ## Development
 

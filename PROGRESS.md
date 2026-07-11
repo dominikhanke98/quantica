@@ -7,7 +7,9 @@ Running state file for `quantica`. Updated at the end of each working session
 Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
-→ **Heston calibration ✓** → Merton jump-diffusion (next).
+→ **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
+deepening track complete.** Next: the deferred thin Streamlit + Plotly app, or
+pivot to Phase 2 (portfolio) / Phase 3 (model validation).
 
 ## Completed
 
@@ -112,15 +114,33 @@ Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Hest
   Report script `scripts/heston_calibration_report.py` (synthetic recovery,
   realistic non-Heston smile fit @0.245 vol-pt RMSE, identifiability) → embedded in
   the README.
+- **Phase 4, step 5 — Merton jump-diffusion** — `MertonProcess` (`processes.py`:
+  σ, λ, μ_J, σ_J composing the `Market` carrier; `.compensator` κ̄; forward
+  unaffected by jumps via the drift compensator). Priced **two independent ways**
+  (`engines/merton.py`): `MertonClosedFormEngine` (Poisson-weighted sum of BS prices
+  — conditional on n jumps it's BS with inflated variance `σ_n²=σ²+nσ_J²/T` and an
+  effective dividend `q_n` so each term's forward matches while the discount stays
+  `e^{-rT}`; each BS term delegated to `AnalyticEuropeanEngine`; series truncated at
+  a documented tol, tail bounded by max(S,K)); and `MertonFFTEngine` (Merton CF into
+  the shared Carr–Madan transform). **Refactor:** extracted the Carr–Madan transform
+  into `engines/_carr_madan.py` (`carr_madan_call_price` taking a CF callable) now
+  that a second model needs it; `HestonFFTEngine` refactored onto it (behaviour +
+  benchmarks unchanged). Validated (`tests/pricing/engines/test_merton.py`, 58
+  tests): **closed-form vs FFT agree to ~2e-7 (headline, self-anchored)**; BS limit
+  (λ→0); CF at known points; Poisson-series monotone convergence + truncation error
+  below stated tol; parity; arbitrage-free monotonicity; α/grid stability; the
+  negative-skew jump smile. **No QuantLib benchmark**: `Merton76Process` exists but
+  the `JumpDiffusionEngine` is not exposed in the QuantLib Python wrapper, so the
+  closed-form-vs-FFT agreement is the rigorous check (documented). Demo
+  `scripts/jump_diffusion_smile.py`: Merton vs Heston smile at the same baseline vol
+  — Merton's short-dated smile is ~5× steeper than its long-dated one (jumps), vs
+  Heston's ~1.2× → embedded in the README.
 
-## Next — Phase 4: Merton jump-diffusion
+## Next — derivatives track complete
 
-Calibration (4c) is done. Remaining Phase-4 items:
+The four-way European core, American options, LSM, exotics, Heston (pricer +
+calibration), and Merton are all done. Options from here:
 
-- **Merton jump-diffusion** pricer (roadmap): closed-form/series European price;
-  the CF also plugs into the existing Carr–Madan FFT machinery, so `HestonFFTEngine`
-  may generalise or a sibling `JumpDiffusionProcess` + engine is added. Validate vs
-  the BS limit (zero jump intensity), cross-method, and QuantLib where available.
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
   surface, convergence table. Thin UI over the tested core; zero pricing logic in
@@ -141,6 +161,13 @@ direct alternative for vanillas).
   need to return stats.
 - **mypy targets 3.12** (runtime is 3.11+) because current numpy stubs use the
   3.12 `type` statement; ruff `target-version = "py311"` guards 3.11 syntax.
+- **Shared Carr–Madan transform (step 5).** `engines/_carr_madan.py` holds the
+  model-agnostic `carr_madan_call_price(cf, ...)`; both `HestonFFTEngine` and
+  `MertonFFTEngine` build a CF closure and call it. Extracted on the *second*
+  consumer (CLAUDE.md §2), not up front.
+- **No QuantLib Merton engine.** This QuantLib build exposes `Merton76Process` but
+  not a wrapped jump-diffusion engine, so Merton has no QuantLib benchmark; the
+  closed-form-vs-FFT agreement (~2e-7) is the effective challenge instead.
 
 ## How to resume
 
