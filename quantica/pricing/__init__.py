@@ -26,6 +26,12 @@ from quantica.pricing.engines.binomial import BinomialEngine
 from quantica.pricing.engines.finitediff import FiniteDifferenceEngine
 from quantica.pricing.engines.heston import HestonFFTEngine, heston_characteristic_function
 from quantica.pricing.engines.lsm import LongstaffSchwartzEngine
+from quantica.pricing.engines.merton import (
+    MertonClosedFormEngine,
+    MertonFFTEngine,
+    merton_characteristic_function,
+    merton_jump_price,
+)
 from quantica.pricing.engines.montecarlo import MCResult, MonteCarloEngine
 from quantica.pricing.greeks import Greeks
 from quantica.pricing.instruments import (
@@ -35,7 +41,12 @@ from quantica.pricing.instruments import (
     EuropeanOption,
     VanillaOption,
 )
-from quantica.pricing.processes import BlackScholesProcess, HestonProcess, Market
+from quantica.pricing.processes import (
+    BlackScholesProcess,
+    HestonProcess,
+    Market,
+    MertonProcess,
+)
 from quantica.pricing.volatility import implied_volatility
 
 __all__ = [
@@ -61,6 +72,9 @@ __all__ = [
     "LongstaffSchwartzEngine",
     "MCResult",
     "Market",
+    "MertonClosedFormEngine",
+    "MertonFFTEngine",
+    "MertonProcess",
     "MonteCarloEngine",
     "ObjectiveProfile",
     "OptionType",
@@ -72,6 +86,8 @@ __all__ = [
     "geometric_asian_price",
     "heston_characteristic_function",
     "implied_volatility",
+    "merton_characteristic_function",
+    "merton_jump_price",
     "profile_objective",
     "vol_surface_from_grid",
 ]

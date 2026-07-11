@@ -253,3 +253,100 @@ class HestonProcess:
     def forward(self, t: float) -> float:
         r"""Forward price :math:`S_0 e^{(r - q) t}` for delivery at ``t``."""
         return self.market.forward(t)
+
+
+@dataclass(frozen=True)
+class MertonProcess:
+    r"""Merton (1976) jump-diffusion under the risk-neutral measure.
+
+    The spot combines a Black--Scholes diffusion with a compound-Poisson jump
+    component: at Poisson rate :math:`\lambda` the log-spot receives an
+    independent normal jump :math:`J \sim \mathcal N(\mu_J, \sigma_J^2)`,
+
+    .. math::
+
+        \frac{dS_t}{S_{t^-}} = (r - q - \lambda\bar\kappa)\, dt
+            + \sigma\, dW_t + (e^{J} - 1)\, dN_t,
+        \qquad N_t \sim \mathrm{Poisson}(\lambda t),
+
+    where :math:`\bar\kappa = \mathbb E[e^{J} - 1] = e^{\mu_J + \sigma_J^2/2} - 1`
+    is the mean relative jump size. The :math:`-\lambda\bar\kappa` drift
+    compensator keeps the discounted spot a martingale, so the forward is the
+    ordinary :math:`S_0 e^{(r-q)T}` despite the jumps.
+
+    Parameters
+    ----------
+    spot : float
+        Current underlying price :math:`S_0`. Must be positive.
+    rate : float
+        Continuously-compounded risk-free rate :math:`r`.
+    vol : float
+        Diffusion volatility :math:`\sigma`. Must be non-negative; ``vol == 0`` is
+        the pure-jump limit.
+    lam : float
+        Jump intensity :math:`\lambda` (expected jumps per year). ``>= 0``;
+        ``lam == 0`` is the Black--Scholes (no-jump) limit.
+    mu_j : float
+        Mean of the log jump size :math:`\mu_J` (may be negative — downward jumps).
+    sigma_j : float
+        Standard deviation of the log jump size :math:`\sigma_J`. ``>= 0``.
+    div : float, optional
+        Continuous dividend yield :math:`q`. Defaults to 0.
+    """
+
+    spot: float
+    rate: float
+    vol: float
+    lam: float
+    mu_j: float
+    sigma_j: float
+    div: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.spot <= 0.0:
+            raise ValueError(f"spot must be positive, got {self.spot}")
+        if self.vol < 0.0:
+            raise ValueError(f"vol must be non-negative, got {self.vol}")
+        if self.lam < 0.0:
+            raise ValueError(f"lam must be non-negative, got {self.lam}")
+        if self.sigma_j < 0.0:
+            raise ValueError(f"sigma_j must be non-negative, got {self.sigma_j}")
+
+    @property
+    def market(self) -> Market:
+        """The model-independent :class:`Market` carrier (spot, rate, div)."""
+        return Market(spot=self.spot, rate=self.rate, div=self.div)
+
+    @classmethod
+    def from_market(
+        cls,
+        market: Market,
+        *,
+        vol: float,
+        lam: float,
+        mu_j: float,
+        sigma_j: float,
+    ) -> MertonProcess:
+        """Build a process from a :class:`Market` plus the jump-diffusion parameters."""
+        return cls(
+            spot=market.spot,
+            rate=market.rate,
+            vol=vol,
+            lam=lam,
+            mu_j=mu_j,
+            sigma_j=sigma_j,
+            div=market.div,
+        )
+
+    @property
+    def compensator(self) -> float:
+        r"""The mean relative jump size :math:`\bar\kappa = e^{\mu_J + \sigma_J^2/2} - 1`."""
+        return float(np.exp(self.mu_j + 0.5 * self.sigma_j * self.sigma_j) - 1.0)
+
+    def discount_factor(self, t: float) -> float:
+        r"""Risk-free discount factor :math:`e^{-r t}` to time ``t``."""
+        return self.market.discount_factor(t)
+
+    def forward(self, t: float) -> float:
+        r"""Forward price :math:`S_0 e^{(r - q) t}` for delivery at ``t`` (jumps compensated)."""
+        return self.market.forward(t)
