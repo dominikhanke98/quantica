@@ -136,19 +136,50 @@ pivot to Phase 2 (portfolio) / Phase 3 (model validation).
   — Merton's short-dated smile is ~5× steeper than its long-dated one (jumps), vs
   Heston's ~1.2× → embedded in the README.
 
-## Next — derivatives track complete
+## Next — STRATEGIC DECISION for next session (start here)
 
-The four-way European core, American options, LSM, exotics, Heston (pricer +
-calibration), and Merton are all done. Options from here:
+The **derivatives-pricing deepening track is complete**: four-way European core,
+American options, LSM, path-dependent exotics, Heston (pricer + calibration), and
+Merton jump-diffusion — all cross-validated and (where a reference exists)
+QuantLib-benchmarked. This is a natural branch point; **decide the direction before
+writing code.** The choice hinges on the target role:
+
+- **(A) Go deeper in derivatives** — sharpens a *derivatives-specialist* profile
+  (pricing quant / derivatives desk / model validation of pricing models). Next
+  candidate steps, in rough priority:
+  - **PDE Greeks + Rannacher start-up** — cash in the documented L-stability caveat
+    in `finitediff.py`: Crank–Nicolson's non-L-stable behaviour pollutes Greeks near
+    the strike/at short T; two fully-implicit (Rannacher) start-up steps fix it.
+    Natural next increment, self-contained, reuses the existing PDE engine, and adds
+    a *Greeks-from-PDE* capability validated vs the analytic/bump-and-reval Greeks.
+  - **Autocallable** (optional, bigger) — a structured exotic priced by MC (and/or
+    PDE), exercising the LSM/path machinery on a real payoff; good portfolio piece
+    but heavier.
+- **(B) Pivot to a new track** — broadens to a *three-track generalist* profile
+  (the CLAUDE.md §9 roadmap), which reads as "model validation / buy-side" breadth:
+  - **Phase 2 — systematic portfolio management** (signal → construction → backtest;
+    covariance-estimation study; walk-forward + purged/embargoed CV; realistic
+    costs). Streamlit + Plotly app.
+  - **Phase 3 — quant risk / model validation** (VaR/ES engines + backtests: Kupiec,
+    Christoffersen, Acerbi–Székely, FRTB traffic-light; PD/ML model validation under
+    SR 11-7). This track most directly *is* the model-validation narrative.
+
+**Recommendation to weigh (not yet decided):** if the job search skews toward
+derivatives-desk / pricing-model-validation roles, do (A) PDE Greeks next (small,
+high-signal, closes an already-documented loose end). If the target is a broader
+model-validation / buy-side seat, pivot to (B) Phase 3 to demonstrate range beyond
+pricing. **The author (domain expert) makes this call at the top of next session.**
+
+Also still open regardless of the above:
 
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
   surface, convergence table. Thin UI over the tested core; zero pricing logic in
-  `apps/`.
+  `apps/`. Best done once a track is chosen (pricing app vs portfolio/risk app).
 
 Note the documented Rannacher/L-stability caveat in `finitediff.py` if PDE Greeks
-are ever added; the American PDE uses PSOR (Brennan–Schwartz would be a faster
-direct alternative for vanillas).
+are ever added (this is exactly step (A) above); the American PDE uses PSOR
+(Brennan–Schwartz would be a faster direct alternative for vanillas).
 
 ## Open design notes
 
