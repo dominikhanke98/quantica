@@ -41,7 +41,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quantica.core.types import ExerciseStyle, FloatArray, OptionType
+from quantica.core.types import ExerciseStyle, OptionType
+from quantica.pricing.engines._carr_madan import carr_madan_call_price
 from quantica.pricing.instruments import VanillaOption
 from quantica.pricing.processes import HestonProcess
 
@@ -157,42 +158,20 @@ class HestonFFTEngine:
         return float(call - forward_leg + strike_leg)
 
     def _carr_madan_call(self, strike: float, expiry: float, process: HestonProcess) -> float:
-        n, eta, alpha = self.n_fft, self.eta, self.alpha
-        lam = 2.0 * np.pi / (n * eta)  # log-strike grid spacing
-        # Centre the log-strike grid so ln(K) is exactly node n//2 (no interpolation).
-        k_target = np.log(strike)
-        k_min = k_target - (n // 2) * lam
+        def cf(u: NDArray[np.complex128]) -> NDArray[np.complex128]:
+            return heston_characteristic_function(
+                u,
+                expiry,
+                rate=process.rate,
+                div=process.div,
+                v0=process.v0,
+                kappa=process.kappa,
+                theta=process.theta,
+                xi=process.xi,
+                rho=process.rho,
+                spot=process.spot,
+            )
 
-        j = np.arange(n)
-        v = eta * j
-        u_arg = np.asarray(v - (alpha + 1.0) * 1j, dtype=np.complex128)
-        cf = heston_characteristic_function(
-            u_arg,
-            expiry,
-            rate=process.rate,
-            div=process.div,
-            v0=process.v0,
-            kappa=process.kappa,
-            theta=process.theta,
-            xi=process.xi,
-            rho=process.rho,
-            spot=process.spot,
+        return carr_madan_call_price(
+            cf, strike, expiry, process.rate, alpha=self.alpha, n_fft=self.n_fft, eta=self.eta
         )
-        denom = alpha * alpha + alpha - v * v + 1j * (2.0 * alpha + 1.0) * v
-        psi = np.exp(-process.rate * expiry) * cf / denom
-
-        simpson = _simpson_weights(n) * (eta / 3.0)
-        integrand = np.exp(-1j * v * k_min) * psi * simpson
-        transform = np.fft.fft(integrand)
-
-        k_grid = k_min + lam * j
-        call_curve = np.exp(-alpha * k_grid) / np.pi * transform.real
-        return float(call_curve[n // 2])
-
-
-def _simpson_weights(n: int) -> FloatArray:
-    """Composite Simpson coefficients (1, 4, 2, 4, ..., 4, 1)."""
-    weights = np.ones(n)
-    weights[1::2] = 4.0
-    weights[2:-1:2] = 2.0
-    return weights
