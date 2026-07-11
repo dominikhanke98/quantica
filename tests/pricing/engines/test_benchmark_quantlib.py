@@ -36,10 +36,15 @@ from quantica.pricing import (
     EuropeanOption,
     FiniteDifferenceEngine,
     HestonFFTEngine,
+    HestonParams,
     HestonProcess,
+    Market,
     OptionType,
     barrier_price,
+    calibrate_heston,
     geometric_asian_price,
+    implied_volatility,
+    vol_surface_from_grid,
 )
 
 ql = pytest.importorskip("QuantLib")  # skip cleanly if the benchmark extra is absent
@@ -311,3 +316,77 @@ def test_heston_matches_quantlib(days: int, kind: OptionType, strike: float) -> 
     ql_option.setPricingEngine(ql.AnalyticHestonEngine(ql.HestonModel(ql_process)))
 
     assert abs(ours - ql_option.NPV()) < 1e-5
+
+
+# --------------------------------------------------------------------------- #
+# Heston calibration: our least-squares fit vs QuantLib's, on the same surface
+# --------------------------------------------------------------------------- #
+
+# A Feller-satisfying truth used to generate a synthetic surface; both calibrators
+# should recover it and agree with each other (a second, independent effective
+# challenge on top of the reference-free synthetic round-trip).
+_CAL_TRUTH = HestonParams(v0=0.04, kappa=1.5, theta=0.04, xi=0.3, rho=-0.6)
+_CAL_DAYS = [90, 180, 365, 730]  # integer days so T = days/365 is exactly Actual/365
+_CAL_STRIKES = [90.0, 100.0, 110.0]
+
+
+def test_calibration_matches_quantlib_on_synthetic_surface() -> None:
+    market = Market(spot=SPOT, rate=RATE, div=DIV)
+    engine = HestonFFTEngine()
+    process = _CAL_TRUTH.to_process(market)
+    expiries = [d / 365.0 for d in _CAL_DAYS]
+
+    # Generate the implied-vol surface the truth Heston model implies.
+    ivs = np.zeros((len(expiries), len(_CAL_STRIKES)))
+    for i, T in enumerate(expiries):
+        for j, K in enumerate(_CAL_STRIKES):
+            kind = OptionType.CALL if market.forward(T) <= K else OptionType.PUT
+            opt = EuropeanOption(K, T, kind)
+            ivs[i, j] = implied_volatility(engine.calculate(opt, process), opt, market)
+
+    # Our least-squares calibration.
+    quotes = vol_surface_from_grid(_CAL_STRIKES, expiries, ivs)
+    ours = calibrate_heston(market, quotes, engine=engine)
+
+    # QuantLib's calibration (HestonModelHelper + Levenberg--Marquardt), from a
+    # deliberately different starting point so agreement is not a start artefact.
+    today = ql.Date(*_EVAL_DATE)
+    ql.Settings.instance().evaluationDate = today
+    day_count = ql.Actual365Fixed()
+    r_ts = ql.YieldTermStructureHandle(ql.FlatForward(today, RATE, day_count))
+    q_ts = ql.YieldTermStructureHandle(ql.FlatForward(today, DIV, day_count))
+    spot_h = ql.QuoteHandle(ql.SimpleQuote(SPOT))
+    model = ql.HestonModel(
+        ql.HestonProcess(r_ts, q_ts, spot_h, 0.02, 1.0, 0.02, 0.5, -0.5)  # v0,kappa,theta,xi,rho
+    )
+    ql_engine = ql.AnalyticHestonEngine(model)
+    helpers = []
+    for i, d in enumerate(_CAL_DAYS):
+        for j, K in enumerate(_CAL_STRIKES):
+            helper = ql.HestonModelHelper(
+                ql.Period(d, ql.Days),
+                ql.NullCalendar(),
+                SPOT,
+                K,
+                ql.QuoteHandle(ql.SimpleQuote(float(ivs[i, j]))),
+                r_ts,
+                q_ts,
+                ql.BlackCalibrationHelper.ImpliedVolError,
+            )
+            helper.setPricingEngine(ql_engine)
+            helpers.append(helper)
+    model.calibrate(
+        helpers,
+        ql.LevenbergMarquardt(1e-8, 1e-8, 1e-8),
+        ql.EndCriteria(500, 100, 1e-8, 1e-8, 1e-8),
+    )
+    # QuantLib params() order is (theta, kappa, sigma=xi, rho, v0).
+    theta, kappa, xi, rho, v0 = model.params()
+    theirs = HestonParams(v0=v0, kappa=kappa, theta=theta, xi=xi, rho=rho)
+
+    # Both recover the truth, and therefore agree with each other, tightly.
+    np.testing.assert_allclose(
+        np.asarray(ours.params), np.asarray(_CAL_TRUTH), rtol=1e-2, atol=1e-3
+    )
+    np.testing.assert_allclose(np.asarray(theirs), np.asarray(_CAL_TRUTH), rtol=1e-2, atol=1e-3)
+    np.testing.assert_allclose(np.asarray(ours.params), np.asarray(theirs), rtol=2e-2, atol=2e-3)
