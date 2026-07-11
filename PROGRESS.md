@@ -7,7 +7,7 @@ Running state file for `quantica`. Updated at the end of each working session
 Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
-(calibration next) → Merton jump-diffusion.
+→ **Heston calibration ✓** → Merton jump-diffusion (next).
 
 ## Completed
 
@@ -90,25 +90,37 @@ Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Hest
   truth confirmed our FFT is exact to ~1e-13 there, i.e. more accurate than
   QuantLib's *default* AnalyticHestonEngine at short expiry — so benchmarks use
   integer-day maturities to align conventions.
+- **Phase 4, step 4c — Heston calibration** — `calibrate_heston`
+  (`pricing/calibration.py`): fits `(v0, kappa, theta, xi, rho)` to a vanilla
+  implied-vol surface by `scipy.optimize.least_squares` over `HestonFFTEngine`
+  prices, reusing the step-3 `implied_volatility` solver to invert model prices on
+  the **OTM** option (best-conditioned vega). **Vol space is the default** (doesn't
+  overweight expensive ITM quotes); `space="price"` available. `HestonParams` /
+  `VolQuote` / `ParamBounds` / `DEFAULT_BOUNDS` / `vol_surface_from_grid` supporting
+  types; box bounds passed straight to the optimizer; non-finite pricer corners
+  (CF overflow) penalised so the solver is repelled, not crashed. **Feller**
+  reported via `feller_satisfied` by default, optional soft penalty (`feller_weight`).
+  **Identifiability** surfaced two ways: `profile_objective` (pin one param,
+  re-optimise the rest → valley-width read-out: κ valley ≈ 3× wider than ρ) and
+  multi-start `param_spread`. Multi-start seeded (deterministic; default
+  `default_rng(0)`). Validated (`tests/pricing/test_calibration.py`, 17 tests):
+  noise-free synthetic recovery to solver tolerance (headline); tight fit quality
+  (RMSE < 1e-5 vol); noisy recovery shows v0/θ tight (~3%) vs κ loose (~20%);
+  κ-valley broader than ρ-valley; Feller flag + penalty both exercised; seeded
+  determinism; weights applied. QuantLib benchmark: our fit and QuantLib's
+  `HestonModelHelper` + Levenberg–Marquardt both recover the truth and agree.
+  Report script `scripts/heston_calibration_report.py` (synthetic recovery,
+  realistic non-Heston smile fit @0.245 vol-pt RMSE, identifiability) → embedded in
+  the README.
 
-## Next — Phase 4, step 4c: Heston calibration
+## Next — Phase 4: Merton jump-diffusion
 
-The process refactor (4a) and the FFT pricer (4b) are done and pushed. Remaining:
+Calibration (4c) is done. Remaining Phase-4 items:
 
-- **Calibration** as nonlinear least squares: fit `(v0, kappa, theta, xi, rho)`
-  to a vanilla implied-vol surface (a grid of strikes × maturities) by minimizing
-  squared error over the `HestonFFTEngine` prices (`scipy.optimize.least_squares`);
-  reuse the step-3 `implied_volatility` solver to move between price and IV.
-  Report fit quality (RMSE in vol points) and the calibrated params.
-- **Name the caveats rather than hide them:** parameter identifiability is weak
-  (κ and θ trade off; ξ and ρ both shape the smile/skew), so report parameter
-  stability across starting points / bootstraps, and respect the **Feller
-  condition** `2κθ ≥ ξ²` — the `HestonProcess.feller_satisfied` flag is already in
-  place; surface it when a fit violates it.
-- **Validation idea**: round-trip — generate a surface from known Heston params,
-  calibrate, and recover the params (up to the identifiability caveats); check the
-  fitted surface reprices the inputs within tolerance.
-- Then (roadmap): Merton jump-diffusion.
+- **Merton jump-diffusion** pricer (roadmap): closed-form/series European price;
+  the CF also plugs into the existing Carr–Madan FFT machinery, so `HestonFFTEngine`
+  may generalise or a sibling `JumpDiffusionProcess` + engine is added. Validate vs
+  the BS limit (zero jump intensity), cross-method, and QuantLib where available.
 - **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
   (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
   surface, convergence table. Thin UI over the tested core; zero pricing logic in

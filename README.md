@@ -23,7 +23,10 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > geometric-average control variate) and barrier options (with the discrete-monitoring
 > bias corrected by a Brownian bridge). And **Heston stochastic volatility**, priced
 > by the Carr–Madan FFT of the characteristic function (with the branch-cut-stable
-> "little Heston trap" formulation), anchored by its Black–Scholes limit.
+> "little Heston trap" formulation), anchored by its Black–Scholes limit and
+> **calibrated to an implied-vol surface** by nonlinear least squares — validated by
+> synthetic parameter recovery, benchmarked against QuantLib's own calibrator, with
+> the model's identifiability limits and the Feller condition reported honestly.
 
 ## Architecture
 
@@ -287,6 +290,68 @@ The characteristic function is checked directly at its known values (`φ(u)=1` a
 the FFT grid — `α` is exposed as a numerical knob, not hard-coded silently. The
 FFT matches QuantLib's `AnalyticHestonEngine` to ~10⁻⁷ once day-count conventions
 are aligned (behind `pytest -m benchmark`).
+
+### Heston calibration — fitting the surface, and the honesty about it
+
+A pricer is only half the story: the model has to be *calibrated* to the market.
+[`calibrate_heston`](quantica/pricing/calibration.py) fits the five parameters
+`(v0, κ, θ, ξ, ρ)` to a vanilla implied-vol surface by nonlinear least squares
+(`scipy.optimize.least_squares`), pricing each quote with the `HestonFFTEngine` and
+reusing the step-3 implied-vol solver to move between price and vol space. The
+design decisions — objective, weighting, bounds, the Feller handling, and the
+identifiability diagnostics — are the deliverable; the optimizer itself is a
+library call.
+
+**Vol space is the default.** Residuals are measured in implied-vol points, not
+price, because a fixed price error is a huge vol error for a cheap OTM option and a
+tiny one for an expensive ITM option — a price-space fit silently overweights deep
+ITM quotes, which carry the least information about the smile. Each model price is
+inverted on the *out-of-the-money* option at that strike, where vega is largest and
+the inversion is best-conditioned.
+
+> **Highlighted insight — synthetic recovery is the reference-free proof.** Generate
+> a surface from *known* Heston parameters, calibrate back, and check the machinery
+> returns them. Because the same FFT engine generates and fits the surface, engine
+> discretisation is not a confounder — a noise-free surface is recovered to solver
+> tolerance, which is the rigorous check that the calibration is correct (no
+> external reference needed). On top of that, our fit and QuantLib's own
+> `HestonModelHelper` + Levenberg–Marquardt calibration both recover the truth and
+> agree (behind `pytest -m benchmark`).
+
+```
+| Parameter | Truth  | Recovered | Abs. error |
+| --------- | -----: | --------: | ---------: |
+| v0        | 0.0400 |    0.0400 |    7.8e-10 |
+| kappa     | 2.0000 |    2.0000 |    2.0e-07 |
+| theta     | 0.0500 |    0.0500 |    5.6e-10 |
+| xi        | 0.3000 |    0.3000 |    6.6e-08 |
+| rho       | -0.7000|   -0.7000 |    1.6e-07 |
+```
+
+> **Highlighted insight — identifiability, named rather than hidden.** A single
+> surface does not pin all five parameters equally. `κ` (mean-reversion speed) and
+> `θ` (long-run variance) trade off, so the objective is *flat* along that
+> direction. [`profile_objective`](quantica/pricing/calibration.py) makes this
+> concrete: pin one parameter, re-optimise the other four, and measure the width of
+> the near-optimal valley. On the recovery surface **κ's valley is ≈ 3× wider (in
+> relative terms) than ρ's** (±12.5% vs ±4.1%) — the surface pins the skew (ρ)
+> tightly and the mean-reversion speed (κ) only loosely. Under measurement noise
+> this shows up directly: `v0` and `θ` recover to ~3% while `κ` scatters ~20%. We
+> report this rather than present a single-point fit as if it were unique.
+
+> **Highlighted insight — the Feller condition is surfaced, not silently violated.**
+> `2κθ ≥ ξ²` keeps the variance strictly positive. A fit that breaks it is still a
+> valid Heston model, so by default the condition is *reported* via the existing
+> `HestonProcess.feller_satisfied` flag rather than forced; an optional soft penalty
+> (`feller_weight`) biases the fit toward the satisfying region when the caller
+> wants the cleaner variance process, trading a little fit quality for it.
+
+The compelling demo fits a hand-specified, *non-Heston* equity-index smile
+(downward skew flattening with maturity) that Heston can only approximate: the fit
+lands at **0.245 vol-point RMSE** with small but *structured* residuals (the model's
+known short-maturity skew limitation), Feller satisfied. Regenerate the whole report
+— recovery table, smile-fit slice, and identifiability — with
+`python scripts/heston_calibration_report.py`.
 
 ## Development
 
