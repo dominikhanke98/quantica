@@ -8,6 +8,17 @@ an *instrument* is the contract, a *process* is the market dynamics, and an
 from __future__ import annotations
 
 from quantica.core.types import AveragingType, BarrierType, ExerciseStyle, OptionType
+from quantica.pricing.calibration import (
+    DEFAULT_BOUNDS,
+    HestonCalibrationResult,
+    HestonParams,
+    ObjectiveProfile,
+    ParamBounds,
+    VolQuote,
+    calibrate_heston,
+    profile_objective,
+    vol_surface_from_grid,
+)
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
 from quantica.pricing.engines.asian import AsianMonteCarloEngine, geometric_asian_price
 from quantica.pricing.engines.barrier import BarrierMonteCarloEngine, barrier_price
@@ -28,6 +39,7 @@ from quantica.pricing.processes import BlackScholesProcess, HestonProcess, Marke
 from quantica.pricing.volatility import implied_volatility
 
 __all__ = [
+    "DEFAULT_BOUNDS",
     "AmericanOption",
     "AnalyticEuropeanEngine",
     "AsianMonteCarloEngine",
@@ -42,16 +54,24 @@ __all__ = [
     "ExerciseStyle",
     "FiniteDifferenceEngine",
     "Greeks",
+    "HestonCalibrationResult",
     "HestonFFTEngine",
+    "HestonParams",
     "HestonProcess",
     "LongstaffSchwartzEngine",
     "MCResult",
     "Market",
     "MonteCarloEngine",
+    "ObjectiveProfile",
     "OptionType",
+    "ParamBounds",
     "VanillaOption",
+    "VolQuote",
     "barrier_price",
+    "calibrate_heston",
     "geometric_asian_price",
     "heston_characteristic_function",
     "implied_volatility",
+    "profile_objective",
+    "vol_surface_from_grid",
 ]
