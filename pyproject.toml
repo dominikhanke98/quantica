@@ -35,6 +35,10 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
+    # Champion/challenger PD models for the credit-validation demo and tests.
+    # NOT a runtime dependency: the credit validators consume model outputs
+    # (y, PD scores), never a fitted model object (CLAUDE.md §3).
+    "scikit-learn>=1.4",
     "ruff>=0.6",
     "mypy>=1.11",
     "hypothesis>=6.100",
