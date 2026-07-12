@@ -13,7 +13,8 @@ deepening track complete.**
 
 Phase-3 roadmap: **market-risk VaR/ES + backtesting ✓** → **derivatives-P&L
 integration ✓** (option book revalued through the pricers as the risk P&L source)
-→ **credit-risk / PD validation ✓** → ML-model validation (SR 11-7).
+→ **credit-risk / PD validation ✓** → **ML-model validation (SR 11-7) ✓**.
+**The risk pillar's planned model families are complete.**
 
 ## Completed
 
@@ -221,32 +222,52 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   `scripts/pd_validation_report.py` (discrimination CIs, per-grade tables,
   PSI/CSI drift attribution, size/power table) → embedded in the README with
   ECB/Basel/SR 11-7 framing (factual).
+- **Phase 3, step 4 — ML-model validation (SR 11-7)** — new
+  `quantica/risk/ml_validation/` package (numpy/scipy-only; consumes SHAP
+  matrices, PD scores, or a bare `predict` callable — never model internals;
+  `shap` joins scikit-learn as a *dev* extra, verified working on Python 3.14).
+  Modules: `explainability.py` (`check_local_accuracy` — SHAP's additivity axiom
+  asserted; `global_importance` / `driver_recovery` vs a known DGP ranking;
+  `rank_stability` (pairwise Spearman across replications);
+  `attribution_direction`); `robustness.py` (`prediction_stability` — |ΔPD|
+  under seeded feature-scaled noise; `performance_under_shift` — AUC + HL
+  (dof=G, scores external to the eval samples) dev vs shifted);
+  `fairness.py` (`disparate_impact` four-fifths (labelled EEOC convention),
+  `group_calibration` two-sided Jeffreys within group; impossibility trade-off
+  documented); `soundness.py` (`ConceptualSoundnessReview` — per-dimension
+  verdicts + transparent aggregation rule → APPROVE / APPROVE_WITH_CONDITIONS /
+  REJECT). **Data:** `CreditSample` gains a protected-`group` proxy +
+  `group_effect` knob, drawn *after* all prior RNG consumption so every existing
+  seeded result is bit-identical (verified). Validated
+  (`tests/risk/ml_validation/`, 29 tests): **local accuracy 1e-14 on TreeSHAP /
+  LinearSHAP and shown to FAIL (error ≈ 5.9) on the wrong output scale**
+  (probability vs log-odds — the classic silent mistake); **SHAP recovers the
+  planted driver order exactly** (both models) and the planted
+  leverage×behavioural interaction as the top interaction pair (>3× margin);
+  direction signs match the DGP with leverage attenuated by its U-shape (honest
+  nuance, asserted); refit/subsample rank stability ≥ 0.9;
+  **prediction-stability metric validated against the linear closed form**
+  (E|Δf| = √(2/π)·σ_Δ); the honest robustness finding — **GBM tail |ΔPD| 0.28 vs
+  champion 0.019 (15×) under 1% noise** (structural step-function jumps); the
+  fairness impossibility on known truth — **even the TRUE PDs are calibrated
+  within group yet fail four-fifths (ratio 0.76)** (base-rate fact, not model
+  defect). Report `scripts/ml_validation_report.py`: full SR 11-7 review ending
+  in **APPROVE WITH CONDITIONS** (calibration, robustness-tail, fairness-policy
+  conditions; discrimination/explainability/drift PASS) → embedded in the README.
 
-## Next — Phase 3 continues
+## Next — risk pillar model families complete
 
-Natural next steps within the risk pillar:
+Phase 3's planned families (market risk, derivatives P&L, credit/PD, ML) are all
+landed. Options from here:
 
-- **ML-model validation (SR 11-7) — the designated next step.** Subject the
-  step-3 challenger GBM to a full effective challenge, completing the risk
-  pillar's model families (CLAUDE.md §9). Scope:
-  - **Explainability + explanation stability** — SHAP-style attributions: do the
-    explanations recover the *known* generative drivers (the planted
-    leverage×behavioural interaction and leverage² convexity make this checkable
-    against ground truth — same known-truth trick as step 3), and are they
-    *stable* across bootstrap refits / nearby inputs?
-  - **Robustness under perturbation** — performance and calibration degradation
-    under input noise / drifted populations (reuse `leverage_shift`), adversarial
-    or boundary-case obligors.
-  - **Fairness / disparate impact** — group metrics on a protected-attribute
-    proxy in the synthetic generator; document metric choice honestly (the
-    impossibility results mean picking one is a modelling decision).
-  - **Integrated conceptual-soundness verdict** — roll discrimination /
-    calibration / stability / explainability / robustness / fairness into the
-    SR 11-7-style recommendation the step-3 report stopped short of ("promote
-    only after recalibration" → a full model-risk write-up).
-- **Backtest extensions** (alternative) — FRTB P&L attribution; expected-shortfall
-  at the FRTB 97.5% level end-to-end; a risk Streamlit + Plotly app (thin UI over
-  the tested core).
+- **Backtest extensions** — FRTB P&L attribution; expected-shortfall at the FRTB
+  97.5% level end-to-end.
+- **Apps** — the deferred thin Streamlit + Plotly pricing app and/or a risk
+  dashboard (thin UI over the tested core; zero quant logic in `apps/`).
+- **Phase 2 — systematic portfolio management** — the third pillar (signal →
+  construction → backtest; covariance-estimation study; purged/embargoed CV).
+- **Derivatives deepening (prior options)** — PDE Greeks + Rannacher start-up
+  (cash in the `finitediff.py` L-stability note); autocallable.
 
 Earlier open strategic options (still valid if pivoting back to derivatives):
 
@@ -315,6 +336,12 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   `Merton76Process` exists but no jump-diffusion pricing engine is exposed, so
   there is no reference to benchmark against — the closed-form-vs-FFT
   self-validation (~2e-7) had to carry the effective challenge instead.
+- **SHAP output-scale ambiguity (step 4).** `shap.TreeExplainer` explains the
+  **log-odds margin** for `HistGradientBoostingClassifier` while users naturally
+  compare against `predict_proba` — the additivity identity then fails silently
+  (nothing errors; the attributions just don't sum to anything meaningful,
+  max error ≈ 5.9 on our book). `check_local_accuracy` exists precisely to make
+  this loud; the report demonstrates the failure mode explicitly.
 
 ## Open design notes
 

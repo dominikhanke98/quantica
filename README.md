@@ -37,11 +37,14 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > validated** — and the two pillars now meet: an **option book revalued through the
 > pricing engines** is a drop-in P&L source for the risk layer, with the
 > delta-normal / delta-gamma / full-revaluation divergence characterised as a
-> model-validation study. Newly added: **credit-risk / PD model validation** —
+> model-validation study. Then **credit-risk / PD model validation** —
 > discrimination (AUC/Gini/KS with bootstrap CIs), the per-grade calibration
 > battery (exact binomial, ECB Jeffreys, Hosmer–Lemeshow), and PSI stability, with
-> the calibration tests' own size and power measured on known-truth grades. See
-> the risk sections below.
+> the calibration tests' own size and power measured on known-truth grades. And
+> **ML-model validation under SR 11-7**: SHAP explainability *validated against
+> the known data-generating process* (local accuracy asserted, planted drivers and
+> interaction recovered), robustness and fairness quantified honestly, ending in
+> an explicit approve-with-conditions recommendation. See the risk sections below.
 
 ## Architecture
 
@@ -593,6 +596,56 @@ models.
 > grades (Jeffreys p < 0.01). The realistic validation verdict is not "the ML
 > model wins" but "the challenger may be promoted only after recalibration" —
 > reported as found, not smoothed over.
+
+## ML-model validation — SR 11-7 effective challenge
+
+The risk pillar's third model family: the challenger GBM is put through the
+**conceptual-soundness and robustness review** a bank's model-validation function
+runs on a machine-learning model ([`quantica/risk/ml_validation/`](quantica/risk/ml_validation),
+report: `python scripts/ml_validation_report.py`). Same posture as the credit
+package: the validators consume model *outputs* — SHAP matrices, PD scores, or a
+bare `predict` callable — never model internals; `shap` and scikit-learn are dev
+extras used only in scripts and tests.
+
+> **Highlighted insight — explainability as a verifiable claim, not a
+> narrative.** SHAP output is usually unfalsifiable colour: a bar chart nobody
+> can dispute. Two moves change that. First, **validate the explainer itself**:
+> SHAP's local-accuracy axiom (attributions sum to the prediction minus the base
+> value) is asserted to 10⁻¹⁴ — and shown to fail loudly (error ≈ 5.9) when fed
+> the *probability* output instead of the log-odds the explainer works on, the
+> classic silent scale mistake. Second, **check the explanations against a known
+> truth**: on the synthetic book the data-generating process is known, and SHAP's
+> global importances recover the planted driver order (leverage > behavioural >
+> profitability > liquidity > size) *exactly* — for the GBM and the champion —
+> while the planted leverage×behavioural interaction is the top SHAP interaction
+> pair by >3×. Even the nuance is informative: leverage's attribution-vs-feature
+> correlation is *attenuated* (+0.64 vs −0.92 for profitability) precisely
+> because its planted effect is U-shaped. Explanation rankings are stable across
+> bootstrap refits (Spearman ≥ 0.90).
+
+The **robustness** review quantifies where the GBM is genuinely weaker: under 1%
+input noise its mean |ΔPD| is benign (0.0027) but the **tail reaches 0.28 vs the
+champion's 0.019 — 15×** — a tiny perturbation can cross a split boundary and
+jump the PD, which is structural to trees, not a tuning artifact. Under the
+planted covariate drift, discrimination holds (ΔAUC −0.006). The **fairness**
+review makes the metric choice explicit: on a book with a planted group
+base-rate difference the model is *calibrated within each group* yet fails the
+four-fifths approval-rate convention (ratio 0.76) — and so do the **true**
+generative PDs, demonstrating on known ground truth that the two fairness
+definitions cannot both hold when base rates differ (Chouldechova 2017;
+Kleinberg et al. 2016). The trade-off is documented and routed to the policy
+layer, not silently resolved.
+
+> **Highlighted insight — the review ends in a decision.** The evidence rolls
+> into a structured SR 11-7 write-up with a *transparent* aggregation rule (any
+> fail → reject; any conditional → approve with conditions), so the judgment
+> lives in per-dimension findings tied to measured numbers: discrimination PASS,
+> calibration CONDITIONAL (recalibrate, re-run the Jeffreys battery),
+> explainability PASS, robustness CONDITIONAL (PD-change tolerance + tail
+> monitoring), drift stability PASS, fairness CONDITIONAL (explicit policy
+> decision). Recommendation: **APPROVE WITH CONDITIONS** — the realistic verdict
+> for an ML challenger that ranks well, explains verifiably, but is not yet
+> calibrated or operationally hardened.
 
 ## Development
 
