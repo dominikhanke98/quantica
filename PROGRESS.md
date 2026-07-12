@@ -4,8 +4,9 @@ Running state file for `quantica`. Updated at the end of each working session
 (see CLAUDE.md §"Session close-out"). Concise and factual.
 
 **Current phase:** Derivatives-pricing track complete (Phase 1 core + Phase 4
-deepening). **Phase 3 (quant risk / model validation) now open** as the second
-pillar — market-risk core landed.
+deepening). **Phase 3 (quant risk / model validation) complete** across all four
+model families (market risk, derivatives P&L, credit/PD, ML under SR 11-7).
+**Next direction is an open decision** — see "Next" below.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
@@ -255,66 +256,33 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   in **APPROVE WITH CONDITIONS** (calibration, robustness-tail, fairness-policy
   conditions; discrimination/explainability/drift PASS) → embedded in the README.
 
-## Next — risk pillar model families complete
+## Next — OPEN DIRECTION DECISION (author decides at the top of next session)
 
-Phase 3's planned families (market risk, derivatives P&L, credit/PD, ML) are all
-landed. Options from here:
+Two pillars stand complete: derivatives pricing (Phase 1 + 4) and quant risk /
+model validation (Phase 3, all four model families). The options, with the
+trade-off framed:
 
-- **Backtest extensions** — FRTB P&L attribution; expected-shortfall at the FRTB
-  97.5% level end-to-end.
-- **Apps** — the deferred thin Streamlit + Plotly pricing app and/or a risk
-  dashboard (thin UI over the tested core; zero quant logic in `apps/`).
-- **Phase 2 — systematic portfolio management** — the third pillar (signal →
-  construction → backtest; covariance-estimation study; purged/embargoed CV).
-- **Derivatives deepening (prior options)** — PDE Greeks + Rannacher start-up
-  (cash in the `finitediff.py` L-stability note); autocallable.
+- **(A) Phase 2 — systematic portfolio management** — the third and final pillar
+  (signal → construction → backtest; covariance-estimation study: sample vs
+  Ledoit–Wolf vs factor vs HRP; walk-forward + purged/embargoed CV; realistic
+  costs/turnover/capacity; Streamlit + Plotly app). **Best serves the
+  all-three-fields goal**: completes the derivatives / risk / portfolio triad
+  (CLAUDE.md §9) and rounds out the buy-side-generalist profile.
+- **(B) Deepen the risk pillar** — FRTB P&L-attribution backtests;
+  expected-shortfall at the FRTB 97.5% level end-to-end. Smaller, incremental;
+  strengthens the model-validation-specialist story.
+- **(C) The apps** — the deferred thin Streamlit + Plotly pricing app
+  (`apps/pricing_app.py`: sliders → live price, Greek profiles, IV surface,
+  convergence table) and/or a risk dashboard. Thin UI over the tested core, zero
+  quant logic in `apps/`; makes the portfolio *demonstrable* to non-readers.
+- **(D) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
+  documented L-stability caveat in `finitediff.py`; the American PDE's PSOR could
+  also be swapped for Brennan–Schwartz); or an autocallable on the LSM/path
+  machinery.
 
-Earlier open strategic options (still valid if pivoting back to derivatives):
-
-## Prior note — strategic options at the derivatives/risk branch point
-
-The **derivatives-pricing deepening track is complete**: four-way European core,
-American options, LSM, path-dependent exotics, Heston (pricer + calibration), and
-Merton jump-diffusion — all cross-validated and (where a reference exists)
-QuantLib-benchmarked. This is a natural branch point; **decide the direction before
-writing code.** The choice hinges on the target role:
-
-- **(A) Go deeper in derivatives** — sharpens a *derivatives-specialist* profile
-  (pricing quant / derivatives desk / model validation of pricing models). Next
-  candidate steps, in rough priority:
-  - **PDE Greeks + Rannacher start-up** — cash in the documented L-stability caveat
-    in `finitediff.py`: Crank–Nicolson's non-L-stable behaviour pollutes Greeks near
-    the strike/at short T; two fully-implicit (Rannacher) start-up steps fix it.
-    Natural next increment, self-contained, reuses the existing PDE engine, and adds
-    a *Greeks-from-PDE* capability validated vs the analytic/bump-and-reval Greeks.
-  - **Autocallable** (optional, bigger) — a structured exotic priced by MC (and/or
-    PDE), exercising the LSM/path machinery on a real payoff; good portfolio piece
-    but heavier.
-- **(B) Pivot to a new track** — broadens to a *three-track generalist* profile
-  (the CLAUDE.md §9 roadmap), which reads as "model validation / buy-side" breadth:
-  - **Phase 2 — systematic portfolio management** (signal → construction → backtest;
-    covariance-estimation study; walk-forward + purged/embargoed CV; realistic
-    costs). Streamlit + Plotly app.
-  - **Phase 3 — quant risk / model validation** (VaR/ES engines + backtests: Kupiec,
-    Christoffersen, Acerbi–Székely, FRTB traffic-light; PD/ML model validation under
-    SR 11-7). This track most directly *is* the model-validation narrative.
-
-**Recommendation to weigh (not yet decided):** if the job search skews toward
-derivatives-desk / pricing-model-validation roles, do (A) PDE Greeks next (small,
-high-signal, closes an already-documented loose end). If the target is a broader
-model-validation / buy-side seat, pivot to (B) Phase 3 to demonstrate range beyond
-pricing. **The author (domain expert) makes this call at the top of next session.**
-
-Also still open regardless of the above:
-
-- **Deferred Phase-1 deliverable — thin Streamlit + Plotly app**
-  (`apps/pricing_app.py`): sliders → live price, Greek profiles, implied-vol
-  surface, convergence table. Thin UI over the tested core; zero pricing logic in
-  `apps/`. Best done once a track is chosen (pricing app vs portfolio/risk app).
-
-Note the documented Rannacher/L-stability caveat in `finitediff.py` if PDE Greeks
-are ever added (this is exactly step (A) above); the American PDE uses PSOR
-(Brennan–Schwartz would be a faster direct alternative for vanillas).
+**Weigh:** (A) if the target profile is the three-pillar generalist (the stated
+CLAUDE.md goal); (C) is the cheap complement once a pillar is chosen — a pricing
+app after (D), a risk dashboard after (B). Nothing blocks any option technically.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
@@ -342,6 +310,13 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   (nothing errors; the attributions just don't sum to anything meaningful,
   max error ≈ 5.9 on our book). `check_local_accuracy` exists precisely to make
   this loud; the report demonstrates the failure mode explicitly.
+- **QuantLib's default `AnalyticHestonEngine` at short expiry (Phase 4, step 4b).**
+  An apparent ~1.9e-2 benchmark "error" at T=0.1 decomposed into (i) a day-count
+  artifact (`round(365·0.1)` = 36 days ≈ 0.0986yr, not 0.1) and (ii) QuantLib's
+  *default* integration being the less accurate side at short maturity: an
+  independent scipy-quadrature truth confirmed our Carr–Madan FFT exact to ~1e-13
+  there. Benchmarks therefore use integer-day maturities — and "the reference
+  disagreed because the reference was coarser" is itself a validation finding.
 
 ## Open design notes
 
