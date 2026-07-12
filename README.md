@@ -37,7 +37,11 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > validated** — and the two pillars now meet: an **option book revalued through the
 > pricing engines** is a drop-in P&L source for the risk layer, with the
 > delta-normal / delta-gamma / full-revaluation divergence characterised as a
-> model-validation study. See the risk sections below.
+> model-validation study. Newly added: **credit-risk / PD model validation** —
+> discrimination (AUC/Gini/KS with bootstrap CIs), the per-grade calibration
+> battery (exact binomial, ECB Jeffreys, Hosmer–Lemeshow), and PSI stability, with
+> the calibration tests' own size and power measured on known-truth grades. See
+> the risk sections below.
 
 ## Architecture
 
@@ -519,6 +523,76 @@ full-revaluation forecasts achieve nominal coverage (8 exceptions, p = 0.856). A
 delta-hedged position is the microscope version of the same point: its linear P&L
 is identically zero, and full revaluation exposes exactly the residual ½ Γ δS²
 gamma P&L.
+
+## Credit risk — PD model validation
+
+A second model family in the risk pillar: validating **probability-of-default
+models**, organised in [`quantica/risk/credit/`](quantica/risk/credit) along the
+three dimensions a bank's (and the ECB's) validation framework uses —
+**discrimination**, **calibration**, and **stability**. The package is
+deliberately *model-agnostic*: every validator consumes model outputs (default
+indicators, PD scores), never a fitted model object, so the library needs only
+numpy/scipy; the champion/challenger fitting (scikit-learn) lives in the demo
+script and tests. That separation *is* the model-validation posture — the
+validator doesn't own the model.
+
+Regulatory context, factually: per-grade PD calibration testing with the
+**Jeffreys test** follows the ECB's *Instructions for reporting the validation
+results of internal models* (the IRB validation-reporting regime under the
+CRR/Basel IRB framework); the discrimination/calibration/stability triad and the
+"effective challenge" posture are the SR 11-7 discipline applied to credit
+models.
+
+- **Discrimination** — AUC via the Mann–Whitney rank identity, Gini, KS, all with
+  **stratified-bootstrap CIs** (resampling within class keeps low-default
+  resamples non-degenerate). Validated three independent ways: rank form ≡
+  trapezoidal ROC integration ≡ scikit-learn, to machine precision *including
+  ties*, plus the analytic binormal anchors AUC = Φ(δ/√2), KS = 2Φ(δ/2) − 1.
+- **Calibration (the centerpiece)** — per-grade **exact binomial** and **ECB
+  Jeffreys** tests, **Hosmer–Lemeshow**, the per-grade validation table, and a
+  reliability curve. On the demo book the mis-specified champion's *safest* grade
+  is its most mis-rated (observed default rate ≈ 30× the assigned PD — the
+  planted convexity): a grade-level table catches what a single AUC never would.
+- **Stability** — PSI on the score and per-characteristic (CSI), with the
+  0.10/0.25 bands labelled as the industry convention they are. On a monitoring
+  sample with a planted leverage drift, the characteristic view attributes the
+  shift to leverage alone — *why*, not just *that*.
+
+> **Highlighted insight — validate the validators (again).** As with
+> Kupiec/Acerbi–Székely on the market-risk side, the calibration tests are
+> themselves put through a size/power study on simulated grades with known true
+> PDs (`python scripts/pd_validation_report.py`):
+
+```
+| Test                        | Grade                | Size  | Power (true DR = 2× PD) |
+| --------------------------- | -------------------- | ----: | ----------------------: |
+| Exact binomial              | n=800, PD=2%         |  3.7% |                   94.0% |
+| Jeffreys (ECB)              | n=800, PD=2%         |  5.6% |                   96.1% |
+| Exact binomial              | n=150, PD=1% (LDP)   |  1.7% |                   18.2% |
+| Jeffreys (ECB)              | n=150, PD=1% (LDP)   |  5.8% |                   35.4% |
+| Hosmer–Lemeshow (dof = G)   | n=4000, true PDs     |  4.7% |                  100.0% |
+| Hosmer–Lemeshow (dof = G−2) | n=4000, true PDs     | 11.5% |                       — |
+```
+
+> The honest findings: the **exact binomial test is conservative** — its
+> discreteness pushes the size far below nominal and collapses it in low-default
+> grades, costing real detection power; the **Jeffreys test holds near-nominal
+> size and roughly doubles the power** on the low-default grade — measured here,
+> and precisely the property for which the ECB instructions adopt it. And
+> **Hosmer–Lemeshow needs the right null**: with true (non-estimated) PDs the
+> statistic is χ²(G), while the textbook G−2 convention — meant for models fitted
+> on the sample — over-rejects at 11.5%. Degrees of freedom are part of the
+> validator, too.
+
+> **Highlighted insight — ranking well and being calibrated are different
+> properties.** On the synthetic book (known truth, planted nonlinearity) the
+> gradient-boosting challenger out-discriminates the logistic champion by ~5 AUC
+> points (0.922 vs 0.869, near the true-PD ceiling of 0.929) — yet *both* models
+> are flagged by the calibration battery: the champion fails Hosmer–Lemeshow
+> outright (χ² ≈ 2307), and the challenger still under-states PDs in specific
+> grades (Jeffreys p < 0.01). The realistic validation verdict is not "the ML
+> model wins" but "the challenger may be promoted only after recalibration" —
+> reported as found, not smoothed over.
 
 ## Development
 

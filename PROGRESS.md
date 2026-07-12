@@ -13,7 +13,7 @@ deepening track complete.**
 
 Phase-3 roadmap: **market-risk VaR/ES + backtesting ✓** → **derivatives-P&L
 integration ✓** (option book revalued through the pricers as the risk P&L source)
-→ credit-risk / PD validation → ML-model validation (SR 11-7).
+→ **credit-risk / PD validation ✓** → ML-model validation (SR 11-7).
 
 ## Completed
 
@@ -187,13 +187,48 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   seeded determinism. Report `scripts/derivatives_var_report.py` → both tables
   embedded in the README. Scope note: BS-process books (scenario = spot/vol shock);
   Heston/Merton books would need a scenario model for their extra params.
+- **Phase 3, step 3 — credit-risk / PD validation** — new `quantica/risk/credit/`
+  subpackage, organised along the three regulatory validation dimensions.
+  **Model-agnostic by design**: validators consume model outputs (y, PD scores),
+  never a fitted model — package stays numpy/scipy-only; scikit-learn is a *dev*
+  extra used only in scripts/tests (documented in pyproject). Modules:
+  `discrimination.py` (AUC via Mann–Whitney rank identity with exact tie handling,
+  Gini, KS, `roc_curve`, **stratified**-bootstrap CIs — stratification keeps
+  low-default resamples non-degenerate); `calibration.py` (**the centerpiece**:
+  exact `binomial_test` (one-sided prudential default), ECB `jeffreys_test`
+  (Beta(d+½, n−d+½) posterior), `hosmer_lemeshow` with an exposed `dof` (G−2
+  fitted-model convention vs χ²(G) for true/non-estimated PDs), `assign_grades` /
+  `grade_calibration` per-grade table, `calibration_curve`); `stability.py` (PSI
+  with expected-sample quantile bins + 0.10/0.25 convention bands, labelled as
+  convention; `characteristic_stability` CSI); `data.py` (seeded synthetic
+  portfolio with **known true PDs**, planted leverage×behavioural interaction +
+  leverage² convexity so a linear logit is mis-specified, `leverage_shift` for
+  drift). Validated (`tests/risk/credit/`, 40 tests): AUC **three independent
+  ways** (rank ≡ trapezoid-ROC ≡ sklearn to machine precision, ties included) +
+  binormal analytic anchors (AUC = Φ(δ/√2), KS = 2Φ(δ/2)−1); KS vs brute force +
+  scipy; Jeffreys vs direct beta posterior; HL vs hand computation; PSI vs hand
+  computation + known drifts; **the meta-challenge (size/power on known-truth
+  grades)**: exact binomial **conservative** (size 3.7% at n=800, collapsing to
+  1.7% at n=150 low-default) and paying in power (18% vs 35% at n=150) while
+  **Jeffreys holds ~nominal size (5.6–5.8%) and ~doubles low-default power** —
+  the measured reason ECB adopted it; HL has correct size with dof=G on true PDs
+  (4.7%) while the G−2 convention over-rejects (11.5%) — dof is part of the
+  validator. Champion/challenger (seed-robust): GBM out-discriminates logit by
+  ~5 AUC pts (0.922 vs 0.869, ceiling 0.929) but **both flagged by calibration**
+  (champion fails HL with χ²≈2307 — its *safest* grade defaults at ~30× the
+  assigned PD via the planted convexity; challenger understates PDs in specific
+  grades) → "promote only after recalibration", reported honestly. Report
+  `scripts/pd_validation_report.py` (discrimination CIs, per-grade tables,
+  PSI/CSI drift attribution, size/power table) → embedded in the README with
+  ECB/Basel/SR 11-7 framing (factual).
 
 ## Next — Phase 3 continues
 
 Natural next steps within the risk pillar:
 
-- **Credit-risk / PD validation** — AUC/Gini/KS, calibration, PSI (CLAUDE.md §9
-  Phase 3).
+- **ML-model validation (SR 11-7)** — the remaining Phase-3 item: SHAP-style
+  explainability, robustness, calibration of ML classifiers beyond the GBM
+  challenger here (CLAUDE.md §9); would complete the risk pillar's model families.
 - **Backtest extensions** — FRTB P&L attribution; expected-shortfall at the FRTB
   97.5% level end-to-end; a risk Streamlit + Plotly app (thin UI over the tested core).
 
