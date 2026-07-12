@@ -39,6 +39,9 @@ dev = [
     # NOT a runtime dependency: the credit validators consume model outputs
     # (y, PD scores), never a fitted model object (CLAUDE.md §3).
     "scikit-learn>=1.4",
+    # SHAP values for the ML-validation demo and tests. Same posture: the
+    # ml_validation package consumes SHAP matrices / predict callables only.
+    "shap>=0.46",
     "ruff>=0.6",
     "mypy>=1.11",
     "hypothesis>=6.100",
