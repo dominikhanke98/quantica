@@ -226,11 +226,27 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
 
 Natural next steps within the risk pillar:
 
-- **ML-model validation (SR 11-7)** — the remaining Phase-3 item: SHAP-style
-  explainability, robustness, calibration of ML classifiers beyond the GBM
-  challenger here (CLAUDE.md §9); would complete the risk pillar's model families.
-- **Backtest extensions** — FRTB P&L attribution; expected-shortfall at the FRTB
-  97.5% level end-to-end; a risk Streamlit + Plotly app (thin UI over the tested core).
+- **ML-model validation (SR 11-7) — the designated next step.** Subject the
+  step-3 challenger GBM to a full effective challenge, completing the risk
+  pillar's model families (CLAUDE.md §9). Scope:
+  - **Explainability + explanation stability** — SHAP-style attributions: do the
+    explanations recover the *known* generative drivers (the planted
+    leverage×behavioural interaction and leverage² convexity make this checkable
+    against ground truth — same known-truth trick as step 3), and are they
+    *stable* across bootstrap refits / nearby inputs?
+  - **Robustness under perturbation** — performance and calibration degradation
+    under input noise / drifted populations (reuse `leverage_shift`), adversarial
+    or boundary-case obligors.
+  - **Fairness / disparate impact** — group metrics on a protected-attribute
+    proxy in the synthetic generator; document metric choice honestly (the
+    impossibility results mean picking one is a modelling decision).
+  - **Integrated conceptual-soundness verdict** — roll discrimination /
+    calibration / stability / explainability / robustness / fairness into the
+    SR 11-7-style recommendation the step-3 report stopped short of ("promote
+    only after recalibration" → a full model-risk write-up).
+- **Backtest extensions** (alternative) — FRTB P&L attribution; expected-shortfall
+  at the FRTB 97.5% level end-to-end; a risk Streamlit + Plotly app (thin UI over
+  the tested core).
 
 Earlier open strategic options (still valid if pivoting back to derivatives):
 
@@ -278,6 +294,27 @@ Also still open regardless of the above:
 Note the documented Rannacher/L-stability caveat in `finitediff.py` if PDE Greeks
 are ever added (this is exactly step (A) above); the American PDE uses PSOR
 (Brennan–Schwartz would be a faster direct alternative for vanillas).
+
+## Gaps in existing tools (accumulating — portfolio-narrative material)
+
+Findings where standard libraries are silently wrong, missing, or opaque — and
+this repo's independent implementation surfaced it. Add to this list as they occur.
+
+- **Hosmer–Lemeshow degrees of freedom (step 3).** Many implementations hardcode
+  `dof = G − 2`. That convention is derived for a model *fitted on the same
+  sample*; when validating externally-supplied PDs (true/regulatory/vendor PDs —
+  the standard model-validation situation) the null is χ²(G), and the G−2
+  convention **over-rejects** (measured 11.5% at nominal 5%). Our
+  `hosmer_lemeshow` exposes `dof` and documents both nulls; the size study proves
+  the difference.
+- **ES backtesting (step 1).** ES is not elicitable (Gneiting 2011), so the naive
+  count-based backtest used for VaR does not transfer; most risk libraries simply
+  omit ES backtests. Acerbi–Székely with a Monte-Carlo null fills the gap, with
+  its own size/power measured.
+- **No QuantLib Merton engine in the Python wrapper (Phase 4, step 5).**
+  `Merton76Process` exists but no jump-diffusion pricing engine is exposed, so
+  there is no reference to benchmark against — the closed-form-vs-FFT
+  self-validation (~2e-7) had to carry the effective challenge instead.
 
 ## Open design notes
 
