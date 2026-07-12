@@ -3,13 +3,17 @@
 Running state file for `quantica`. Updated at the end of each working session
 (see CLAUDE.md §"Session close-out"). Concise and factual.
 
-**Current phase:** Phase 1 pricing core complete (European options, four ways).
-Now in a **derivatives-deepening track (Phase 4, taken ahead of Phases 2–3)**.
+**Current phase:** Derivatives-pricing track complete (Phase 1 core + Phase 4
+deepening). **Phase 3 (quant risk / model validation) now open** as the second
+pillar — market-risk core landed.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
-deepening track complete.** Next: the deferred thin Streamlit + Plotly app, or
-pivot to Phase 2 (portfolio) / Phase 3 (model validation).
+deepening track complete.**
+
+Phase-3 roadmap: **market-risk VaR/ES + backtesting ✓** (this session) → credit-risk
+/ PD validation → derivatives-P&L integration (revalue an option book through the
+pricers as the risk P&L source) → ML-model validation (SR 11-7).
 
 ## Completed
 
@@ -135,8 +139,48 @@ pivot to Phase 2 (portfolio) / Phase 3 (model validation).
   `scripts/jump_diffusion_smile.py`: Merton vs Heston smile at the same baseline vol
   — Merton's short-dated smile is ~5× steeper than its long-dated one (jumps), vs
   Heston's ~1.2× → embedded in the README.
+- **Phase 3, step 1 — market-risk core + backtesting** — new `quantica/risk/`
+  package. `Portfolio` (`portfolio.py`): weights × value → a P&L / loss *series*
+  (deliberately a series, not the asset matrix, so an option book revalued through
+  the pricers can later replace the linear portfolio without touching risk code).
+  `measures.py`: `RiskEstimate`, `normal_var_es` (Gaussian closed form — the
+  analytic anchor), `empirical_var_es` (Rockafellar–Uryasev tail-mean, stable).
+  Four engines (`engines.py`, shared `VaREngine` protocol): `HistoricalSimulationVaR`,
+  `ParametricVaR` (variance–covariance; normality caveat documented),
+  `MonteCarloVaR` (MV-normal sim, seeded; converges to parametric — cross-check),
+  `FilteredHistoricalSimulationVaR` (GARCH(1,1) via `arch`, lazy import; bootstraps
+  standardised residuals scaled by the 1-step vol forecast). **Backtesting layer
+  (the deliverable, `backtest.py`)**: `kupiec_pof` (unconditional coverage),
+  `christoffersen_independence` + `christoffersen_cc`, `basel_traffic_light`
+  (green/yellow/red + multiplier add-on), and — the highlight — `acerbi_szekely`
+  (2014) Z1/Z2 **ES** backtest with a Monte-Carlo null (ES is not elicitable,
+  Gneiting 2011, so naive ES backtests fail). `rolling_var_forecasts` for
+  out-of-sample one-step backtests. Validated (`tests/risk/`, 46 tests): analytic
+  anchors (parametric == closed form on sample moments; MC → parametric; HS →
+  parametric on large normal); backtest correctness on hand-checkable cases; **and
+  the meta-challenge — size & power of the backtests themselves**: Kupiec size ~4%
+  / power ~1.0, Acerbi–Székely size ~4.6% / power ~1.0, Christoffersen independence
+  *conservative* (~2%, honest finding for rare 99% exceptions) / power ~0.76 vs
+  clustering. Deps: added `arch>=6.3` (runtime, lazy-imported) + mypy overrides for
+  `arch.*`/`pandas.*`. Report `scripts/risk_backtest_report.py`: the size/power
+  table + a GARCH-t worked backtest where parametric-normal hits the Basel **red**
+  zone while filtered-HS stays **green** → embedded in the README.
 
-## Next — STRATEGIC DECISION for next session (start here)
+## Next — Phase 3 continues (or resume the strategic options below)
+
+**Phase 3 is open.** Natural next steps within the risk pillar:
+
+- **Derivatives-P&L integration** — feed an option book (revalued through the
+  `quantica.pricing` engines) into `Portfolio` as the P&L source; the risk/backtest
+  layer was built series-first precisely for this. High-signal, ties the two pillars.
+- **Credit-risk / PD validation** — AUC/Gini/KS, calibration, PSI (CLAUDE.md §9
+  Phase 3).
+- **Backtest extensions** — FRTB P&L attribution; expected-shortfall at the FRTB
+  97.5% level end-to-end; a risk Streamlit + Plotly app (thin UI over the tested core).
+
+Earlier open strategic options (still valid if pivoting back to derivatives):
+
+## Prior note — strategic options at the derivatives/risk branch point
 
 The **derivatives-pricing deepening track is complete**: four-way European core,
 American options, LSM, path-dependent exotics, Heston (pricer + calibration), and

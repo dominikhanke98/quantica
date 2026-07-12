@@ -29,7 +29,12 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > the model's identifiability limits and the Feller condition reported honestly.
 > Finally **Merton jump-diffusion**, priced two independent ways — the closed-form
 > Poisson-weighted Black–Scholes series and the Carr–Madan FFT — which cross-validate
-> each other to ~10⁻⁷, completing the derivatives-pricing deepening track.
+> each other to ~10⁻⁷, completing the derivatives-pricing deepening track. The
+> **second pillar is now open — Phase 3, quant risk / model validation**: VaR/ES
+> engines (historical, parametric, filtered-historical with a GARCH filter, Monte
+> Carlo) with a full VaR **and** ES backtesting suite (Kupiec, Christoffersen, Basel
+> traffic-light, and the Acerbi–Székely ES backtest), whose **own size and power are
+> validated** — see the risk section below.
 
 ## Architecture
 
@@ -400,6 +405,72 @@ carrier). It is priced **two independent ways**:
 | Merton |          17.2 pts |           3.4 pts |             5.1× |
 | Heston |           8.0 pts |           6.5 pts |             1.2× |
 ```
+
+## Market risk — VaR/ES and the backtesting layer (Phase 3)
+
+The second pillar of `quantica` is **quant risk / model validation**, and it is
+built to the same identity: the deliverable is not the risk number but the
+**evidence that the risk model is adequate**. The [`quantica.risk`](quantica/risk)
+package pairs four VaR/ES engines with a full backtesting suite — and then
+validates the backtests *themselves*.
+
+The engines price the loss distribution of a [`Portfolio`](quantica/risk/portfolio.py)
+four ways: **historical simulation** (empirical tail, no distributional
+assumption), **parametric variance–covariance** (Gaussian closed form — fast, but
+its normal tail *understates* risk, which is exactly the point of backtesting it),
+**filtered historical simulation** (a GARCH(1,1) volatility filter from `arch` over
+bootstrapped residuals, so the tail rides on the current conditional vol), and
+**Monte Carlo** (which converges to the parametric closed form under a normal fit —
+a deliberate cross-check — but can later consume the option pricers above as a
+nonlinear P&L map). VaR and ES are reported together at 95 / 97.5 / 99%.
+
+> **Highlighted insight — we validate the backtests themselves (size and power).**
+> Running a backtest is not evidence unless the backtest works. Every test is put
+> through a seeded Monte-Carlo study of its **size** (false-rejection rate under a
+> correct model, target ≈ 5%) and **power** (rejection rate under a mis-specified
+> one). This is the meta-level effective challenge, and it surfaces an honest
+> finding — the Christoffersen independence test is *conservative* at 99% because
+> exceptions are rare — rather than hiding it (`python scripts/risk_backtest_report.py`):
+
+```
+| Backtest                    | Size (target ≈ 5%) | Power (mis-specified) |
+| --------------------------- | -----------------: | --------------------: |
+| Kupiec POF (coverage)       |               3.8% |                100.0% |
+| Christoffersen independence |               2.2% |                 75.6% |
+| Acerbi–Székely ES (Z2)      |               4.6% |                100.0% |
+```
+
+> **Highlighted insight — a *correct* Expected-Shortfall backtest.** ES is **not
+> elicitable** (Gneiting, 2011): no scoring function is minimised by the ES, so the
+> count-and-compare logic that backtests VaR does not transfer, and many libraries
+> simply omit ES validation. `quantica` implements the **Acerbi–Székely (2014)**
+> tests, which sidestep elicitability by testing the *magnitude* of tail losses
+> against the predicted ES with a Monte-Carlo null. This catches a subtle failure a
+> VaR count test cannot: a heavy tail with the *right* VaR exceedance rate but an
+> *understated* ES — the Z2 statistic turns clearly positive while the VaR test
+> passes.
+
+The worked example rolls all four engines out-of-sample over a fat-tailed,
+volatility-clustered market (GARCH(1,1) with Student-t shocks) and lets the
+backtests judge them — the parametric-normal model lands in the Basel **red** zone
+while filtered historical simulation stays **green**:
+
+```
+| Engine                | Exceptions | Expected | Kupiec p | Basel zone | AS Z2 (ES) |
+| --------------------- | ---------: | -------: | -------: | ---------- | ---------: |
+| Historical simulation |         22 |       15 |    0.089 | yellow     |     +0.643 |
+| Parametric (normal)   |         32 |       15 |    0.000 | red        |     +1.775 |
+| Filtered HS (GARCH)   |         18 |       15 |    0.450 | green      |     +0.267 |
+| Monte Carlo (normal)  |         32 |       15 |    0.000 | red        |     +1.774 |
+```
+
+Regulatory context, factually: the exception-count zones are the Basel supervisory
+**traffic-light** framework (green / yellow / red with a capital-multiplier
+add-on), and the whole "independent reimplementation + effective challenge" posture
+is the SR 11-7 / model-validation discipline applied to a risk library. The
+portfolio interface is deliberately a P&L-series abstraction so a book of options,
+revalued through the pricers above, can later replace the linear asset portfolio
+without touching the risk or backtesting code.
 
 ## Development
 
