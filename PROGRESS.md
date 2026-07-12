@@ -11,9 +11,9 @@ Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Hest
 → **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
 deepening track complete.**
 
-Phase-3 roadmap: **market-risk VaR/ES + backtesting ✓** (this session) → credit-risk
-/ PD validation → derivatives-P&L integration (revalue an option book through the
-pricers as the risk P&L source) → ML-model validation (SR 11-7).
+Phase-3 roadmap: **market-risk VaR/ES + backtesting ✓** → **derivatives-P&L
+integration ✓** (option book revalued through the pricers as the risk P&L source)
+→ credit-risk / PD validation → ML-model validation (SR 11-7).
 
 ## Completed
 
@@ -165,14 +165,33 @@ pricers as the risk P&L source) → ML-model validation (SR 11-7).
   `arch.*`/`pandas.*`. Report `scripts/risk_backtest_report.py`: the size/power
   table + a GARCH-t worked backtest where parametric-normal hits the Basel **red**
   zone while filtered-HS stays **green** → embedded in the README.
+- **Phase 3, step 2 — derivatives-P&L integration** — `quantica/risk/derivatives.py`
+  ties the two pillars. `OptionBook` (positions = instrument + *its own pricing
+  engine* + signed quantity, plus `underlying_quantity` for hedged books) +
+  `MarketScenarios` (seeded instantaneous spot returns and optional additive vol
+  shifts; theta drops out by design). Three P&L methods on the *same* scenario set
+  (so divergence is approximation error, not noise): `full_revaluation_pnl`
+  (reprice through the engines — the risk path IS the pricing path, no drift),
+  `delta_normal_pnl` (Δ·δS + ν·δσ), `delta_gamma_pnl` (+ ½Γ·δS²). Book Greeks via
+  central-difference bump-and-reval through each position's engine (consistent
+  with the pricing numerics; matches analytic Greeks for European). `book_var_es`
+  adapter → `empirical_var_es(-pnl)`; **risk/backtest layer untouched** (the
+  P&L-series seam doing its job). Validated (`tests/risk/test_derivatives.py`, 16
+  tests): no-drift consistency to the last bit; bump Greeks == analytic; small-move
+  full == linear; delta-hedged book isolates ½Γ·δS²; **headline divergence** —
+  short-gamma book: delta-normal VaR −41% vs full (underestimates, the omitted
+  −½|Γ|δS² is pure loss), long-gamma: +197% (overestimates, gamma cushions),
+  near-linear: agree to 4 decimals, delta-gamma repairs to ~1%; Kupiec reused
+  unchanged rejects the delta-normal forecast (43 exceptions vs 7.5 expected) and
+  passes delta-gamma/full (8, p=0.856); mixed analytic+binomial-American book;
+  seeded determinism. Report `scripts/derivatives_var_report.py` → both tables
+  embedded in the README. Scope note: BS-process books (scenario = spot/vol shock);
+  Heston/Merton books would need a scenario model for their extra params.
 
-## Next — Phase 3 continues (or resume the strategic options below)
+## Next — Phase 3 continues
 
-**Phase 3 is open.** Natural next steps within the risk pillar:
+Natural next steps within the risk pillar:
 
-- **Derivatives-P&L integration** — feed an option book (revalued through the
-  `quantica.pricing` engines) into `Portfolio` as the P&L source; the risk/backtest
-  layer was built series-first precisely for this. High-signal, ties the two pillars.
 - **Credit-risk / PD validation** — AUC/Gini/KS, calibration, PSI (CLAUDE.md §9
   Phase 3).
 - **Backtest extensions** — FRTB P&L attribution; expected-shortfall at the FRTB

@@ -34,7 +34,10 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > engines (historical, parametric, filtered-historical with a GARCH filter, Monte
 > Carlo) with a full VaR **and** ES backtesting suite (Kupiec, Christoffersen, Basel
 > traffic-light, and the Acerbi–Székely ES backtest), whose **own size and power are
-> validated** — see the risk section below.
+> validated** — and the two pillars now meet: an **option book revalued through the
+> pricing engines** is a drop-in P&L source for the risk layer, with the
+> delta-normal / delta-gamma / full-revaluation divergence characterised as a
+> model-validation study. See the risk sections below.
 
 ## Architecture
 
@@ -471,6 +474,51 @@ is the SR 11-7 / model-validation discipline applied to a risk library. The
 portfolio interface is deliberately a P&L-series abstraction so a book of options,
 revalued through the pricers above, can later replace the linear asset portfolio
 without touching the risk or backtesting code.
+
+### Derivatives risk — the two pillars meet
+
+That P&L-series seam is now cashed in: an [`OptionBook`](quantica/risk/derivatives.py)
+holds option positions (each priced by whichever engine from the pricing pillar —
+analytic European, binomial American, exotics — plus an optional underlying leg for
+hedges), and turns seeded `MarketScenarios` (spot returns, optional vol shifts)
+into a P&L distribution three ways:
+
+- **Full revaluation** — reprice the whole book through the pricing engines under
+  every scenario. Exact by construction: the risk path *is* the pricing path, so
+  there is no drift between the two pillars (asserted to the last bit in the tests).
+- **Delta-normal** — first-order P&L from the book's aggregate Greeks (computed by
+  bump-and-reval through each position's own engine, so the approximation stays
+  consistent with the numerics that price the book). Fast, classic, and *blind to
+  gamma*.
+- **Delta-gamma** — adds the ½ Γ δS² term at negligible cost.
+
+Scenarios are instantaneous shocks (theta drops out), and all three methods are
+evaluated on the *same* seeded scenario set — so any divergence is approximation
+error, not sampling noise. The P&L vector feeds `empirical_var_es` and the
+backtests **unchanged**.
+
+> **Highlighted insight — when does the linear approximation break, and which way?**
+> The answer is the sign of the omitted ½ Γ δS² term. For a **short-gamma** book it
+> is a pure loss, so delta-normal *under*-states VaR (dangerous); for a
+> **long-gamma** book it cushions losses, so delta-normal *over*-states VaR
+> (expensive); for a near-linear book (Γ ≈ 0) the methods agree. Delta-gamma
+> repairs the curvature error to ~1% (`python scripts/derivatives_var_report.py`):
+
+```
+| Book (99% 1-day VaR)             | Delta-normal | Delta-gamma | Full reval | DN error | DG error |
+| -------------------------------- | -----------: | ----------: | ---------: | -------: | -------: |
+| Deep-ITM call (near-linear)      |       295.37 |      295.36 |     295.36 |    +0.0% |    +0.0% |
+| Long ATM straddle (long gamma)   |        33.22 |       11.31 |      11.18 |  +197.1% |    +1.2% |
+| Short ATM straddle (short gamma) |        32.74 |       56.40 |      55.87 |   -41.4% |    +0.9% |
+```
+
+The existing Kupiec backtest, reused unchanged on realized full-revaluation P&L,
+reaches the same verdict: on the short-gamma book the delta-normal VaR takes **43
+exceptions where 7.5 are expected** (rejected, p ≈ 0) while the delta-gamma and
+full-revaluation forecasts achieve nominal coverage (8 exceptions, p = 0.856). A
+delta-hedged position is the microscope version of the same point: its linear P&L
+is identically zero, and full revaluation exposes exactly the residual ½ Γ δS²
+gamma P&L.
 
 ## Development
 
