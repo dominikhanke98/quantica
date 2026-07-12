@@ -24,6 +24,10 @@ classifiers = [
 dependencies = [
     "numpy>=1.26",
     "scipy>=1.11",
+    # arch supplies the GARCH volatility filter for filtered-historical-simulation
+    # VaR (CLAUDE.md §3 — lean on it rather than hand-rolling GARCH). It is imported
+    # lazily, so only the FHS engine pulls it in.
+    "arch>=6.3",
 ]
 
 [project.optional-dependencies]
@@ -101,7 +105,7 @@ files = ["quantica"]
 
 # Third-party libraries without bundled type stubs.
 [[tool.mypy.overrides]]
-module = ["scipy.*", "QuantLib.*"]
+module = ["scipy.*", "QuantLib.*", "arch.*", "pandas.*"]
 ignore_missing_imports = true
 
 # --------------------------------------------------------------------------- #
