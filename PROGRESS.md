@@ -14,7 +14,8 @@ deepening track complete.**
 
 Phase-3 roadmap: **market-risk VaR/ES + backtesting ✓** → **derivatives-P&L
 integration ✓** (option book revalued through the pricers as the risk P&L source)
-→ **credit-risk / PD validation ✓** → **ML-model validation (SR 11-7) ✓**.
+→ **credit-risk / PD validation ✓** → **ML-model validation (SR 11-7) ✓** →
+**FRTB P&L attribution ✓** (IMA-eligibility test reusing the derivatives-risk P&L).
 **The risk pillar's planned model families are complete.**
 
 ## Completed
@@ -255,6 +256,32 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   defect). Report `scripts/ml_validation_report.py`: full SR 11-7 review ending
   in **APPROVE WITH CONDITIONS** (calibration, robustness-tail, fairness-policy
   conditions; discrimination/explainability/drift PASS) → embedded in the README.
+- **Phase 3, step 5 — FRTB P&L Attribution (PLA)** — `quantica/risk/frtb.py`, the
+  IMA-eligibility test, ties the risk and derivatives pillars under a regulatory
+  frame by *reusing* the derivatives-risk P&L machinery: **HPL** = the book's
+  full-revaluation P&L (`OptionBook.full_revaluation_pnl`, the pricing path
+  itself), **RTPL** = the risk model's sensitivities P&L (`delta_normal_pnl` /
+  `delta_gamma_pnl`). PLA is literally the full-reval-vs-sensitivities comparison
+  from step 2, elevated to a pass/fail capital test. Two Basel MAR33 metrics —
+  `spearman_correlation` (rank; does the model *order* P&L right?) and
+  `ks_distance` (two-sample KS; do the *distributions* agree?), both hand-rolled
+  and anchored to `scipy.stats` — each mapped to green/amber/red at the published
+  breakpoints (Spearman green ≥ 0.80 / red < 0.70; KS green ≤ 0.09 / red > 0.12;
+  overall = worse of the two). `pla_test(rtpl, hpl)` and `book_pla_test(book,
+  scenarios, rtpl_method=…)` → `PLAResult` (zones, `ima_eligible`,
+  `capital_consequence`). Validated (`tests/risk/test_frtb.py`, 16 tests): Spearman
+  & KS == scipy (ties included); the four published thresholds asserted verbatim;
+  per-metric and boundary (≥/> conventions) zone logic; **known-truth books
+  reusing the gamma divergence** — near-linear/deep-ITM delta-only → GREEN;
+  short-gamma delta-**gamma** under large moves → GREEN (curvature spanned);
+  short-gamma delta-**only** → RED on both metrics (IMA-ineligible → SA); the same
+  desk at small moves → AMBER (Spearman green, KS amber); zone worsens
+  monotonically with move size; no-drift (book HPL == full-reval path); constant
+  RTPL → 0 correlation → red. Report `scripts/frtb_pla_report.py`: the three-desk
+  green/green/red table → embedded in the README. Headline: **a short-gamma desk
+  failing PLA is the delta-normal-vs-full-reval divergence, now with a capital
+  consequence** — the regulator's eligibility test and the MV "when does the
+  linear approximation break?" question are formally the same.
 
 ## Next — OPEN DIRECTION DECISION (author decides at the top of next session)
 
@@ -268,8 +295,9 @@ trade-off framed:
   costs/turnover/capacity; Streamlit + Plotly app). **Best serves the
   all-three-fields goal**: completes the derivatives / risk / portfolio triad
   (CLAUDE.md §9) and rounds out the buy-side-generalist profile.
-- **(B) Deepen the risk pillar** — FRTB P&L-attribution backtests;
-  expected-shortfall at the FRTB 97.5% level end-to-end. Smaller, incremental;
+- **(B) Deepen the risk pillar further** — FRTB PLA is done (step 5); remaining
+  incremental options are the FRTB expected-shortfall charge at the 97.5% level
+  end-to-end (liquidity-horizon scaling, the regulatory ES aggregation). Smaller;
   strengthens the model-validation-specialist story.
 - **(C) The apps** — the deferred thin Streamlit + Plotly pricing app
   (`apps/pricing_app.py`: sliders → live price, Greek profiles, IV surface,
@@ -317,6 +345,13 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   independent scipy-quadrature truth confirmed our Carr–Madan FFT exact to ~1e-13
   there. Benchmarks therefore use integer-day maturities — and "the reference
   disagreed because the reference was coarser" is itself a validation finding.
+- **FRTB PLA absent from open-source risk tooling (step 5).** The P&L-attribution
+  test is a regulatory eligibility gate banks implement in-house; no mainstream
+  open-source risk library ships it (same "missing, not wrong" category as the
+  ES-backtest gap). Implementing it required only reusing the derivatives-risk
+  full-reval-vs-sensitivities P&L already built — the plumbing was there; what was
+  missing was the regulatory framing (metrics, published thresholds, zone
+  aggregation), which is exactly the demonstrable skill.
 
 ## Open design notes
 

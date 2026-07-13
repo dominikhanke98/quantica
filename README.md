@@ -527,6 +527,42 @@ delta-hedged position is the microscope version of the same point: its linear P&
 is identically zero, and full revaluation exposes exactly the residual ½ Γ δS²
 gamma P&L.
 
+### FRTB P&L attribution — the same question, as a regulatory test
+
+That "do the risk factors span the P&L?" comparison is exactly what the Basel FRTB
+**P&L Attribution (PLA)** test scores to decide whether a trading desk may keep its
+internal model ([`quantica/risk/frtb.py`](quantica/risk/frtb.py); report:
+`python scripts/frtb_pla_report.py`). PLA pairs two daily series over a ~250-day
+window: **HPL** (hypothetical P&L — full revaluation with positions fixed, i.e. the
+pricing path from the section above) and **RTPL** (risk-theoretical P&L — the risk
+model's sensitivities P&L, i.e. the delta or delta-gamma approximation). It scores
+their agreement two ways — **Spearman rank correlation** (does the model *order* the
+moves right?) and the **Kolmogorov–Smirnov distance** (do the *distributions* agree?)
+— and maps each to a green/amber/red zone at the published Basel breakpoints
+(Spearman green ≥ 0.80 / red < 0.70; KS green ≤ 0.09 / red > 0.12; the desk's zone is
+the worse of the two). Both statistics are validated against `scipy.stats`.
+
+> **Highlighted insight — a short-gamma desk failing PLA is the gamma divergence,
+> now with a capital consequence.** Run over the *same* seeded 250-day window, the
+> only thing that decides the desk's fate is whether its risk model carries gamma:
+
+```
+| Desk (book + risk model)               | Spearman      | KS            | Zone  | Consequence                        |
+| -------------------------------------- | ------------: | ------------: | ----- | ---------------------------------- |
+| Deep-ITM desk (near-linear)            | 1.000 (green) | 0.008 (green) | GREEN | IMA-eligible, no add-on            |
+| Short-straddle desk, delta+gamma model | 1.000 (green) | 0.032 (green) | GREEN | IMA-eligible, no add-on            |
+| Short-straddle desk, delta-only model  | 0.391 (red)   | 0.436 (red)   | RED   | IMA-ineligible → Standardised Appr.|
+```
+
+> The delta-only model cannot reproduce the curvature in the short-gamma book's
+> true P&L, so RTPL and HPL diverge on **both** metrics and the desk **loses IMA
+> eligibility** — it must use the Standardised Approach, typically a materially
+> higher capital charge. Add the gamma factor and the *identical book* passes green.
+> The regulator's eligibility test and the model-validation "when does the linear
+> approximation break?" question are, formally, the same question — and the
+> known-truth books that fail it are constructed to fail exactly the risk-factor
+> inadequacy PLA exists to catch.
+
 ## Credit risk — PD model validation
 
 A second model family in the risk pillar: validating **probability-of-default
