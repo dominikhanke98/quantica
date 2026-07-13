@@ -4,9 +4,15 @@ Running state file for `quantica`. Updated at the end of each working session
 (see CLAUDE.md §"Session close-out"). Concise and factual.
 
 **Current phase:** Derivatives-pricing track complete (Phase 1 core + Phase 4
-deepening). **Phase 3 (quant risk / model validation) complete** across all four
-model families (market risk, derivatives P&L, credit/PD, ML under SR 11-7).
-**Next direction is an open decision** — see "Next" below.
+deepening). **Phase 3 (quant risk / model validation) complete** across five
+families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML under SR 11-7).
+**Capital-markets / portfolio track now open** — multi-factor risk model landed
+(stage 1); stage 2 (OOS estimator comparison) is the immediate next step.
+
+Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
+decomposition + Σ = BFBᵀ + D) → stage 2 (OOS estimator comparison: sample vs
+Ledoit–Wolf vs factor; ill-conditioning demo; bias stats) → portfolio
+construction (signal → construction → backtest; purged/embargoed CV).
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
@@ -282,8 +288,51 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   failing PLA is the delta-normal-vs-full-reval divergence, now with a capital
   consequence** — the regulator's eligibility test and the MV "when does the
   linear approximation break?" question are formally the same.
+- **Capital-markets track, stage 1 — multi-factor risk model** — new **top-level**
+  `quantica/factor/` package (placed at top level, NOT under `risk/`, because it is
+  the shared foundation consumed by both market-risk decomposition and the future
+  portfolio track). **Scope discipline held**: no hand-rolled estimators — loadings
+  from `statsmodels` OLS (lazy import; gives t-stats/R²/residual variance),
+  factor covariance from `numpy.cov`; the package's own code is the assembly +
+  decomposition, with the OOS estimator-comparison layer deferred to stage 2 (the
+  real deliverable). Modules: `exposures.py` (`estimate_exposures` — per-asset
+  time-series OLS → `FactorExposures` with alpha/betas/t-stats/R²/specific var);
+  `model.py` (`FactorRiskModel.fit` → B, alphas, F, D and per-asset exposures;
+  `covariance()` = symmetrised B·F·Bᵀ + D; `systematic_covariance`;
+  `variance_decomposition` per asset; `portfolio_variance` /
+  `portfolio_risk_decomposition` / `portfolio_factor_exposure` = Bᵀw); `data.py`
+  (`generate_factor_data` — synthetic panel with **planted** betas/alphas/specific
+  var, seeded; the deterministic-test path so CI never needs a network fetch).
+  Interface designed so a statistical-factor (PCA) variant can slot in later.
+  Deps: `statsmodels>=0.14` made an explicit runtime dep (was already transitive
+  via `arch`) + mypy override. Validated (`tests/factor/`, 16 tests): **betas ==
+  independent `numpy.linalg.lstsq` to 1e-10** (anchors that we call statsmodels
+  correctly) and == statsmodels directly; **single-factor reduces to the CAPM beta
+  cov/var** to 1e-10; **known-truth recovery** — planted betas within 4 standard
+  errors, specific variances within 10%; t-stats separate a real factor (|t|>20)
+  from planted-zero factors (|t|<4); Σ symmetric + PD + equals its definition;
+  variance/portfolio decompositions add up; seeded determinism; validation.
+  Report `scripts/factor_model_report.py`: fetches FF–Carhart factors + 10 industry
+  portfolios from Ken French (cached in OS temp, **never in CI**), fits the model —
+  economically sane exposures (Utils market β 0.57, HiTec 1.16; Energy HML +1.16
+  value vs HiTec −0.40 growth; R² 0.35–0.92); equal-weight portfolio 15.7% ann.
+  vol, **93% systematic** → embedded in the README. **STOPPED for review after
+  stage 1 (per the task); stage 2 = the OOS estimator comparison is next.**
 
-## Next — OPEN DIRECTION DECISION (author decides at the top of next session)
+## Next — capital-markets track stage 2, then the OPEN DIRECTION DECISION below
+
+**Immediate (the factor track's headline deliverable, deferred here by design):**
+
+- **Stage 2 — out-of-sample estimator comparison.** Race sample covariance vs
+  Ledoit–Wolf shrinkage (`sklearn.covariance.LedoitWolf`) vs the factor-model
+  covariance on an **OOS risk-forecasting criterion** (does each predict realized
+  portfolio volatility?). Demonstrate the sample covariance's **ill-conditioning**
+  when assets ≳ observations (near-singular; condition number blows up) and report
+  **bias statistics** (realized/forecast vol ratios) per estimator. This is where
+  the factor model earns its place — and the validation layer that neither
+  statsmodels nor sklearn ships. Keep for a full-budget session.
+
+## Later — OPEN DIRECTION DECISION (after the factor track)
 
 Two pillars stand complete: derivatives pricing (Phase 1 + 4) and quant risk /
 model validation (Phase 3, all four model families). The options, with the
@@ -352,6 +401,22 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   full-reval-vs-sensitivities P&L already built — the plumbing was there; what was
   missing was the regulatory framing (metrics, published thresholds, zone
   aggregation), which is exactly the demonstrable skill.
+- **No OOS covariance-estimator validation in mainstream libraries (factor
+  stage 1/2).** `sklearn.covariance` ships the *estimators* (LedoitWolf, OAS) and
+  `statsmodels` the regressions, but neither ships the layer that answers *which
+  estimator forecasts realized risk better out of sample* — the actual
+  model-validation question. That layer (stage 2) is the factor package's reason to
+  exist; same "missing, not wrong" category.
+- **Ken French CSV parsing quirks (factor stage 1, data plumbing).** The library's
+  files are deceptively hostile to naive parsing: (i) multi-line prose preambles
+  that *contain commas*, so "first comma line = header" grabs a sentence; the
+  header is the last comma line *before* the first data row. (ii) A single file
+  concatenates several monthly blocks with the *same* `YYYYMM` date format
+  (value-weighted returns, then equal-weighted, then firm counts, then average
+  dollar sizes) — a YYYYMM filter alone silently mixes returns with firm-size
+  dollars and produces betas of ~100 and 36000% specific vols. Fix: take only the
+  first contiguous monthly block. A concrete "real data is messy; validate the
+  ingest by economic smell test" finding (the fixed betas are economically sane).
 
 ## Open design notes
 

@@ -44,7 +44,10 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > **ML-model validation under SR 11-7**: SHAP explainability *validated against
 > the known data-generating process* (local accuracy asserted, planted drivers and
 > interaction recovered), robustness and fairness quantified honestly, ending in
-> an explicit approve-with-conditions recommendation. See the risk sections below.
+> an explicit approve-with-conditions recommendation. Now opening the **capital-
+> markets / portfolio track** with a **multi-factor risk model** (Σ = B·F·Bᵀ + D,
+> Fama–French–Carhart), the shared foundation for risk decomposition and portfolio
+> construction. See the sections below.
 
 ## Architecture
 
@@ -682,6 +685,52 @@ layer, not silently resolved.
 > decision). Recommendation: **APPROVE WITH CONDITIONS** — the realistic verdict
 > for an ML challenger that ranks well, explains verifiably, but is not yet
 > calibrated or operationally hardened.
+
+## Factor risk models — the shared foundation (stage 1)
+
+A multi-factor risk model compresses the asset covariance into a handful of
+factors, Σ = B·F·Bᵀ + D, where **B** are the factor loadings, **F** the factor
+covariance, and **D** the diagonal of specific (idiosyncratic) variances. It is
+the foundation shared by **market-risk decomposition** and **portfolio
+construction**, so it lives in its own top-level package
+[`quantica/factor/`](quantica/factor) rather than under either consumer.
+
+The scope discipline is deliberate and matches this project's identity: **the
+estimator is not the deliverable, the validation is.** Loadings come from
+`statsmodels` OLS (with t-stats, R², residual variance for free); the factor
+covariance is `numpy.cov`; nothing here re-implements a regression. What the
+package adds is the risk-model *assembly* into a valid (symmetric PSD) covariance,
+the risk **decomposition**, and — the real deliverable in stage 2 — the
+out-of-sample estimator-comparison layer that neither statsmodels nor scikit-learn
+ships.
+
+> **Highlighted insight — known-truth recovery, and the estimator anchored to an
+> independent OLS.** As everywhere in the risk pillar, correctness is proved
+> against a *known* truth: a synthetic panel with **planted** betas and specific
+> variances is recovered within its standard errors, the single-factor case
+> reduces to the CAPM beta `cov(r, mkt)/var(mkt)` to machine precision, and the
+> statsmodels-fitted loadings are cross-checked against an independent
+> `numpy.linalg.lstsq` solve (agreement to 10⁻¹⁵ — "we called the library
+> correctly" is itself tested). Σ is verified symmetric and PSD and equal to its
+> definition B·F·Bᵀ + D.
+
+Fitted to real data — Fama–French–Carhart factors and 10 industry portfolios from
+Ken French's library, pulled by [`scripts/factor_model_report.py`](scripts/factor_model_report.py)
+(network fetch, cached, **never in CI**) — the exposures pass the economic smell
+test: Utilities carry a low market beta (0.57) and Hi-Tech a high one (1.16),
+Energy loads positively on value (HML +1.16) while Hi-Tech loads negatively
+(−0.40), and R² ranges from 0.35 (Utilities) to 0.92 (Other). The headline of the
+decomposition:
+
+```
+Equal-weight 10-industry portfolio, trailing 120 months:
+  annualised volatility 15.7%  →  93% systematic (factor) risk, 7% specific.
+```
+
+Diversifying across ten industries cancels most idiosyncratic risk, leaving a
+factor-dominated portfolio — exactly what B·F·Bᵀ + D should reveal, and the reason
+a factor covariance is the right tool for portfolio construction (stage 2, where
+it is raced out-of-sample against the sample and Ledoit–Wolf estimators).
 
 ## Development
 
