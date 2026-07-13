@@ -38,6 +38,14 @@ from quantica.risk.engines import (
     ParametricVaR,
     VaREngine,
 )
+from quantica.risk.frtb import (
+    PLAResult,
+    PLAZone,
+    book_pla_test,
+    ks_distance,
+    pla_test,
+    spearman_correlation,
+)
 from quantica.risk.measures import RiskEstimate, empirical_var_es, normal_var_es
 from quantica.risk.portfolio import Portfolio
 
@@ -54,18 +62,24 @@ __all__ = [
     "MarketScenarios",
     "MonteCarloVaR",
     "OptionBook",
+    "PLAResult",
+    "PLAZone",
     "ParametricVaR",
     "Portfolio",
     "RiskEstimate",
     "VaREngine",
     "acerbi_szekely",
     "basel_traffic_light",
+    "book_pla_test",
     "book_var_es",
     "christoffersen_cc",
     "christoffersen_independence",
     "empirical_var_es",
     "exceptions",
+    "ks_distance",
     "kupiec_pof",
     "normal_var_es",
+    "pla_test",
     "rolling_var_forecasts",
+    "spearman_correlation",
 ]
