@@ -28,6 +28,10 @@ dependencies = [
     # VaR (CLAUDE.md §3 — lean on it rather than hand-rolling GARCH). It is imported
     # lazily, so only the FHS engine pulls it in.
     "arch>=6.3",
+    # statsmodels supplies OLS-with-inference for factor-exposure estimation
+    # (CLAUDE.md §3 — lean on it rather than hand-rolling regression). Already a
+    # transitive dependency of arch; made explicit and imported lazily.
+    "statsmodels>=0.14",
 ]
 
 [project.optional-dependencies]
@@ -112,7 +116,7 @@ files = ["quantica"]
 
 # Third-party libraries without bundled type stubs.
 [[tool.mypy.overrides]]
-module = ["scipy.*", "QuantLib.*", "arch.*", "pandas.*"]
+module = ["scipy.*", "QuantLib.*", "arch.*", "pandas.*", "statsmodels.*"]
 ignore_missing_imports = true
 
 # --------------------------------------------------------------------------- #
