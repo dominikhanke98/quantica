@@ -287,7 +287,14 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   green/green/red table → embedded in the README. Headline: **a short-gamma desk
   failing PLA is the delta-normal-vs-full-reval divergence, now with a capital
   consequence** — the regulator's eligibility test and the MV "when does the
-  linear approximation break?" question are formally the same.
+  linear approximation break?" question are formally the same. **Scope (deliberate):
+  FRTB is implemented as PLA only** — the rest of the framework (liquidity-horizon
+  scaling, the ES capital charge and its regulatory aggregation, the standardised
+  approach) is intentionally *out of scope*: it is regulatory-plumbing breadth that
+  points away from the capital-markets direction the project is now taking. PLA was
+  the high-signal slice because it *reuses* the derivatives-risk P&L and closes the
+  pricing↔risk loop; going further into FRTB capital mechanics would add compliance
+  surface without new modelling insight.
 - **Capital-markets track, stage 1 — multi-factor risk model** — new **top-level**
   `quantica/factor/` package (placed at top level, NOT under `risk/`, because it is
   the shared foundation consumed by both market-risk decomposition and the future
