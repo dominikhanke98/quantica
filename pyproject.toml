@@ -32,6 +32,10 @@ dependencies = [
     # (CLAUDE.md §3 — lean on it rather than hand-rolling regression). Already a
     # transitive dependency of arch; made explicit and imported lazily.
     "statsmodels>=0.14",
+    # scikit-learn supplies the Ledoit-Wolf shrinkage covariance for the factor
+    # estimator comparison (CLAUDE.md §3 — lean on it, don't re-derive the
+    # shrinkage intensity). Imported lazily, so only the LW estimator pulls it in.
+    "scikit-learn>=1.4",
 ]
 
 [project.optional-dependencies]
@@ -39,10 +43,6 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    # Champion/challenger PD models for the credit-validation demo and tests.
-    # NOT a runtime dependency: the credit validators consume model outputs
-    # (y, PD scores), never a fitted model object (CLAUDE.md §3).
-    "scikit-learn>=1.4",
     # SHAP values for the ML-validation demo and tests. Same posture: the
     # ml_validation package consumes SHAP matrices / predict callables only.
     "shap>=0.46",
@@ -116,7 +116,7 @@ files = ["quantica"]
 
 # Third-party libraries without bundled type stubs.
 [[tool.mypy.overrides]]
-module = ["scipy.*", "QuantLib.*", "arch.*", "pandas.*", "statsmodels.*"]
+module = ["scipy.*", "QuantLib.*", "arch.*", "pandas.*", "statsmodels.*", "sklearn.*"]
 ignore_missing_imports = true
 
 # --------------------------------------------------------------------------- #

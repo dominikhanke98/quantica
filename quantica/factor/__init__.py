@@ -19,6 +19,23 @@ from quantica.factor.data import (
     SyntheticFactorData,
     generate_factor_data,
 )
+from quantica.factor.estimators import (
+    CovarianceEstimator,
+    FactorCovariance,
+    LedoitWolfCovariance,
+    SampleCovariance,
+    condition_number,
+    min_variance_weights,
+)
+from quantica.factor.evaluation import (
+    BiasStats,
+    EstimatorComparison,
+    WalkForwardWindow,
+    compare_estimators,
+    frobenius_error,
+    min_variance_true_loss,
+    walk_forward_windows,
+)
 from quantica.factor.exposures import FactorExposures, estimate_exposures
 from quantica.factor.model import (
     AssetVarianceDecomposition,
@@ -29,10 +46,23 @@ from quantica.factor.model import (
 __all__ = [
     "DEFAULT_FACTOR_NAMES",
     "AssetVarianceDecomposition",
+    "BiasStats",
+    "CovarianceEstimator",
+    "EstimatorComparison",
+    "FactorCovariance",
     "FactorExposures",
     "FactorRiskModel",
+    "LedoitWolfCovariance",
     "PortfolioRiskDecomposition",
+    "SampleCovariance",
     "SyntheticFactorData",
+    "WalkForwardWindow",
+    "compare_estimators",
+    "condition_number",
     "estimate_exposures",
+    "frobenius_error",
     "generate_factor_data",
+    "min_variance_true_loss",
+    "min_variance_weights",
+    "walk_forward_windows",
 ]
