@@ -10,9 +10,9 @@ families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML under SR 11-7).
 (stage 1); stage 2 (OOS estimator comparison) is the immediate next step.
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
-decomposition + Σ = BFBᵀ + D) → stage 2 (OOS estimator comparison: sample vs
+decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
 Ledoit–Wolf vs factor; ill-conditioning demo; bias stats) → portfolio
-construction (signal → construction → backtest; purged/embargoed CV).
+construction (signal → construction → backtest; purged/embargoed CV) — next.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
@@ -325,19 +325,44 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   value vs HiTec −0.40 growth; R² 0.35–0.92); equal-weight portfolio 15.7% ann.
   vol, **93% systematic** → embedded in the README. **STOPPED for review after
   stage 1 (per the task); stage 2 = the OOS estimator comparison is next.**
+- **Capital-markets track, stage 2 — OOS estimator comparison** (the factor step's
+  headline). Two new modules in `quantica/factor/`. **Scope discipline held**: no
+  estimators re-implemented — `estimators.py` wraps three behind one
+  `CovarianceEstimator` protocol: `SampleCovariance` (`numpy.cov`),
+  `LedoitWolfCovariance` (`sklearn.covariance.LedoitWolf`, lazy import),
+  `FactorCovariance` (the stage-1 Σ=BFBᵀ+D); plus `condition_number` and
+  `min_variance_weights` (GMV = Σ⁻¹1 renormalised). `evaluation.py` is the
+  deliverable framework: `walk_forward_windows` (strictly non-overlapping,
+  train_end==test_start — **no-lookahead is a tested property**), `compare_estimators`
+  (per window: fit each estimator on train, score on the *next* test window via the
+  **bias** = realized/forecast vol on shared random portfolios + each estimator's own
+  **min-variance** portfolio), `BiasStats` (whole distribution, not just mean),
+  `frobenius_error` + `min_variance_true_loss` (known-truth losses). Deps:
+  `scikit-learn>=1.4` promoted from dev → runtime (lazy) + mypy `sklearn.*` override.
+  Validated (`tests/factor/test_estimators.py` + `test_evaluation.py`, 20 tests):
+  each estimator == its library directly; GMV weights == closed form (diagonal
+  case) and are a true minimum; **no-lookahead**; **known-truth min-var ordering
+  factor < LW < sample** on a factor DGP; **ill-conditioning** (sample cond ≫ LW,
+  factor as n→T; factor best-conditioned); **the headline** — sample's min-var
+  portfolio worst OOS with bias > 2, while random portfolios are indistinguishable
+  across estimators; determinism. Report `scripts/covariance_comparison_report.py`
+  (49-industry FF universe, 60-mo window, n/T≈0.8): sample min-var **23.0%** realized
+  vol (forecast bias **6.0**) vs Ledoit–Wolf 11.8% vs factor 12.9%; condition number
+  100→61,000 (sample) vs bounded (LW/factor) → embedded in README. **Honest finding:
+  the factor model wins on the synthetic factor DGP (correctly specified) but
+  Ledoit–Wolf wins on real industry data (4 factors don't fully span it); the
+  universal result is only that sample covariance is worst under matrix inversion —
+  "which estimator to trust *when*", not a single winner.** FF loader refactored to
+  shared `scripts/_ff_data.py` (10- or 49-industry, missing-value handling).
 
-## Next — capital-markets track stage 2, then the OPEN DIRECTION DECISION below
+## Next — portfolio construction, or the OPEN DIRECTION DECISION below
 
-**Immediate (the factor track's headline deliverable, deferred here by design):**
-
-- **Stage 2 — out-of-sample estimator comparison.** Race sample covariance vs
-  Ledoit–Wolf shrinkage (`sklearn.covariance.LedoitWolf`) vs the factor-model
-  covariance on an **OOS risk-forecasting criterion** (does each predict realized
-  portfolio volatility?). Demonstrate the sample covariance's **ill-conditioning**
-  when assets ≳ observations (near-singular; condition number blows up) and report
-  **bias statistics** (realized/forecast vol ratios) per estimator. This is where
-  the factor model earns its place — and the validation layer that neither
-  statsmodels nor sklearn ships. Keep for a full-budget session.
+The factor track (stages 1 + 2) is complete. The natural continuation is the
+**portfolio-construction** step it was built to support: signal → construction →
+backtest, reusing the estimator comparison (choose the covariance by its OOS
+forecasting record) and adding purged/embargoed cross-validation, realistic
+costs/turnover/capacity, and a Streamlit + Plotly app. That completes the
+capital-markets pillar. Alternatively, resume the open direction decision below.
 
 ## Later — OPEN DIRECTION DECISION (after the factor track)
 

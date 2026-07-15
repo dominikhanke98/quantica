@@ -44,10 +44,12 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > **ML-model validation under SR 11-7**: SHAP explainability *validated against
 > the known data-generating process* (local accuracy asserted, planted drivers and
 > interaction recovered), robustness and fairness quantified honestly, ending in
-> an explicit approve-with-conditions recommendation. Now opening the **capital-
-> markets / portfolio track** with a **multi-factor risk model** (Σ = B·F·Bᵀ + D,
-> Fama–French–Carhart), the shared foundation for risk decomposition and portfolio
-> construction. See the sections below.
+> an explicit approve-with-conditions recommendation. Now in the **capital-markets
+> / portfolio track**: a **multi-factor risk model** (Σ = B·F·Bᵀ + D,
+> Fama–French–Carhart) plus the **out-of-sample estimator comparison** — sample vs
+> Ledoit–Wolf vs factor covariance raced on OOS risk forecasting, with the sample
+> covariance's error-maximiser failure demonstrated on known-truth *and* real data.
+> See the sections below.
 
 ## Architecture
 
@@ -686,7 +688,7 @@ layer, not silently resolved.
 > for an ML challenger that ranks well, explains verifiably, but is not yet
 > calibrated or operationally hardened.
 
-## Factor risk models — the shared foundation (stage 1)
+## Factor risk models — the shared foundation
 
 A multi-factor risk model compresses the asset covariance into a handful of
 factors, Σ = B·F·Bᵀ + D, where **B** are the factor loadings, **F** the factor
@@ -729,8 +731,54 @@ Equal-weight 10-industry portfolio, trailing 120 months:
 
 Diversifying across ten industries cancels most idiosyncratic risk, leaving a
 factor-dominated portfolio — exactly what B·F·Bᵀ + D should reveal, and the reason
-a factor covariance is the right tool for portfolio construction (stage 2, where
-it is raced out-of-sample against the sample and Ledoit–Wolf estimators).
+a factor covariance is the right tool for portfolio construction.
+
+### Which covariance estimator to trust — the out-of-sample comparison
+
+Estimating the covariance *is* the hard part, and the payoff of the whole factor
+step is the framework that says **which estimator to trust when** — the thing
+scikit-learn and the portfolio libraries do not ship. Three estimators — the
+**sample** covariance (`numpy.cov`), **Ledoit–Wolf** shrinkage
+(`sklearn.covariance`, not re-implemented), and the **factor model** Σ = B·F·Bᵀ + D
+— are raced by walk-forward, strictly non-overlapping train/test windows (no
+lookahead, and it is a tested property) on how well each predicts *realized*
+out-of-sample volatility. The bias statistic is `realized / forecast` vol; a
+well-calibrated model sits at ≈ 1, and the whole *distribution* is reported, not
+just the mean.
+
+> **Highlighted insight — the sample covariance is an error maximiser under
+> optimisation, and known-truth proves it.** On *random* portfolios the three
+> estimators are indistinguishable — the sample covariance is fine. The difference
+> appears only when a portfolio *inverts* the matrix. Building each estimator's own
+> **minimum-variance** portfolio and measuring its realized OOS volatility on the
+> 49-industry Fama–French universe (`python scripts/covariance_comparison_report.py`):
+
+```
+Minimum-variance portfolio, 49 industries, 60-month window (n/T ≈ 0.8):
+| Estimator    | Realized OOS vol | Forecast bias |
+| ------------ | ---------------: | ------------: |
+| sample       |            23.0% |          6.02 |   ← worst, wildly optimistic
+| ledoit-wolf  |            11.8% |          1.61 |   ← best on real data
+| factor       |            12.9% |          1.92 |
+```
+
+> The sample covariance's min-variance portfolio realizes **twice** the volatility
+> of the others, and its own forecast under-states that by **6×** — because
+> minimising *in-sample* variance overfits the noise (Michaud's "the optimizer is
+> an error maximiser"). The mechanism is **ill-conditioning**: with a 60-month
+> window the sample covariance's condition number runs from ~100 at 10 assets to
+> **~61,000 at 49**, while shrinkage (~260) and the factor model (~860) stay
+> bounded. Inverting a near-singular matrix amplifies estimation error into wild
+> portfolio weights.
+
+> **Highlighted insight — reported honestly: which estimator wins *depends*.** On a
+> **synthetic** panel drawn from a known factor model, the (correctly specified)
+> **factor model wins** the known-truth min-variance loss — measured directly
+> against the true covariance, not an OOS proxy. On **real** industry data, where a
+> four-factor model does *not* fully span the returns, **Ledoit–Wolf wins** and the
+> factor model comes second. The universal result is only the negative one — the
+> sample covariance is worst whenever the matrix is inverted. The point of the
+> framework is not to crown a winner but to make that contingency measurable.
 
 ## Development
 
