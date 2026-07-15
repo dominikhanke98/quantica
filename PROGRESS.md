@@ -6,8 +6,9 @@ Running state file for `quantica`. Updated at the end of each working session
 **Current phase:** Derivatives-pricing track complete (Phase 1 core + Phase 4
 deepening). **Phase 3 (quant risk / model validation) complete** across five
 families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML under SR 11-7).
-**Capital-markets / portfolio track now open** — multi-factor risk model landed
-(stage 1); stage 2 (OOS estimator comparison) is the immediate next step.
+**Capital-markets / portfolio track open** — multi-factor risk model complete
+(stage 1 exposures/decomposition + stage 2 OOS estimator comparison). Next:
+**Phase 2 — systematic portfolio management** (`quantica/portfolio/`); see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -355,14 +356,39 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   "which estimator to trust *when*", not a single winner.** FF loader refactored to
   shared `scripts/_ff_data.py` (10- or 49-industry, missing-value handling).
 
-## Next — portfolio construction, or the OPEN DIRECTION DECISION below
+## Next — Phase 2: systematic portfolio management (the third pillar)
 
-The factor track (stages 1 + 2) is complete. The natural continuation is the
-**portfolio-construction** step it was built to support: signal → construction →
-backtest, reusing the estimator comparison (choose the covariance by its OOS
-forecasting record) and adding purged/embargoed cross-validation, realistic
-costs/turnover/capacity, and a Streamlit + Plotly app. That completes the
-capital-markets pillar. Alternatively, resume the open direction decision below.
+The factor track (stages 1 + 2) is complete and was built precisely to feed this.
+**Full-budget session** — new `quantica/portfolio/`. Framing that keeps it in this
+repo's identity: *everyone ships a backtester; this ships the test of whether the
+backtest means anything.* Three layers, headline last:
+
+- **Construction** — mean-variance / minimum-variance / risk-parity portfolios via
+  **`cvxpy`** (new runtime dep per CLAUDE.md §3 — lean on it, don't hand-roll the
+  QP), consuming a `CovarianceEstimator` from `quantica/factor/` (so the estimator
+  comparison directly informs which Σ the optimiser gets). Reuse
+  `min_variance_weights` as the closed-form anchor to validate the cvxpy GMV.
+- **Walk-forward backtest engine** — reuse `factor.evaluation.walk_forward_windows`
+  (no-lookahead already tested); add realistic **costs, turnover, capacity**. Signal
+  → construction → rebalance → P&L, seeded and reproducible.
+- **Backtest-validity layer (THE deliverable)** — the model-validation discipline
+  applied to strategy backtests, the thing generic backtesters omit:
+  - **Deflated Sharpe Ratio** (Bailey–López de Prado): deflate the observed SR for
+    the number of trials, non-normality (skew/kurtosis), and sample length.
+  - **Probability of Backtest Overfitting (PBO)** via **combinatorially-symmetric
+    cross-validation (CSCV)**: is the in-sample best strategy median-or-worse OOS?
+  - **Purged + embargoed CV** (López de Prado) — extend the walk-forward splits so
+    label/feature overlap can't leak across the train/test boundary.
+  - **Minimum Track Record Length** — how long a track record must be for an SR to
+    be significant at a confidence level.
+  - **Known-truth validation (the headline check, same discipline as the whole
+    repo):** run a deliberately **overfit noise search** (pick the best of many
+    random signals on noise) → must be flagged spurious (**DSR ≈ 0, PBO high**);
+    plant a **real signal** → must survive (DSR > 0, PBO low). Proves the
+    overfitting detector detects overfitting.
+
+  Lean on `numpy`/`scipy`/`pandas` for the statistics; the deliverable is the
+  validity framework, not the estimators. Add a Streamlit + Plotly app last.
 
 ## Later — OPEN DIRECTION DECISION (after the factor track)
 
