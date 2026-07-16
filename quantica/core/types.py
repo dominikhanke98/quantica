@@ -17,6 +17,9 @@ import numpy.typing as npt
 #: Double-precision float array, the working type for spot grids and payoffs.
 FloatArray = npt.NDArray[np.float64]
 
+#: Integer index array (e.g. cross-validation train/test index sets).
+IntArray = npt.NDArray[np.intp]
+
 #: Anything that can be broadcast to a :data:`FloatArray` (scalars or arrays).
 FloatLike = float | FloatArray
 

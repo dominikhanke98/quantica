@@ -36,6 +36,11 @@ dependencies = [
     # estimator comparison (CLAUDE.md §3 — lean on it, don't re-derive the
     # shrinkage intensity). Imported lazily, so only the LW estimator pulls it in.
     "scikit-learn>=1.4",
+    # cvxpy supplies the convex solver for constrained portfolio construction
+    # (mean-variance / minimum-variance / risk-parity QPs with long-only, position
+    # and turnover constraints; CLAUDE.md §3 — lean on it, don't hand-roll the QP).
+    # Imported lazily, so only the construction layer pulls it in.
+    "cvxpy>=1.5",
 ]
 
 [project.optional-dependencies]
@@ -116,7 +121,7 @@ files = ["quantica"]
 
 # Third-party libraries without bundled type stubs.
 [[tool.mypy.overrides]]
-module = ["scipy.*", "QuantLib.*", "arch.*", "pandas.*", "statsmodels.*", "sklearn.*"]
+module = ["scipy.*", "QuantLib.*", "arch.*", "pandas.*", "statsmodels.*", "sklearn.*", "cvxpy.*"]
 ignore_missing_imports = true
 
 # --------------------------------------------------------------------------- #
