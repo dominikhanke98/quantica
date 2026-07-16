@@ -3,17 +3,19 @@
 Running state file for `quantica`. Updated at the end of each working session
 (see CLAUDE.md §"Session close-out"). Concise and factual.
 
-**Current phase:** Derivatives-pricing track complete (Phase 1 core + Phase 4
-deepening). **Phase 3 (quant risk / model validation) complete** across five
-families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML under SR 11-7).
-**Capital-markets / portfolio track open** — multi-factor risk model complete
-(stage 1 exposures/decomposition + stage 2 OOS estimator comparison). Next:
-**Phase 2 — systematic portfolio management** (`quantica/portfolio/`); see "Next".
+**Current phase:** **All three pillars complete.** Derivatives-pricing track complete
+(Phase 1 core + Phase 4 deepening). **Phase 3 (quant risk / model validation) complete**
+across five families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML under
+SR 11-7). **Phase 2 (systematic portfolio management) complete** — construction +
+walk-forward backtest + the backtest-validity layer (DSR / PBO / purged CV / MinTRL),
+built on the factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is
+now closed. Next: **the thin apps** (deferred UI) or further depth — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
-Ledoit–Wolf vs factor; ill-conditioning demo; bias stats) → portfolio
-construction (signal → construction → backtest; purged/embargoed CV) — next.
+Ledoit–Wolf vs factor; ill-conditioning demo; bias stats) → **portfolio construction +
+backtest + validity layer ✓** (this session). **Capital-markets / portfolio track
+complete.**
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
@@ -355,75 +357,108 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   universal result is only that sample covariance is worst under matrix inversion —
   "which estimator to trust *when*", not a single winner.** FF loader refactored to
   shared `scripts/_ff_data.py` (10- or 49-industry, missing-value handling).
+- **Phase 2 — systematic portfolio management (the third pillar).** New
+  `quantica/portfolio/` package (new runtime dep **`cvxpy>=1.5`**, lazy-imported, +
+  mypy override; verified solving on Python 3.14 via CLARABEL/OSQP/SCS). Three layers,
+  headline last, **scope discipline held** (no solvers or statistics re-implemented —
+  cvxpy for the QP, numpy/scipy for the validity stats, factor-step estimators for Σ):
+  - **Construction** (`construction.py`): `PortfolioConstraints` (long-only,
+    per-name position limits, L1 **turnover budget** vs current holdings, full-investment)
+    → linear cvxpy constraints. `minimum_variance_weights` (min wᵀΣw),
+    `mean_variance_weights` (max μᵀw − ½γ wᵀΣw), `risk_parity_weights` (Spinu's convex
+    log-barrier ERC, long-only by construction). All use `cp.psd_wrap` for solver
+    robustness. **Validated against algebra** (`test_construction.py`, 12 tests):
+    budget-only GMV == closed-form Σ⁻¹𝟙 to **7e-17** (the anchor); MV == its
+    budget-constrained closed form; risk-parity == inverse-vol weights for diagonal Σ
+    and equalises risk contributions; long-only/position-cap/turnover budgets each
+    asserted respected; MV→GMV as γ→∞; MV tilts toward higher α.
+  - **Backtest engine** (`backtest.py`): `walk_forward_backtest` reuses the tested
+    `factor.evaluation.walk_forward_windows` (no-lookahead), holds target weights over
+    each non-overlapping window while tracking **exact weight drift**, measures one-way
+    turnover vs the drifted book, and charges `ProportionalCosts` as a first-period
+    return drag. `Strategy` protocol + `strategy.py` bundlers
+    (`MinimumVarianceStrategy` / `RiskParityStrategy` / `MeanVarianceStrategy`, the last
+    taking a pluggable alpha `Signal`) bind a `CovarianceEstimator` to a constructor —
+    the stage-2 comparison plugs straight in. `BacktestResult` exposes gross/net series,
+    turnover, costs, weights, Sharpe, cumulative return. **Validated for exactness**
+    (`test_backtest.py` 12, `test_strategy.py` 4): zero-cost net == gross to the last
+    bit; gross − net reconciles to total cost to 1e-15; opening turnover from cash == 1;
+    weight drift == analytic renormalisation; **no-lookahead proven** (a data-dependent
+    strategy's past weights are bit-identical after corrupting the future); min-variance
+    realises lower OOS vol than equal-weight; costs strictly reduce net return.
+  - **Backtest-validity layer (THE deliverable)** — `overfitting.py`:
+    `probabilistic_sharpe_ratio` (PSR, Bailey–LdP 2012), `expected_maximum_sharpe`
+    (multiple-testing benchmark, Euler–Mascheroni closed form), `deflated_sharpe_ratio`
+    (+ `_from_trials` picking the best column), `minimum_track_record_length`,
+    `probability_of_backtest_overfitting` (PBO via CSCV: partition rows into S blocks,
+    over all C(S,S/2) balanced splits record the logit of the IS-best's OOS rank; PBO =
+    P(logit ≤ 0)). `cv.py`: `purged_kfold_indices` (two-sided purge of `label_horizon` +
+    trailing `embargo`). `data.py`: `generate_trial_returns` (planted-signal known
+    truth). **Validated** (`test_overfitting.py` 20, `test_cv.py` 8): PSR == Φ of the
+    independent z-score, == 0.5 at benchmark, penalises skew/kurtosis; expected-max ==
+    formula, grows with trials; DSR == PSR at the emax benchmark; **MinTRL exact
+    round-trip through PSR**; PBO == 0.5 for noise (averaged), < 0.05 for a dominant
+    signal; **the headline known-truth — a 100-noise overfit search is flagged spurious
+    (DSR never significant, PBO ≈ 0.5) while a planted signal survives both (DSR ≈ 1,
+    PBO = 0)**; **purging removes overlapping-label leakage** (nearest-neighbour "skill"
+    0.77 unpurged → ≈ 0 purged). Added `IntArray` to `core/types.py`.
+  - Report `scripts/portfolio_backtest_report.py` (synthetic known-truth table, no
+    network; + real 49-industry FF backtest net of 10 bps costs). **Honest real-data
+    finding — the DSR/PBO split verdict**: the best net strategy (`minvar/sample`, net
+    Sharpe 0.65) is DSR-significant (0.998) yet high-PBO (0.85) — the six near-identical
+    long-only configs make the *premium* real (low cross-trial variance → low emax
+    benchmark → high DSR) but the *ranking* non-repeatable (high PBO). "Trust the
+    premium, not the ranking." MinTRL for that Sharpe is 79 months. → embedded in README.
+  - **Gate green**: 849 tests (55 new), ruff + mypy clean.
 
-## Next — Phase 2: systematic portfolio management (the third pillar)
+## Next — the thin apps, or further depth (all three pillars now complete)
 
-The factor track (stages 1 + 2) is complete and was built precisely to feed this.
-**Full-budget session** — new `quantica/portfolio/`. Framing that keeps it in this
-repo's identity: *everyone ships a backtester; this ships the test of whether the
-backtest means anything.* Three layers, headline last:
+**All three pillars — derivatives pricing (Phase 1 + 4), quant risk / model validation
+(Phase 3), systematic portfolio management (Phase 2) — are now complete.** The core
+library is the deliverable and is done; the remaining options are demonstration and
+incremental depth, none blocking:
 
-- **Construction** — mean-variance / minimum-variance / risk-parity portfolios via
-  **`cvxpy`** (new runtime dep per CLAUDE.md §3 — lean on it, don't hand-roll the
-  QP), consuming a `CovarianceEstimator` from `quantica/factor/` (so the estimator
-  comparison directly informs which Σ the optimiser gets). Reuse
-  `min_variance_weights` as the closed-form anchor to validate the cvxpy GMV.
-- **Walk-forward backtest engine** — reuse `factor.evaluation.walk_forward_windows`
-  (no-lookahead already tested); add realistic **costs, turnover, capacity**. Signal
-  → construction → rebalance → P&L, seeded and reproducible.
-- **Backtest-validity layer (THE deliverable)** — the model-validation discipline
-  applied to strategy backtests, the thing generic backtesters omit:
-  - **Deflated Sharpe Ratio** (Bailey–López de Prado): deflate the observed SR for
-    the number of trials, non-normality (skew/kurtosis), and sample length.
-  - **Probability of Backtest Overfitting (PBO)** via **combinatorially-symmetric
-    cross-validation (CSCV)**: is the in-sample best strategy median-or-worse OOS?
-  - **Purged + embargoed CV** (López de Prado) — extend the walk-forward splits so
-    label/feature overlap can't leak across the train/test boundary.
-  - **Minimum Track Record Length** — how long a track record must be for an SR to
-    be significant at a confidence level.
-  - **Known-truth validation (the headline check, same discipline as the whole
-    repo):** run a deliberately **overfit noise search** (pick the best of many
-    random signals on noise) → must be flagged spurious (**DSR ≈ 0, PBO high**);
-    plant a **real signal** → must survive (DSR > 0, PBO low). Proves the
-    overfitting detector detects overfitting.
-
-  Lean on `numpy`/`scipy`/`pandas` for the statistics; the deliverable is the
-  validity framework, not the estimators. Add a Streamlit + Plotly app last.
-
-## Later — OPEN DIRECTION DECISION (after the factor track)
-
-Two pillars stand complete: derivatives pricing (Phase 1 + 4) and quant risk /
-model validation (Phase 3, all four model families). The options, with the
-trade-off framed:
-
-- **(A) Phase 2 — systematic portfolio management** — the third and final pillar
-  (signal → construction → backtest; covariance-estimation study: sample vs
-  Ledoit–Wolf vs factor vs HRP; walk-forward + purged/embargoed CV; realistic
-  costs/turnover/capacity; Streamlit + Plotly app). **Best serves the
-  all-three-fields goal**: completes the derivatives / risk / portfolio triad
-  (CLAUDE.md §9) and rounds out the buy-side-generalist profile.
-- **(B) Deepen the risk pillar further** — FRTB PLA is done (step 5); remaining
-  incremental options are the FRTB expected-shortfall charge at the 97.5% level
-  end-to-end (liquidity-horizon scaling, the regulatory ES aggregation). Smaller;
-  strengthens the model-validation-specialist story.
-- **(C) The apps** — the deferred thin Streamlit + Plotly pricing app
-  (`apps/pricing_app.py`: sliders → live price, Greek profiles, IV surface,
-  convergence table) and/or a risk dashboard. Thin UI over the tested core, zero
-  quant logic in `apps/`; makes the portfolio *demonstrable* to non-readers.
+- **(A) The thin apps (the natural next step).** The deferred Streamlit + Plotly UIs
+  over the tested core (CLAUDE.md §2 — build the UI last, zero quant logic in `apps/`):
+  a **pricing explorer** (`apps/pricing_app.py`: sliders → live price, Greek profiles,
+  IV surface, convergence table), a **portfolio/backtest dashboard** (construction knobs
+  → walk-forward equity curve, turnover, and the DSR/PBO validity panel), and/or a
+  **risk dashboard**. Makes the whole portfolio *demonstrable* to non-code reviewers —
+  high signal for the hiring-manager audience now that three pillars stand.
+- **(B) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
+  the construction menu and pair naturally with the covariance-estimator study
+  (it sidesteps matrix inversion entirely). Small, self-contained.
+- **(C) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
+  end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
+  breadth; strengthens the model-validation-specialist story.
 - **(D) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
-  documented L-stability caveat in `finitediff.py`; the American PDE's PSOR could
-  also be swapped for Brennan–Schwartz); or an autocallable on the LSM/path
-  machinery.
+  documented L-stability caveat in `finitediff.py`; PSOR → Brennan–Schwartz); or an
+  autocallable on the LSM/path machinery.
 
-**Weigh:** (A) if the target profile is the three-pillar generalist (the stated
-CLAUDE.md goal); (C) is the cheap complement once a pillar is chosen — a pricing
-app after (D), a risk dashboard after (B). Nothing blocks any option technically.
+**Recommendation:** (A) the apps — the three pillars are the substance; a thin,
+demonstrable UI is now the highest-leverage complement and is explicitly the deferred
+"build last" step. Nothing blocks any option technically.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **Backtest-validity layer absent from mainstream backtesters (Phase 2).** The
+  popular open-source backtesters (`backtrader`, `vectorbt`, `zipline`, `bt`) ship the
+  *engine* — signal → weights → P&L curve — but not the layer that answers *is this
+  curve real?*. The Deflated Sharpe Ratio, PBO/CSCV, purged-embargoed CV and MinTRL are
+  López de Prado's, and the one library that bundled them (`mlfinlab`) went
+  closed-source/commercial. So the exact deliverable a model-validation reviewer cares
+  about — deflating a backtest for the number of trials and testing selection
+  robustness — is the "missing, not wrong" gap this pillar fills, and its own
+  correctness is proved on planted known-truth (noise flagged, signal survives).
+- **DSR and PBO answer different questions, and can (correctly) disagree (Phase 2).** On
+  the real FF grid, the best net strategy was DSR-significant (0.998) *and* high-PBO
+  (0.85). Not a bug: DSR asks whether the Sharpe *magnitude* is real after multiple
+  testing (here yes — an industry premium), PBO whether the *selection* among
+  near-identical configs is repeatable (here no). A tool that reports only one metric
+  hides half the verdict; reporting both is the point.
 - **Hosmer–Lemeshow degrees of freedom (step 3).** Many implementations hardcode
   `dof = G − 2`. That convention is derived for a model *fitted on the same
   sample*; when validating externally-supplied PDs (true/regulatory/vendor PDs —
@@ -478,6 +513,22 @@ this repo's independent implementation surfaced it. Add to this list as they occ
 
 ## Open design notes
 
+- **Portfolio validity layer operates on return *matrices*, decoupled from the
+  backtester (Phase 2).** `overfitting.py` (DSR/PBO) takes a `(T, N)` trial-return
+  matrix, not a backtest object — so it is testable on synthetic known-truth without
+  running any construction, and the report can assemble the six strategy net-return
+  series into the matrix and interrogate the *selection*. The return series is the seam,
+  same posture as the risk pillar's P&L series.
+- **Risk parity takes no general `PortfolioConstraints` (Phase 2).** Spinu's convex
+  log-barrier ERC is solved unconstrained then renormalised (`w = y / 𝟙ᵀy`), which is
+  intrinsic to the formulation — so position/turnover constraints can't be layered on
+  without breaking the equal-risk property. Documented in the docstring; min-variance
+  and mean-variance carry the full constraint set. Revisit only if a constrained-ERC
+  variant is actually needed.
+- **cvxpy typed as `Any` at the seam (Phase 2).** cvxpy ships no stubs (mypy override,
+  ignore_missing_imports); the three private helpers that touch `cvxpy` objects
+  (`_cvxpy`, `_linear_constraints`, `_solve`) annotate those params `Any` rather than
+  scattering `# type: ignore`, keeping the public constructors fully typed.
 - **Ignored-vol market carrier — RESOLVED (step 4a).** `implied_volatility` now
   takes a `Market` (spot, rate, div); there is no placeholder vol to ignore. The
   `Market` carrier is shared by `BlackScholesProcess` and `HestonProcess`.

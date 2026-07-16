@@ -48,7 +48,13 @@ reference exists, benchmarked against QuantLib within a stated tolerance.
 > / portfolio track**: a **multi-factor risk model** (Σ = B·F·Bᵀ + D,
 > Fama–French–Carhart) plus the **out-of-sample estimator comparison** — sample vs
 > Ledoit–Wolf vs factor covariance raced on OOS risk forecasting, with the sample
-> covariance's error-maximiser failure demonstrated on known-truth *and* real data.
+> covariance's error-maximiser failure demonstrated on known-truth *and* real data —
+> which feeds the now-complete **third pillar, systematic portfolio management**:
+> constrained construction (mean-variance / minimum-variance / risk-parity via `cvxpy`),
+> a walk-forward backtest with exact cost/turnover accounting, and — the headline — the
+> **backtest-validity layer** (Deflated Sharpe Ratio, Probability of Backtest Overfitting
+> via CSCV, purged/embargoed CV, minimum track record length), because *everyone ships a
+> backtester; this ships the test of whether the backtest means anything.*
 > See the sections below.
 
 ## Architecture
@@ -779,6 +785,87 @@ Minimum-variance portfolio, 49 industries, 60-month window (n/T ≈ 0.8):
 > factor model comes second. The universal result is only the negative one — the
 > sample covariance is worst whenever the matrix is inverted. The point of the
 > framework is not to crown a winner but to make that contingency measurable.
+
+## Systematic portfolio management — the test of whether a backtest means anything
+
+Everyone ships a backtester; anyone can produce a beautiful equity curve by trying
+enough strategies. **The deliverable here is the layer that tests whether the curve
+means anything** — the model-validation discipline of the rest of this repo, applied
+to strategy backtests. Three layers, headline last:
+
+- **Construction** (`quantica/portfolio/construction.py`) — mean-variance,
+  minimum-variance and risk-parity portfolios solved with **`cvxpy`** (leaned on, not
+  hand-rolled) under realistic constraints: a long-only option, per-name position
+  limits, and an L1 **turnover budget**. Each consumes a `CovarianceEstimator` from the
+  factor step, so the estimator comparison above plugs straight in. The solver is
+  validated against algebra: the unconstrained min-variance portfolio reproduces the
+  closed form *w ∝ Σ⁻¹𝟙* to solver precision, mean-variance matches its
+  budget-constrained closed form, and risk-parity reduces to inverse-volatility weights
+  for a diagonal covariance.
+- **Backtest engine** (`quantica/portfolio/backtest.py`) — a walk-forward loop built on
+  the *same tested no-lookahead window machinery* as the factor step, with transaction
+  costs and **exact** turnover accounting: weights drift with the assets between
+  rebalances, gross − net reconciles to the total cost to the last bit, and with zero
+  costs net equals gross exactly.
+- **Backtest-validity layer** (`quantica/portfolio/overfitting.py`, `cv.py`) — the
+  headline: the **Deflated Sharpe Ratio** (Bailey–López de Prado — deflates the observed
+  Sharpe for the number of trials, return skew/kurtosis and sample length), the
+  **Probability of Backtest Overfitting** via combinatorially-symmetric cross-validation
+  (CSCV), **purged + embargoed** cross-validation, and the **Minimum Track Record
+  Length**.
+
+> **Highlighted insight — the overfitting detector detects overfitting (known truth).**
+> The whole layer is validated the same way as everything else in the repo: by
+> construction. Run a deliberately overfit search — pick the best of many strategies —
+> on pure noise, and again with one genuinely predictive signal planted among the noise
+> (`python scripts/portfolio_backtest_report.py`):
+>
+> ```
+> Search                      | Best in-sample SR (ann.) |   DSR | Significant? |  PBO
+> --------------------------- | -----------------------: | ----: | :----------: | ---:
+> 100 noise signals           |                     0.48 | 0.534 |      no      | 0.45
+> 99 noise + 1 real signal    |                     1.34 | 1.000 |     yes      | 0.00
+> ```
+>
+> The noise search is flagged spurious — its 0.48 in-sample Sharpe is exactly what the
+> luckiest of 100 coin-flips looks like, so the DSR sits at chance and PBO ≈ 0.5 (the
+> in-sample winner is a coin-flip out of sample). The planted signal survives both
+> (DSR ≈ 1, PBO = 0). The detector works.
+
+> **Highlighted insight — a real-data split verdict: trust the premium, not the
+> ranking.** A grid of six estimator × construction strategies on the 49-industry
+> Fama–French universe, walk-forward, long-only with a 20% cap, **net of 10 bps costs**:
+>
+> ```
+> 49 industries, 300 OOS months, rebalanced quarterly, 10 bps one-way costs:
+> Strategy                | Gross SR | Net SR | Avg turnover | Total cost
+> ----------------------- | -------: | -----: | -----------: | ---------:
+> minvar/sample           |     0.66 |   0.65 |         0.24 |       2.4%
+> minvar/ledoit-wolf      |     0.64 |   0.64 |         0.22 |       2.2%
+> minvar/factor           |     0.63 |   0.63 |         0.17 |       1.7%
+> riskparity/sample       |     0.60 |   0.60 |         0.08 |       0.8%
+> riskparity/ledoit-wolf  |     0.60 |   0.60 |         0.08 |       0.8%
+> meanvar/lw              |     0.60 |   0.59 |         0.42 |       4.2%
+> ```
+>
+> The best net strategy (`minvar/sample`, net Sharpe 0.65) is **DSR-significant (0.998)**
+> yet has a **high PBO (0.85)** — and the two metrics are *supposed* to disagree here.
+> The six configs are near-interchangeable captures of the same industry premium, so
+> their Sharpes cluster tightly: the cross-trial variance is small, the
+> expected-maximum-Sharpe benchmark is low, and the premium survives deflation and costs
+> (**DSR high**). But precisely *because* they are interchangeable, which one was "best"
+> in sample is not repeatable out of sample (**PBO high**). Read together: the premium is
+> real; the ranking is noise. A reviewer who reported only the winning config's curve
+> would be selling a selection PBO shows to be worthless. At that net Sharpe the minimum
+> track record length for 95% significance is **79 months (6.6 years)** — a useful reality
+> check on how much track record any single-strategy claim actually needs.
+
+> **Highlighted insight — purging removes overlapping-label leakage (known truth).**
+> Standard k-fold CV is *wrong* when labels overlap (an h-period forward return leaks
+> across the train/test boundary). With deliberately overlapping labels, predicting each
+> test point from its nearest training neighbour shows spurious "skill" of **0.77
+> correlation without purging** and **≈ 0 with purging** — the leakage is real, and
+> purged + embargoed CV (López de Prado) removes it.
 
 ## Development
 
