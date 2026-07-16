@@ -12,6 +12,10 @@ anything.* Three layers:
   transaction costs and exact turnover accounting, built on the tested no-lookahead
   window machinery, plus the strategies (:mod:`~quantica.portfolio.strategy`) that
   bind an estimator to a constructor.
+* **Backtest-validity layer** (the headline) — the model-validation discipline applied
+  to strategy backtests: the deflated Sharpe ratio and probability of backtest
+  overfitting (:mod:`~quantica.portfolio.overfitting`), plus purged/embargoed
+  cross-validation (:mod:`~quantica.portfolio.cv`).
 """
 
 from __future__ import annotations
@@ -29,6 +33,19 @@ from quantica.portfolio.construction import (
     minimum_variance_weights,
     risk_parity_weights,
 )
+from quantica.portfolio.cv import PurgedFold, purged_kfold_indices
+from quantica.portfolio.data import TrialReturns, generate_trial_returns
+from quantica.portfolio.overfitting import (
+    DeflatedSharpeResult,
+    PBOResult,
+    deflated_sharpe_ratio,
+    deflated_sharpe_ratio_from_trials,
+    expected_maximum_sharpe,
+    minimum_track_record_length,
+    probabilistic_sharpe_ratio,
+    probability_of_backtest_overfitting,
+    sharpe_ratio,
+)
 from quantica.portfolio.strategy import (
     MeanVarianceStrategy,
     MinimumVarianceStrategy,
@@ -39,17 +56,30 @@ from quantica.portfolio.strategy import (
 
 __all__ = [
     "BacktestResult",
+    "DeflatedSharpeResult",
     "MeanVarianceStrategy",
     "MinimumVarianceStrategy",
+    "PBOResult",
     "PortfolioConstraints",
     "ProportionalCosts",
+    "PurgedFold",
     "RiskParityStrategy",
     "Signal",
     "Strategy",
     "TransactionCostModel",
+    "TrialReturns",
+    "deflated_sharpe_ratio",
+    "deflated_sharpe_ratio_from_trials",
+    "expected_maximum_sharpe",
+    "generate_trial_returns",
     "historical_mean_signal",
     "mean_variance_weights",
+    "minimum_track_record_length",
     "minimum_variance_weights",
+    "probabilistic_sharpe_ratio",
+    "probability_of_backtest_overfitting",
+    "purged_kfold_indices",
     "risk_parity_weights",
+    "sharpe_ratio",
     "walk_forward_backtest",
 ]
