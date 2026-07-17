@@ -9,7 +9,8 @@ across five families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML unde
 SR 11-7). **Phase 2 (systematic portfolio management) complete** — construction +
 walk-forward backtest + the backtest-validity layer (DSR / PBO / purged CV / MinTRL),
 built on the factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is
-now closed. Next: **the thin apps** (deferred UI) or further depth — see "Next".
+now closed, and the deferred **thin Streamlit apps (step 8)** now sit over all three
+pillars (on a feature branch + PR awaiting review). Next: further depth — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -434,34 +435,56 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   Ledoit–Wolf's 11.5%; condition number 61,123 → 36,082). Documented as a cross-pillar
   insight in **both** the factor and portfolio README sections. **Gate green**: 853 tests
   (4 new), ruff + mypy clean.
+- **Step 8 — the thin apps (Streamlit + Plotly over all three pillars).** New `apps/`
+  package + `app` optional extra (`streamlit>=1.30`, `plotly>=5.18`), kept out of the
+  runtime *and* dev sets so the library/tests/CI never depend on a UI. **Architecture
+  rule held (CLAUDE.md §2 — zero quant logic in `apps/`)**: every number is computed by
+  `quantica`; the apps only orchestrate calls, cache, and draw. Structure enforces it —
+  Streamlit-free **compute** modules (`_derivatives.py`, `_risk.py`, `_capital.py`, plus
+  `_data.py` loading a committed 39 KB FF sample `apps/data/ff_sample.npz`, never fetched
+  at runtime) hold all the orchestration; `quantica_app.py` is presentation only
+  (widgets, `st.cache_data`, Plotly). One app, sidebar pillar selector (lazy per-pillar
+  render, not `st.tabs`, so an interaction recomputes only one pillar). **Derivatives**:
+  live price+Greeks, Greek profiles, the four-way convergence table, a rotatable Heston
+  IV surface, Heston-vs-BS + Merton-jump smiles. **Risk**: the delta-normal/delta-gamma/
+  full-reval VaR divergence + scenario-P&L histogram, the live FRTB PLA verdict (delta-
+  only → RED/IMA-ineligible vs delta-gamma → GREEN), the four VaR/ES engines rolled OOS
+  on the FF portfolio. **Capital markets**: the OOS covariance comparison (sample GMV
+  23.0% / bias 6.0), the Jagannathan–Ma 2×2 + exact equivalence (1.6e-14), the DSR/PBO
+  overfit detector with a planted-signal slider. Validated: `tests/apps/test_apps_smoke.py`
+  (11 tests, Streamlit-free — imports + sane shapes/directions for every compute fn, runs
+  in CI under `dev`); the whole app additionally verified error-free across all three
+  pillars via Streamlit's `AppTest` harness locally. Added pytest `pythonpath=["."]` (so
+  the uninstalled `apps` package imports in tests) and an `apps/**` RUF001/2/3 ignore
+  (Greek / typographic symbols in UI labels). **Gate green**: 864 tests (11 new), ruff +
+  mypy clean. **Delivered on a feature branch + PR (first non-trunk change), left for
+  review — not merged.**
 
-## Next — the thin apps, or further depth (all three pillars now complete)
+## Next — further depth (all three pillars + the apps now complete)
 
 **All three pillars — derivatives pricing (Phase 1 + 4), quant risk / model validation
-(Phase 3), systematic portfolio management (Phase 2) — are now complete.** The core
-library is the deliverable and is done; the remaining options are demonstration and
-incremental depth, none blocking:
+(Phase 3), systematic portfolio management (Phase 2) — are complete, and the thin
+Streamlit apps (step 8) now sit over them (on a PR awaiting review).** The library and
+its presentation layer are done; the remaining options are incremental depth, none
+blocking:
 
-- **(A) The thin apps (the natural next step).** The deferred Streamlit + Plotly UIs
-  over the tested core (CLAUDE.md §2 — build the UI last, zero quant logic in `apps/`):
-  a **pricing explorer** (`apps/pricing_app.py`: sliders → live price, Greek profiles,
-  IV surface, convergence table), a **portfolio/backtest dashboard** (construction knobs
-  → walk-forward equity curve, turnover, and the DSR/PBO validity panel), and/or a
-  **risk dashboard**. Makes the whole portfolio *demonstrable* to non-code reviewers —
-  high signal for the hiring-manager audience now that three pillars stand.
-- **(B) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
+- **(A) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
   the construction menu and pair naturally with the covariance-estimator study
-  (it sidesteps matrix inversion entirely). Small, self-contained.
-- **(C) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
+  (it sidesteps matrix inversion entirely). Small, self-contained; a fourth
+  construction rule the apps' capital-markets view could then expose.
+- **(B) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
   end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
   breadth; strengthens the model-validation-specialist story.
-- **(D) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
+- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
   documented L-stability caveat in `finitediff.py`; PSOR → Brennan–Schwartz); or an
   autocallable on the LSM/path machinery.
+- **(D) Deploy the app** — a Streamlit Community Cloud / Hugging Face Spaces deployment
+  would make the demo one-click for a reviewer (the app is already self-contained and
+  offline). Cheap once the PR merges.
 
-**Recommendation:** (A) the apps — the three pillars are the substance; a thin,
-demonstrable UI is now the highest-leverage complement and is explicitly the deferred
-"build last" step. Nothing blocks any option technically.
+**Recommendation:** none urgent — the portfolio is complete and demonstrable. (A) HRP is
+the most self-contained library addition; (D) deployment is the cheapest reviewer-facing
+win. Nothing blocks any option technically.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 

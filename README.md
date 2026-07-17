@@ -987,6 +987,39 @@ to strategy backtests. Three layers, headline last:
 > correlation without purging** and **≈ 0 with purging** — the leakage is real, and
 > purged + embargoed CV (López de Prado) removes it.
 
+## Running the apps
+
+A thin **Streamlit + Plotly** UI tours all three pillars interactively — and it is
+itself a demonstration of the core principle: **zero quant logic lives in `apps/`**
+(CLAUDE.md §2). Every number the UI shows is computed live by the `quantica` library;
+the app only builds widgets, caches results, and draws charts. That separation is
+enforced structurally — the Streamlit-free *compute* modules (`apps/_derivatives.py`,
+`apps/_risk.py`, `apps/_capital.py`) are covered by [smoke
+tests](tests/apps/test_apps_smoke.py) that run in CI under the plain `dev` install, so
+a break between the library and the UI is caught without a UI dependency.
+
+```bash
+pip install -e ".[app]"              # Streamlit + Plotly, on top of the library
+streamlit run apps/quantica_app.py   # then open http://localhost:8501
+```
+
+A sidebar selects the pillar (rendering one at a time keeps interactions responsive;
+heavy artifacts are `st.cache_data`-cached):
+
+- **Derivatives** — sliders drive a live price and Greeks, Greek-profile plots, the
+  four-way convergence table, a rotatable Heston implied-vol surface, and the
+  Heston-vs-Black–Scholes and Merton-jump smiles.
+- **Risk** — the delta-normal / delta-gamma / full-revaluation VaR divergence on a
+  short-gamma book with its scenario-P&L histogram, the live FRTB PLA verdict (carrying
+  gamma decides the desk's fate), and the four VaR/ES engines rolled out-of-sample.
+- **Capital markets** — the out-of-sample covariance comparison, the Jagannathan–Ma
+  no-short-sale-is-shrinkage result, and the DSR/PBO overfit detector on a strategy
+  search (drag the planted-signal slider from noise to a real edge).
+
+The apps never fetch data at runtime — the capital-markets and risk views load a small
+committed Fama–French sample (`apps/data/ff_sample.npz`, rebuilt offline by
+`apps/data/_build_sample.py`).
+
 ## Development
 
 ```bash
