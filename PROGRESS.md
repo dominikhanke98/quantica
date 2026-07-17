@@ -10,7 +10,8 @@ SR 11-7). **Phase 2 (systematic portfolio management) complete** — constructio
 walk-forward backtest + the backtest-validity layer (DSR / PBO / purged CV / MinTRL),
 built on the factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is
 now closed, and the deferred **thin Streamlit apps (step 8)** now sit over all three
-pillars (on a feature branch + PR awaiting review). Next: further depth — see "Next".
+pillars (branch `feat/apps`, PR #1 open, CI green, unmerged pending review). Next:
+merge PR #1, then deploy to Streamlit Community Cloud — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -457,16 +458,27 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   pillars via Streamlit's `AppTest` harness locally. Added pytest `pythonpath=["."]` (so
   the uninstalled `apps` package imports in tests) and an `apps/**` RUF001/2/3 ignore
   (Greek / typographic symbols in UI labels). **Gate green**: 864 tests (11 new), ruff +
-  mypy clean. **Delivered on a feature branch + PR (first non-trunk change), left for
-  review — not merged.**
+  mypy clean. **Delivered on branch `feat/apps` as [PR #1](https://github.com/dominikhanke98/quantica/pull/1)
+  (first non-trunk change; opened via the REST API since `gh` is not installed here) —
+  CI green on the branch (lint · typecheck · test on py3.11 + py3.12, and the QuantLib
+  benchmark job). Deliberately left UNMERGED pending the author's review.**
 
-## Next — further depth (all three pillars + the apps now complete)
+## Next — merge, deploy, then optional depth
 
 **All three pillars — derivatives pricing (Phase 1 + 4), quant risk / model validation
 (Phase 3), systematic portfolio management (Phase 2) — are complete, and the thin
-Streamlit apps (step 8) now sit over them (on a PR awaiting review).** The library and
-its presentation layer are done; the remaining options are incremental depth, none
-blocking:
+Streamlit apps (step 8) now sit over them (branch `feat/apps`, PR #1 open, CI green,
+awaiting review).** The immediate sequence:
+
+1. **Merge [PR #1](https://github.com/dominikhanke98/quantica/pull/1)** (`feat/apps` →
+   `main`). Author-gated: it is deliberately unmerged pending review. Once merged, delete
+   the branch and the apps land on trunk.
+2. **Deploy to Streamlit Community Cloud from `main`** and add the live app link to the
+   README top matter (the app is already self-contained and offline, so deployment is a
+   one-click point-at-`apps/quantica_app.py` — needs the merge first so it deploys from
+   trunk). This makes the whole portfolio one-click demonstrable to a reviewer.
+
+Then, optional incremental depth (none blocking):
 
 - **(A) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
   the construction menu and pair naturally with the covariance-estimator study
@@ -478,13 +490,9 @@ blocking:
 - **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
   documented L-stability caveat in `finitediff.py`; PSOR → Brennan–Schwartz); or an
   autocallable on the LSM/path machinery.
-- **(D) Deploy the app** — a Streamlit Community Cloud / Hugging Face Spaces deployment
-  would make the demo one-click for a reviewer (the app is already self-contained and
-  offline). Cheap once the PR merges.
 
-**Recommendation:** none urgent — the portfolio is complete and demonstrable. (A) HRP is
-the most self-contained library addition; (D) deployment is the cheapest reviewer-facing
-win. Nothing blocks any option technically.
+**Recommendation:** do the merge + deploy (steps 1–2) first — cheapest reviewer-facing
+win and it makes the demo live; the depth options are all optional afterward.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
