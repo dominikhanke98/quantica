@@ -410,6 +410,30 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
     benchmark → high DSR) but the *ranking* non-repeatable (high PBO). "Trust the
     premium, not the ranking." MinTRL for that Sharpe is 79 months. → embedded in README.
   - **Gate green**: 849 tests (55 new), ruff + mypy clean.
+- **README as the cold-reviewer artifact + the Jagannathan–Ma cross-pillar investigation.**
+  No new features; the README was restructured to lead with the **thesis** (validation-first:
+  the deliverable is the evidence each model is correct, not the model), a **three-pillar**
+  table with one-line signatures, a **Headline results** section (one artifact per pillar,
+  chosen for what it *proves* — the four-way convergence table; the short-gamma book that
+  breaks delta-normal VaR by −41% and fails FRTB PLA for the same reason; the sample
+  covariance error-maximiser at 23.0% vol / 6× optimistic; DSR/PBO overfit detection), and a
+  new **"What quantica ships that other tools don't"** section promoting the gaps log with
+  its measured numbers. The old chronological "Status" blockquote is gone; the detail
+  sections were regrouped under three `## Pillar` dividers (H2 section heads demoted to H3)
+  so the accretion reads as structure. Every README number is script/test-reproducible
+  (anchors verified). **Investigation (resolved):** the apparent tension — sample covariance
+  *worst* under unconstrained inversion (factor stage 2) yet `minvar/sample` the *best*
+  backtest config — is Jagannathan & Ma (2003): a no-short-sale constraint is **exactly**
+  equivalent to solving the unconstrained problem with a shrunk covariance
+  Σ̃ = Σ − (μ𝟙ᵀ + 𝟙μᵀ), μ the KKT multiplier on w≥0, and the shrunk assets are precisely the
+  high-covariance ones the unconstrained GMV would short. Evidence: `tests/portfolio/
+  test_jagannathan_ma.py` (4 tests — the GMV(Σ̃)==long-only-GMV equivalence to **1.6e-14**
+  from the primal alone, KKT non-negativity + complementary slackness, shrunk-set ==
+  bound-hitting-set, and a synthetic OOS-outcome test) + `scripts/shortsale_shrinkage_report.py`
+  (49-industry FF: long-only collapses the sample GMV from **23.0% → 11.6%**, level with
+  Ledoit–Wolf's 11.5%; condition number 61,123 → 36,082). Documented as a cross-pillar
+  insight in **both** the factor and portfolio README sections. **Gate green**: 853 tests
+  (4 new), ruff + mypy clean.
 
 ## Next — the thin apps, or further depth (all three pillars now complete)
 
@@ -513,6 +537,13 @@ this repo's independent implementation surfaced it. Add to this list as they occ
 
 ## Open design notes
 
+- **No-short-sale is covariance shrinkage (cross-pillar, Jagannathan–Ma 2003).** The
+  long-only minimum-variance portfolio on any Σ equals the *unconstrained* GMV of
+  Σ̃ = Σ − (μ𝟙ᵀ + 𝟙μᵀ) (μ = the KKT multiplier on w≥0, recoverable from the primal via
+  λ = wᵀΣw, μ = Σw − λ𝟙). Consequence: the sample covariance's error-maximiser failure is
+  an *unconstrained* phenomenon; long-only regularises it (23.0% → 11.6% OOS vol on FF),
+  so `minvar/sample` winning the long-only backtest does not contradict factor stage 2.
+  Pinned by `tests/portfolio/test_jagannathan_ma.py`.
 - **Portfolio validity layer operates on return *matrices*, decoupled from the
   backtester (Phase 2).** `overfitting.py` (DSR/PBO) takes a `(T, N)` trial-return
   matrix, not a backtest object — so it is testable on synthetic known-truth without
