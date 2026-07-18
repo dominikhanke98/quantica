@@ -3,15 +3,17 @@
 Running state file for `quantica`. Updated at the end of each working session
 (see CLAUDE.md §"Session close-out"). Concise and factual.
 
-**Current phase:** **All three pillars complete.** Derivatives-pricing track complete
-(Phase 1 core + Phase 4 deepening). **Phase 3 (quant risk / model validation) complete**
-across five families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML under
-SR 11-7). **Phase 2 (systematic portfolio management) complete** — construction +
-walk-forward backtest + the backtest-validity layer (DSR / PBO / purged CV / MinTRL),
-built on the factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is
-now closed, and the deferred **thin Streamlit apps (step 8)** now sit over all three
-pillars (branch `feat/apps`, PR #1 open, CI green, unmerged pending review). Next:
-merge PR #1, then deploy to Streamlit Community Cloud — see "Next".
+**Current phase:** **All three pillars complete AND deployed — the originally-planned
+scope of `quantica` is closed.** Derivatives-pricing track complete (Phase 1 core +
+Phase 4 deepening). **Phase 3 (quant risk / model validation) complete** across five
+families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML under SR 11-7).
+**Phase 2 (systematic portfolio management) complete** — construction + walk-forward
+backtest + the backtest-validity layer (DSR / PBO / purged CV / MinTRL), built on the
+factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is closed, and the
+deferred **thin Streamlit apps (step 8) are merged to `main` (PR #1) and LIVE** on
+Streamlit Community Cloud at **https://quantica.streamlit.app/** (linked from the README
+top matter). Everything the CLAUDE.md brief set out to build now exists, is validated,
+and is demonstrable in one click. Next: optional depth only — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -460,25 +462,25 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   (Greek / typographic symbols in UI labels). **Gate green**: 864 tests (11 new), ruff +
   mypy clean. **Delivered on branch `feat/apps` as [PR #1](https://github.com/dominikhanke98/quantica/pull/1)
   (first non-trunk change; opened via the REST API since `gh` is not installed here) —
-  CI green on the branch (lint · typecheck · test on py3.11 + py3.12, and the QuantLib
-  benchmark job). Deliberately left UNMERGED pending the author's review.**
+  CI green on the branch, then MERGED to `main` via a merge commit (curated multi-commit
+  history preserved), and `feat/apps` deleted.**
+- **Step 8b — deploy to Streamlit Community Cloud.** The app is **live at
+  https://quantica.streamlit.app/** (linked from the README top matter, above the
+  three-pillar table). Getting there took a dependency-packaging fix: **streamlit +
+  plotly were moved from an `[app]` optional extra into the main runtime `dependencies`,
+  and the (ignored) `requirements.txt` deleted** — see the deploy gotcha under "Gaps".
+  The `quantica` package code still never imports the UI stack (only `apps/` does), so
+  the library stays usable without a UI (CLAUDE.md §1); the cost is a heavier
+  `pip install -e .` footprint (§3), accepted since the repo isn't on PyPI. Verified in a
+  clean venv that a main-group-only install (`pip install .`, no extras) makes
+  `import plotly.graph_objects` and the full app import chain succeed.
 
-## Next — merge, deploy, then optional depth
+## Next — optional depth only (planned scope is done)
 
-**All three pillars — derivatives pricing (Phase 1 + 4), quant risk / model validation
-(Phase 3), systematic portfolio management (Phase 2) — are complete, and the thin
-Streamlit apps (step 8) now sit over them (branch `feat/apps`, PR #1 open, CI green,
-awaiting review).** The immediate sequence:
-
-1. **Merge [PR #1](https://github.com/dominikhanke98/quantica/pull/1)** (`feat/apps` →
-   `main`). Author-gated: it is deliberately unmerged pending review. Once merged, delete
-   the branch and the apps land on trunk.
-2. **Deploy to Streamlit Community Cloud from `main`** and add the live app link to the
-   README top matter (the app is already self-contained and offline, so deployment is a
-   one-click point-at-`apps/quantica_app.py` — needs the merge first so it deploys from
-   trunk). This makes the whole portfolio one-click demonstrable to a reviewer.
-
-Then, optional incremental depth (none blocking):
+**All three pillars are complete, merged to `main`, and the app is live at
+https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (CLAUDE.md
+§8–9 + the deferred apps) is fully delivered. Nothing remains on the critical path — the
+following are optional, none blocking:
 
 - **(A) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
   the construction menu and pair naturally with the covariance-estimator study
@@ -491,14 +493,25 @@ Then, optional incremental depth (none blocking):
   documented L-stability caveat in `finitediff.py`; PSOR → Brennan–Schwartz); or an
   autocallable on the LSM/path machinery.
 
-**Recommendation:** do the merge + deploy (steps 1–2) first — cheapest reviewer-facing
-win and it makes the demo live; the depth options are all optional afterward.
+**Recommendation:** none required — the portfolio is complete, validated, and live. If
+continuing, (A) HRP is the most self-contained library addition and the apps' capital
+view could then expose it.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **Streamlit Community Cloud dependency handling (step 8b, deploy).** Cloud installed
+  from `pyproject.toml` **via Poetry's main dependency group only** — it **ignored
+  `requirements.txt` entirely and did not install optional extras**, so the `[app]`
+  extra's `plotly` was never present and the app crashed on `import plotly.graph_objects`.
+  Fix was to declare the UI deps in the main `dependencies` (not an extra) and delete the
+  dead `requirements.txt`. Second gotcha: after pushing the fix, the deploy **still failed
+  from a stale build container caching the old dependency set** — a **manual reboot of the
+  app from the Streamlit Cloud dashboard** was required to force a clean reinstall. Lesson
+  for any future redeploy: declare deploy-required deps in the pyproject main group, and
+  if a dep change doesn't take, reboot the app (not just re-push) to bust the cache.
 - **Backtest-validity layer absent from mainstream backtesters (Phase 2).** The
   popular open-source backtesters (`backtrader`, `vectorbt`, `zipline`, `bt`) ship the
   *engine* — signal → weights → P&L curve — but not the layer that answers *is this
