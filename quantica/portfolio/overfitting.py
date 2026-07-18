@@ -263,6 +263,7 @@ class PBOResult:
 
     @property
     def median_logit(self) -> float:
+        """Median CSCV logit (negative when the in-sample best tends to underperform OOS)."""
         return float(np.median(self.logits))
 
 

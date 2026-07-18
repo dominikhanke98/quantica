@@ -72,6 +72,21 @@ class SampleCovariance:
     def estimate(
         self, asset_returns: FloatArray, factor_returns: FloatArray | None = None
     ) -> FloatArray:
+        """Return the sample covariance of ``asset_returns`` (``numpy.cov``, ``ddof=1``).
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (T, n)
+            The asset return panel (``T`` observations of ``n`` assets).
+        factor_returns : ndarray, optional
+            Unused by this estimator; accepted for interface compatibility with
+            :class:`CovarianceEstimator`.
+
+        Returns
+        -------
+        ndarray, shape (n, n)
+            The unbiased sample covariance matrix.
+        """
         return np.atleast_2d(np.cov(np.asarray(asset_returns, dtype=np.float64), rowvar=False))
 
 
@@ -83,6 +98,25 @@ class LedoitWolfCovariance:
     def estimate(
         self, asset_returns: FloatArray, factor_returns: FloatArray | None = None
     ) -> FloatArray:
+        """Return the Ledoit--Wolf shrinkage covariance of ``asset_returns``.
+
+        Fits ``sklearn.covariance.LedoitWolf`` (lazily imported), which shrinks the
+        sample covariance toward a scaled identity with the analytically optimal
+        intensity.
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (T, n)
+            The asset return panel.
+        factor_returns : ndarray, optional
+            Unused by this estimator; accepted for interface compatibility with
+            :class:`CovarianceEstimator`.
+
+        Returns
+        -------
+        ndarray, shape (n, n)
+            The well-conditioned shrinkage covariance matrix.
+        """
         from sklearn.covariance import LedoitWolf  # lazy: sklearn import is heavy
 
         fitted = LedoitWolf().fit(np.asarray(asset_returns, dtype=np.float64))
@@ -103,6 +137,30 @@ class FactorCovariance:
     def estimate(
         self, asset_returns: FloatArray, factor_returns: FloatArray | None = None
     ) -> FloatArray:
+        r"""Return the factor-model covariance :math:`B F B^\top + D`.
+
+        Fits the stage-1 :class:`~quantica.factor.model.FactorRiskModel` on the aligned
+        observable factor returns and returns its assembled covariance, which is
+        well-conditioned by construction (a low-rank factor part plus a positive
+        diagonal).
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (T, n)
+            The asset return panel.
+        factor_returns : ndarray, shape (T, k)
+            The aligned observable factor returns (required by this estimator).
+
+        Returns
+        -------
+        ndarray, shape (n, n)
+            The factor-model covariance matrix.
+
+        Raises
+        ------
+        ValueError
+            If ``factor_returns`` is ``None``.
+        """
         if factor_returns is None:
             raise ValueError("FactorCovariance requires factor_returns")
         model = FactorRiskModel.fit(asset_returns, factor_returns, factor_names=self.factor_names)

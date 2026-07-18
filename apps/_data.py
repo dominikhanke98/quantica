@@ -31,14 +31,17 @@ class FamaFrenchSample:
 
     @property
     def n_months(self) -> int:
+        """Number of monthly observations ``T`` in the panel."""
         return int(self.industry_excess.shape[0])
 
     @property
     def n_industries(self) -> int:
+        """Number of industry portfolios ``n`` in the panel."""
         return int(self.industry_excess.shape[1])
 
     @property
     def date_range(self) -> tuple[int, int]:
+        """The first and last ``YYYYMM`` dates covered by the panel."""
         return int(self.dates[0]), int(self.dates[-1])
 
     def equal_weight_portfolio(self) -> FloatArray:

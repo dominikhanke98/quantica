@@ -42,7 +42,30 @@ def price_and_greeks(
     expiry: float,
     kind: str,
 ) -> dict[str, float]:
-    """Analytic Black--Scholes price and the five Greeks for one contract."""
+    """Analytic Black--Scholes price and the five Greeks for one contract.
+
+    Parameters
+    ----------
+    spot : float
+        Current underlying price.
+    strike : float
+        Strike price.
+    rate : float
+        Continuously-compounded risk-free rate.
+    div : float
+        Continuous dividend yield.
+    vol : float
+        Black--Scholes volatility.
+    expiry : float
+        Time to expiry in years.
+    kind : str
+        ``"call"`` or ``"put"``.
+
+    Returns
+    -------
+    dict of str to float
+        Keys ``price``, ``delta``, ``gamma``, ``vega``, ``theta``, ``rho``.
+    """
     option = EuropeanOption(strike, expiry, _option_type(kind))
     process = BlackScholesProcess(spot=spot, rate=rate, div=div, vol=vol)
     greeks = _ANALYTIC.greeks(option, process)
@@ -65,7 +88,31 @@ def greek_profiles(
     kind: str,
     spot_grid: FloatArray,
 ) -> pd.DataFrame:
-    """Price and Greeks across a grid of spot prices (for profile plots)."""
+    """Price and Greeks across a grid of spot prices (for profile plots).
+
+    Parameters
+    ----------
+    strike : float
+        Strike price.
+    rate : float
+        Continuously-compounded risk-free rate.
+    div : float
+        Continuous dividend yield.
+    vol : float
+        Black--Scholes volatility.
+    expiry : float
+        Time to expiry in years.
+    kind : str
+        ``"call"`` or ``"put"``.
+    spot_grid : ndarray
+        The spot prices to evaluate the price and Greeks over.
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per spot with columns ``spot``, ``price``, ``delta``, ``gamma``,
+        ``vega``, ``theta``, ``rho``.
+    """
     option = EuropeanOption(strike, expiry, _option_type(kind))
     rows = []
     for spot in spot_grid:
@@ -199,9 +246,30 @@ def heston_implied_vol_surface(
     """Black--Scholes implied-vol surface backed out of Heston prices.
 
     Prices the OTM option at each (strike, maturity) with the Heston FFT engine and
-    inverts to a BS implied vol, producing the smile/skew surface. Returns
-    ``strikes`` (from ``moneyness × spot``), ``maturities``, and ``iv`` (a
-    ``len(maturities) × len(moneyness)`` grid).
+    inverts to a BS implied vol, producing the smile/skew surface.
+
+    Parameters
+    ----------
+    spot : float
+        Current underlying price.
+    rate : float
+        Continuously-compounded risk-free rate.
+    div : float
+        Continuous dividend yield.
+    v0, kappa, theta, xi, rho : float
+        The Heston parameters: initial variance, mean-reversion speed, long-run
+        variance, vol-of-vol, and spot/variance correlation.
+    moneyness : ndarray
+        Strike/spot ratios; the strikes are ``moneyness * spot``.
+    maturities : ndarray
+        Option maturities in years.
+
+    Returns
+    -------
+    dict of str to ndarray
+        ``strikes`` (``moneyness * spot``), ``maturities``, and ``iv`` (a
+        ``len(maturities) x len(moneyness)`` grid of implied vols, ``nan`` where the
+        inversion has no arbitrage-free solution).
     """
     process = HestonProcess(
         spot=spot, rate=rate, v0=v0, kappa=kappa, theta=theta, xi=xi, rho=rho, div=div
@@ -230,7 +298,25 @@ def heston_vs_bs_smile(
     expiry: float,
     moneyness: FloatArray,
 ) -> pd.DataFrame:
-    """One-maturity Heston smile (implied vol vs strike) against the flat BS line."""
+    """One-maturity Heston smile (implied vol vs strike) against the flat BS line.
+
+    Parameters
+    ----------
+    spot, rate, div : float
+        Underlying price, risk-free rate, and dividend yield.
+    v0, kappa, theta, xi, rho : float
+        The Heston parameters (see :func:`heston_implied_vol_surface`).
+    expiry : float
+        The single option maturity in years.
+    moneyness : ndarray
+        Strike/spot ratios to evaluate the smile over.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns ``moneyness``, ``strike``, ``heston_iv``, and ``bs_iv`` (the flat
+        :math:`\\sqrt{v_0}` reference line).
+    """
     surface = heston_implied_vol_surface(
         spot, rate, div, v0, kappa, theta, xi, rho, moneyness, np.array([expiry])
     )
@@ -256,7 +342,31 @@ def merton_smile(
     expiry: float,
     moneyness: FloatArray,
 ) -> pd.DataFrame:
-    """Merton jump-diffusion smile (implied vol vs strike) against the flat BS line."""
+    """Merton jump-diffusion smile (implied vol vs strike) against the flat BS line.
+
+    Parameters
+    ----------
+    spot, rate, div : float
+        Underlying price, risk-free rate, and dividend yield.
+    vol : float
+        The diffusion volatility (also the flat BS reference line).
+    lam : float
+        Jump intensity (expected jumps per year).
+    mu_j : float
+        Mean of the log jump size.
+    sigma_j : float
+        Standard deviation of the log jump size.
+    expiry : float
+        The single option maturity in years.
+    moneyness : ndarray
+        Strike/spot ratios to evaluate the smile over.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns ``moneyness``, ``strike``, ``merton_iv``, and ``bs_iv`` (the flat
+        ``vol`` reference line).
+    """
     process = MertonProcess(
         spot=spot, rate=rate, vol=vol, lam=lam, mu_j=mu_j, sigma_j=sigma_j, div=div
     )

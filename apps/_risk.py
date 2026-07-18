@@ -77,9 +77,28 @@ def gamma_divergence(
 ) -> dict[str, object]:
     """Delta-normal / delta-gamma / full-revaluation VaR and P&L for one book.
 
-    Returns the three VaR numbers, the delta-normal/delta-gamma relative errors vs
-    full revaluation, and the three P&L arrays (for an overlaid histogram) — all on
-    the *same* seeded scenario set, so any divergence is approximation error.
+    All three methods run on the *same* seeded scenario set, so any divergence is
+    approximation error rather than sampling noise.
+
+    Parameters
+    ----------
+    book_name : str
+        One of :data:`BOOK_NAMES`.
+    daily_vol : float, optional
+        Daily spot-move volatility of the scenarios (default 0.0126, ~20% annualised).
+    level : float, optional
+        VaR confidence level in ``(0, 1)`` (default 0.99).
+    n_scenarios : int, optional
+        Number of seeded scenarios (default 20000).
+    seed : int, optional
+        Scenario-generator seed (default 0).
+
+    Returns
+    -------
+    dict
+        Keys: ``var`` (a dict of the delta-normal / delta-gamma / full VaR), ``dn_error``
+        and ``dg_error`` (relative error of each approximation vs full revaluation), and
+        ``pnl_full`` / ``pnl_delta_normal`` / ``pnl_delta_gamma`` (the scenario P&L arrays).
     """
     book = _book(book_name)
     scenarios = MarketScenarios.generate(
@@ -105,7 +124,28 @@ def frtb_verdict(
     n_days: int = 250,
     seed: int = 7,
 ) -> dict[str, object]:
-    """FRTB P&L-attribution verdict for a book under a delta-only or delta-gamma model."""
+    """FRTB P&L-attribution verdict for a book under a delta-only or delta-gamma model.
+
+    Parameters
+    ----------
+    book_name : str
+        One of :data:`BOOK_NAMES`.
+    rtpl_method : str
+        The risk model whose RTPL is tested: ``"delta-normal"`` or ``"delta-gamma"``.
+    daily_vol : float, optional
+        Daily spot-move volatility of the scenarios (default 0.0126).
+    n_days : int, optional
+        Length of the PLA observation window in days (default 250).
+    seed : int, optional
+        Scenario-generator seed (default 7).
+
+    Returns
+    -------
+    dict
+        Keys: ``spearman`` and ``ks`` (the two PLA statistics), ``spearman_zone`` /
+        ``ks_zone`` / ``zone`` (their green/amber/red zones and the overall worse-of),
+        ``ima_eligible`` (bool), and ``consequence`` (the capital consequence string).
+    """
     book = _book(book_name)
     scenarios = MarketScenarios.generate(n_days, np.random.default_rng(seed), spot_vol=daily_vol)
     result = book_pla_test(book, scenarios, rtpl_method=rtpl_method)  # type: ignore[arg-type]
@@ -133,10 +173,24 @@ def var_engine_backtest(
 ) -> pd.DataFrame:
     """Roll the four VaR/ES engines out-of-sample over the bundled FF portfolio.
 
-    Returns one row per engine with the exception count, expected exceptions, the
-    Kupiec p-value, the Basel traffic-light zone, the Christoffersen-independence
-    verdict, and the Acerbi--Székely Z2 ES statistic. Monthly data, so this is
-    illustrative rather than the daily fat-tailed stress in the README's risk report.
+    Monthly data, so this is illustrative rather than the daily fat-tailed stress in
+    the README's risk report.
+
+    Parameters
+    ----------
+    level : float, optional
+        VaR/ES confidence level in ``(0, 1)`` (default 0.95).
+    window : int, optional
+        Rolling estimation-window length in months (default 120).
+    mc_seed : int, optional
+        Seed for the Monte-Carlo VaR engine (default 1).
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per engine with columns ``engine``, ``exceptions``, ``expected``,
+        ``kupiec_p``, ``basel_zone``, ``christoffersen`` (independent / clustered),
+        and ``as_z2`` (the Acerbi--Székely Z2 ES statistic).
     """
     returns = _ff_portfolio_returns()
     portfolio = Portfolio(weights=np.array([1.0]), value=1_000_000.0)

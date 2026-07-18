@@ -68,6 +68,22 @@ class HistoricalSimulationVaR:
     def estimate(
         self, asset_returns: FloatArray, portfolio: Portfolio, *, level: float
     ) -> RiskEstimate:
+        """Return the historical-simulation VaR/ES (empirical loss quantile).
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (T, n)
+            The historical asset-return window.
+        portfolio : Portfolio
+            The portfolio whose loss distribution is measured.
+        level : float
+            The VaR/ES confidence level in ``(0, 1)`` (e.g. ``0.99``).
+
+        Returns
+        -------
+        RiskEstimate
+            The VaR and ES at ``level``.
+        """
         losses = portfolio.losses(asset_returns)
         est = empirical_var_es(losses, level, method="historical")
         return est
@@ -85,6 +101,22 @@ class ParametricVaR:
     def estimate(
         self, asset_returns: FloatArray, portfolio: Portfolio, *, level: float
     ) -> RiskEstimate:
+        """Return the variance--covariance (Gaussian) VaR/ES from the sample moments.
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (T, n)
+            The historical asset-return window (its sample mean and covariance are used).
+        portfolio : Portfolio
+            The portfolio whose loss distribution is measured.
+        level : float
+            The VaR/ES confidence level in ``(0, 1)``.
+
+        Returns
+        -------
+        RiskEstimate
+            The Gaussian VaR and ES at ``level``.
+        """
         R = np.asarray(asset_returns, dtype=np.float64)
         if R.ndim == 1:
             R = R[:, None]
@@ -124,6 +156,22 @@ class MonteCarloVaR:
     def estimate(
         self, asset_returns: FloatArray, portfolio: Portfolio, *, level: float
     ) -> RiskEstimate:
+        """Return the Monte-Carlo VaR/ES by simulating from the fitted normal.
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (T, n)
+            The historical asset-return window (fits the simulated multivariate normal).
+        portfolio : Portfolio
+            The portfolio whose loss distribution is measured.
+        level : float
+            The VaR/ES confidence level in ``(0, 1)``.
+
+        Returns
+        -------
+        RiskEstimate
+            The simulated VaR and ES at ``level`` (converges to :class:`ParametricVaR`).
+        """
         R = np.asarray(asset_returns, dtype=np.float64)
         if R.ndim == 1:
             R = R[:, None]
@@ -161,6 +209,28 @@ class FilteredHistoricalSimulationVaR:
     def estimate(
         self, asset_returns: FloatArray, portfolio: Portfolio, *, level: float
     ) -> RiskEstimate:
+        """Return the filtered-historical-simulation VaR/ES (GARCH-scaled bootstrap).
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (T, n)
+            The historical asset-return window (a GARCH(1,1) is fit to the portfolio
+            return series derived from it).
+        portfolio : Portfolio
+            The portfolio whose loss distribution is measured.
+        level : float
+            The VaR/ES confidence level in ``(0, 1)``.
+
+        Returns
+        -------
+        RiskEstimate
+            The filtered-historical VaR and ES at ``level``.
+
+        Raises
+        ------
+        ImportError
+            If the optional :mod:`arch` dependency is not installed.
+        """
         try:
             from arch import arch_model
         except ImportError as exc:  # pragma: no cover - exercised only without arch

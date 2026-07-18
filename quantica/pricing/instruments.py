@@ -99,6 +99,16 @@ class VanillaOption:
     def npv(self, process: BlackScholesProcess) -> float:
         """Present value under ``process`` using the attached engine.
 
+        Parameters
+        ----------
+        process : BlackScholesProcess
+            The market dynamics (spot, rate, dividend, vol) to price under.
+
+        Returns
+        -------
+        float
+            The present value from the attached engine's :meth:`calculate`.
+
         Raises
         ------
         RuntimeError
@@ -110,6 +120,17 @@ class VanillaOption:
 
     def greeks(self, process: BlackScholesProcess) -> Greeks:
         """First-order sensitivities under ``process`` via the attached engine.
+
+        Parameters
+        ----------
+        process : BlackScholesProcess
+            The market dynamics to compute the sensitivities under.
+
+        Returns
+        -------
+        Greeks
+            Delta, gamma, vega, theta and rho from the attached engine's
+            :meth:`greeks`.
 
         Raises
         ------
@@ -137,6 +158,7 @@ class EuropeanOption(VanillaOption):
 
     @property
     def exercise(self) -> ExerciseStyle:
+        """The exercise style — always ``EUROPEAN`` (exercise permitted only at expiry)."""
         return ExerciseStyle.EUROPEAN
 
 
@@ -150,6 +172,7 @@ class AmericanOption(VanillaOption):
 
     @property
     def exercise(self) -> ExerciseStyle:
+        """The exercise style — always ``AMERICAN`` (exercise permitted any time to expiry)."""
         return ExerciseStyle.AMERICAN
 
 
@@ -181,6 +204,7 @@ class AsianOption(VanillaOption):
 
     @property
     def exercise(self) -> ExerciseStyle:
+        """The exercise style — ``EUROPEAN`` (averaged over the life; payoff at expiry)."""
         return ExerciseStyle.EUROPEAN
 
 
@@ -218,4 +242,5 @@ class BarrierOption(VanillaOption):
 
     @property
     def exercise(self) -> ExerciseStyle:
+        """The exercise style — ``EUROPEAN`` (barrier monitored over the life; payoff at expiry)."""
         return ExerciseStyle.EUROPEAN

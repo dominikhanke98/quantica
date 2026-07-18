@@ -438,6 +438,7 @@ _PILLARS = {
 
 
 def main() -> None:
+    """Render the app: the title, the sidebar pillar selector, and the chosen pillar."""
     st.title("📈 quantica")
     st.markdown(
         "A **validation-first** quantitative-finance library — the deliverable is the "

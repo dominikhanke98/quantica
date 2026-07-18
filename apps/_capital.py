@@ -43,10 +43,26 @@ def covariance_comparison(
     """Out-of-sample bias and min-variance realised vol for the three estimators.
 
     Races sample / Ledoit--Wolf / factor covariance on the bundled 49-industry panel
-    (walk-forward, no lookahead). Columns: ``estimator``, ``random_bias`` (realised/
-    forecast on random portfolios, ≈1 is calibrated), ``calibrated`` (share within
-    band), ``min_var_vol`` (annualised realised OOS vol of each estimator's own GMV),
-    ``min_var_bias``.
+    (walk-forward, no lookahead).
+
+    Parameters
+    ----------
+    train_window : int, optional
+        Length of each estimation (training) window in months (default 60).
+    test_window : int, optional
+        Length of each out-of-sample scoring window in months (default 12).
+    n_random : int, optional
+        Number of random test portfolios drawn per window (default 40).
+    seed : int, optional
+        Seed for the random-portfolio generator (default 20240720).
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per estimator with columns ``estimator``, ``random_bias`` (realised /
+        forecast vol on random portfolios, ``≈1`` is calibrated), ``calibrated`` (share
+        of forecasts within the calibrated band), ``min_var_vol`` (annualised realised
+        OOS vol of the estimator's own minimum-variance portfolio), and ``min_var_bias``.
     """
     sample = load_ff_sample()
     comparison = compare_estimators(
@@ -76,9 +92,21 @@ def covariance_comparison(
 def jagannathan_ma(*, train_window: int = 60, test_window: int = 12) -> dict[str, object]:
     """The no-short-sale-is-shrinkage result on the bundled panel.
 
-    Returns the 2x2 realised-vol table (sample/LW x unconstrained/long-only), plus the
-    exact-equivalence diagnostics on the first window: the number of shorted names, the
-    recovery error of GMV(Σ̃) against the long-only weights, and the condition numbers.
+    Parameters
+    ----------
+    train_window : int, optional
+        Length of each estimation window in months (default 60).
+    test_window : int, optional
+        Length of each out-of-sample scoring window in months (default 12).
+
+    Returns
+    -------
+    dict
+        Keys: ``table`` (a 2x2 ``pandas.DataFrame`` of realised vol, sample/ledoit-wolf
+        by unconstrained/long-only), ``n_shorted`` and ``n_assets`` (shorted names and
+        universe size on the first window), ``recovery_error`` (max abs error of the
+        GMV of the Jagannathan--Ma shrunk covariance against the long-only weights),
+        and ``cond_sample`` / ``cond_shrunk`` (condition numbers before/after shrinkage).
     """
     assets = load_ff_sample().industry_excess
     sample, lw = SampleCovariance(), LedoitWolfCovariance()
@@ -134,9 +162,29 @@ def overfit_search(
     """Deflated-Sharpe / PBO verdict on an overfit search of many strategy trials.
 
     With ``planted_sharpe = 0`` every trial is pure noise (the winner is spurious);
-    a positive ``planted_sharpe`` seeds one genuinely predictive trial. Returns the
-    per-trial annualised Sharpes (for a histogram), the selected trial, and the DSR /
-    PBO verdicts.
+    a positive ``planted_sharpe`` seeds one genuinely predictive trial.
+
+    Parameters
+    ----------
+    n_periods : int, optional
+        Number of return observations per trial (default 360).
+    n_trials : int, optional
+        Number of candidate strategies searched over (default 100).
+    planted_sharpe : float, optional
+        Per-period Sharpe planted into one trial; ``0`` leaves the matrix all-noise
+        (default 0.0).
+    seed : int, optional
+        Seed for the trial-return generator (default 20240721).
+    n_splits : int, optional
+        Number of CSCV blocks for the PBO computation (default 10).
+
+    Returns
+    -------
+    dict
+        Keys: ``trial_sharpes`` (annualised per-trial Sharpes), ``selected`` and
+        ``planted_index`` (the in-sample-best and the truly-planted trial), the
+        annualised ``best_sharpe_ann`` and ``benchmark_sharpe_ann``, ``dsr`` and
+        ``dsr_significant`` (deflated Sharpe and its 0.95 verdict), and ``pbo``.
     """
     trials = generate_trial_returns(
         n_periods, n_trials, np.random.default_rng(seed), planted_sharpe=planted_sharpe

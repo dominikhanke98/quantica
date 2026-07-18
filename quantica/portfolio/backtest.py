@@ -69,6 +69,18 @@ class ProportionalCosts:
     rate: float
 
     def cost(self, turnover: float) -> float:
+        """Return the proportional cost ``rate * turnover`` for one rebalance.
+
+        Parameters
+        ----------
+        turnover : float
+            One-way L1 turnover of the rebalance (``1.0`` = whole portfolio traded).
+
+        Returns
+        -------
+        float
+            The cost as a fraction of portfolio value.
+        """
         return self.rate * turnover
 
 

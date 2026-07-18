@@ -21,6 +21,7 @@ N_INDUSTRIES = 49
 
 
 def main() -> None:
+    """Fetch the Fama--French panel and write the compressed ``ff_sample.npz`` bundle."""
     data = load_fama_french(N_MONTHS, n_industries=N_INDUSTRIES)
     out = Path(__file__).resolve().parent / "ff_sample.npz"
     np.savez_compressed(

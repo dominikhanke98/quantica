@@ -65,6 +65,23 @@ class MinimumVarianceStrategy:
         factor_returns: FloatArray | None,
         w_prev: FloatArray | None,
     ) -> FloatArray:
+        """Estimate the covariance and return the minimum-variance target weights.
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (train, n)
+            The trailing training-window asset returns.
+        factor_returns : ndarray or None
+            Aligned factor returns, forwarded to a factor-model estimator (ignored by
+            the sample and shrinkage estimators).
+        w_prev : ndarray or None
+            Current holdings, used only by a turnover constraint.
+
+        Returns
+        -------
+        ndarray, shape (n,)
+            The target portfolio weights.
+        """
         cov = self.estimator.estimate(asset_returns, factor_returns)
         return minimum_variance_weights(cov, self.constraints, w_prev)
 
@@ -82,6 +99,23 @@ class RiskParityStrategy:
         factor_returns: FloatArray | None,
         w_prev: FloatArray | None,
     ) -> FloatArray:
+        """Estimate the covariance and return the equal-risk-contribution weights.
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (train, n)
+            The trailing training-window asset returns.
+        factor_returns : ndarray or None
+            Aligned factor returns, forwarded to a factor-model estimator.
+        w_prev : ndarray or None
+            Ignored — risk parity is long-only and fully invested by construction, so
+            it takes no turnover constraint (accepted for interface compatibility).
+
+        Returns
+        -------
+        ndarray, shape (n,)
+            The equal-risk-contribution target weights.
+        """
         cov = self.estimator.estimate(asset_returns, factor_returns)
         return risk_parity_weights(cov)
 
@@ -102,6 +136,23 @@ class MeanVarianceStrategy:
         factor_returns: FloatArray | None,
         w_prev: FloatArray | None,
     ) -> FloatArray:
+        """Estimate the covariance and alpha signal and return the mean-variance weights.
+
+        Parameters
+        ----------
+        asset_returns : ndarray, shape (train, n)
+            The trailing training-window asset returns (fed to both the covariance
+            estimator and the alpha :attr:`signal`).
+        factor_returns : ndarray or None
+            Aligned factor returns, forwarded to a factor-model estimator.
+        w_prev : ndarray or None
+            Current holdings, used only by a turnover constraint.
+
+        Returns
+        -------
+        ndarray, shape (n,)
+            The Markowitz mean-variance target weights.
+        """
         cov = self.estimator.estimate(asset_returns, factor_returns)
         mu = self.signal(asset_returns)
         return mean_variance_weights(mu, cov, self.risk_aversion, self.constraints, w_prev)

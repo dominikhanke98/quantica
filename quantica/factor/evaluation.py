@@ -107,18 +107,22 @@ class BiasStats(NamedTuple):
 
     @property
     def mean(self) -> float:
+        """Mean bias ratio (a well-calibrated risk model has mean :math:`\\approx 1`)."""
         return float(np.mean(self.ratios))
 
     @property
     def median(self) -> float:
+        """Median bias ratio (robust to the occasional extreme window)."""
         return float(np.median(self.ratios))
 
     @property
     def p05(self) -> float:
+        """5th percentile of the bias-ratio distribution."""
         return float(np.quantile(self.ratios, 0.05))
 
     @property
     def p95(self) -> float:
+        """95th percentile of the bias-ratio distribution."""
         return float(np.quantile(self.ratios, 0.95))
 
     @property
