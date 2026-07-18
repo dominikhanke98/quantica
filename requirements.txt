@@ -1,0 +1,11 @@
+# Deployment requirements for Streamlit Community Cloud.
+#
+# The app (apps/quantica_app.py) imports `quantica`, so the deploy needs the package
+# itself — not just streamlit/plotly. This one line installs this package from
+# pyproject.toml together with its `app` extra (streamlit + plotly), so pyproject stays
+# the single source of truth for versions (no duplicated pin list to drift).
+#
+# `apps/` is run directly from the repo checkout (the app inserts the repo root on
+# sys.path and reads the bundled apps/data/ff_sample.npz from disk), so it does not need
+# to be part of the built wheel — only `quantica` and its dependencies do.
+.[app]
