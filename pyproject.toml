@@ -41,6 +41,16 @@ dependencies = [
     # and turnover constraints; CLAUDE.md §3 — lean on it, don't hand-roll the QP).
     # Imported lazily, so only the construction layer pulls it in.
     "cvxpy>=1.5",
+    # streamlit + plotly power the interactive apps (apps/quantica_app.py). They are
+    # declared as *runtime* deps — a deliberate exception to the lean-core rule
+    # (CLAUDE.md §3) — because the deployed app genuinely needs them and Streamlit
+    # Community Cloud installs from this pyproject's main group only (it ignores
+    # requirements.txt and does not install optional extras). Only code under apps/
+    # imports them; the quantica package itself never does, so the library stays
+    # "fully usable without any UI" (CLAUDE.md §1) — the cost is install footprint,
+    # not code coupling. (Was an [app] extra until it proved uninstallable on deploy.)
+    "streamlit>=1.30",
+    "plotly>=5.18",
 ]
 
 [project.optional-dependencies]
@@ -59,15 +69,6 @@ dev = [
 # Benchmarking against it is the "effective challenge" evidence (CLAUDE.md §3).
 benchmark = [
     "QuantLib>=1.33",
-]
-# The thin Streamlit + Plotly presentation layer (apps/). Kept out of the runtime
-# and dev sets deliberately: the apps import from `quantica` and call the tested
-# core (CLAUDE.md §2 — zero quant logic in apps/), so the library, its tests, and CI
-# never depend on a UI framework. The app *compute* modules are Streamlit-free, so
-# their smoke tests run under the `dev` install alone.
-app = [
-    "streamlit>=1.30",
-    "plotly>=5.18",
 ]
 
 [project.urls]

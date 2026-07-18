@@ -993,13 +993,13 @@ A thin **Streamlit + Plotly** UI tours all three pillars interactively — and i
 itself a demonstration of the core principle: **zero quant logic lives in `apps/`**
 (CLAUDE.md §2). Every number the UI shows is computed live by the `quantica` library;
 the app only builds widgets, caches results, and draws charts. That separation is
-enforced structurally — the Streamlit-free *compute* modules (`apps/_derivatives.py`,
-`apps/_risk.py`, `apps/_capital.py`) are covered by [smoke
-tests](tests/apps/test_apps_smoke.py) that run in CI under the plain `dev` install, so
-a break between the library and the UI is caught without a UI dependency.
+enforced structurally — the *compute* modules (`apps/_derivatives.py`, `apps/_risk.py`,
+`apps/_capital.py`) import no Streamlit and no Plotly, and are covered by [smoke
+tests](tests/apps/test_apps_smoke.py) that run in CI, so a break between the library and
+the UI is caught without ever starting a UI.
 
 ```bash
-pip install -e ".[app]"              # Streamlit + Plotly, on top of the library
+pip install -e .                     # Streamlit + Plotly ship as runtime deps
 streamlit run apps/quantica_app.py   # then open http://localhost:8501
 ```
 
