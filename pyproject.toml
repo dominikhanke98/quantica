@@ -60,6 +60,15 @@ dev = [
 benchmark = [
     "QuantLib>=1.33",
 ]
+# The thin Streamlit + Plotly presentation layer (apps/). Kept out of the runtime
+# and dev sets deliberately: the apps import from `quantica` and call the tested
+# core (CLAUDE.md §2 — zero quant logic in apps/), so the library, its tests, and CI
+# never depend on a UI framework. The app *compute* modules are Streamlit-free, so
+# their smoke tests run under the `dev` install alone.
+app = [
+    "streamlit>=1.30",
+    "plotly>=5.18",
+]
 
 [project.urls]
 Homepage = "https://github.com/dominikhanke/quantica"
@@ -99,6 +108,9 @@ ignore = ["N803", "N806"]
 # Report scripts intentionally emit typographic en/em dashes (their stdout is
 # embedded verbatim in the README), so allow "ambiguous" Unicode there.
 "scripts/**/*.py" = ["RUF001"]
+# The apps' user-facing labels legitimately use Greek and typographic symbols
+# (σ, κ, θ, ρ, λ, μ, –, ×), so allow "ambiguous" Unicode in strings/docstrings/comments.
+"apps/**/*.py" = ["RUF001", "RUF002", "RUF003"]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -130,6 +142,9 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+# Put the repo root on sys.path so the app smoke tests can import the (uninstalled)
+# `apps` package; `quantica` itself is imported from the editable install.
+pythonpath = ["."]
 addopts = "-ra --strict-markers"
 markers = [
     "benchmark: cross-checks against QuantLib (requires the 'benchmark' extra; run with -m benchmark).",

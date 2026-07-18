@@ -9,7 +9,9 @@ across five families (market risk, derivatives P&L, FRTB PLA, credit/PD, ML unde
 SR 11-7). **Phase 2 (systematic portfolio management) complete** — construction +
 walk-forward backtest + the backtest-validity layer (DSR / PBO / purged CV / MinTRL),
 built on the factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is
-now closed. Next: **the thin apps** (deferred UI) or further depth — see "Next".
+now closed, and the deferred **thin Streamlit apps (step 8)** now sit over all three
+pillars (branch `feat/apps`, PR #1 open, CI green, unmerged pending review). Next:
+merge PR #1, then deploy to Streamlit Community Cloud — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -434,34 +436,63 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   Ledoit–Wolf's 11.5%; condition number 61,123 → 36,082). Documented as a cross-pillar
   insight in **both** the factor and portfolio README sections. **Gate green**: 853 tests
   (4 new), ruff + mypy clean.
+- **Step 8 — the thin apps (Streamlit + Plotly over all three pillars).** New `apps/`
+  package + `app` optional extra (`streamlit>=1.30`, `plotly>=5.18`), kept out of the
+  runtime *and* dev sets so the library/tests/CI never depend on a UI. **Architecture
+  rule held (CLAUDE.md §2 — zero quant logic in `apps/`)**: every number is computed by
+  `quantica`; the apps only orchestrate calls, cache, and draw. Structure enforces it —
+  Streamlit-free **compute** modules (`_derivatives.py`, `_risk.py`, `_capital.py`, plus
+  `_data.py` loading a committed 39 KB FF sample `apps/data/ff_sample.npz`, never fetched
+  at runtime) hold all the orchestration; `quantica_app.py` is presentation only
+  (widgets, `st.cache_data`, Plotly). One app, sidebar pillar selector (lazy per-pillar
+  render, not `st.tabs`, so an interaction recomputes only one pillar). **Derivatives**:
+  live price+Greeks, Greek profiles, the four-way convergence table, a rotatable Heston
+  IV surface, Heston-vs-BS + Merton-jump smiles. **Risk**: the delta-normal/delta-gamma/
+  full-reval VaR divergence + scenario-P&L histogram, the live FRTB PLA verdict (delta-
+  only → RED/IMA-ineligible vs delta-gamma → GREEN), the four VaR/ES engines rolled OOS
+  on the FF portfolio. **Capital markets**: the OOS covariance comparison (sample GMV
+  23.0% / bias 6.0), the Jagannathan–Ma 2×2 + exact equivalence (1.6e-14), the DSR/PBO
+  overfit detector with a planted-signal slider. Validated: `tests/apps/test_apps_smoke.py`
+  (11 tests, Streamlit-free — imports + sane shapes/directions for every compute fn, runs
+  in CI under `dev`); the whole app additionally verified error-free across all three
+  pillars via Streamlit's `AppTest` harness locally. Added pytest `pythonpath=["."]` (so
+  the uninstalled `apps` package imports in tests) and an `apps/**` RUF001/2/3 ignore
+  (Greek / typographic symbols in UI labels). **Gate green**: 864 tests (11 new), ruff +
+  mypy clean. **Delivered on branch `feat/apps` as [PR #1](https://github.com/dominikhanke98/quantica/pull/1)
+  (first non-trunk change; opened via the REST API since `gh` is not installed here) —
+  CI green on the branch (lint · typecheck · test on py3.11 + py3.12, and the QuantLib
+  benchmark job). Deliberately left UNMERGED pending the author's review.**
 
-## Next — the thin apps, or further depth (all three pillars now complete)
+## Next — merge, deploy, then optional depth
 
 **All three pillars — derivatives pricing (Phase 1 + 4), quant risk / model validation
-(Phase 3), systematic portfolio management (Phase 2) — are now complete.** The core
-library is the deliverable and is done; the remaining options are demonstration and
-incremental depth, none blocking:
+(Phase 3), systematic portfolio management (Phase 2) — are complete, and the thin
+Streamlit apps (step 8) now sit over them (branch `feat/apps`, PR #1 open, CI green,
+awaiting review).** The immediate sequence:
 
-- **(A) The thin apps (the natural next step).** The deferred Streamlit + Plotly UIs
-  over the tested core (CLAUDE.md §2 — build the UI last, zero quant logic in `apps/`):
-  a **pricing explorer** (`apps/pricing_app.py`: sliders → live price, Greek profiles,
-  IV surface, convergence table), a **portfolio/backtest dashboard** (construction knobs
-  → walk-forward equity curve, turnover, and the DSR/PBO validity panel), and/or a
-  **risk dashboard**. Makes the whole portfolio *demonstrable* to non-code reviewers —
-  high signal for the hiring-manager audience now that three pillars stand.
-- **(B) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
+1. **Merge [PR #1](https://github.com/dominikhanke98/quantica/pull/1)** (`feat/apps` →
+   `main`). Author-gated: it is deliberately unmerged pending review. Once merged, delete
+   the branch and the apps land on trunk.
+2. **Deploy to Streamlit Community Cloud from `main`** and add the live app link to the
+   README top matter (the app is already self-contained and offline, so deployment is a
+   one-click point-at-`apps/quantica_app.py` — needs the merge first so it deploys from
+   trunk). This makes the whole portfolio one-click demonstrable to a reviewer.
+
+Then, optional incremental depth (none blocking):
+
+- **(A) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
   the construction menu and pair naturally with the covariance-estimator study
-  (it sidesteps matrix inversion entirely). Small, self-contained.
-- **(C) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
+  (it sidesteps matrix inversion entirely). Small, self-contained; a fourth
+  construction rule the apps' capital-markets view could then expose.
+- **(B) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
   end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
   breadth; strengthens the model-validation-specialist story.
-- **(D) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
+- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
   documented L-stability caveat in `finitediff.py`; PSOR → Brennan–Schwartz); or an
   autocallable on the LSM/path machinery.
 
-**Recommendation:** (A) the apps — the three pillars are the substance; a thin,
-demonstrable UI is now the highest-leverage complement and is explicitly the deferred
-"build last" step. Nothing blocks any option technically.
+**Recommendation:** do the merge + deploy (steps 1–2) first — cheapest reviewer-facing
+win and it makes the demo live; the depth options are all optional afterward.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
