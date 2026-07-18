@@ -1,0 +1,2357 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="pdoc 16.0.0"/>
+    <title>quantica.risk API documentation</title>
+
+    <style>/*! * Bootstrap Reboot v5.0.0 (https://getbootstrap.com/) * Copyright 2011-2021 The Bootstrap Authors * Copyright 2011-2021 Twitter, Inc. * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE) * Forked from Normalize.css, licensed MIT (https://github.com/necolas/normalize.css/blob/master/LICENSE.md) */*,::after,::before{box-sizing:border-box}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";font-size:1rem;font-weight:400;line-height:1.5;color:#212529;background-color:#fff;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}hr{margin:1rem 0;color:inherit;background-color:currentColor;border:0;opacity:.25}hr:not([size]){height:1px}h1,h2,h3,h4,h5,h6{margin-top:0;margin-bottom:.5rem;font-weight:500;line-height:1.2}h1{font-size:calc(1.375rem + 1.5vw)}@media (min-width:1200px){h1{font-size:2.5rem}}h2{font-size:calc(1.325rem + .9vw)}@media (min-width:1200px){h2{font-size:2rem}}h3{font-size:calc(1.3rem + .6vw)}@media (min-width:1200px){h3{font-size:1.75rem}}h4{font-size:calc(1.275rem + .3vw)}@media (min-width:1200px){h4{font-size:1.5rem}}h5{font-size:1.25rem}h6{font-size:1rem}p{margin-top:0;margin-bottom:1rem}abbr[data-bs-original-title],abbr[title]{-webkit-text-decoration:underline dotted;text-decoration:underline dotted;cursor:help;-webkit-text-decoration-skip-ink:none;text-decoration-skip-ink:none}address{margin-bottom:1rem;font-style:normal;line-height:inherit}ol,ul{padding-left:2rem}dl,ol,ul{margin-top:0;margin-bottom:1rem}ol ol,ol ul,ul ol,ul ul{margin-bottom:0}dt{font-weight:700}dd{margin-bottom:.5rem;margin-left:0}blockquote{margin:0 0 1rem}b,strong{font-weight:bolder}small{font-size:.875em}mark{padding:.2em;background-color:#fcf8e3}sub,sup{position:relative;font-size:.75em;line-height:0;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}a{color:#0d6efd;text-decoration:underline}a:hover{color:#0a58ca}a:not([href]):not([class]),a:not([href]):not([class]):hover{color:inherit;text-decoration:none}code,kbd,pre,samp{font-family:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:1em;direction:ltr;unicode-bidi:bidi-override}pre{display:block;margin-top:0;margin-bottom:1rem;overflow:auto;font-size:.875em}pre code{font-size:inherit;color:inherit;word-break:normal}code{font-size:.875em;color:#d63384;word-wrap:break-word}a>code{color:inherit}kbd{padding:.2rem .4rem;font-size:.875em;color:#fff;background-color:#212529;border-radius:.2rem}kbd kbd{padding:0;font-size:1em;font-weight:700}figure{margin:0 0 1rem}img,svg{vertical-align:middle}table{caption-side:bottom;border-collapse:collapse}caption{padding-top:.5rem;padding-bottom:.5rem;color:#6c757d;text-align:left}th{text-align:inherit;text-align:-webkit-match-parent}tbody,td,tfoot,th,thead,tr{border-color:inherit;border-style:solid;border-width:0}label{display:inline-block}button{border-radius:0}button:focus:not(:focus-visible){outline:0}button,input,optgroup,select,textarea{margin:0;font-family:inherit;font-size:inherit;line-height:inherit}button,select{text-transform:none}[role=button]{cursor:pointer}select{word-wrap:normal}select:disabled{opacity:1}[list]::-webkit-calendar-picker-indicator{display:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}[type=button]:not(:disabled),[type=reset]:not(:disabled),[type=submit]:not(:disabled),button:not(:disabled){cursor:pointer}::-moz-focus-inner{padding:0;border-style:none}textarea{resize:vertical}fieldset{min-width:0;padding:0;margin:0;border:0}legend{float:left;width:100%;padding:0;margin-bottom:.5rem;font-size:calc(1.275rem + .3vw);line-height:inherit}@media (min-width:1200px){legend{font-size:1.5rem}}legend+*{clear:left}::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-fields-wrapper,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-text,::-webkit-datetime-edit-year-field{padding:0}::-webkit-inner-spin-button{height:auto}[type=search]{outline-offset:-2px;-webkit-appearance:textfield}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-color-swatch-wrapper{padding:0}::file-selector-button{font:inherit}::-webkit-file-upload-button{font:inherit;-webkit-appearance:button}output{display:inline-block}iframe{border:0}summary{display:list-item;cursor:pointer}progress{vertical-align:baseline}[hidden]{display:none!important}</style>
+    <style>/*! syntax-highlighting.css */pre{line-height:125%;}span.linenos{color:inherit; background-color:transparent; padding-left:5px; padding-right:20px;}.pdoc-code .hll{background-color:#ffffcc}.pdoc-code{background:#f8f8f8;}.pdoc-code .c{color:#3D7B7B; font-style:italic}.pdoc-code .err{border:1px solid #FF0000}.pdoc-code .k{color:#008000; font-weight:bold}.pdoc-code .o{color:#666666}.pdoc-code .ch{color:#3D7B7B; font-style:italic}.pdoc-code .cm{color:#3D7B7B; font-style:italic}.pdoc-code .cp{color:#9C6500}.pdoc-code .cpf{color:#3D7B7B; font-style:italic}.pdoc-code .c1{color:#3D7B7B; font-style:italic}.pdoc-code .cs{color:#3D7B7B; font-style:italic}.pdoc-code .gd{color:#A00000}.pdoc-code .ge{font-style:italic}.pdoc-code .gr{color:#E40000}.pdoc-code .gh{color:#000080; font-weight:bold}.pdoc-code .gi{color:#008400}.pdoc-code .go{color:#717171}.pdoc-code .gp{color:#000080; font-weight:bold}.pdoc-code .gs{font-weight:bold}.pdoc-code .gu{color:#800080; font-weight:bold}.pdoc-code .gt{color:#0044DD}.pdoc-code .kc{color:#008000; font-weight:bold}.pdoc-code .kd{color:#008000; font-weight:bold}.pdoc-code .kn{color:#008000; font-weight:bold}.pdoc-code .kp{color:#008000}.pdoc-code .kr{color:#008000; font-weight:bold}.pdoc-code .kt{color:#B00040}.pdoc-code .m{color:#666666}.pdoc-code .s{color:#BA2121}.pdoc-code .na{color:#687822}.pdoc-code .nb{color:#008000}.pdoc-code .nc{color:#0000FF; font-weight:bold}.pdoc-code .no{color:#880000}.pdoc-code .nd{color:#AA22FF}.pdoc-code .ni{color:#717171; font-weight:bold}.pdoc-code .ne{color:#CB3F38; font-weight:bold}.pdoc-code .nf{color:#0000FF}.pdoc-code .nl{color:#767600}.pdoc-code .nn{color:#0000FF; font-weight:bold}.pdoc-code .nt{color:#008000; font-weight:bold}.pdoc-code .nv{color:#19177C}.pdoc-code .ow{color:#AA22FF; font-weight:bold}.pdoc-code .w{color:#bbbbbb}.pdoc-code .mb{color:#666666}.pdoc-code .mf{color:#666666}.pdoc-code .mh{color:#666666}.pdoc-code .mi{color:#666666}.pdoc-code .mo{color:#666666}.pdoc-code .sa{color:#BA2121}.pdoc-code .sb{color:#BA2121}.pdoc-code .sc{color:#BA2121}.pdoc-code .dl{color:#BA2121}.pdoc-code .sd{color:#BA2121; font-style:italic}.pdoc-code .s2{color:#BA2121}.pdoc-code .se{color:#AA5D1F; font-weight:bold}.pdoc-code .sh{color:#BA2121}.pdoc-code .si{color:#A45A77; font-weight:bold}.pdoc-code .sx{color:#008000}.pdoc-code .sr{color:#A45A77}.pdoc-code .s1{color:#BA2121}.pdoc-code .ss{color:#19177C}.pdoc-code .bp{color:#008000}.pdoc-code .fm{color:#0000FF}.pdoc-code .vc{color:#19177C}.pdoc-code .vg{color:#19177C}.pdoc-code .vi{color:#19177C}.pdoc-code .vm{color:#19177C}.pdoc-code .il{color:#666666}</style>
+    <style>/*! theme.css */:root{--pdoc-background:#fff;}.pdoc{--text:#212529;--muted:#6c757d;--link:#3660a5;--link-hover:#1659c5;--code:#f8f8f8;--active:#fff598;--accent:#eee;--accent2:#c1c1c1;--nav-hover:rgba(255, 255, 255, 0.5);--name:#0066BB;--def:#008800;--annotation:#007020;}</style>
+    <style>/*! layout.css */html, body{width:100%;height:100%;}html, main{scroll-behavior:smooth;}body{background-color:var(--pdoc-background);}@media (max-width:769px){#navtoggle{cursor:pointer;position:absolute;width:50px;height:40px;top:1rem;right:1rem;border-color:var(--text);color:var(--text);display:flex;opacity:0.8;z-index:999;}#navtoggle:hover{opacity:1;}#togglestate + div{display:none;}#togglestate:checked + div{display:inherit;}main, header{padding:2rem 3vw;}header + main{margin-top:-3rem;}.git-button{display:none !important;}nav input[type="search"]{max-width:77%;}nav input[type="search"]:first-child{margin-top:-6px;}nav input[type="search"]:valid ~ *{display:none !important;}}@media (min-width:770px){:root{--sidebar-width:clamp(12.5rem, 28vw, 22rem);}nav{position:fixed;overflow:auto;height:100vh;width:var(--sidebar-width);}main, header{padding:3rem 2rem 3rem calc(var(--sidebar-width) + 3rem);width:calc(54rem + var(--sidebar-width));max-width:100%;}header + main{margin-top:-4rem;}#navtoggle{display:none;}}#togglestate{position:absolute;height:0;opacity:0;}nav.pdoc{--pad:clamp(0.5rem, 2vw, 1.75rem);--indent:1.5rem;background-color:var(--accent);border-right:1px solid var(--accent2);box-shadow:0 0 20px rgba(50, 50, 50, .2) inset;padding:0 0 0 var(--pad);overflow-wrap:anywhere;scrollbar-width:thin; scrollbar-color:var(--accent2) transparent; z-index:1}nav.pdoc::-webkit-scrollbar{width:.4rem; }nav.pdoc::-webkit-scrollbar-thumb{background-color:var(--accent2); }nav.pdoc > div{padding:var(--pad) 0;}nav.pdoc .module-list-button{display:inline-flex;align-items:center;color:var(--text);border-color:var(--muted);margin-bottom:1rem;}nav.pdoc .module-list-button:hover{border-color:var(--text);}nav.pdoc input[type=search]{display:block;outline-offset:0;width:calc(100% - var(--pad));}nav.pdoc .logo{max-width:calc(100% - var(--pad));max-height:35vh;display:block;margin:0 auto 1rem;transform:translate(calc(-.5 * var(--pad)), 0);}nav.pdoc ul{list-style:none;padding-left:0;}nav.pdoc > div > ul{margin-left:calc(0px - var(--pad));}nav.pdoc li a{padding:.2rem 0 .2rem calc(var(--pad) + var(--indent));}nav.pdoc > div > ul > li > a{padding-left:var(--pad);}nav.pdoc li{transition:all 100ms;}nav.pdoc li:hover{background-color:var(--nav-hover);}nav.pdoc a, nav.pdoc a:hover{color:var(--text);}nav.pdoc a{display:block;}nav.pdoc > h2:first-of-type{margin-top:1.5rem;}nav.pdoc .class:before{content:"class ";color:var(--muted);}nav.pdoc .function:after{content:"()";color:var(--muted);}nav.pdoc footer:before{content:"";display:block;width:calc(100% - var(--pad));border-top:solid var(--accent2) 1px;margin-top:1.5rem;padding-top:.5rem;}nav.pdoc footer{font-size:small;}</style>
+    <style>/*! content.css */.pdoc{color:var(--text);box-sizing:border-box;line-height:1.5;background:none;}.pdoc .pdoc-button{cursor:pointer;display:inline-block;border:solid black 1px;border-radius:2px;font-size:.75rem;padding:calc(0.5em - 1px) 1em;transition:100ms all;}.pdoc .alert{padding:1rem 1rem 1rem calc(1.5rem + 24px);border:1px solid transparent;border-radius:.25rem;background-repeat:no-repeat;background-position:.75rem center;margin-bottom:1rem;}.pdoc .alert > em{display:none;}.pdoc .alert > *:last-child{margin-bottom:0;}.pdoc .alert.note{color:#084298;background-color:#cfe2ff;border-color:#b6d4fe;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23084298%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2016A8%208%200%201%200%208%200a8%208%200%200%200%200%2016zm.93-9.412-1%204.705c-.07.34.029.533.304.533.194%200%20.487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703%200-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381%202.29-.287zM8%205.5a1%201%200%201%201%200-2%201%201%200%200%201%200%202z%22/%3E%3C/svg%3E");}.pdoc .alert.tip{color:#0a3622;background-color:#d1e7dd;border-color:#a3cfbb;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%230a3622%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2%206a6%206%200%201%201%2010.174%204.31c-.203.196-.359.4-.453.619l-.762%201.769A.5.5%200%200%201%2010.5%2013a.5.5%200%200%201%200%201%20.5.5%200%200%201%200%201l-.224.447a1%201%200%200%201-.894.553H6.618a1%201%200%200%201-.894-.553L5.5%2015a.5.5%200%200%201%200-1%20.5.5%200%200%201%200-1%20.5.5%200%200%201-.46-.302l-.761-1.77a2%202%200%200%200-.453-.618A5.98%205.98%200%200%201%202%206m6-5a5%205%200%200%200-3.479%208.592c.263.254.514.564.676.941L5.83%2012h4.342l.632-1.467c.162-.377.413-.687.676-.941A5%205%200%200%200%208%201%22/%3E%3C/svg%3E");}.pdoc .alert.important{color:#055160;background-color:#cff4fc;border-color:#9eeaf9;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23055160%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2%200a2%202%200%200%200-2%202v12a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V2a2%202%200%200%200-2-2zm6%204c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%204.995A.905.905%200%200%201%208%204m.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E");}.pdoc .alert.warning{color:#664d03;background-color:#fff3cd;border-color:#ffecb5;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23664d03%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8.982%201.566a1.13%201.13%200%200%200-1.96%200L.165%2013.233c-.457.778.091%201.767.98%201.767h13.713c.889%200%201.438-.99.98-1.767L8.982%201.566zM8%205c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%205.995A.905.905%200%200%201%208%205zm.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2z%22/%3E%3C/svg%3E");}.pdoc .alert.caution{color:#842029;background-color:#f8d7da;border-color:#f5c2c7;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23842029%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M11.46.146A.5.5%200%200%200%2011.107%200H4.893a.5.5%200%200%200-.353.146L.146%204.54A.5.5%200%200%200%200%204.893v6.214a.5.5%200%200%200%20.146.353l4.394%204.394a.5.5%200%200%200%20.353.146h6.214a.5.5%200%200%200%20.353-.146l4.394-4.394a.5.5%200%200%200%20.146-.353V4.893a.5.5%200%200%200-.146-.353zM8%204c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%204.995A.905.905%200%200%201%208%204m.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E");}.pdoc .alert.danger{color:#842029;background-color:#f8d7da;border-color:#f5c2c7;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23842029%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M5.52.359A.5.5%200%200%201%206%200h4a.5.5%200%200%201%20.474.658L8.694%206H12.5a.5.5%200%200%201%20.395.807l-7%209a.5.5%200%200%201-.873-.454L6.823%209.5H3.5a.5.5%200%200%201-.48-.641l2.5-8.5z%22/%3E%3C/svg%3E");}.pdoc .visually-hidden{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0, 0, 0, 0) !important;white-space:nowrap !important;border:0 !important;}.pdoc h1, .pdoc h2, .pdoc h3{font-weight:300;margin:.3em 0;padding:.2em 0;}.pdoc > section:not(.module-info) h1{font-size:1.5rem;font-weight:500;}.pdoc > section:not(.module-info) h2{font-size:1.4rem;font-weight:500;}.pdoc > section:not(.module-info) h3{font-size:1.3rem;font-weight:500;}.pdoc > section:not(.module-info) h4{font-size:1.2rem;}.pdoc > section:not(.module-info) h5{font-size:1.1rem;}.pdoc a{text-decoration:none;color:var(--link);}.pdoc a:hover{color:var(--link-hover);}.pdoc blockquote{margin-left:2rem;}.pdoc pre{border-top:1px solid var(--accent2);border-bottom:1px solid var(--accent2);margin-top:0;margin-bottom:1em;padding:.5rem 0 .5rem .5rem;overflow-x:auto;background-color:var(--code);}.pdoc code{color:var(--text);padding:.2em .4em;margin:0;font-size:85%;background-color:var(--accent);border-radius:6px;}.pdoc a > code{color:inherit;}.pdoc pre > code{display:inline-block;font-size:inherit;background:none;border:none;padding:0;}.pdoc > section:not(.module-info){margin-bottom:1.5rem;}.pdoc .modulename{margin-top:0;font-weight:bold;}.pdoc .modulename a{color:var(--link);transition:100ms all;}.pdoc .git-button{float:right;border:solid var(--link) 1px;}.pdoc .git-button:hover{background-color:var(--link);color:var(--pdoc-background);}.view-source-toggle-state,.view-source-toggle-state ~ .pdoc-code{display:none;}.view-source-toggle-state:checked ~ .pdoc-code{display:block;}.view-source-button{display:inline-block;float:right;font-size:.75rem;line-height:1.5rem;color:var(--muted);padding:0 .4rem 0 1.3rem;cursor:pointer;text-indent:-2px;}.view-source-button > span{visibility:hidden;}.module-info .view-source-button{float:none;display:flex;justify-content:flex-end;margin:-1.2rem .4rem -.2rem 0;}.view-source-button::before{position:absolute;content:"View Source";display:list-item;list-style-type:disclosure-closed;}.view-source-toggle-state:checked ~ .attr .view-source-button::before,.view-source-toggle-state:checked ~ .view-source-button::before{list-style-type:disclosure-open;}.pdoc .docstring{margin-bottom:1.5rem;}.pdoc section:not(.module-info) .docstring{margin-left:clamp(0rem, 5vw - 2rem, 1rem);}.pdoc .docstring .pdoc-code{margin-left:1em;margin-right:1em;}.pdoc h1:target,.pdoc h2:target,.pdoc h3:target,.pdoc h4:target,.pdoc h5:target,.pdoc h6:target,.pdoc .pdoc-code > pre > span:target{background-color:var(--active);box-shadow:-1rem 0 0 0 var(--active);}.pdoc .pdoc-code > pre > span:target{display:block;}.pdoc div:target > .attr,.pdoc section:target > .attr,.pdoc dd:target > a{background-color:var(--active);}.pdoc *{scroll-margin:2rem;}.pdoc .pdoc-code .linenos{user-select:none;}.pdoc .attr:hover{filter:contrast(0.95);}.pdoc section, .pdoc .classattr{position:relative;}.pdoc .headerlink{--width:clamp(1rem, 3vw, 2rem);position:absolute;top:0;left:calc(0rem - var(--width));transition:all 100ms ease-in-out;opacity:0;}.pdoc .headerlink::before{content:"#";display:block;text-align:center;width:var(--width);height:2.3rem;line-height:2.3rem;font-size:1.5rem;}.pdoc .attr:hover ~ .headerlink,.pdoc *:target > .headerlink,.pdoc .headerlink:hover{opacity:1;}.pdoc .attr{display:block;margin:.5rem 0 .5rem;padding:.4rem .4rem .4rem 1rem;background-color:var(--accent);overflow-x:auto;}.pdoc .classattr{margin-left:2rem;}.pdoc .decorator-deprecated{color:#842029;}.pdoc .decorator-deprecated ~ span{filter:grayscale(1) opacity(0.8);}.pdoc .name{color:var(--name);font-weight:bold;}.pdoc .def{color:var(--def);font-weight:bold;}.pdoc .signature{background-color:transparent;}.pdoc .param, .pdoc .return-annotation{white-space:pre;}.pdoc .signature.multiline .param{display:block;}.pdoc .signature.condensed .param{display:inline-block;}.pdoc .annotation{color:var(--annotation);}.pdoc .view-value-toggle-state,.pdoc .view-value-toggle-state ~ .default_value{display:none;}.pdoc .view-value-toggle-state:checked ~ .default_value{display:inherit;}.pdoc .view-value-button{font-size:.5rem;vertical-align:middle;border-style:dashed;margin-top:-0.1rem;}.pdoc .view-value-button:hover{background:white;}.pdoc .view-value-button::before{content:"show";text-align:center;width:2.2em;display:inline-block;}.pdoc .view-value-toggle-state:checked ~ .view-value-button::before{content:"hide";}.pdoc .inherited{margin-left:2rem;}.pdoc .inherited dt{font-weight:700;}.pdoc .inherited dt, .pdoc .inherited dd{display:inline;margin-left:0;margin-bottom:.5rem;}.pdoc .inherited dd:not(:last-child):after{content:", ";}.pdoc .inherited .class:before{content:"class ";}.pdoc .inherited .function a:after{content:"()";}.pdoc .search-result .docstring{overflow:auto;max-height:25vh;}.pdoc .search-result.focused > .attr{background-color:var(--active);}.pdoc .attribution{margin-top:2rem;display:block;opacity:0.5;transition:all 200ms;filter:grayscale(100%);}.pdoc .attribution:hover{opacity:1;filter:grayscale(0%);}.pdoc .attribution img{margin-left:5px;height:27px;vertical-align:bottom;width:50px;transition:all 200ms;}.pdoc table{display:block;width:max-content;max-width:100%;overflow:auto;margin-bottom:1rem;}.pdoc table th{font-weight:600;}.pdoc table th, .pdoc table td{padding:6px 13px;border:1px solid var(--accent2);}</style>
+    <style>/*! custom.css */</style><script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']]
+        }
+    };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+    /* Re-invoke MathJax when DOM content changes, for example during search. */
+    document.addEventListener("DOMContentLoaded", () => {
+        new MutationObserver(() => MathJax.typeset()).observe(
+            document.querySelector("main.pdoc").parentNode,
+            {childList: true}
+        );
+    })
+</script>
+<style>
+    mjx-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+</style></head>
+<body>
+    <nav class="pdoc">
+        <label id="navtoggle" for="togglestate" class="pdoc-button"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke-linecap='round' stroke="currentColor" stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg></label>
+        <input id="togglestate" type="checkbox" aria-hidden="true" tabindex="-1">
+        <div>            <a class="pdoc-button module-list-button" href="../quantica.html">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-left" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M10 3.5a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 9.5 14h-8A1.5 1.5 0 0 1 0 12.5v-9A1.5 1.5 0 0 1 1.5 2h8A1.5 1.5 0 0 1 11 3.5v2a.5.5 0 0 1-1 0v-2z"/>
+  <path fill-rule="evenodd" d="M4.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H14.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"/>
+</svg>                &nbsp;quantica</a>
+
+
+
+
+
+            <h2>API Documentation</h2>
+                <ul class="memberlist">
+            <li>
+                    <a class="class" href="#AcerbiSzekelyResult">AcerbiSzekelyResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#AcerbiSzekelyResult.__init__">AcerbiSzekelyResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AcerbiSzekelyResult.statistic">statistic</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AcerbiSzekelyResult.p_value">p_value</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AcerbiSzekelyResult.method">method</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AcerbiSzekelyResult.n_exceptions">n_exceptions</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#BaselResult">BaselResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#BaselResult.__init__">BaselResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BaselResult.zone">zone</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BaselResult.n_exceptions">n_exceptions</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BaselResult.n_obs">n_obs</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BaselResult.cumulative_probability">cumulative_probability</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BaselResult.multiplier_addon">multiplier_addon</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#BaselZone">BaselZone</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#BaselZone.GREEN">GREEN</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BaselZone.YELLOW">YELLOW</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BaselZone.RED">RED</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#BookGreeks">BookGreeks</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#BookGreeks.__init__">BookGreeks</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BookGreeks.delta">delta</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BookGreeks.gamma">gamma</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BookGreeks.vega">vega</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#BookPosition">BookPosition</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#BookPosition.__init__">BookPosition</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BookPosition.instrument">instrument</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BookPosition.engine">engine</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BookPosition.quantity">quantity</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#ChristoffersenResult">ChristoffersenResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#ChristoffersenResult.__init__">ChristoffersenResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ChristoffersenResult.statistic">statistic</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ChristoffersenResult.p_value">p_value</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ChristoffersenResult.dof">dof</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ChristoffersenResult.reject">reject</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#FilteredHistoricalSimulationVaR">FilteredHistoricalSimulationVaR</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#FilteredHistoricalSimulationVaR.__init__">FilteredHistoricalSimulationVaR</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FilteredHistoricalSimulationVaR.p">p</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FilteredHistoricalSimulationVaR.q">q</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FilteredHistoricalSimulationVaR.estimate">estimate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#HistoricalSimulationVaR">HistoricalSimulationVaR</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#HistoricalSimulationVaR.estimate">estimate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#KupiecResult">KupiecResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#KupiecResult.__init__">KupiecResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KupiecResult.statistic">statistic</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KupiecResult.p_value">p_value</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KupiecResult.n_exceptions">n_exceptions</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KupiecResult.n_obs">n_obs</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KupiecResult.expected_rate">expected_rate</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KupiecResult.observed_rate">observed_rate</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#KupiecResult.reject">reject</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#MarketScenarios">MarketScenarios</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#MarketScenarios.__init__">MarketScenarios</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarketScenarios.spot_returns">spot_returns</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarketScenarios.vol_shifts">vol_shifts</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarketScenarios.n_scenarios">n_scenarios</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#MarketScenarios.generate">generate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#MonteCarloVaR">MonteCarloVaR</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#MonteCarloVaR.__init__">MonteCarloVaR</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MonteCarloVaR.n_sims">n_sims</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#MonteCarloVaR.estimate">estimate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#OptionBook">OptionBook</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#OptionBook.__init__">OptionBook</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#OptionBook.positions">positions</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#OptionBook.process">process</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#OptionBook.underlying_quantity">underlying_quantity</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#OptionBook.value">value</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#OptionBook.greeks">greeks</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#OptionBook.full_revaluation_pnl">full_revaluation_pnl</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#OptionBook.delta_normal_pnl">delta_normal_pnl</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#OptionBook.delta_gamma_pnl">delta_gamma_pnl</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#PLAResult">PLAResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#PLAResult.__init__">PLAResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAResult.spearman">spearman</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAResult.ks_statistic">ks_statistic</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAResult.spearman_zone">spearman_zone</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAResult.ks_zone">ks_zone</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAResult.zone">zone</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAResult.n_observations">n_observations</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAResult.ima_eligible">ima_eligible</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#PLAResult.capital_consequence">capital_consequence</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#PLAZone">PLAZone</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#PLAZone.GREEN">GREEN</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAZone.AMBER">AMBER</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PLAZone.RED">RED</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#ParametricVaR">ParametricVaR</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#ParametricVaR.estimate">estimate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#Portfolio">Portfolio</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#Portfolio.__init__">Portfolio</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Portfolio.weights">weights</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Portfolio.value">value</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Portfolio.equal_weight">equal_weight</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Portfolio.n_assets">n_assets</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Portfolio.portfolio_returns">portfolio_returns</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Portfolio.pnl">pnl</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Portfolio.losses">losses</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#RiskEstimate">RiskEstimate</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#RiskEstimate.__init__">RiskEstimate</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RiskEstimate.var">var</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RiskEstimate.es">es</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RiskEstimate.level">level</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RiskEstimate.method">method</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#VaREngine">VaREngine</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#VaREngine.__init__">VaREngine</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#VaREngine.estimate">estimate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="function" href="#acerbi_szekely">acerbi_szekely</a>
+            </li>
+            <li>
+                    <a class="function" href="#basel_traffic_light">basel_traffic_light</a>
+            </li>
+            <li>
+                    <a class="function" href="#book_pla_test">book_pla_test</a>
+            </li>
+            <li>
+                    <a class="function" href="#book_var_es">book_var_es</a>
+            </li>
+            <li>
+                    <a class="function" href="#christoffersen_cc">christoffersen_cc</a>
+            </li>
+            <li>
+                    <a class="function" href="#christoffersen_independence">christoffersen_independence</a>
+            </li>
+            <li>
+                    <a class="function" href="#empirical_var_es">empirical_var_es</a>
+            </li>
+            <li>
+                    <a class="function" href="#exceptions">exceptions</a>
+            </li>
+            <li>
+                    <a class="function" href="#ks_distance">ks_distance</a>
+            </li>
+            <li>
+                    <a class="function" href="#kupiec_pof">kupiec_pof</a>
+            </li>
+            <li>
+                    <a class="function" href="#normal_var_es">normal_var_es</a>
+            </li>
+            <li>
+                    <a class="function" href="#pla_test">pla_test</a>
+            </li>
+            <li>
+                    <a class="function" href="#rolling_var_forecasts">rolling_var_forecasts</a>
+            </li>
+            <li>
+                    <a class="function" href="#spearman_correlation">spearman_correlation</a>
+            </li>
+    </ul>
+
+
+
+        <a class="attribution" title="pdoc: Python API documentation generator" href="https://pdoc.dev" target="_blank">
+            built with <span class="visually-hidden">pdoc</span><img
+                alt="pdoc logo"
+                src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20role%3D%22img%22%20aria-label%3D%22pdoc%20logo%22%20width%3D%22300%22%20height%3D%22160%22%20viewBox%3D%220%200%20150%2080%22%3E%3Ctitle%3Epdoc%3C/title%3E%3Cpath%20d%3D%22M132.316%2048.886c.276-4.679%202.342-6.698%204.409-7.982s4.27-1.165%206.751-1.055c1.586.07%203.044.156%204.222-.482%201.142-.619%202.026-1.932%202.162-3.739.268-3.576-1.929-5.368-5.006-5.551s-7.599.524-10.517%201.606c-4.455%201.652-8.588%206.606-9.552%208.992s-2.342%206.193-1.745%2010.873%202.664%209.221%205.878%2011.79%205.878%203.808%2010.103%204.312%203.444.229%206.062.229%205.006-2.202%204.914-4.909-2.296-5.001-4.501-4.863-3.077.505-5.281.229-7.715-2.064-7.899-9.451z%22%20fill%3D%22%23198754%22/%3E%3Ccircle%20cx%3D%22101.504%22%20cy%3D%2248.943%22%20r%3D%2214.208%22%20fill%3D%22none%22%20stroke%3D%22%23198754%22%20stroke-width%3D%229.354%22/%3E%3Cpath%20d%3D%22M87.81.002c-3.637.065-5.001.454-7.014%201.232s-3.443%201.363-6.3%204.282c-1.723%201.76-3.148%205.019-3.776%207.329-.413%201.521-.316%202.63-.316%202.63l-.195%2034.612c.065%205.774-6.755%208.305-9.612%208.37s-9.678-1.038-9.743-9.408%207.128-9.521%208.362-9.521c1.413-.13%202.526-.021%203.718-.016%202.071.009%204.157-.778%204.092-4.671s-4.157-4.736-4.157-4.736c-6.3-.843-11.43%202.206-11.43%202.206S40.917%2038.15%2041.372%2049.634%2051.568%2068.19%2061.311%2068.125s18.316-7.007%2018.445-17.193l.13-22.772c.046-2.291%202.683-3.644%204.476-4.203.745-.232%201.694-.274%201.694-.274l10.457-.13s4.871-.324%207.729-3.114%204.352-6.294%204.352-6.294.974-3.049.13-4.606-.195-1.233-2.792-3.309-8.573-4.477-8.573-4.477S91.447-.063%2087.81.002zM0%2047.169l.065%2028.417S0%2080.127%204.481%2079.997s5.072-3.866%205.049-4.152l-.113-28.482s1.624-7.656%209.937-7.721%2010.002%206.942%2010.002%208.499-.909%2010.51-9.093%2010.51c-.948%200-2.99-.567-4.145-.272-3.919%201-3.194%204.554-3.194%204.554s.065%205.061%207.404%204.996%2018.575-6.034%2018.575-19.074S26.953%2030.04%2019.549%2029.91%201.234%2035.296%200%2047.169z%22%20fill%3D%22%23198754%22/%3E%3Cg%20transform%3D%22matrix%28.325601%200%200%20.325256%20-10.32669%20-45.802786%29%22%3E%3Ccircle%20cx%3D%22297.554%22%20cy%3D%22172.286%22%20r%3D%2216.5%22%20fill%3D%22%23fff%22/%3E%3Cellipse%20cx%3D%22297.709%22%20cy%3D%22172.642%22%20rx%3D%2211.071%22%20ry%3D%2210.871%22%20fill%3D%22%23105a48%22/%3E%3Ccircle%20cx%3D%22304.104%22%20cy%3D%22167.667%22%20r%3D%224.5%22%20fill%3D%22%23fff%22/%3E%3C/g%3E%3Cpath%20d%3D%22M94.661%2017.032l.893-1.476s.99.714%201.916.925%201.575.114%202.955.114l14.565-.162c1.283-.032%203.085-.762%203.02-3.293s-.373-3.503-.373-3.503l1.283-.487s.52.503.877%201.573.309%201.995.292%202.66-.227%201.541-.227%201.541%201.564-.308%202.359-1.038.823-.779%201.489-1.508.812-.86.812-.86.552-.13.877.26.341.957.065%201.46-1.672%202.206-3.247%203.066-2.76%201.427-3.929%201.768-3.848.73-7.063.714l-10.944-.114s-2.143-.081-3.02-.373-2.241-.973-2.598-1.265z%22%20fill%3D%22%23d36d49%22/%3E%3Cg%20fill%3D%22%23105a48%22%3E%3Cellipse%20cx%3D%2293.052%22%20cy%3D%2243.567%22%20rx%3D%22.869%22%20ry%3D%221.014%22%20transform%3D%22rotate%28341.022%29%22/%3E%3Cellipse%20cx%3D%22104.3%22%20cy%3D%22-16.184%22%20rx%3D%22.865%22%20ry%3D%221.009%22%20transform%3D%22rotate%2814.786%29%22/%3E%3C/g%3E%3C/svg%3E"/>
+        </a>
+</div>
+    </nav>
+    <main class="pdoc">
+            <section class="module-info">
+                    <h1 class="modulename">
+<a href="./../quantica.html">quantica</a><wbr>.risk    </h1>
+
+                        <div class="docstring"><p>Market-risk engines and the backtesting/validation layer (Phase 3).</p>
+
+<p>The design intent (CLAUDE.md §1, effective-challenge identity) is that the
+<em>backtesting</em> layer — not the VaR/ES numbers — is the deliverable: a risk model is
+only as good as the evidence that it is adequately calibrated, and this package
+ships both the standard VaR backtests and the harder-to-get Expected-Shortfall
+backtest (Acerbi--Székely), with the tests validating the <em>backtests themselves</em>
+(size and power) in <code>tests/risk</code>.</p>
+</div>
+
+                
+                
+                
+            </section>
+                <section id="AcerbiSzekelyResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">AcerbiSzekelyResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#AcerbiSzekelyResult"></a>
+    
+            <div class="docstring"><p>Acerbi--Székely ES backtest outcome.</p>
+
+<p><code><a href="#AcerbiSzekelyResult.statistic">statistic</a></code> is positive when realised tail losses <em>exceed</em> the predicted ES
+(the model under-estimates risk). <code><a href="#AcerbiSzekelyResult.p_value">p_value</a></code> — present only when a Monte-Carlo
+null is supplied — is the upper-tail probability of the statistic under a
+correct model; a small value rejects ES adequacy.</p>
+</div>
+
+
+                            <div id="AcerbiSzekelyResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">AcerbiSzekelyResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">statistic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">p_value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">n_exceptions</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AcerbiSzekelyResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="AcerbiSzekelyResult.statistic" class="classattr">
+                                <div class="attr variable">
+            <span class="name">statistic</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AcerbiSzekelyResult.statistic"></a>
+    
+    
+
+                            </div>
+                            <div id="AcerbiSzekelyResult.p_value" class="classattr">
+                                <div class="attr variable">
+            <span class="name">p_value</span><span class="annotation">: float | None</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AcerbiSzekelyResult.p_value"></a>
+    
+    
+
+                            </div>
+                            <div id="AcerbiSzekelyResult.method" class="classattr">
+                                <div class="attr variable">
+            <span class="name">method</span><span class="annotation">: str</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AcerbiSzekelyResult.method"></a>
+    
+    
+
+                            </div>
+                            <div id="AcerbiSzekelyResult.n_exceptions" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_exceptions</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AcerbiSzekelyResult.n_exceptions"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="BaselResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">BaselResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#BaselResult"></a>
+    
+            <div class="docstring"><p>Basel traffic-light outcome for a VaR model over a backtest window.</p>
+</div>
+
+
+                            <div id="BaselResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">BaselResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">zone</span><span class="p">:</span> <span class="n"><a href="#BaselZone">BaselZone</a></span>,</span><span class="param">	<span class="n">n_exceptions</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">cumulative_probability</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">multiplier_addon</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="BaselResult.zone" class="classattr">
+                                <div class="attr variable">
+            <span class="name">zone</span><span class="annotation">: <a href="#BaselZone">BaselZone</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselResult.zone"></a>
+    
+    
+
+                            </div>
+                            <div id="BaselResult.n_exceptions" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_exceptions</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselResult.n_exceptions"></a>
+    
+    
+
+                            </div>
+                            <div id="BaselResult.n_obs" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_obs</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselResult.n_obs"></a>
+    
+    
+
+                            </div>
+                            <div id="BaselResult.cumulative_probability" class="classattr">
+                                <div class="attr variable">
+            <span class="name">cumulative_probability</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselResult.cumulative_probability"></a>
+    
+    
+
+                            </div>
+                            <div id="BaselResult.multiplier_addon" class="classattr">
+                                <div class="attr variable">
+            <span class="name">multiplier_addon</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselResult.multiplier_addon"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="BaselZone">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">BaselZone</span><wbr>(<span class="base">enum.Enum</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#BaselZone"></a>
+    
+            <div class="docstring"><p>Basel supervisory backtesting zones.</p>
+</div>
+
+
+                            <div id="BaselZone.GREEN" class="classattr">
+                                <div class="attr variable">
+            <span class="name">GREEN</span>        =
+<span class="default_value">&lt;<a href="#BaselZone.GREEN">BaselZone.GREEN</a>: &#39;green&#39;&gt;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselZone.GREEN"></a>
+    
+    
+
+                            </div>
+                            <div id="BaselZone.YELLOW" class="classattr">
+                                <div class="attr variable">
+            <span class="name">YELLOW</span>        =
+<span class="default_value">&lt;<a href="#BaselZone.YELLOW">BaselZone.YELLOW</a>: &#39;yellow&#39;&gt;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselZone.YELLOW"></a>
+    
+    
+
+                            </div>
+                            <div id="BaselZone.RED" class="classattr">
+                                <div class="attr variable">
+            <span class="name">RED</span>        =
+<span class="default_value">&lt;<a href="#BaselZone.RED">BaselZone.RED</a>: &#39;red&#39;&gt;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BaselZone.RED"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="BookGreeks">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">BookGreeks</span><wbr>(<span class="base">typing.NamedTuple</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#BookGreeks"></a>
+    
+            <div class="docstring"><p>Aggregate book sensitivities used by the P&amp;amp;L approximations.</p>
+
+<p><code><a href="#BookGreeks.delta">delta</a></code>/<code><a href="#BookGreeks.gamma">gamma</a></code> are w.r.t. the underlying spot; <code><a href="#BookGreeks.vega">vega</a></code> is per unit of
+volatility (matching <code>~<a href="../quantica.html#Greeks">quantica.pricing.greeks.Greeks</a></code> conventions).</p>
+</div>
+
+
+                            <div id="BookGreeks.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">BookGreeks</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">delta</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">vega</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookGreeks.__init__"></a>
+    
+            <div class="docstring"><p>Create new instance of BookGreeks(delta, gamma, vega)</p>
+</div>
+
+
+                            </div>
+                            <div id="BookGreeks.delta" class="classattr">
+                                <div class="attr variable">
+            <span class="name">delta</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookGreeks.delta"></a>
+    
+            <div class="docstring"><p>Alias for field number 0</p>
+</div>
+
+
+                            </div>
+                            <div id="BookGreeks.gamma" class="classattr">
+                                <div class="attr variable">
+            <span class="name">gamma</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookGreeks.gamma"></a>
+    
+            <div class="docstring"><p>Alias for field number 1</p>
+</div>
+
+
+                            </div>
+                            <div id="BookGreeks.vega" class="classattr">
+                                <div class="attr variable">
+            <span class="name">vega</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookGreeks.vega"></a>
+    
+            <div class="docstring"><p>Alias for field number 2</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="BookPosition">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">BookPosition</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#BookPosition"></a>
+    
+            <div class="docstring"><p>One book line: an instrument, the engine that prices it, and a signed quantity.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>instrument</strong> (VanillaOption):
+Any option the attached engine can price (European/American/exotic).</li>
+<li><strong>engine</strong> (PricingEngine):
+The numerical method used to (re)price this position. Deterministic
+engines are recommended (see module docstring).</li>
+<li><strong>quantity</strong> (float):
+Signed position size (negative = short). Must be non-zero and finite.</li>
+</ul>
+</div>
+
+
+                            <div id="BookPosition.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">BookPosition</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">instrument</span><span class="p">:</span> <span class="n"><a href="../quantica.html#VanillaOption">quantica.VanillaOption</a></span>,</span><span class="param">	<span class="n">engine</span><span class="p">:</span> <span class="n"><a href="pricing/engines.html#PricingEngine">quantica.pricing.engines.PricingEngine</a></span>,</span><span class="param">	<span class="n">quantity</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookPosition.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="BookPosition.instrument" class="classattr">
+                                <div class="attr variable">
+            <span class="name">instrument</span><span class="annotation">: <a href="../quantica.html#VanillaOption">quantica.VanillaOption</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookPosition.instrument"></a>
+    
+    
+
+                            </div>
+                            <div id="BookPosition.engine" class="classattr">
+                                <div class="attr variable">
+            <span class="name">engine</span><span class="annotation">: <a href="pricing/engines.html#PricingEngine">quantica.pricing.engines.PricingEngine</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookPosition.engine"></a>
+    
+    
+
+                            </div>
+                            <div id="BookPosition.quantity" class="classattr">
+                                <div class="attr variable">
+            <span class="name">quantity</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BookPosition.quantity"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="ChristoffersenResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">ChristoffersenResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#ChristoffersenResult"></a>
+    
+            <div class="docstring"><p>Christoffersen independence / conditional-coverage test outcome.</p>
+</div>
+
+
+                            <div id="ChristoffersenResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">ChristoffersenResult</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">statistic</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">p_value</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">dof</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ChristoffersenResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="ChristoffersenResult.statistic" class="classattr">
+                                <div class="attr variable">
+            <span class="name">statistic</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ChristoffersenResult.statistic"></a>
+    
+    
+
+                            </div>
+                            <div id="ChristoffersenResult.p_value" class="classattr">
+                                <div class="attr variable">
+            <span class="name">p_value</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ChristoffersenResult.p_value"></a>
+    
+    
+
+                            </div>
+                            <div id="ChristoffersenResult.dof" class="classattr">
+                                <div class="attr variable">
+            <span class="name">dof</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ChristoffersenResult.dof"></a>
+    
+    
+
+                            </div>
+                            <div id="ChristoffersenResult.reject" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">reject</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ChristoffersenResult.reject"></a>
+    
+            <div class="docstring"><p>Whether to reject at the given test size.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="FilteredHistoricalSimulationVaR">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">FilteredHistoricalSimulationVaR</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#FilteredHistoricalSimulationVaR"></a>
+    
+            <div class="docstring"><p>FHS VaR/ES: a GARCH(1,1) volatility filter over bootstrapped residuals.</p>
+
+<p>Fits a constant-mean GARCH(1,1) to the portfolio return series, standardises by
+the conditional volatility, and rebuilds a one-step-ahead loss sample as
+\( \hat\mu + \hat\sigma_{T+1}\, z_i \) over the standardised residuals
+\( z_i \). The empirical quantile of that sample is the FHS VaR/ES — a
+nonparametric tail riding on a dynamic volatility (Barone-Adesi et al., 1999).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>p, q</strong> (int, optional):
+GARCH orders (default 1, 1).</li>
+</ul>
+
+<h6 id="notes">Notes</h6>
+
+<p>Requires the optional <code>arch</code> dependency; the import is deferred so the rest
+of <code><a href="">quantica.risk</a></code> works without it.</p>
+</div>
+
+
+                            <div id="FilteredHistoricalSimulationVaR.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">FilteredHistoricalSimulationVaR</span><span class="signature pdoc-code condensed">(<span class="param"><span class="o">*</span>, </span><span class="param"><span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>, </span><span class="param"><span class="n">q</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FilteredHistoricalSimulationVaR.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="FilteredHistoricalSimulationVaR.p" class="classattr">
+                                <div class="attr variable">
+            <span class="name">p</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FilteredHistoricalSimulationVaR.p"></a>
+    
+    
+
+                            </div>
+                            <div id="FilteredHistoricalSimulationVaR.q" class="classattr">
+                                <div class="attr variable">
+            <span class="name">q</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FilteredHistoricalSimulationVaR.q"></a>
+    
+    
+
+                            </div>
+                            <div id="FilteredHistoricalSimulationVaR.estimate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">estimate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">portfolio</span><span class="p">:</span> <span class="n"><a href="#Portfolio">Portfolio</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FilteredHistoricalSimulationVaR.estimate"></a>
+    
+            <div class="docstring"><p>Return the filtered-historical-simulation VaR/ES (GARCH-scaled bootstrap).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (T, n)):
+The historical asset-return window (a GARCH(1,1) is fit to the portfolio
+return series derived from it).</li>
+<li><strong>portfolio</strong> (Portfolio):
+The portfolio whose loss distribution is measured.</li>
+<li><strong>level</strong> (float):
+The VaR/ES confidence level in <code>(0, 1)</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>RiskEstimate</strong>: The filtered-historical VaR and ES at <code>level</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ImportError</strong>: If the optional <code>arch</code> dependency is not installed.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="HistoricalSimulationVaR">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">HistoricalSimulationVaR</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#HistoricalSimulationVaR"></a>
+    
+            <div class="docstring"><p>Empirical-quantile VaR/ES of the realised portfolio losses (no distribution).</p>
+</div>
+
+
+                            <div id="HistoricalSimulationVaR.estimate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">estimate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">portfolio</span><span class="p">:</span> <span class="n"><a href="#Portfolio">Portfolio</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HistoricalSimulationVaR.estimate"></a>
+    
+            <div class="docstring"><p>Return the historical-simulation VaR/ES (empirical loss quantile).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (T, n)):
+The historical asset-return window.</li>
+<li><strong>portfolio</strong> (Portfolio):
+The portfolio whose loss distribution is measured.</li>
+<li><strong>level</strong> (float):
+The VaR/ES confidence level in <code>(0, 1)</code> (e.g. <code>0.99</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>RiskEstimate</strong>: The VaR and ES at <code>level</code>.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="KupiecResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">KupiecResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult"></a>
+    
+            <div class="docstring"><p>Kupiec proportion-of-failures test outcome.</p>
+</div>
+
+
+                            <div id="KupiecResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">KupiecResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">statistic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">p_value</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">n_exceptions</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">expected_rate</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">observed_rate</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="KupiecResult.statistic" class="classattr">
+                                <div class="attr variable">
+            <span class="name">statistic</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.statistic"></a>
+    
+    
+
+                            </div>
+                            <div id="KupiecResult.p_value" class="classattr">
+                                <div class="attr variable">
+            <span class="name">p_value</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.p_value"></a>
+    
+    
+
+                            </div>
+                            <div id="KupiecResult.n_exceptions" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_exceptions</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.n_exceptions"></a>
+    
+    
+
+                            </div>
+                            <div id="KupiecResult.n_obs" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_obs</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.n_obs"></a>
+    
+    
+
+                            </div>
+                            <div id="KupiecResult.expected_rate" class="classattr">
+                                <div class="attr variable">
+            <span class="name">expected_rate</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.expected_rate"></a>
+    
+    
+
+                            </div>
+                            <div id="KupiecResult.observed_rate" class="classattr">
+                                <div class="attr variable">
+            <span class="name">observed_rate</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.observed_rate"></a>
+    
+    
+
+                            </div>
+                            <div id="KupiecResult.reject" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">reject</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span></span><span class="return-annotation">) -> <span class="nb">bool</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#KupiecResult.reject"></a>
+    
+            <div class="docstring"><p>Whether to reject correct unconditional coverage at the given test size.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="MarketScenarios">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">MarketScenarios</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#MarketScenarios"></a>
+    
+            <div class="docstring"><p>A set of instantaneous market shocks: spot returns and optional vol shifts.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>spot_returns</strong> (ndarray):
+Relative spot moves \( r_i \) (the shocked spot is \( S(1+r_i) \)).
+Every <code>1 + r_i</code> must be positive.</li>
+<li><strong>vol_shifts</strong> (ndarray, optional):
+Additive shifts to the Black--Scholes volatility, aligned with
+<code><a href="#MarketScenarios.spot_returns">spot_returns</a></code>. The shocked vol is floored at zero (a documented clamp:
+a negative total vol is meaningless, and <code>vol == 0</code> is a valid limit).</li>
+</ul>
+</div>
+
+
+                            <div id="MarketScenarios.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">MarketScenarios</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">spot_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">vol_shifts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarketScenarios.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="MarketScenarios.spot_returns" class="classattr">
+                                <div class="attr variable">
+            <span class="name">spot_returns</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarketScenarios.spot_returns"></a>
+    
+    
+
+                            </div>
+                            <div id="MarketScenarios.vol_shifts" class="classattr">
+                                <div class="attr variable">
+            <span class="name">vol_shifts</span><span class="annotation">: numpy.ndarray[tuple[Any, ...], numpy.dtype[numpy.float64]] | None</span>        =
+<span class="default_value">None</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarketScenarios.vol_shifts"></a>
+    
+    
+
+                            </div>
+                            <div id="MarketScenarios.n_scenarios" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_scenarios</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarketScenarios.n_scenarios"></a>
+    
+            <div class="docstring"><p>Number of scenarios.</p>
+</div>
+
+
+                            </div>
+                            <div id="MarketScenarios.generate" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">generate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">cls</span>,</span><span class="param">	<span class="n">n_scenarios</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">spot_vol</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">drift</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">vol_shift_vol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n"><a href="#MarketScenarios">MarketScenarios</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarketScenarios.generate"></a>
+    
+            <div class="docstring"><p>Draw seeded Gaussian scenarios (the simulated-market case).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n_scenarios</strong> (int):
+Number of draws.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator, injected for reproducibility.</li>
+<li><strong>spot_vol</strong> (float):
+Standard deviation of the spot return over the risk horizon (e.g. a
+daily vol for one-day VaR).</li>
+<li><strong>drift</strong> (float, optional):
+Mean spot return over the horizon (default 0).</li>
+<li><strong>vol_shift_vol</strong> (float, optional):
+Standard deviation of the additive vol shift; <code>0</code> (default) means
+spot-only scenarios.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="MonteCarloVaR">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">MonteCarloVaR</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#MonteCarloVaR"></a>
+    
+            <div class="docstring"><p>Monte-Carlo VaR/ES: simulate returns from the fitted multivariate normal.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n_sims</strong> (int):
+Number of simulated return draws.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator, injected for reproducibility (CLAUDE.md §3).</li>
+</ul>
+
+<h6 id="notes">Notes</h6>
+
+<p>With a normal fit this converges to <code><a href="#ParametricVaR">ParametricVaR</a></code> as <code><a href="#MonteCarloVaR.n_sims">n_sims</a></code> grows —
+a deliberate cross-check. Its real value is that the P&amp;amp;L map can be swapped for
+a nonlinear one (option revaluation) without touching the risk/backtest layer.</p>
+</div>
+
+
+                            <div id="MonteCarloVaR.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">MonteCarloVaR</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">n_sims</span><span class="p">:</span> <span class="nb">int</span>, </span><span class="param"><span class="o">*</span>, </span><span class="param"><span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MonteCarloVaR.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="MonteCarloVaR.n_sims" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_sims</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MonteCarloVaR.n_sims"></a>
+    
+    
+
+                            </div>
+                            <div id="MonteCarloVaR.estimate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">estimate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">portfolio</span><span class="p">:</span> <span class="n"><a href="#Portfolio">Portfolio</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#MonteCarloVaR.estimate"></a>
+    
+            <div class="docstring"><p>Return the Monte-Carlo VaR/ES by simulating from the fitted normal.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (T, n)):
+The historical asset-return window (fits the simulated multivariate normal).</li>
+<li><strong>portfolio</strong> (Portfolio):
+The portfolio whose loss distribution is measured.</li>
+<li><strong>level</strong> (float):
+The VaR/ES confidence level in <code>(0, 1)</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>RiskEstimate</strong>: The simulated VaR and ES at <code>level</code> (converges to <code><a href="#ParametricVaR">ParametricVaR</a></code>).</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="OptionBook">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">OptionBook</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook"></a>
+    
+            <div class="docstring"><p>A book of option positions (plus an optional underlying leg) on one underlying.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>positions</strong> (sequence of BookPosition):
+The option lines. May be empty only if <code><a href="#OptionBook.underlying_quantity">underlying_quantity</a></code> is non-zero.</li>
+<li><strong>process</strong> (BlackScholesProcess):
+The <em>base</em> market state (spot, rate, dividend, vol) the book is marked on;
+scenarios shock this process.</li>
+<li><strong>underlying_quantity</strong> (float, optional):
+A signed quantity of the underlying itself (delta one, gamma/vega zero) —
+the natural way to express delta-hedged books.</li>
+</ul>
+</div>
+
+
+                            <div id="OptionBook.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">OptionBook</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">positions</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n"><a href="#BookPosition">BookPosition</a></span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">process</span><span class="p">:</span> <span class="n"><a href="../quantica.html#BlackScholesProcess">quantica.BlackScholesProcess</a></span>,</span><span class="param">	<span class="n">underlying_quantity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="OptionBook.positions" class="classattr">
+                                <div class="attr variable">
+            <span class="name">positions</span><span class="annotation">: tuple[<a href="#BookPosition">BookPosition</a>, ...]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.positions"></a>
+    
+    
+
+                            </div>
+                            <div id="OptionBook.process" class="classattr">
+                                <div class="attr variable">
+            <span class="name">process</span><span class="annotation">: <a href="../quantica.html#BlackScholesProcess">quantica.BlackScholesProcess</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.process"></a>
+    
+    
+
+                            </div>
+                            <div id="OptionBook.underlying_quantity" class="classattr">
+                                <div class="attr variable">
+            <span class="name">underlying_quantity</span><span class="annotation">: float</span>        =
+<span class="default_value">0.0</span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.underlying_quantity"></a>
+    
+    
+
+                            </div>
+                            <div id="OptionBook.value" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">value</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">process</span><span class="p">:</span> <span class="n"><a href="../quantica.html#BlackScholesProcess">quantica.BlackScholesProcess</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.value"></a>
+    
+            <div class="docstring"><p>Mark the whole book (options plus underlying leg) under <code><a href="#OptionBook.process">process</a></code>.</p>
+
+<p>Defaults to the base process. Repricing goes through each position's own
+engine, so this is by construction the same number the pricing pillar
+produces — the no-drift guarantee.</p>
+</div>
+
+
+                            </div>
+                            <div id="OptionBook.greeks" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">greeks</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rel_spot_bump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0001</span>,</span><span class="param">	<span class="n">vol_bump</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0001</span></span><span class="return-annotation">) -> <span class="n"><a href="#BookGreeks">BookGreeks</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.greeks"></a>
+    
+            <div class="docstring"><p>Aggregate book delta/gamma/vega by central-difference bump-and-reval.</p>
+
+<p>The bumps run through each position's <em>own</em> engine, so the Greeks are
+consistent with the same numerics that full revaluation uses. For smooth
+engines the defaults are near-optimal; lattice/PDE engines may need a
+larger <code>rel_spot_bump</code> to step over discretisation kinks.</p>
+</div>
+
+
+                            </div>
+                            <div id="OptionBook.full_revaluation_pnl" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">full_revaluation_pnl</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">scenarios</span><span class="p">:</span> <span class="n"><a href="#MarketScenarios">MarketScenarios</a></span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.full_revaluation_pnl"></a>
+    
+            <div class="docstring"><p>Exact scenario P&amp;amp;L: reprice the book under every scenario and difference.</p>
+
+<p>One full book repricing per scenario — the cost of exactness. Any
+nonlinearity the engines can see (gamma, vol convexity, barriers, early
+exercise) is captured.</p>
+</div>
+
+
+                            </div>
+                            <div id="OptionBook.delta_normal_pnl" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">delta_normal_pnl</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">scenarios</span><span class="p">:</span> <span class="n"><a href="#MarketScenarios">MarketScenarios</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">greeks</span><span class="p">:</span> <span class="n"><a href="#BookGreeks">BookGreeks</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.delta_normal_pnl"></a>
+    
+            <div class="docstring"><p>First-order P&amp;amp;L: \( \Delta\,\delta S + \nu\,\delta\sigma \).</p>
+
+<p>The vega term appears only when the scenarios carry vol shifts (the
+standard first-order-in-all-risk-factors treatment). Linear ⇒ blind to
+gamma; see the module docstring for the direction of the resulting bias.</p>
+</div>
+
+
+                            </div>
+                            <div id="OptionBook.delta_gamma_pnl" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">delta_gamma_pnl</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">scenarios</span><span class="p">:</span> <span class="n"><a href="#MarketScenarios">MarketScenarios</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">greeks</span><span class="p">:</span> <span class="n"><a href="#BookGreeks">BookGreeks</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#OptionBook.delta_gamma_pnl"></a>
+    
+            <div class="docstring"><p>Second-order P&amp;amp;L: adds \( \tfrac12\,\Gamma\,\delta S^2 \) to delta-normal.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="PLAResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">PLAResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult"></a>
+    
+            <div class="docstring"><p>Outcome of the FRTB P&amp;L-attribution test for one desk.</p>
+</div>
+
+
+                            <div id="PLAResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">PLAResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">spearman</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">ks_statistic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">spearman_zone</span><span class="p">:</span> <span class="n"><a href="#PLAZone">PLAZone</a></span>,</span><span class="param">	<span class="n">ks_zone</span><span class="p">:</span> <span class="n"><a href="#PLAZone">PLAZone</a></span>,</span><span class="param">	<span class="n">zone</span><span class="p">:</span> <span class="n"><a href="#PLAZone">PLAZone</a></span>,</span><span class="param">	<span class="n">n_observations</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAResult.spearman" class="classattr">
+                                <div class="attr variable">
+            <span class="name">spearman</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.spearman"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAResult.ks_statistic" class="classattr">
+                                <div class="attr variable">
+            <span class="name">ks_statistic</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.ks_statistic"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAResult.spearman_zone" class="classattr">
+                                <div class="attr variable">
+            <span class="name">spearman_zone</span><span class="annotation">: <a href="#PLAZone">PLAZone</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.spearman_zone"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAResult.ks_zone" class="classattr">
+                                <div class="attr variable">
+            <span class="name">ks_zone</span><span class="annotation">: <a href="#PLAZone">PLAZone</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.ks_zone"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAResult.zone" class="classattr">
+                                <div class="attr variable">
+            <span class="name">zone</span><span class="annotation">: <a href="#PLAZone">PLAZone</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.zone"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAResult.n_observations" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_observations</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.n_observations"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAResult.ima_eligible" class="classattr">
+                                <div class="attr variable">
+            <span class="name">ima_eligible</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.ima_eligible"></a>
+    
+            <div class="docstring"><p>Whether the desk may still use the Internal Models Approach (not red).</p>
+</div>
+
+
+                            </div>
+                            <div id="PLAResult.capital_consequence" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">capital_consequence</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAResult.capital_consequence"></a>
+    
+            <div class="docstring"><p>A one-line description of the regulatory consequence of the zone.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="PLAZone">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">PLAZone</span><wbr>(<span class="base">enum.Enum</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#PLAZone"></a>
+    
+            <div class="docstring"><p>FRTB P&amp;L-attribution zone (worsening left to right).</p>
+</div>
+
+
+                            <div id="PLAZone.GREEN" class="classattr">
+                                <div class="attr variable">
+            <span class="name">GREEN</span>        =
+<span class="default_value">&lt;<a href="#PLAZone.GREEN">PLAZone.GREEN</a>: &#39;green&#39;&gt;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAZone.GREEN"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAZone.AMBER" class="classattr">
+                                <div class="attr variable">
+            <span class="name">AMBER</span>        =
+<span class="default_value">&lt;<a href="#PLAZone.AMBER">PLAZone.AMBER</a>: &#39;amber&#39;&gt;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAZone.AMBER"></a>
+    
+    
+
+                            </div>
+                            <div id="PLAZone.RED" class="classattr">
+                                <div class="attr variable">
+            <span class="name">RED</span>        =
+<span class="default_value">&lt;<a href="#PLAZone.RED">PLAZone.RED</a>: &#39;red&#39;&gt;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PLAZone.RED"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="ParametricVaR">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">ParametricVaR</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#ParametricVaR"></a>
+    
+            <div class="docstring"><p>Variance--covariance VaR/ES under a multivariate-normal return assumption.</p>
+
+<p>Uses the sample mean vector \( \mu \) and covariance matrix \( \Sigma \) to
+form the portfolio P&amp;amp;L moments \( \mu_p = V\,w^\top\mu \),
+\( \sigma_p = V\sqrt{w^\top \Sigma w} \), then the Gaussian closed form. The
+normality assumption is documented and is exactly what the backtests challenge.</p>
+</div>
+
+
+                            <div id="ParametricVaR.estimate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">estimate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">portfolio</span><span class="p">:</span> <span class="n"><a href="#Portfolio">Portfolio</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ParametricVaR.estimate"></a>
+    
+            <div class="docstring"><p>Return the variance--covariance (Gaussian) VaR/ES from the sample moments.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (T, n)):
+The historical asset-return window (its sample mean and covariance are used).</li>
+<li><strong>portfolio</strong> (Portfolio):
+The portfolio whose loss distribution is measured.</li>
+<li><strong>level</strong> (float):
+The VaR/ES confidence level in <code>(0, 1)</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>RiskEstimate</strong>: The Gaussian VaR and ES at <code>level</code>.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="Portfolio">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">Portfolio</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio"></a>
+    
+            <div class="docstring"><p>A linear portfolio: weights on assets, scaled by a money value.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>weights</strong> (ndarray):
+Portfolio weights \( w \) on the \( N \) assets. Not required to sum to
+one (a net/gross exposure is a modelling choice), but must be finite.</li>
+<li><strong>value</strong> (float, optional):
+Portfolio money value \( V \) (default 1.0). P&amp;amp;L is
+\( V \, (R w) \) for an asset-return matrix \( R \).</li>
+</ul>
+</div>
+
+
+                            <div id="Portfolio.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">Portfolio</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">weights</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="Portfolio.weights" class="classattr">
+                                <div class="attr variable">
+            <span class="name">weights</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.weights"></a>
+    
+    
+
+                            </div>
+                            <div id="Portfolio.value" class="classattr">
+                                <div class="attr variable">
+            <span class="name">value</span><span class="annotation">: float</span>        =
+<span class="default_value">1.0</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.value"></a>
+    
+    
+
+                            </div>
+                            <div id="Portfolio.equal_weight" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">equal_weight</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">cls</span>,</span><span class="param">	<span class="n">n_assets</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">value</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></span><span class="return-annotation">) -> <span class="n"><a href="#Portfolio">Portfolio</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.equal_weight"></a>
+    
+            <div class="docstring"><p>An equally-weighted portfolio over <code><a href="#Portfolio.n_assets">n_assets</a></code> assets.</p>
+</div>
+
+
+                            </div>
+                            <div id="Portfolio.n_assets" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_assets</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.n_assets"></a>
+    
+            <div class="docstring"><p>Number of assets <code>N</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="Portfolio.portfolio_returns" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">portfolio_returns</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.portfolio_returns"></a>
+    
+            <div class="docstring"><p>The portfolio return series \( R w \) from an asset-return matrix.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray):
+Shape <code>(T, N)</code> (or <code>(T,)</code> for a single asset) of simple returns.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="Portfolio.pnl" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">pnl</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.pnl"></a>
+    
+            <div class="docstring"><p>The portfolio P&amp;amp;L series \( V\,(R w) \) in money units.</p>
+</div>
+
+
+                            </div>
+                            <div id="Portfolio.losses" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">losses</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Portfolio.losses"></a>
+    
+            <div class="docstring"><p>The portfolio loss series \( -V\,(R w) \) (positive = loss).</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="RiskEstimate">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">RiskEstimate</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#RiskEstimate"></a>
+    
+            <div class="docstring"><p>A VaR/ES estimate at one confidence level, in loss (money) units.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>var</strong> (float):
+Value-at-Risk \( \mathrm{VaR}_\alpha \) (a positive loss).</li>
+<li><strong>es</strong> (float):
+Expected Shortfall \( \mathrm{ES}_\alpha \ge \mathrm{VaR}_\alpha \).</li>
+<li><strong>level</strong> (float):
+The confidence level \( \alpha \in (0, 1) \).</li>
+<li><strong>method</strong> (str):
+Which engine produced it (for reporting/tables).</li>
+</ul>
+</div>
+
+
+                            <div id="RiskEstimate.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">RiskEstimate</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">var</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">es</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">level</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskEstimate.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="RiskEstimate.var" class="classattr">
+                                <div class="attr variable">
+            <span class="name">var</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskEstimate.var"></a>
+    
+    
+
+                            </div>
+                            <div id="RiskEstimate.es" class="classattr">
+                                <div class="attr variable">
+            <span class="name">es</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskEstimate.es"></a>
+    
+    
+
+                            </div>
+                            <div id="RiskEstimate.level" class="classattr">
+                                <div class="attr variable">
+            <span class="name">level</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskEstimate.level"></a>
+    
+    
+
+                            </div>
+                            <div id="RiskEstimate.method" class="classattr">
+                                <div class="attr variable">
+            <span class="name">method</span><span class="annotation">: str</span>        =
+<span class="default_value">&#39;&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskEstimate.method"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="VaREngine">
+                    <div class="attr class">
+                    <div class="decorator decorator-runtime_checkable">@runtime_checkable</div>
+
+    <span class="def">class</span>
+    <span class="name">VaREngine</span><wbr>(<span class="base">typing.Protocol</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#VaREngine"></a>
+    
+            <div class="docstring"><p>A method that estimates VaR/ES for a portfolio from an asset-return history.</p>
+</div>
+
+
+                            <div id="VaREngine.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">VaREngine</span><span class="signature pdoc-code condensed">(<span class="param"><span class="o">*</span><span class="n">args</span>, </span><span class="param"><span class="o">**</span><span class="n">kwargs</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaREngine.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="VaREngine.estimate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">estimate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">portfolio</span><span class="p">:</span> <span class="n"><a href="#Portfolio">Portfolio</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaREngine.estimate"></a>
+    
+            <div class="docstring"><p>Return the VaR/ES of <code>portfolio</code> given the <code>asset_returns</code> window.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="acerbi_szekely">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">acerbi_szekely</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">realized_losses</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_forecasts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">es_forecasts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Z2&#39;</span>,</span><span class="param">	<span class="n">null_losses</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#AcerbiSzekelyResult">AcerbiSzekelyResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#acerbi_szekely"></a>
+    
+            <div class="docstring"><p>Acerbi--Székely (2014) Expected-Shortfall backtest.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>realized_losses</strong> (ndarray):
+Realised losses \( L_t \), shape <code>(T,)</code>.</li>
+<li><strong>var_forecasts, es_forecasts</strong> (ndarray):
+The VaR and ES forecasts aligned with <code>realized_losses</code> (scalars are
+broadcast).</li>
+<li><strong>level</strong> (float):
+Confidence level \( \alpha \).</li>
+<li><strong>method</strong> ({"Z1", "Z2"}):
+<code>"Z2"</code> (unconditional, the default workhorse) averages the tail loss over
+<em>all</em> days; <code>"Z1"</code> (conditional) averages only over exception days.</li>
+<li><strong>null_losses</strong> (ndarray, optional):
+Shape <code>(n_sims, T)</code> of losses simulated under the <em>predictive</em> model
+(i.e. under \( H_0 \)). When given, the p-value is the fraction of null
+statistics at least as large as the realised one (ES not elicitable → the
+null is obtained by simulation, not a closed form).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="basel_traffic_light">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">basel_traffic_light</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n_exceptions</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">250</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.99</span></span><span class="return-annotation">) -> <span class="n"><a href="#BaselResult">BaselResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#basel_traffic_light"></a>
+    
+            <div class="docstring"><p>Basel green/yellow/red zone and capital multiplier add-on.</p>
+
+<p>Zones follow the cumulative probability of observing up to <code>n_exceptions</code>
+exceptions under the null rate \( 1-\alpha \): <strong>green</strong> below 95%, <strong>yellow</strong>
+from 95% up to 99.99%, <strong>red</strong> at or above 99.99%. The multiplier add-on is the
+supervisory plus-factor (0 in green; the standard 0.40-0.85 table in yellow;
+1.00 in red), calibrated for the canonical 250-day / 99% window.</p>
+</div>
+
+
+                </section>
+                <section id="book_pla_test">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">book_pla_test</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">book</span><span class="p">:</span> <span class="n"><a href="#OptionBook">OptionBook</a></span>,</span><span class="param">	<span class="n">scenarios</span><span class="p">:</span> <span class="n"><a href="#MarketScenarios">MarketScenarios</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rtpl_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;delta-normal&#39;</span><span class="p">,</span> <span class="s1">&#39;delta-gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;delta-gamma&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#PLAResult">PLAResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#book_pla_test"></a>
+    
+            <div class="docstring"><p>Run PLA on an option book: HPL = full revaluation, RTPL = sensitivities P&amp;L.</p>
+
+<p>Makes the pricing/risk connection concrete — the HPL is the pricing path
+(<code><a href="#OptionBook.full_revaluation_pnl">OptionBook.full_revaluation_pnl()</a></code>, no drift from the pricers) and the
+RTPL is the risk model's sensitivities P&amp;L on the <em>same</em> seeded scenarios.
+A <code>"delta-gamma"</code> risk model spans an option book's curvature; a
+<code>"delta-normal"</code> (delta-only) model does not, and short-gamma desks fail.</p>
+</div>
+
+
+                </section>
+                <section id="book_var_es">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">book_var_es</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">book</span><span class="p">:</span> <span class="n"><a href="#OptionBook">OptionBook</a></span>,</span><span class="param">	<span class="n">scenarios</span><span class="p">:</span> <span class="n"><a href="#MarketScenarios">MarketScenarios</a></span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;full&#39;</span><span class="p">,</span> <span class="s1">&#39;delta-normal&#39;</span><span class="p">,</span> <span class="s1">&#39;delta-gamma&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;full&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#book_var_es"></a>
+    
+            <div class="docstring"><p>VaR/ES of an option book under scenarios, by the chosen revaluation method.</p>
+
+<p>A thin adapter into the existing risk layer: compute the book's scenario P&amp;amp;L,
+negate it into losses, and hand it to
+<code>~<a href="#empirical_var_es">quantica.risk.measures.empirical_var_es()</a></code> — the risk/backtest machinery
+is untouched (the P&amp;amp;L-series seam doing its job). Evaluating all three methods
+on the <em>same</em> scenario set isolates approximation error from sampling noise.</p>
+</div>
+
+
+                </section>
+                <section id="christoffersen_cc">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">christoffersen_cc</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">hits</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#ChristoffersenResult">ChristoffersenResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#christoffersen_cc"></a>
+    
+            <div class="docstring"><p>Christoffersen conditional-coverage test: coverage <strong>and</strong> independence.</p>
+
+<p>The statistic is Kupiec's LR plus the independence LR and is
+\( \sim \chi^2_2 \) (Christoffersen, 1998).</p>
+</div>
+
+
+                </section>
+                <section id="christoffersen_independence">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">christoffersen_independence</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">hits</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n"><a href="#ChristoffersenResult">ChristoffersenResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#christoffersen_independence"></a>
+    
+            <div class="docstring"><p>Christoffersen test that exceptions are serially independent (\( \chi^2_1 \)).</p>
+
+<p>A first-order Markov alternative (different exception probabilities after a hit
+vs a non-hit) is tested against the i.i.d. null; a large statistic means
+exceptions <strong>cluster</strong>.</p>
+</div>
+
+
+                </section>
+                <section id="empirical_var_es">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">empirical_var_es</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">losses</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;historical&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#empirical_var_es"></a>
+    
+            <div class="docstring"><p>Empirical VaR and ES from a sample of losses.</p>
+
+<p><code>VaR</code> is the linear-interpolated \( \alpha \)-quantile of <code>losses</code>. <code>ES</code>
+uses the Rockafellar--Uryasev tail-mean identity</p>
+
+<p>$$\mathrm{ES}_\alpha = \mathrm{VaR}_\alpha
+    + \frac{1}{1-\alpha}\,\mathbb E\big[(L - \mathrm{VaR}_\alpha)^+\big],$$</p>
+
+<p>which is numerically stable (no reliance on how many points land exactly in the
+tail) and coincides with the average of the worst \( (1-\alpha) \) fraction of
+losses for a continuous distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>losses</strong> (ndarray):
+Sample of losses (positive = loss).</li>
+<li><strong>level</strong> (float):
+Confidence level \( \alpha \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="exceptions">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">exceptions</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">realized_losses</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_forecasts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#exceptions"></a>
+    
+            <div class="docstring"><p>The 0/1 exception sequence <code>1{loss &gt; VaR}</code> (a <em>hit</em> series).</p>
+</div>
+
+
+                </section>
+                <section id="ks_distance">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">ks_distance</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">rtpl</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">hpl</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ks_distance"></a>
+    
+            <div class="docstring"><p>Two-sample Kolmogorov--Smirnov distance \( \sup_x |F_R(x) - F_H(x)| \).</p>
+
+<p>The empirical CDFs of the two (unpaired) distributions are compared at every
+pooled observation. Matches <code>scipy.stats.ks_2samp()</code> (asserted in the
+tests).</p>
+</div>
+
+
+                </section>
+                <section id="kupiec_pof">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">kupiec_pof</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n_exceptions</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#KupiecResult">KupiecResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#kupiec_pof"></a>
+    
+            <div class="docstring"><p>Kupiec's POF test of unconditional coverage (LR \( \sim \chi^2_1 \)).</p>
+</div>
+
+
+                </section>
+                <section id="normal_var_es">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">normal_var_es</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;parametric-normal&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskEstimate">RiskEstimate</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#normal_var_es"></a>
+    
+            <div class="docstring"><p>Gaussian closed-form VaR and ES for P&amp;amp;L \( \sim \mathcal N(\mu, \sigma^2) \).</p>
+
+<p>With losses \( L = -\text{P&amp;amp;L} \sim \mathcal N(-\mu, \sigma^2) \) and
+\( z_\alpha = \Phi^{-1}(\alpha) \),</p>
+
+<p>$$\mathrm{VaR}_\alpha = -\mu + \sigma z_\alpha, \qquad
+\mathrm{ES}_\alpha = -\mu + \sigma\,\frac{\phi(z_\alpha)}{1 - \alpha}.$$</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>mean</strong> (float):
+Mean of the P&amp;amp;L (drift), in money units.</li>
+<li><strong>sigma</strong> (float):
+Standard deviation of the P&amp;amp;L. Must be non-negative.</li>
+<li><strong>level</strong> (float):
+Confidence level \( \alpha \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="pla_test">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">pla_test</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">rtpl</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">hpl</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n"><a href="#PLAResult">PLAResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#pla_test"></a>
+    
+            <div class="docstring"><p>Run the FRTB P&amp;L-attribution test on aligned RTPL and HPL series.</p>
+
+<p>The desk's overall zone is the <strong>worse</strong> of the two per-metric zones: green
+only if both metrics are green, red if either metric is red, amber otherwise
+(BCBS d457, MAR33.43--33.46).</p>
+</div>
+
+
+                </section>
+                <section id="rolling_var_forecasts">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">rolling_var_forecasts</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">engine</span><span class="p">:</span> <span class="n"><a href="#VaREngine">VaREngine</a></span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">portfolio</span><span class="p">:</span> <span class="n"><a href="#Portfolio">Portfolio</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">window</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#rolling_var_forecasts"></a>
+    
+            <div class="docstring"><p>Roll <code>engine</code> over a moving window, one-step-ahead, out of sample.</p>
+
+<p>For each day <code>t &gt;= window</code> the engine is refit on the trailing <code>window</code> days
+<code>[t-window, t)</code> and its VaR/ES forecast is compared with the <em>realised</em> loss
+on day <code>t</code>.</p>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>var_forecasts, es_forecasts, realized_losses</strong> (ndarray):
+Three aligned arrays of length <code>T - window</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="spearman_correlation">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">spearman_correlation</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">rtpl</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">hpl</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#spearman_correlation"></a>
+    
+            <div class="docstring"><p>Spearman rank correlation of paired <code>(RTPL, HPL)</code> observations.</p>
+
+<p>Computed as the Pearson correlation of the (tie-averaged) ranks — the
+definition of Spearman's rho. Matches <code>scipy.stats.spearmanr()</code> (asserted
+in the tests). If either series is constant (no rank information — e.g. a
+perfectly delta-hedged book scored by a delta-only risk model), the
+correlation is undefined and reported as <code>0.0</code>, which lands in the red zone.</p>
+</div>
+
+
+                </section>
+    </main>
+</body>
+</html>

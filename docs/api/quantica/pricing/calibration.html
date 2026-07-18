@@ -1,0 +1,1059 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="pdoc 16.0.0"/>
+    <title>quantica.pricing.calibration API documentation</title>
+
+    <style>/*! * Bootstrap Reboot v5.0.0 (https://getbootstrap.com/) * Copyright 2011-2021 The Bootstrap Authors * Copyright 2011-2021 Twitter, Inc. * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE) * Forked from Normalize.css, licensed MIT (https://github.com/necolas/normalize.css/blob/master/LICENSE.md) */*,::after,::before{box-sizing:border-box}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";font-size:1rem;font-weight:400;line-height:1.5;color:#212529;background-color:#fff;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}hr{margin:1rem 0;color:inherit;background-color:currentColor;border:0;opacity:.25}hr:not([size]){height:1px}h1,h2,h3,h4,h5,h6{margin-top:0;margin-bottom:.5rem;font-weight:500;line-height:1.2}h1{font-size:calc(1.375rem + 1.5vw)}@media (min-width:1200px){h1{font-size:2.5rem}}h2{font-size:calc(1.325rem + .9vw)}@media (min-width:1200px){h2{font-size:2rem}}h3{font-size:calc(1.3rem + .6vw)}@media (min-width:1200px){h3{font-size:1.75rem}}h4{font-size:calc(1.275rem + .3vw)}@media (min-width:1200px){h4{font-size:1.5rem}}h5{font-size:1.25rem}h6{font-size:1rem}p{margin-top:0;margin-bottom:1rem}abbr[data-bs-original-title],abbr[title]{-webkit-text-decoration:underline dotted;text-decoration:underline dotted;cursor:help;-webkit-text-decoration-skip-ink:none;text-decoration-skip-ink:none}address{margin-bottom:1rem;font-style:normal;line-height:inherit}ol,ul{padding-left:2rem}dl,ol,ul{margin-top:0;margin-bottom:1rem}ol ol,ol ul,ul ol,ul ul{margin-bottom:0}dt{font-weight:700}dd{margin-bottom:.5rem;margin-left:0}blockquote{margin:0 0 1rem}b,strong{font-weight:bolder}small{font-size:.875em}mark{padding:.2em;background-color:#fcf8e3}sub,sup{position:relative;font-size:.75em;line-height:0;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}a{color:#0d6efd;text-decoration:underline}a:hover{color:#0a58ca}a:not([href]):not([class]),a:not([href]):not([class]):hover{color:inherit;text-decoration:none}code,kbd,pre,samp{font-family:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:1em;direction:ltr;unicode-bidi:bidi-override}pre{display:block;margin-top:0;margin-bottom:1rem;overflow:auto;font-size:.875em}pre code{font-size:inherit;color:inherit;word-break:normal}code{font-size:.875em;color:#d63384;word-wrap:break-word}a>code{color:inherit}kbd{padding:.2rem .4rem;font-size:.875em;color:#fff;background-color:#212529;border-radius:.2rem}kbd kbd{padding:0;font-size:1em;font-weight:700}figure{margin:0 0 1rem}img,svg{vertical-align:middle}table{caption-side:bottom;border-collapse:collapse}caption{padding-top:.5rem;padding-bottom:.5rem;color:#6c757d;text-align:left}th{text-align:inherit;text-align:-webkit-match-parent}tbody,td,tfoot,th,thead,tr{border-color:inherit;border-style:solid;border-width:0}label{display:inline-block}button{border-radius:0}button:focus:not(:focus-visible){outline:0}button,input,optgroup,select,textarea{margin:0;font-family:inherit;font-size:inherit;line-height:inherit}button,select{text-transform:none}[role=button]{cursor:pointer}select{word-wrap:normal}select:disabled{opacity:1}[list]::-webkit-calendar-picker-indicator{display:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}[type=button]:not(:disabled),[type=reset]:not(:disabled),[type=submit]:not(:disabled),button:not(:disabled){cursor:pointer}::-moz-focus-inner{padding:0;border-style:none}textarea{resize:vertical}fieldset{min-width:0;padding:0;margin:0;border:0}legend{float:left;width:100%;padding:0;margin-bottom:.5rem;font-size:calc(1.275rem + .3vw);line-height:inherit}@media (min-width:1200px){legend{font-size:1.5rem}}legend+*{clear:left}::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-fields-wrapper,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-text,::-webkit-datetime-edit-year-field{padding:0}::-webkit-inner-spin-button{height:auto}[type=search]{outline-offset:-2px;-webkit-appearance:textfield}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-color-swatch-wrapper{padding:0}::file-selector-button{font:inherit}::-webkit-file-upload-button{font:inherit;-webkit-appearance:button}output{display:inline-block}iframe{border:0}summary{display:list-item;cursor:pointer}progress{vertical-align:baseline}[hidden]{display:none!important}</style>
+    <style>/*! syntax-highlighting.css */pre{line-height:125%;}span.linenos{color:inherit; background-color:transparent; padding-left:5px; padding-right:20px;}.pdoc-code .hll{background-color:#ffffcc}.pdoc-code{background:#f8f8f8;}.pdoc-code .c{color:#3D7B7B; font-style:italic}.pdoc-code .err{border:1px solid #FF0000}.pdoc-code .k{color:#008000; font-weight:bold}.pdoc-code .o{color:#666666}.pdoc-code .ch{color:#3D7B7B; font-style:italic}.pdoc-code .cm{color:#3D7B7B; font-style:italic}.pdoc-code .cp{color:#9C6500}.pdoc-code .cpf{color:#3D7B7B; font-style:italic}.pdoc-code .c1{color:#3D7B7B; font-style:italic}.pdoc-code .cs{color:#3D7B7B; font-style:italic}.pdoc-code .gd{color:#A00000}.pdoc-code .ge{font-style:italic}.pdoc-code .gr{color:#E40000}.pdoc-code .gh{color:#000080; font-weight:bold}.pdoc-code .gi{color:#008400}.pdoc-code .go{color:#717171}.pdoc-code .gp{color:#000080; font-weight:bold}.pdoc-code .gs{font-weight:bold}.pdoc-code .gu{color:#800080; font-weight:bold}.pdoc-code .gt{color:#0044DD}.pdoc-code .kc{color:#008000; font-weight:bold}.pdoc-code .kd{color:#008000; font-weight:bold}.pdoc-code .kn{color:#008000; font-weight:bold}.pdoc-code .kp{color:#008000}.pdoc-code .kr{color:#008000; font-weight:bold}.pdoc-code .kt{color:#B00040}.pdoc-code .m{color:#666666}.pdoc-code .s{color:#BA2121}.pdoc-code .na{color:#687822}.pdoc-code .nb{color:#008000}.pdoc-code .nc{color:#0000FF; font-weight:bold}.pdoc-code .no{color:#880000}.pdoc-code .nd{color:#AA22FF}.pdoc-code .ni{color:#717171; font-weight:bold}.pdoc-code .ne{color:#CB3F38; font-weight:bold}.pdoc-code .nf{color:#0000FF}.pdoc-code .nl{color:#767600}.pdoc-code .nn{color:#0000FF; font-weight:bold}.pdoc-code .nt{color:#008000; font-weight:bold}.pdoc-code .nv{color:#19177C}.pdoc-code .ow{color:#AA22FF; font-weight:bold}.pdoc-code .w{color:#bbbbbb}.pdoc-code .mb{color:#666666}.pdoc-code .mf{color:#666666}.pdoc-code .mh{color:#666666}.pdoc-code .mi{color:#666666}.pdoc-code .mo{color:#666666}.pdoc-code .sa{color:#BA2121}.pdoc-code .sb{color:#BA2121}.pdoc-code .sc{color:#BA2121}.pdoc-code .dl{color:#BA2121}.pdoc-code .sd{color:#BA2121; font-style:italic}.pdoc-code .s2{color:#BA2121}.pdoc-code .se{color:#AA5D1F; font-weight:bold}.pdoc-code .sh{color:#BA2121}.pdoc-code .si{color:#A45A77; font-weight:bold}.pdoc-code .sx{color:#008000}.pdoc-code .sr{color:#A45A77}.pdoc-code .s1{color:#BA2121}.pdoc-code .ss{color:#19177C}.pdoc-code .bp{color:#008000}.pdoc-code .fm{color:#0000FF}.pdoc-code .vc{color:#19177C}.pdoc-code .vg{color:#19177C}.pdoc-code .vi{color:#19177C}.pdoc-code .vm{color:#19177C}.pdoc-code .il{color:#666666}</style>
+    <style>/*! theme.css */:root{--pdoc-background:#fff;}.pdoc{--text:#212529;--muted:#6c757d;--link:#3660a5;--link-hover:#1659c5;--code:#f8f8f8;--active:#fff598;--accent:#eee;--accent2:#c1c1c1;--nav-hover:rgba(255, 255, 255, 0.5);--name:#0066BB;--def:#008800;--annotation:#007020;}</style>
+    <style>/*! layout.css */html, body{width:100%;height:100%;}html, main{scroll-behavior:smooth;}body{background-color:var(--pdoc-background);}@media (max-width:769px){#navtoggle{cursor:pointer;position:absolute;width:50px;height:40px;top:1rem;right:1rem;border-color:var(--text);color:var(--text);display:flex;opacity:0.8;z-index:999;}#navtoggle:hover{opacity:1;}#togglestate + div{display:none;}#togglestate:checked + div{display:inherit;}main, header{padding:2rem 3vw;}header + main{margin-top:-3rem;}.git-button{display:none !important;}nav input[type="search"]{max-width:77%;}nav input[type="search"]:first-child{margin-top:-6px;}nav input[type="search"]:valid ~ *{display:none !important;}}@media (min-width:770px){:root{--sidebar-width:clamp(12.5rem, 28vw, 22rem);}nav{position:fixed;overflow:auto;height:100vh;width:var(--sidebar-width);}main, header{padding:3rem 2rem 3rem calc(var(--sidebar-width) + 3rem);width:calc(54rem + var(--sidebar-width));max-width:100%;}header + main{margin-top:-4rem;}#navtoggle{display:none;}}#togglestate{position:absolute;height:0;opacity:0;}nav.pdoc{--pad:clamp(0.5rem, 2vw, 1.75rem);--indent:1.5rem;background-color:var(--accent);border-right:1px solid var(--accent2);box-shadow:0 0 20px rgba(50, 50, 50, .2) inset;padding:0 0 0 var(--pad);overflow-wrap:anywhere;scrollbar-width:thin; scrollbar-color:var(--accent2) transparent; z-index:1}nav.pdoc::-webkit-scrollbar{width:.4rem; }nav.pdoc::-webkit-scrollbar-thumb{background-color:var(--accent2); }nav.pdoc > div{padding:var(--pad) 0;}nav.pdoc .module-list-button{display:inline-flex;align-items:center;color:var(--text);border-color:var(--muted);margin-bottom:1rem;}nav.pdoc .module-list-button:hover{border-color:var(--text);}nav.pdoc input[type=search]{display:block;outline-offset:0;width:calc(100% - var(--pad));}nav.pdoc .logo{max-width:calc(100% - var(--pad));max-height:35vh;display:block;margin:0 auto 1rem;transform:translate(calc(-.5 * var(--pad)), 0);}nav.pdoc ul{list-style:none;padding-left:0;}nav.pdoc > div > ul{margin-left:calc(0px - var(--pad));}nav.pdoc li a{padding:.2rem 0 .2rem calc(var(--pad) + var(--indent));}nav.pdoc > div > ul > li > a{padding-left:var(--pad);}nav.pdoc li{transition:all 100ms;}nav.pdoc li:hover{background-color:var(--nav-hover);}nav.pdoc a, nav.pdoc a:hover{color:var(--text);}nav.pdoc a{display:block;}nav.pdoc > h2:first-of-type{margin-top:1.5rem;}nav.pdoc .class:before{content:"class ";color:var(--muted);}nav.pdoc .function:after{content:"()";color:var(--muted);}nav.pdoc footer:before{content:"";display:block;width:calc(100% - var(--pad));border-top:solid var(--accent2) 1px;margin-top:1.5rem;padding-top:.5rem;}nav.pdoc footer{font-size:small;}</style>
+    <style>/*! content.css */.pdoc{color:var(--text);box-sizing:border-box;line-height:1.5;background:none;}.pdoc .pdoc-button{cursor:pointer;display:inline-block;border:solid black 1px;border-radius:2px;font-size:.75rem;padding:calc(0.5em - 1px) 1em;transition:100ms all;}.pdoc .alert{padding:1rem 1rem 1rem calc(1.5rem + 24px);border:1px solid transparent;border-radius:.25rem;background-repeat:no-repeat;background-position:.75rem center;margin-bottom:1rem;}.pdoc .alert > em{display:none;}.pdoc .alert > *:last-child{margin-bottom:0;}.pdoc .alert.note{color:#084298;background-color:#cfe2ff;border-color:#b6d4fe;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23084298%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2016A8%208%200%201%200%208%200a8%208%200%200%200%200%2016zm.93-9.412-1%204.705c-.07.34.029.533.304.533.194%200%20.487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703%200-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381%202.29-.287zM8%205.5a1%201%200%201%201%200-2%201%201%200%200%201%200%202z%22/%3E%3C/svg%3E");}.pdoc .alert.tip{color:#0a3622;background-color:#d1e7dd;border-color:#a3cfbb;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%230a3622%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2%206a6%206%200%201%201%2010.174%204.31c-.203.196-.359.4-.453.619l-.762%201.769A.5.5%200%200%201%2010.5%2013a.5.5%200%200%201%200%201%20.5.5%200%200%201%200%201l-.224.447a1%201%200%200%201-.894.553H6.618a1%201%200%200%201-.894-.553L5.5%2015a.5.5%200%200%201%200-1%20.5.5%200%200%201%200-1%20.5.5%200%200%201-.46-.302l-.761-1.77a2%202%200%200%200-.453-.618A5.98%205.98%200%200%201%202%206m6-5a5%205%200%200%200-3.479%208.592c.263.254.514.564.676.941L5.83%2012h4.342l.632-1.467c.162-.377.413-.687.676-.941A5%205%200%200%200%208%201%22/%3E%3C/svg%3E");}.pdoc .alert.important{color:#055160;background-color:#cff4fc;border-color:#9eeaf9;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23055160%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2%200a2%202%200%200%200-2%202v12a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V2a2%202%200%200%200-2-2zm6%204c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%204.995A.905.905%200%200%201%208%204m.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E");}.pdoc .alert.warning{color:#664d03;background-color:#fff3cd;border-color:#ffecb5;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23664d03%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8.982%201.566a1.13%201.13%200%200%200-1.96%200L.165%2013.233c-.457.778.091%201.767.98%201.767h13.713c.889%200%201.438-.99.98-1.767L8.982%201.566zM8%205c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%205.995A.905.905%200%200%201%208%205zm.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2z%22/%3E%3C/svg%3E");}.pdoc .alert.caution{color:#842029;background-color:#f8d7da;border-color:#f5c2c7;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23842029%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M11.46.146A.5.5%200%200%200%2011.107%200H4.893a.5.5%200%200%200-.353.146L.146%204.54A.5.5%200%200%200%200%204.893v6.214a.5.5%200%200%200%20.146.353l4.394%204.394a.5.5%200%200%200%20.353.146h6.214a.5.5%200%200%200%20.353-.146l4.394-4.394a.5.5%200%200%200%20.146-.353V4.893a.5.5%200%200%200-.146-.353zM8%204c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%204.995A.905.905%200%200%201%208%204m.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E");}.pdoc .alert.danger{color:#842029;background-color:#f8d7da;border-color:#f5c2c7;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23842029%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M5.52.359A.5.5%200%200%201%206%200h4a.5.5%200%200%201%20.474.658L8.694%206H12.5a.5.5%200%200%201%20.395.807l-7%209a.5.5%200%200%201-.873-.454L6.823%209.5H3.5a.5.5%200%200%201-.48-.641l2.5-8.5z%22/%3E%3C/svg%3E");}.pdoc .visually-hidden{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0, 0, 0, 0) !important;white-space:nowrap !important;border:0 !important;}.pdoc h1, .pdoc h2, .pdoc h3{font-weight:300;margin:.3em 0;padding:.2em 0;}.pdoc > section:not(.module-info) h1{font-size:1.5rem;font-weight:500;}.pdoc > section:not(.module-info) h2{font-size:1.4rem;font-weight:500;}.pdoc > section:not(.module-info) h3{font-size:1.3rem;font-weight:500;}.pdoc > section:not(.module-info) h4{font-size:1.2rem;}.pdoc > section:not(.module-info) h5{font-size:1.1rem;}.pdoc a{text-decoration:none;color:var(--link);}.pdoc a:hover{color:var(--link-hover);}.pdoc blockquote{margin-left:2rem;}.pdoc pre{border-top:1px solid var(--accent2);border-bottom:1px solid var(--accent2);margin-top:0;margin-bottom:1em;padding:.5rem 0 .5rem .5rem;overflow-x:auto;background-color:var(--code);}.pdoc code{color:var(--text);padding:.2em .4em;margin:0;font-size:85%;background-color:var(--accent);border-radius:6px;}.pdoc a > code{color:inherit;}.pdoc pre > code{display:inline-block;font-size:inherit;background:none;border:none;padding:0;}.pdoc > section:not(.module-info){margin-bottom:1.5rem;}.pdoc .modulename{margin-top:0;font-weight:bold;}.pdoc .modulename a{color:var(--link);transition:100ms all;}.pdoc .git-button{float:right;border:solid var(--link) 1px;}.pdoc .git-button:hover{background-color:var(--link);color:var(--pdoc-background);}.view-source-toggle-state,.view-source-toggle-state ~ .pdoc-code{display:none;}.view-source-toggle-state:checked ~ .pdoc-code{display:block;}.view-source-button{display:inline-block;float:right;font-size:.75rem;line-height:1.5rem;color:var(--muted);padding:0 .4rem 0 1.3rem;cursor:pointer;text-indent:-2px;}.view-source-button > span{visibility:hidden;}.module-info .view-source-button{float:none;display:flex;justify-content:flex-end;margin:-1.2rem .4rem -.2rem 0;}.view-source-button::before{position:absolute;content:"View Source";display:list-item;list-style-type:disclosure-closed;}.view-source-toggle-state:checked ~ .attr .view-source-button::before,.view-source-toggle-state:checked ~ .view-source-button::before{list-style-type:disclosure-open;}.pdoc .docstring{margin-bottom:1.5rem;}.pdoc section:not(.module-info) .docstring{margin-left:clamp(0rem, 5vw - 2rem, 1rem);}.pdoc .docstring .pdoc-code{margin-left:1em;margin-right:1em;}.pdoc h1:target,.pdoc h2:target,.pdoc h3:target,.pdoc h4:target,.pdoc h5:target,.pdoc h6:target,.pdoc .pdoc-code > pre > span:target{background-color:var(--active);box-shadow:-1rem 0 0 0 var(--active);}.pdoc .pdoc-code > pre > span:target{display:block;}.pdoc div:target > .attr,.pdoc section:target > .attr,.pdoc dd:target > a{background-color:var(--active);}.pdoc *{scroll-margin:2rem;}.pdoc .pdoc-code .linenos{user-select:none;}.pdoc .attr:hover{filter:contrast(0.95);}.pdoc section, .pdoc .classattr{position:relative;}.pdoc .headerlink{--width:clamp(1rem, 3vw, 2rem);position:absolute;top:0;left:calc(0rem - var(--width));transition:all 100ms ease-in-out;opacity:0;}.pdoc .headerlink::before{content:"#";display:block;text-align:center;width:var(--width);height:2.3rem;line-height:2.3rem;font-size:1.5rem;}.pdoc .attr:hover ~ .headerlink,.pdoc *:target > .headerlink,.pdoc .headerlink:hover{opacity:1;}.pdoc .attr{display:block;margin:.5rem 0 .5rem;padding:.4rem .4rem .4rem 1rem;background-color:var(--accent);overflow-x:auto;}.pdoc .classattr{margin-left:2rem;}.pdoc .decorator-deprecated{color:#842029;}.pdoc .decorator-deprecated ~ span{filter:grayscale(1) opacity(0.8);}.pdoc .name{color:var(--name);font-weight:bold;}.pdoc .def{color:var(--def);font-weight:bold;}.pdoc .signature{background-color:transparent;}.pdoc .param, .pdoc .return-annotation{white-space:pre;}.pdoc .signature.multiline .param{display:block;}.pdoc .signature.condensed .param{display:inline-block;}.pdoc .annotation{color:var(--annotation);}.pdoc .view-value-toggle-state,.pdoc .view-value-toggle-state ~ .default_value{display:none;}.pdoc .view-value-toggle-state:checked ~ .default_value{display:inherit;}.pdoc .view-value-button{font-size:.5rem;vertical-align:middle;border-style:dashed;margin-top:-0.1rem;}.pdoc .view-value-button:hover{background:white;}.pdoc .view-value-button::before{content:"show";text-align:center;width:2.2em;display:inline-block;}.pdoc .view-value-toggle-state:checked ~ .view-value-button::before{content:"hide";}.pdoc .inherited{margin-left:2rem;}.pdoc .inherited dt{font-weight:700;}.pdoc .inherited dt, .pdoc .inherited dd{display:inline;margin-left:0;margin-bottom:.5rem;}.pdoc .inherited dd:not(:last-child):after{content:", ";}.pdoc .inherited .class:before{content:"class ";}.pdoc .inherited .function a:after{content:"()";}.pdoc .search-result .docstring{overflow:auto;max-height:25vh;}.pdoc .search-result.focused > .attr{background-color:var(--active);}.pdoc .attribution{margin-top:2rem;display:block;opacity:0.5;transition:all 200ms;filter:grayscale(100%);}.pdoc .attribution:hover{opacity:1;filter:grayscale(0%);}.pdoc .attribution img{margin-left:5px;height:27px;vertical-align:bottom;width:50px;transition:all 200ms;}.pdoc table{display:block;width:max-content;max-width:100%;overflow:auto;margin-bottom:1rem;}.pdoc table th{font-weight:600;}.pdoc table th, .pdoc table td{padding:6px 13px;border:1px solid var(--accent2);}</style>
+    <style>/*! custom.css */</style><script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']]
+        }
+    };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+    /* Re-invoke MathJax when DOM content changes, for example during search. */
+    document.addEventListener("DOMContentLoaded", () => {
+        new MutationObserver(() => MathJax.typeset()).observe(
+            document.querySelector("main.pdoc").parentNode,
+            {childList: true}
+        );
+    })
+</script>
+<style>
+    mjx-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+</style></head>
+<body>
+    <nav class="pdoc">
+        <label id="navtoggle" for="togglestate" class="pdoc-button"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke-linecap='round' stroke="currentColor" stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg></label>
+        <input id="togglestate" type="checkbox" aria-hidden="true" tabindex="-1">
+        <div>            <a class="pdoc-button module-list-button" href="../pricing.html">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-left" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M10 3.5a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 9.5 14h-8A1.5 1.5 0 0 1 0 12.5v-9A1.5 1.5 0 0 1 1.5 2h8A1.5 1.5 0 0 1 11 3.5v2a.5.5 0 0 1-1 0v-2z"/>
+  <path fill-rule="evenodd" d="M4.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H14.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"/>
+</svg>                &nbsp;quantica.pricing</a>
+
+
+
+            <h2>Contents</h2>
+            <ul>
+  <li><a href="#vol-space-vs-price-space-the-default-choice">Vol space vs price space (the default choice)</a></li>
+  <li><a href="#identifiability-named-not-hidden">Identifiability (named, not hidden)</a></li>
+  <li><a href="#feller-condition-reported-optionally-penalised">Feller condition (reported, optionally penalised)</a></li>
+</ul>
+
+
+
+            <h2>API Documentation</h2>
+                <ul class="memberlist">
+            <li>
+                    <a class="variable" href="#DEFAULT_BOUNDS">DEFAULT_BOUNDS</a>
+            </li>
+            <li>
+                    <a class="class" href="#HestonCalibrationResult">HestonCalibrationResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#HestonCalibrationResult.__init__">HestonCalibrationResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.params">params</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.process">process</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.rmse_vol">rmse_vol</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.rmse_price">rmse_price</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.max_abs_vol_error">max_abs_vol_error</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.model_ivs">model_ivs</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.feller_satisfied">feller_satisfied</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.space">space</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.cost">cost</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.success">success</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.n_starts">n_starts</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.n_quotes">n_quotes</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.message">message</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonCalibrationResult.param_spread">param_spread</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#HestonCalibrationResult.summary">summary</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#HestonParams">HestonParams</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#HestonParams.__init__">HestonParams</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonParams.v0">v0</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonParams.kappa">kappa</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonParams.theta">theta</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonParams.xi">xi</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonParams.rho">rho</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#HestonParams.from_array">from_array</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#HestonParams.to_process">to_process</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HestonParams.feller_satisfied">feller_satisfied</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#ObjectiveProfile">ObjectiveProfile</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#ObjectiveProfile.__init__">ObjectiveProfile</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ObjectiveProfile.param">param</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ObjectiveProfile.values">values</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ObjectiveProfile.rmse_vol">rmse_vol</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ObjectiveProfile.optimum">optimum</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ObjectiveProfile.flatness">flatness</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#ParamBounds">ParamBounds</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#ParamBounds.__init__">ParamBounds</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ParamBounds.lower">lower</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ParamBounds.upper">upper</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ParamBounds.clip">clip</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#VolQuote">VolQuote</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#VolQuote.__init__">VolQuote</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VolQuote.strike">strike</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VolQuote.expiry">expiry</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VolQuote.implied_vol">implied_vol</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="function" href="#calibrate_heston">calibrate_heston</a>
+            </li>
+            <li>
+                    <a class="function" href="#profile_objective">profile_objective</a>
+            </li>
+            <li>
+                    <a class="function" href="#vol_surface_from_grid">vol_surface_from_grid</a>
+            </li>
+    </ul>
+
+
+
+        <a class="attribution" title="pdoc: Python API documentation generator" href="https://pdoc.dev" target="_blank">
+            built with <span class="visually-hidden">pdoc</span><img
+                alt="pdoc logo"
+                src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20role%3D%22img%22%20aria-label%3D%22pdoc%20logo%22%20width%3D%22300%22%20height%3D%22160%22%20viewBox%3D%220%200%20150%2080%22%3E%3Ctitle%3Epdoc%3C/title%3E%3Cpath%20d%3D%22M132.316%2048.886c.276-4.679%202.342-6.698%204.409-7.982s4.27-1.165%206.751-1.055c1.586.07%203.044.156%204.222-.482%201.142-.619%202.026-1.932%202.162-3.739.268-3.576-1.929-5.368-5.006-5.551s-7.599.524-10.517%201.606c-4.455%201.652-8.588%206.606-9.552%208.992s-2.342%206.193-1.745%2010.873%202.664%209.221%205.878%2011.79%205.878%203.808%2010.103%204.312%203.444.229%206.062.229%205.006-2.202%204.914-4.909-2.296-5.001-4.501-4.863-3.077.505-5.281.229-7.715-2.064-7.899-9.451z%22%20fill%3D%22%23198754%22/%3E%3Ccircle%20cx%3D%22101.504%22%20cy%3D%2248.943%22%20r%3D%2214.208%22%20fill%3D%22none%22%20stroke%3D%22%23198754%22%20stroke-width%3D%229.354%22/%3E%3Cpath%20d%3D%22M87.81.002c-3.637.065-5.001.454-7.014%201.232s-3.443%201.363-6.3%204.282c-1.723%201.76-3.148%205.019-3.776%207.329-.413%201.521-.316%202.63-.316%202.63l-.195%2034.612c.065%205.774-6.755%208.305-9.612%208.37s-9.678-1.038-9.743-9.408%207.128-9.521%208.362-9.521c1.413-.13%202.526-.021%203.718-.016%202.071.009%204.157-.778%204.092-4.671s-4.157-4.736-4.157-4.736c-6.3-.843-11.43%202.206-11.43%202.206S40.917%2038.15%2041.372%2049.634%2051.568%2068.19%2061.311%2068.125s18.316-7.007%2018.445-17.193l.13-22.772c.046-2.291%202.683-3.644%204.476-4.203.745-.232%201.694-.274%201.694-.274l10.457-.13s4.871-.324%207.729-3.114%204.352-6.294%204.352-6.294.974-3.049.13-4.606-.195-1.233-2.792-3.309-8.573-4.477-8.573-4.477S91.447-.063%2087.81.002zM0%2047.169l.065%2028.417S0%2080.127%204.481%2079.997s5.072-3.866%205.049-4.152l-.113-28.482s1.624-7.656%209.937-7.721%2010.002%206.942%2010.002%208.499-.909%2010.51-9.093%2010.51c-.948%200-2.99-.567-4.145-.272-3.919%201-3.194%204.554-3.194%204.554s.065%205.061%207.404%204.996%2018.575-6.034%2018.575-19.074S26.953%2030.04%2019.549%2029.91%201.234%2035.296%200%2047.169z%22%20fill%3D%22%23198754%22/%3E%3Cg%20transform%3D%22matrix%28.325601%200%200%20.325256%20-10.32669%20-45.802786%29%22%3E%3Ccircle%20cx%3D%22297.554%22%20cy%3D%22172.286%22%20r%3D%2216.5%22%20fill%3D%22%23fff%22/%3E%3Cellipse%20cx%3D%22297.709%22%20cy%3D%22172.642%22%20rx%3D%2211.071%22%20ry%3D%2210.871%22%20fill%3D%22%23105a48%22/%3E%3Ccircle%20cx%3D%22304.104%22%20cy%3D%22167.667%22%20r%3D%224.5%22%20fill%3D%22%23fff%22/%3E%3C/g%3E%3Cpath%20d%3D%22M94.661%2017.032l.893-1.476s.99.714%201.916.925%201.575.114%202.955.114l14.565-.162c1.283-.032%203.085-.762%203.02-3.293s-.373-3.503-.373-3.503l1.283-.487s.52.503.877%201.573.309%201.995.292%202.66-.227%201.541-.227%201.541%201.564-.308%202.359-1.038.823-.779%201.489-1.508.812-.86.812-.86.552-.13.877.26.341.957.065%201.46-1.672%202.206-3.247%203.066-2.76%201.427-3.929%201.768-3.848.73-7.063.714l-10.944-.114s-2.143-.081-3.02-.373-2.241-.973-2.598-1.265z%22%20fill%3D%22%23d36d49%22/%3E%3Cg%20fill%3D%22%23105a48%22%3E%3Cellipse%20cx%3D%2293.052%22%20cy%3D%2243.567%22%20rx%3D%22.869%22%20ry%3D%221.014%22%20transform%3D%22rotate%28341.022%29%22/%3E%3Cellipse%20cx%3D%22104.3%22%20cy%3D%22-16.184%22%20rx%3D%22.865%22%20ry%3D%221.009%22%20transform%3D%22rotate%2814.786%29%22/%3E%3C/g%3E%3C/svg%3E"/>
+        </a>
+</div>
+    </nav>
+    <main class="pdoc">
+            <section class="module-info">
+                    <h1 class="modulename">
+<a href="./../../quantica.html">quantica</a><wbr>.<a href="./../pricing.html">pricing</a><wbr>.calibration    </h1>
+
+                        <div class="docstring"><p>Calibration of the Heston model to a vanilla implied-volatility surface.</p>
+
+<p>Given a set of market vanilla quotes — a grid of strikes \( \times \) maturities,
+each with an observed Black--Scholes implied volatility — recover the five Heston
+parameters \( (v_0, \kappa, \theta, \xi, \rho) \) that best reprice the surface.
+The fit is a <strong>nonlinear least-squares</strong> problem solved with
+<code>scipy.optimize.least_squares()</code> (trust-region reflective); the demonstrable
+skill here is the <em>design</em> of the calibration — objective, weighting, parameter
+bounds, the Feller diagnostic, identifiability profiling, and multi-start
+robustness — not reimplementing the optimizer (CLAUDE.md §3).</p>
+
+<h2 id="vol-space-vs-price-space-the-default-choice">Vol space vs price space (the default choice)</h2>
+
+<p>Residuals can be measured in <strong>implied-volatility points</strong> (default) or in
+<strong>price</strong>. Vol space is the economically sensible default: a fixed price error is
+a <em>huge</em> vol error for a cheap out-of-the-money option and a <em>tiny</em> one for an
+expensive in-the-money option, so a price-space fit silently overweights deep ITM
+quotes (which carry the least information about the smile). Weighting the fit in
+vol points treats each quote on the scale a trader actually cares about. We move
+between price and vol space by reusing the step-3 implied-volatility solver
+(<code>~<a href="../../quantica.html#implied_volatility">quantica.pricing.volatility.implied_volatility()</a></code>), inverting each model
+price on the <em>out-of-the-money</em> option at that strike, where vega is largest and
+the inversion is best-conditioned.</p>
+
+<h2 id="identifiability-named-not-hidden">Identifiability (named, not hidden)</h2>
+
+<p>A single surface does not pin all five parameters equally. \( \kappa \)
+(mean-reversion speed) and \( \theta \) (long-run variance) trade off — many
+\( (\kappa, \theta) \) pairs produce almost the same term structure of variance
+— so the objective is <em>flat</em> along that direction and \( \kappa \) in particular
+is only loosely determined. \( v_0 \) (short-dated level), \( \rho \) (skew)
+and \( \xi \) (smile curvature) are usually pinned much more tightly. We surface
+this two ways rather than pretend the fit is unique:</p>
+
+<ul>
+<li><code><a href="#profile_objective">profile_objective()</a></code> pins one parameter across a range, re-optimises the
+other four, and returns the minimised RMSE at each pin — a direct read-out of
+the objective's <em>flatness</em> along each axis (flat ⇒ unidentified).</li>
+<li><code>calibrate_heston(..., n_starts&gt;1)</code> runs from several starting points and
+reports the parameter spread across the near-optimal fits
+(<code><a href="#HestonCalibrationResult.param_spread">HestonCalibrationResult.param_spread</a></code>) — a robustness check that the
+same basin is found from different starts.</li>
+</ul>
+
+<h2 id="feller-condition-reported-optionally-penalised">Feller condition (reported, optionally penalised)</h2>
+
+<p>The Feller condition \( 2\kappa\theta \ge \xi^2 \) guarantees the variance stays
+strictly positive. A calibrated fit that violates it is still a valid Heston
+model (the variance can touch zero), so by default we <strong>report</strong> the condition via
+<code>HestonProcess.feller_satisfied</code> rather than force it. A soft penalty is
+available (<code>feller_weight &gt; 0</code>) for callers who want to bias the fit toward the
+Feller-satisfying region; the trade-off (a cleaner variance process vs a slightly
+worse surface fit) is theirs to make.</p>
+
+<h6 id="references">References</h6>
+
+<p>Heston, S. (1993). "A closed-form solution for options with stochastic
+volatility". Gatheral, J. (2006). <em>The Volatility Surface</em>. Cui, Y. et al. (2017),
+"Full and fast calibration of the Heston stochastic volatility model".</p>
+</div>
+
+                
+                
+                
+            </section>
+                <section id="DEFAULT_BOUNDS">
+                    <div class="attr variable">
+            <span class="name">DEFAULT_BOUNDS</span>        =
+<input id="DEFAULT_BOUNDS-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+            <label class="view-value-button pdoc-button" for="DEFAULT_BOUNDS-view-value"></label><span class="default_value">ParamBounds(lower=HestonParams(v0=1e-06, kappa=0.001, theta=1e-06, xi=0.0001, rho=-0.999), upper=HestonParams(v0=1.0, kappa=15.0, theta=1.0, xi=2.0, rho=0.999))</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DEFAULT_BOUNDS"></a>
+    
+    
+
+                </section>
+                <section id="HestonCalibrationResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">HestonCalibrationResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult"></a>
+    
+            <div class="docstring"><p>Outcome of a Heston calibration — the fit plus its validation diagnostics.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>params</strong> (HestonParams):
+The calibrated parameters (lowest-cost start).</li>
+<li><strong>process</strong> (HestonProcess):
+The calibrated process (<code><a href="#HestonCalibrationResult.params">params</a></code> attached to the market).</li>
+<li><strong>rmse_vol</strong> (float):
+Root-mean-square fit error in <strong>implied-vol points</strong> across the quotes.</li>
+<li><strong>rmse_price</strong> (float):
+Root-mean-square fit error in <strong>price</strong>.</li>
+<li><strong>max_abs_vol_error</strong> (float):
+Largest absolute vol-point residual (the worst-fit quote).</li>
+<li><strong>model_ivs</strong> (FloatArray):
+Model implied vols at the quotes (aligned with the input order), for
+inspecting or plotting the fitted smile.</li>
+<li><strong>feller_satisfied</strong> (bool):
+Whether the calibrated parameters satisfy \( 2\kappa\theta \ge \xi^2 \).</li>
+<li><strong>space</strong> ({"vol", "price"}):
+The space the residuals were measured in.</li>
+<li><strong>cost</strong> (float):
+The optimizer's final cost (\( \tfrac12\sum r_i^2 \)) at the best start.</li>
+<li><strong>success</strong> (bool):
+Whether the best start's optimizer reported convergence.</li>
+<li><strong>n_starts</strong> (int):
+Number of starting points tried.</li>
+<li><strong>n_quotes</strong> (int):
+Number of market quotes fitted.</li>
+<li><strong>message</strong> (str):
+The optimizer's termination message for the best start.</li>
+<li><strong>param_spread</strong> (HestonParams or None):
+Per-parameter range (max minus min) across the <em>near-optimal</em> starts
+(those within 5% of the best cost). <code>None</code> for a single start. A small
+spread means the starts agree (the basin is found robustly); use
+<code><a href="#profile_objective">profile_objective()</a></code> to probe how flat the objective is along each
+axis, which is the sharper identifiability question.</li>
+</ul>
+</div>
+
+
+                            <div id="HestonCalibrationResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">HestonCalibrationResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n"><a href="#HestonParams">HestonParams</a></span>,</span><span class="param">	<span class="n">process</span><span class="p">:</span> <span class="n"><a href="../../quantica.html#HestonProcess">quantica.HestonProcess</a></span>,</span><span class="param">	<span class="n">rmse_vol</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">rmse_price</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">max_abs_vol_error</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">model_ivs</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">feller_satisfied</span><span class="p">:</span> <span class="nb">bool</span>,</span><span class="param">	<span class="n">space</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;vol&#39;</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">]</span>,</span><span class="param">	<span class="n">cost</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">success</span><span class="p">:</span> <span class="nb">bool</span>,</span><span class="param">	<span class="n">n_starts</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">n_quotes</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">message</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">param_spread</span><span class="p">:</span> <span class="n"><a href="#HestonParams">HestonParams</a></span> <span class="o">|</span> <span class="kc">None</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.params" class="classattr">
+                                <div class="attr variable">
+            <span class="name">params</span><span class="annotation">: <a href="#HestonParams">HestonParams</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.params"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.process" class="classattr">
+                                <div class="attr variable">
+            <span class="name">process</span><span class="annotation">: <a href="../../quantica.html#HestonProcess">quantica.HestonProcess</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.process"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.rmse_vol" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rmse_vol</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.rmse_vol"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.rmse_price" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rmse_price</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.rmse_price"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.max_abs_vol_error" class="classattr">
+                                <div class="attr variable">
+            <span class="name">max_abs_vol_error</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.max_abs_vol_error"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.model_ivs" class="classattr">
+                                <div class="attr variable">
+            <span class="name">model_ivs</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.model_ivs"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.feller_satisfied" class="classattr">
+                                <div class="attr variable">
+            <span class="name">feller_satisfied</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.feller_satisfied"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.space" class="classattr">
+                                <div class="attr variable">
+            <span class="name">space</span><span class="annotation">: Literal[&#39;vol&#39;, &#39;price&#39;]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.space"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.cost" class="classattr">
+                                <div class="attr variable">
+            <span class="name">cost</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.cost"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.success" class="classattr">
+                                <div class="attr variable">
+            <span class="name">success</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.success"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.n_starts" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_starts</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.n_starts"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.n_quotes" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_quotes</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.n_quotes"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.message" class="classattr">
+                                <div class="attr variable">
+            <span class="name">message</span><span class="annotation">: str</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.message"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.param_spread" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_spread</span><span class="annotation">: <a href="#HestonParams">HestonParams</a> | None</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.param_spread"></a>
+    
+    
+
+                            </div>
+                            <div id="HestonCalibrationResult.summary" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">summary</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">str</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonCalibrationResult.summary"></a>
+    
+            <div class="docstring"><p>A compact multi-line report suitable for a script or the README.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="HestonParams">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">HestonParams</span><wbr>(<span class="base">typing.NamedTuple</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams"></a>
+    
+            <div class="docstring"><p>The five Heston parameters as a plain, ordered bundle.</p>
+
+<p>Order matches the optimizer's parameter vector:
+\( (v_0, \kappa, \theta, \xi, \rho) \).</p>
+</div>
+
+
+                            <div id="HestonParams.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">HestonParams</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">v0</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">theta</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">xi</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">rho</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.__init__"></a>
+    
+            <div class="docstring"><p>Create new instance of HestonParams(v0, kappa, theta, xi, rho)</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.v0" class="classattr">
+                                <div class="attr variable">
+            <span class="name">v0</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.v0"></a>
+    
+            <div class="docstring"><p>Alias for field number 0</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.kappa" class="classattr">
+                                <div class="attr variable">
+            <span class="name">kappa</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.kappa"></a>
+    
+            <div class="docstring"><p>Alias for field number 1</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.theta" class="classattr">
+                                <div class="attr variable">
+            <span class="name">theta</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.theta"></a>
+    
+            <div class="docstring"><p>Alias for field number 2</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.xi" class="classattr">
+                                <div class="attr variable">
+            <span class="name">xi</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.xi"></a>
+    
+            <div class="docstring"><p>Alias for field number 3</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.rho" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rho</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.rho"></a>
+    
+            <div class="docstring"><p>Alias for field number 4</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.from_array" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">from_array</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">cls</span>,</span><span class="param">	<span class="n">x</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n"><a href="#HestonParams">HestonParams</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.from_array"></a>
+    
+            <div class="docstring"><p>Build from an array-like, coercing entries to plain <code>float</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.to_process" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">to_process</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">market</span><span class="p">:</span> <span class="n"><a href="../../quantica.html#Market">quantica.Market</a></span></span><span class="return-annotation">) -> <span class="n"><a href="../../quantica.html#HestonProcess">quantica.HestonProcess</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.to_process"></a>
+    
+            <div class="docstring"><p>Attach the parameters to a <code>Market</code> to make a <code>HestonProcess</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="HestonParams.feller_satisfied" class="classattr">
+                                <div class="attr variable">
+            <span class="name">feller_satisfied</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HestonParams.feller_satisfied"></a>
+    
+            <div class="docstring"><p>Whether the Feller condition \( 2\kappa\theta \ge \xi^2 \) holds.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="ObjectiveProfile">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">ObjectiveProfile</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#ObjectiveProfile"></a>
+    
+            <div class="docstring"><p>A one-parameter objective profile — the identifiability read-out.</p>
+
+<p>For each pinned value of one parameter, the other four are re-optimised and
+the minimised fit RMSE (in vol points) is recorded. A <strong>flat</strong> profile means
+the surface does not identify that parameter; a sharp <code>V</code> means it does.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>param</strong> (str):
+The profiled parameter name.</li>
+<li><strong>values</strong> (FloatArray):
+The pinned values, ascending.</li>
+<li><strong>rmse_vol</strong> (FloatArray):
+Minimised RMSE (vol points) at each pinned value.</li>
+<li><strong>optimum</strong> (float):
+The parameter value in <code><a href="#ObjectiveProfile.values">values</a></code> giving the lowest RMSE.</li>
+<li><strong>flatness</strong> (float):
+<code>max(rmse_vol) - min(rmse_vol)</code> over the scanned range — small means
+flat (weakly identified).</li>
+</ul>
+</div>
+
+
+                            <div id="ObjectiveProfile.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">ObjectiveProfile</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">param</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">,</span> <span class="s1">&#39;kappa&#39;</span><span class="p">,</span> <span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="s1">&#39;xi&#39;</span><span class="p">,</span> <span class="s1">&#39;rho&#39;</span><span class="p">]</span>,</span><span class="param">	<span class="n">values</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">rmse_vol</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">optimum</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">flatness</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ObjectiveProfile.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="ObjectiveProfile.param" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param</span><span class="annotation">: Literal[&#39;v0&#39;, &#39;kappa&#39;, &#39;theta&#39;, &#39;xi&#39;, &#39;rho&#39;]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ObjectiveProfile.param"></a>
+    
+    
+
+                            </div>
+                            <div id="ObjectiveProfile.values" class="classattr">
+                                <div class="attr variable">
+            <span class="name">values</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ObjectiveProfile.values"></a>
+    
+    
+
+                            </div>
+                            <div id="ObjectiveProfile.rmse_vol" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rmse_vol</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ObjectiveProfile.rmse_vol"></a>
+    
+    
+
+                            </div>
+                            <div id="ObjectiveProfile.optimum" class="classattr">
+                                <div class="attr variable">
+            <span class="name">optimum</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ObjectiveProfile.optimum"></a>
+    
+    
+
+                            </div>
+                            <div id="ObjectiveProfile.flatness" class="classattr">
+                                <div class="attr variable">
+            <span class="name">flatness</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ObjectiveProfile.flatness"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="ParamBounds">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">ParamBounds</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#ParamBounds"></a>
+    
+            <div class="docstring"><p>Box bounds on the Heston parameters, passed straight to <code>least_squares</code>.</p>
+</div>
+
+
+                            <div id="ParamBounds.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">ParamBounds</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">lower</span><span class="p">:</span> <span class="n"><a href="#HestonParams">HestonParams</a></span>,</span><span class="param">	<span class="n">upper</span><span class="p">:</span> <span class="n"><a href="#HestonParams">HestonParams</a></span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ParamBounds.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="ParamBounds.lower" class="classattr">
+                                <div class="attr variable">
+            <span class="name">lower</span><span class="annotation">: <a href="#HestonParams">HestonParams</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ParamBounds.lower"></a>
+    
+    
+
+                            </div>
+                            <div id="ParamBounds.upper" class="classattr">
+                                <div class="attr variable">
+            <span class="name">upper</span><span class="annotation">: <a href="#HestonParams">HestonParams</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ParamBounds.upper"></a>
+    
+    
+
+                            </div>
+                            <div id="ParamBounds.clip" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">clip</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n"><a href="#HestonParams">HestonParams</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#HestonParams">HestonParams</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ParamBounds.clip"></a>
+    
+            <div class="docstring"><p>Clip <code>params</code> into the box (used to make a start feasible).</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="VolQuote">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">VolQuote</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#VolQuote"></a>
+    
+            <div class="docstring"><p>One market vanilla quote: a strike, a maturity, and an implied volatility.</p>
+
+<p>Call and put implied vols coincide by put--call parity, so a quote is
+identified by <code>(strike, expiry, implied_vol)</code> alone; the calibrator picks
+the out-of-the-money option at that strike internally.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>strike</strong> (float):
+Strike <code>K</code>. Must be positive.</li>
+<li><strong>expiry</strong> (float):
+Time to expiry <code>T</code> in years. Must be positive.</li>
+<li><strong>implied_vol</strong> (float):
+Observed Black--Scholes implied volatility. Must be non-negative.</li>
+</ul>
+</div>
+
+
+                            <div id="VolQuote.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">VolQuote</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">strike</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">expiry</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">implied_vol</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VolQuote.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="VolQuote.strike" class="classattr">
+                                <div class="attr variable">
+            <span class="name">strike</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VolQuote.strike"></a>
+    
+    
+
+                            </div>
+                            <div id="VolQuote.expiry" class="classattr">
+                                <div class="attr variable">
+            <span class="name">expiry</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VolQuote.expiry"></a>
+    
+    
+
+                            </div>
+                            <div id="VolQuote.implied_vol" class="classattr">
+                                <div class="attr variable">
+            <span class="name">implied_vol</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VolQuote.implied_vol"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="calibrate_heston">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">calibrate_heston</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">market</span><span class="p">:</span> <span class="n"><a href="../../quantica.html#Market">quantica.Market</a></span>,</span><span class="param">	<span class="n">quotes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n"><a href="#VolQuote">VolQuote</a></span><span class="p">]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">initial</span><span class="p">:</span> <span class="n"><a href="#HestonParams">HestonParams</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">bounds</span><span class="p">:</span> <span class="n"><a href="#ParamBounds">ParamBounds</a></span> <span class="o">=</span> <span class="n">ParamBounds</span><span class="p">(</span><span class="n">lower</span><span class="o">=</span><span class="n">HestonParams</span><span class="p">(</span><span class="n">v0</span><span class="o">=</span><span class="mf">1e-06</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">1e-06</span><span class="p">,</span> <span class="n">xi</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span> <span class="n">rho</span><span class="o">=-</span><span class="mf">0.999</span><span class="p">),</span> <span class="n">upper</span><span class="o">=</span><span class="n">HestonParams</span><span class="p">(</span><span class="n">v0</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">xi</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="mf">0.999</span><span class="p">))</span>,</span><span class="param">	<span class="n">space</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;vol&#39;</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;vol&#39;</span>,</span><span class="param">	<span class="n">weights</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">feller_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">n_starts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">engine</span><span class="p">:</span> <span class="n"><a href="../../quantica.html#HestonFFTEngine">quantica.HestonFFTEngine</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">max_nfev</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#HestonCalibrationResult">HestonCalibrationResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#calibrate_heston"></a>
+    
+            <div class="docstring"><p>Calibrate Heston parameters to a vanilla implied-volatility surface.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>market</strong> (Market):
+The market state (spot, rate, dividend) shared by every quote.</li>
+<li><strong>quotes</strong> (sequence of VolQuote):
+The market surface: strikes \( \times \) maturities with implied vols.</li>
+<li><strong>initial</strong> (HestonParams, optional):
+Starting parameters for the first optimization. Defaults to a heuristic
+(<code>v0 = theta =</code> mean market variance, <code>kappa = 2</code>, <code>xi = 0.5</code>,
+<code>rho = -0.5</code>), clipped into <code>bounds</code>.</li>
+<li><strong>bounds</strong> (ParamBounds, optional):
+Box bounds on the parameters (default <code><a href="#DEFAULT_BOUNDS">DEFAULT_BOUNDS</a></code>).</li>
+<li><strong>space</strong> ({"vol", "price"}, optional):
+Residual space. <code>"vol"</code> (default) fits implied-vol points; <code>"price"</code>
+fits option prices. See the module docstring for why vol space is the
+default.</li>
+<li><strong>weights</strong> (sequence of float, optional):
+Per-quote weights applied to the residuals (before squaring). Defaults to
+equal weight. Length must match <code>quotes</code>.</li>
+<li><strong>feller_weight</strong> (float, optional):
+If positive, append a soft penalty
+\( \sqrt{w_F}\,\max(0,\ \xi^2 - 2\kappa\theta) \) to the residuals,
+biasing the fit toward the Feller-satisfying region. Default <code>0</code> — the
+condition is <em>reported</em>, not enforced.</li>
+<li><strong>n_starts</strong> (int, optional):
+Number of starting points. <code>&gt; 1</code> runs a multi-start (first start is
+<code>initial</code>/heuristic, the rest are drawn uniformly within <code>bounds</code>),
+keeps the lowest-cost fit, and reports the parameter spread across the
+near-optimal starts.</li>
+<li><strong>rng</strong> (numpy.random.Generator, optional):
+Seeded generator for the multi-start sampler (only used when
+<code>n_starts &gt; 1</code>). Defaults to <code>default_rng(0)</code> so results are
+deterministic; pass your own for a different seed.</li>
+<li><strong>engine</strong> (HestonFFTEngine, optional):
+The pricer used for model prices. Defaults to a fresh
+<code>HestonFFTEngine</code>.</li>
+<li><strong>max_nfev</strong> (int, optional):
+Cap on residual evaluations per start (passed to <code>least_squares</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>HestonCalibrationResult</strong>: The calibrated parameters, fit quality (RMSE in vol points and price),
+the Feller flag, and the multi-start spread.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="profile_objective">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">profile_objective</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">market</span><span class="p">:</span> <span class="n"><a href="../../quantica.html#Market">quantica.Market</a></span>,</span><span class="param">	<span class="n">quotes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n"><a href="#VolQuote">VolQuote</a></span><span class="p">]</span>,</span><span class="param">	<span class="n">param</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;v0&#39;</span><span class="p">,</span> <span class="s1">&#39;kappa&#39;</span><span class="p">,</span> <span class="s1">&#39;theta&#39;</span><span class="p">,</span> <span class="s1">&#39;xi&#39;</span><span class="p">,</span> <span class="s1">&#39;rho&#39;</span><span class="p">]</span>,</span><span class="param">	<span class="n">values</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">anchor</span><span class="p">:</span> <span class="n"><a href="#HestonParams">HestonParams</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">bounds</span><span class="p">:</span> <span class="n"><a href="#ParamBounds">ParamBounds</a></span> <span class="o">=</span> <span class="n">ParamBounds</span><span class="p">(</span><span class="n">lower</span><span class="o">=</span><span class="n">HestonParams</span><span class="p">(</span><span class="n">v0</span><span class="o">=</span><span class="mf">1e-06</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">1e-06</span><span class="p">,</span> <span class="n">xi</span><span class="o">=</span><span class="mf">0.0001</span><span class="p">,</span> <span class="n">rho</span><span class="o">=-</span><span class="mf">0.999</span><span class="p">),</span> <span class="n">upper</span><span class="o">=</span><span class="n">HestonParams</span><span class="p">(</span><span class="n">v0</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">kappa</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span> <span class="n">theta</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">xi</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">rho</span><span class="o">=</span><span class="mf">0.999</span><span class="p">))</span>,</span><span class="param">	<span class="n">space</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;vol&#39;</span><span class="p">,</span> <span class="s1">&#39;price&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;vol&#39;</span>,</span><span class="param">	<span class="n">weights</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">engine</span><span class="p">:</span> <span class="n"><a href="../../quantica.html#HestonFFTEngine">quantica.HestonFFTEngine</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">max_nfev</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#ObjectiveProfile">ObjectiveProfile</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#profile_objective"></a>
+    
+            <div class="docstring"><p>Profile the calibration objective along one parameter (identifiability).</p>
+
+<p>For each <code>value</code> the named <code>param</code> is <em>pinned</em> and the other four
+parameters are re-optimised; the minimised fit RMSE (in vol points) is
+returned. A flat profile means the surface barely constrains <code>param</code> (weakly
+identified, e.g. \( \kappa \)); a sharp minimum means it does (e.g.
+\( \rho \)).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>market, quotes, bounds, space, weights, engine, max_nfev</strong>: As in <code><a href="#calibrate_heston">calibrate_heston()</a></code>.</li>
+<li><strong>param</strong> ({"v0", "kappa", "theta", "xi", "rho"}):
+Which parameter to pin and scan.</li>
+<li><strong>values</strong> (sequence of float):
+The pinned values to evaluate (need not be sorted; the result is sorted).</li>
+<li><strong>anchor</strong> (HestonParams, optional):
+Starting point for the free parameters at each pin. Defaults to a single
+unconstrained <code><a href="#calibrate_heston">calibrate_heston()</a></code> fit, which makes the profiles
+smooth and cheap. Pass the known truth in a synthetic study.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="vol_surface_from_grid">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">vol_surface_from_grid</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">strikes</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">expiries</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">implied_vols</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="nb">list</span><span class="p">[</span><span class="n"><a href="#VolQuote">VolQuote</a></span><span class="p">]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#vol_surface_from_grid"></a>
+    
+            <div class="docstring"><p>Build a list of <code><a href="#VolQuote">VolQuote</a></code> from a rectangular strike/expiry grid.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>strikes</strong> (sequence of float):
+The <code>n_k</code> strikes (grid columns).</li>
+<li><strong>expiries</strong> (sequence of float):
+The <code>n_t</code> maturities (grid rows).</li>
+<li><strong>implied_vols</strong> (2-D array-like, shape <code>(n_t, n_k)</code>):
+<code>implied_vols[i, j]</code> is the implied vol at <code>expiries[i]</code>, <code>strikes[j]</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+    </main>
+</body>
+</html>
