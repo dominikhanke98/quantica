@@ -474,6 +474,24 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   `pip install -e .` footprint (§3), accepted since the repo isn't on PyPI. Verified in a
   clean venv that a main-group-only install (`pip install .`, no extras) makes
   `import plotly.graph_objects` and the full app import chain succeed.
+- **Step 9 — auto-generated API reference manual (CRAN-style).** A complete, browsable
+  reference generated **from the source docstrings** so it can never drift. (1) **Docstring
+  audit**: filled every public-API gap (concrete `CovarianceEstimator` / `VaREngine` /
+  `Strategy` / `TransactionCostModel` protocol implementations, the `exercise` properties,
+  `BiasStats`/`PBOResult`/`FamaFrenchSample` properties, engine `npv`/`greeks` Parameters,
+  the apps compute layer) — **100% public docstring coverage** across `quantica` + `apps`.
+  (2) **Generator = pdoc** (chosen over Sphinx: renders the existing NumPy docstrings to
+  clean cross-linked HTML with zero config and no LaTeX toolchain, so it regenerates
+  trivially in CI; reasoning noted in `scripts/build_docs.py`). New `docs` optional extra
+  (`pdoc`, `interrogate`). (3) **One-command build** `scripts/build_docs.py` → `docs/api/`
+  (50 pages, organized by module = the three pillars; `--no-search` keeps it ~3 MB;
+  committed so it's browsable via raw.githack). (4) **Anti-drift gate**: `interrogate`
+  (`[tool.interrogate]`, `fail-under = 100`) in a new CI `docs` job that also rebuilds the
+  reference (a docstring that fails to render breaks the build) — you cannot merge an
+  undocumented public function. (5) **Standing procedure** added to CLAUDE.md §6
+  (docstring = single source of truth; update it in the same commit; regenerate, never
+  hand-edit `docs/api/`). README top matter links the reference; Development section
+  documents the workflow. Gate green: 864 tests, ruff + mypy + interrogate(100%) clean.
 
 ## Next — optional depth only (planned scope is done)
 

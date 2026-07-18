@@ -115,6 +115,24 @@ quantica/
 - **Greeks**: validate analytic Greeks against bump-and-reval finite differences.
 - Optional: property-based tests with `hypothesis` (e.g. price monotonic in vol/spot).
 
+### Documentation (standing rule — the docstring is the single source of truth)
+The API reference manual (`docs/api/`) is **generated from the source docstrings** by
+`pdoc` and is **never hand-edited**. This makes the docstring the single source of truth
+and keeps the reference in lock-step with the code. The rules:
+
+- **Every new or changed public function/class/method updates its NumPy-style docstring
+  in the *same commit*** — summary, `Parameters` (each with type + description),
+  `Returns`, `Raises` where applicable, and a `References`/`Examples` block where it adds
+  value. Private (`_`-prefixed) helpers may be lighter.
+- **`interrogate` is a gate** (`[tool.interrogate]`, `fail-under = 100`, run
+  `interrogate quantica apps`): CI fails if any public symbol lacks a docstring, so you
+  cannot merge an undocumented public function. It runs in the CI `docs` job.
+- **Regenerate the reference in the same commit** that changes a public docstring:
+  `python scripts/build_docs.py` (one command → `docs/api/`). CI rebuilds it too, so a
+  docstring that fails to render breaks the build. Do **not** edit `docs/api/` by hand.
+- The reference is linked from the README; the generator choice (pdoc) is documented in
+  `scripts/build_docs.py`.
+
 ---
 
 ## 7. Common commands
@@ -137,8 +155,13 @@ ruff check .
 ruff format .
 mypy quantica
 
-# launch the pricing app (built last)
-streamlit run apps/pricing_app.py
+# docstring-coverage gate + regenerate the API reference (docs/api/)
+pip install -e ".[docs]"
+interrogate quantica apps
+python scripts/build_docs.py
+
+# launch the interactive apps (streamlit + plotly ship as runtime deps)
+streamlit run apps/quantica_app.py
 ```
 
 ---
