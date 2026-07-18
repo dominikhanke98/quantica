@@ -45,6 +45,34 @@ jobs:
       - name: Pytest (excludes QuantLib benchmarks)
         run: pytest --cov=quantica --cov-report=term-missing -m "not benchmark"
 
+  docs:
+    name: docstring coverage · API reference builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install (editable, with docs extras)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[docs]"
+
+      # The docstring-coverage gate: fails if any public symbol lacks a docstring, so
+      # the API reference (regenerated from those docstrings) can never drift incomplete.
+      - name: Docstring coverage gate (interrogate)
+        run: interrogate -v quantica apps
+
+      # Regenerate the reference to prove the docstrings render without error (pdoc
+      # rejects malformed docstrings). The committed docs/api/ is refreshed by the
+      # author via `python scripts/build_docs.py` per CLAUDE.md §Documentation.
+      - name: API reference builds
+        run: python scripts/build_docs.py
+
   benchmark:
     name: benchmark vs QuantLib
     runs-on: ubuntu-latest

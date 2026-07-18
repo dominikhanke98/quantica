@@ -70,6 +70,14 @@ dev = [
 benchmark = [
     "QuantLib>=1.33",
 ]
+# Documentation toolchain. `pdoc` generates the API reference straight from the NumPy
+# docstrings (one command, no config file); `interrogate` is the docstring-coverage
+# gate that fails CI if a public symbol is undocumented, so the reference can never
+# silently drift from the code (CLAUDE.md — the docstring is the single source of truth).
+docs = [
+    "pdoc>=14.0",
+    "interrogate>=1.7",
+]
 
 [project.urls]
 Homepage = "https://github.com/dominikhanke/quantica"
@@ -163,3 +171,19 @@ exclude_lines = [
     "raise NotImplementedError",
     "@overload",
 ]
+
+# --------------------------------------------------------------------------- #
+# interrogate: the docstring-coverage gate. Fails if any *public* symbol lacks a
+# docstring, so the API reference (generated from those docstrings by pdoc) can never
+# silently drift from the code — you cannot add a public function without documenting
+# it. Run as `interrogate quantica apps`. Private (`_`-prefixed), dunder, and nested
+# functions are exempt (they may be lighter); everything else must be 100% documented.
+# --------------------------------------------------------------------------- #
+[tool.interrogate]
+ignore-init-method = true
+ignore-magic = true
+ignore-nested-functions = true
+ignore-regex = ["^_.*"]
+fail-under = 100
+exclude = ["scripts", "tests", "docs", "setup.py"]
+
