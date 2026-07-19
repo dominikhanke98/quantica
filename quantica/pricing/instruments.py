@@ -21,6 +21,7 @@ import numpy as np
 from quantica.core.types import AveragingType, BarrierType, ExerciseStyle, FloatLike, OptionType
 
 if TYPE_CHECKING:
+    from quantica.core.types import FloatArray
     from quantica.pricing.engines import PricingEngine
     from quantica.pricing.greeks import Greeks
     from quantica.pricing.processes import BlackScholesProcess
@@ -244,3 +245,78 @@ class BarrierOption(VanillaOption):
     def exercise(self) -> ExerciseStyle:
         """The exercise style — ``EUROPEAN`` (barrier monitored over the life; payoff at expiry)."""
         return ExerciseStyle.EUROPEAN
+
+
+@dataclass(frozen=True)
+class AutocallableNote:
+    r"""An autocallable (auto-callable) structured note — the workhorse equity product.
+
+    A principal-at-risk note observed on a schedule of equally spaced dates up to
+    ``maturity``. On each observation date, if the underlying is at or above the
+    ``autocall_barrier`` the note **redeems early**, paying principal plus the accumulated
+    coupon and terminating. If it never autocalls, the payoff at maturity is decided by a
+    **European** ``downside_barrier``: at or above it the holder gets principal back; below
+    it the holder takes the full downside, :math:`N\cdot S_T/S_0` — a short down-and-in put
+    struck at the initial fixing. This "coupon while range-bound, capital at risk on a big
+    drop" profile is short volatility and short skew, which is why flat-vol pricing
+    misprices it (see :class:`~quantica.pricing.engines.autocallable.AutocallableMonteCarloEngine`).
+
+    Barriers are expressed as **fractions of the initial fixing** :math:`S_0` (the spot at
+    inception), the market convention: ``autocall_barrier=1.0`` is 100% of initial,
+    ``downside_barrier=0.6`` is a 60% barrier (a 40% buffer). The accumulated coupon paid
+    on autocall at observation :math:`i` (1-indexed) is :math:`i\cdot\text{coupon}\cdot N`
+    — the classic "express certificate" memory coupon.
+
+    Parameters
+    ----------
+    maturity : float
+        Time to the final observation in years, must be positive.
+    n_observations : int
+        Number of equally spaced observation dates up to (and including) ``maturity``,
+        must be at least 1. The step is ``maturity / n_observations``.
+    autocall_barrier : float
+        Early-redemption trigger as a fraction of the initial fixing, must be positive
+        (e.g. ``1.0`` for 100%).
+    coupon : float
+        Coupon rate per observation period, accrued and paid on autocall, must be
+        non-negative.
+    downside_barrier : float
+        Capital-protection barrier at maturity as a fraction of the initial fixing, must
+        be non-negative (e.g. ``0.6``). Below it the holder is exposed to the loss.
+    notional : float, optional
+        Principal :math:`N` (default ``1.0``); prices scale linearly with it.
+
+    References
+    ----------
+    Bouzoubaa, M. & Osseiran, A. (2010). *Exotic Options and Hybrids*, Wiley — ch. on
+    autocallable/express structures.
+    """
+
+    maturity: float
+    n_observations: int
+    autocall_barrier: float
+    coupon: float
+    downside_barrier: float
+    notional: float = 1.0
+
+    def __post_init__(self) -> None:
+        """Validate the note's economic terms."""
+        if self.maturity <= 0.0:
+            raise ValueError(f"maturity must be positive, got {self.maturity}")
+        if self.n_observations < 1:
+            raise ValueError(f"n_observations must be at least 1, got {self.n_observations}")
+        if self.autocall_barrier <= 0.0:
+            raise ValueError(f"autocall_barrier must be positive, got {self.autocall_barrier}")
+        if self.coupon < 0.0:
+            raise ValueError(f"coupon must be non-negative, got {self.coupon}")
+        if self.downside_barrier < 0.0:
+            raise ValueError(f"downside_barrier must be non-negative, got {self.downside_barrier}")
+        if self.notional <= 0.0:
+            raise ValueError(f"notional must be positive, got {self.notional}")
+
+    @property
+    def observation_times(self) -> FloatArray:
+        """The ``n_observations`` equally spaced observation times ``t_1..t_n`` (years)."""
+        step = self.maturity / self.n_observations
+        times: FloatArray = step * np.arange(1, self.n_observations + 1, dtype=np.float64)
+        return times

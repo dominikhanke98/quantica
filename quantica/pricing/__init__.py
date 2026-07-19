@@ -21,6 +21,10 @@ from quantica.pricing.calibration import (
 )
 from quantica.pricing.engines.analytic import AnalyticEuropeanEngine
 from quantica.pricing.engines.asian import AsianMonteCarloEngine, geometric_asian_price
+from quantica.pricing.engines.autocallable import (
+    AutocallableMonteCarloEngine,
+    AutocallableResult,
+)
 from quantica.pricing.engines.barrier import BarrierMonteCarloEngine, barrier_price
 from quantica.pricing.engines.binomial import BinomialEngine
 from quantica.pricing.engines.finitediff import FiniteDifferenceEngine
@@ -37,6 +41,7 @@ from quantica.pricing.greeks import Greeks
 from quantica.pricing.instruments import (
     AmericanOption,
     AsianOption,
+    AutocallableNote,
     BarrierOption,
     EuropeanOption,
     VanillaOption,
@@ -55,6 +60,9 @@ __all__ = [
     "AnalyticEuropeanEngine",
     "AsianMonteCarloEngine",
     "AsianOption",
+    "AutocallableMonteCarloEngine",
+    "AutocallableNote",
+    "AutocallableResult",
     "AveragingType",
     "BarrierMonteCarloEngine",
     "BarrierOption",
