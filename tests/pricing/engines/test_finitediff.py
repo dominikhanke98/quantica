@@ -20,6 +20,7 @@ import math
 import numpy as np
 import pytest
 from quantica.pricing import (
+    AmericanOption,
     AnalyticEuropeanEngine,
     BlackScholesProcess,
     EuropeanOption,
@@ -113,10 +114,10 @@ def test_zero_expiry_limit_is_intrinsic(kind: OptionType) -> None:
 # --------------------------------------------------------------------------- #
 
 
-def test_satisfies_pricing_protocol_only() -> None:
+def test_satisfies_greeks_protocol() -> None:
     engine = FiniteDifferenceEngine()
     assert isinstance(engine, PricingEngine)
-    assert not isinstance(engine, GreeksEngine)
+    assert isinstance(engine, GreeksEngine)
 
 
 def test_odd_space_steps_round_down_to_even() -> None:
@@ -134,6 +135,7 @@ def test_odd_space_steps_round_down_to_even() -> None:
         ({"space_steps": 1}, "space_steps must be at least 2"),
         ({"time_steps": 0}, "time_steps must be at least 1"),
         ({"num_std": 0.0}, "num_std must be positive"),
+        ({"rannacher_steps": -1}, "rannacher_steps must be non-negative"),
     ],
 )
 def test_invalid_parameters_raise(kwargs: dict[str, float], match: str) -> None:
@@ -146,3 +148,101 @@ def test_prices_through_option_npv() -> None:
     engine = FiniteDifferenceEngine(space_steps=300, time_steps=300)
     option.set_engine(engine)
     assert option.npv(PROC) == pytest.approx(engine.calculate(option, PROC))
+
+
+# --------------------------------------------------------------------------- #
+# 3. PDE Greeks (numerical-validation §2): agreement with analytic + convergence
+# --------------------------------------------------------------------------- #
+
+_GREEKS = ("delta", "gamma", "vega", "theta", "rho")
+
+
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_greeks_match_analytic_on_fine_grid(kind: OptionType) -> None:
+    # Every PDE Greek matches the analytic Black--Scholes Greek to the grid's O(h^2)
+    # discretisation error. Relative tolerance 1e-3 sits comfortably above the measured
+    # error at 400x400 (delta ~1e-5, gamma ~1e-4, vega/theta/rho ~1e-4 relative).
+    option = _option(100.0, 1.0, kind)
+    ref = ANALYTIC.greeks(option, PROC)
+    got = FiniteDifferenceEngine(space_steps=400, time_steps=400).greeks(option, PROC)
+    for name in _GREEKS:
+        assert getattr(got, name) == pytest.approx(getattr(ref, name), rel=1e-3)
+
+
+@pytest.mark.parametrize("name", _GREEKS)
+def test_greeks_second_order_convergence(name: str) -> None:
+    # Each Greek converges to the analytic value at O(h^2): a log-log fit of the error
+    # vs grid steps has slope ~ -2 (the error quarters as the grid doubles).
+    option = _option(100.0, 1.0, OptionType.CALL)
+    ref = getattr(ANALYTIC.greeks(option, PROC), name)
+    steps = np.array([50, 100, 200, 400])
+    errors = np.array(
+        [
+            abs(
+                getattr(
+                    FiniteDifferenceEngine(space_steps=m, time_steps=m).greeks(option, PROC), name
+                )
+                - ref
+            )
+            for m in steps
+        ]
+    )
+    slope = np.polyfit(np.log(steps), np.log(errors), 1)[0]
+    assert -2.3 < slope < -1.7
+
+
+def test_greeks_undefined_in_degenerate_limit() -> None:
+    engine = FiniteDifferenceEngine()
+    with pytest.raises(ValueError, match="undefined"):
+        engine.greeks(_option(100.0, 1.0, OptionType.CALL), BlackScholesProcess(100.0, 0.05, 0.0))
+    with pytest.raises(ValueError, match="undefined"):
+        engine.greeks(_option(100.0, 0.0, OptionType.CALL), PROC)
+
+
+def test_american_greeks_are_sane() -> None:
+    # No closed-form anchor for American Greeks, but they must obey the bounds: an
+    # American put has delta in [-1, 0] and positive gamma.
+    proc = BlackScholesProcess(spot=100.0, rate=0.05, div=0.0, vol=0.2)
+    put = AmericanOption(strike=100.0, expiry=1.0, option_type=OptionType.PUT)
+    g = FiniteDifferenceEngine(space_steps=300, time_steps=300).greeks(put, proc)
+    assert -1.0 <= g.delta <= 0.0
+    assert g.gamma > 0.0
+
+
+# --------------------------------------------------------------------------- #
+# 4. Rannacher start-up damps the gamma oscillation (the headline)
+# --------------------------------------------------------------------------- #
+
+
+def _gamma_vs_spot(rannacher_steps: int, spots: np.ndarray) -> np.ndarray:
+    option = _option(100.0, 1.0, OptionType.CALL)
+    proc = BlackScholesProcess(spot=100.0, rate=0.05, div=0.0, vol=0.2)
+    engine = FiniteDifferenceEngine(space_steps=200, time_steps=25, rannacher_steps=rannacher_steps)
+    return np.array([engine.greeks(option, proc.with_spot(float(s))).gamma for s in spots])
+
+
+def test_rannacher_damps_gamma_oscillation() -> None:
+    # At a coarse-in-time grid (nt=25), the payoff kink excites high-frequency modes
+    # that Crank--Nicolson (A- but not L-stable) fails to damp, so pure-CN gamma rings
+    # near the strike. Rannacher start-up (backward-Euler half-steps) restores a smooth
+    # gamma. Quantify with the total variation of the gamma *error* across spot.
+    spots = np.linspace(90.0, 110.0, 81)
+    option = _option(100.0, 1.0, OptionType.CALL)
+    proc = BlackScholesProcess(spot=100.0, rate=0.05, div=0.0, vol=0.2)
+    analytic = np.array([ANALYTIC.greeks(option, proc.with_spot(float(s))).gamma for s in spots])
+
+    err_off = _gamma_vs_spot(0, spots) - analytic  # pure Crank--Nicolson
+    err_on = _gamma_vs_spot(2, spots) - analytic  # Rannacher start-up
+
+    tv_off = float(np.sum(np.abs(np.diff(err_off))))
+    tv_on = float(np.sum(np.abs(np.diff(err_on))))
+    # Measured ~89x; assert a strong, robust collapse of the oscillation.
+    assert tv_off > 20.0 * tv_on
+    # And the worst-case gamma error drops by more than an order of magnitude.
+    assert np.max(np.abs(err_on)) < np.max(np.abs(err_off)) / 10.0
+
+
+def test_rannacher_default_is_on() -> None:
+    # The default engine has Rannacher on (rannacher_steps=2), so its gamma matches the
+    # explicitly-on engine and is smoother than pure CN on the ringing grid.
+    assert FiniteDifferenceEngine().rannacher_steps == 2

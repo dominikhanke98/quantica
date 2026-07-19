@@ -157,6 +157,26 @@ def test_crank_nicolson_matches_quantlib(kind: OptionType) -> None:
     assert abs(ours - analytic) < 1e-3  # both converge to the same BS price
 
 
+@pytest.mark.parametrize("kind", [OptionType.CALL, OptionType.PUT])
+def test_crank_nicolson_greeks_match_quantlib(kind: OptionType) -> None:
+    # QuantLib's FD engine exposes delta, gamma and theta (not vega/rho) off its own
+    # grid. Both are second-order PDE Greeks, so at 400x400 they agree to an O(h^2)
+    # inter-library difference. Our Rannacher start-up keeps gamma clean, so the gamma
+    # agreement is tight (measured ~3e-8 call / ~5e-7 put). Vega and rho are anchored to
+    # the analytic Greeks in test_finitediff.py instead.
+    proc = BlackScholesProcess(spot=SPOT, rate=RATE, div=DIV, vol=VOL)
+    option = EuropeanOption(strike=STRIKE, expiry=EXPIRY, option_type=kind)
+    ours = FiniteDifferenceEngine(space_steps=_FD_STEPS, time_steps=_FD_STEPS).greeks(option, proc)
+
+    payoff, exercise, process = _ql_parts(kind)
+    ql_option = ql.VanillaOption(payoff, exercise)
+    ql_option.setPricingEngine(ql.FdBlackScholesVanillaEngine(process, _FD_STEPS, _FD_STEPS))
+
+    assert abs(ours.delta - ql_option.delta()) < 1e-4
+    assert abs(ours.gamma - ql_option.gamma()) < 1e-5
+    assert abs(ours.theta - ql_option.theta()) < 1e-2
+
+
 # --------------------------------------------------------------------------- #
 # American exercise (no analytic reference — QuantLib is the benchmark)
 # --------------------------------------------------------------------------- #
