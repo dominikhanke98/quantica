@@ -514,7 +514,35 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   Rannacher slightly shifted the FD prices, so the README convergence table's PDE rows were
   regenerated. **The L-stability caveat the engine carried as a comment is now implemented
   and demonstrated.** Gate green: 878 tests (14 new), ruff + mypy + interrogate(100%) clean.
-  Delivered on branch `feat/pde-greeks` (PR, per the apps workflow).
+  Delivered on branch `feat/pde-greeks` → PR #2, merged to `main` (merge commit `bcaf59d`).
+- **Step 11 — HRP + Black–Litterman (the two most-asked-about systematic-PM methods).**
+  Two new construction modules in `quantica/portfolio/`, both consuming the existing
+  `CovarianceEstimator` and pluggable into the walk-forward backtest + validity layer, with
+  `HRPStrategy` / `BlackLittermanStrategy` added to `strategy.py`. **Scope discipline held**:
+  the construction *algorithms* are hand-implemented (the demonstrable skill); only the
+  clustering plumbing is leaned on (`scipy.cluster.hierarchy`). **HRP** (`hrp.py`,
+  `hrp_weights` + `quasi_diagonal_order`): the three López de Prado stages — correlation-
+  distance tree linkage (scipy), quasi-diagonalisation by leaf order, recursive bisection
+  splitting risk inversely to cluster variance — **never inverts the covariance**.
+  Validated (`test_hrp.py`, 6): weights sum to 1 / long-only; two-asset case == inverse-
+  variance closed form; equal-variance == equal weight; planted cluster blocks recovered;
+  **the headline OOS-robustness tie-back — on an n/T≈0.94 universe HRP realises <0.5× the
+  min-variance OOS vol with ~20× less leverage** (never inverts vs the error maximiser).
+  **Black–Litterman** (`black_litterman.py`, `implied_equilibrium_returns` + `black_litterman`
+  → `BlackLittermanResult`): reverse-optimise benchmark weights to equilibrium π=δΣw_mkt,
+  He–Litterman default Ω=diag(PτΣPᵀ), the master formula → posterior (μ_BL, Σ_BL) → MV.
+  Validated (`test_black_litterman.py`, 5): **reverse-opt round-trips to 1.8e-15**; **no
+  views → posterior == equilibrium** (clean known-truth); a confident view moves the
+  posterior toward it; **the headline stability contrast — a 1% return-estimate shock swings
+  naive unconstrained MV ~7× more than BL** (BL shrinks toward equilibrium). Reports
+  `scripts/hrp_robustness_report.py` (FF 49-industry: sample min-var 28.4% vs HRP 12.7% vs
+  LW 11.1% OOS, no inversion; + net-of-cost backtest) and `scripts/black_litterman_report.py`
+  (7× stability contrast; + net-of-cost backtest) → embedded in README. **Honest findings:**
+  (i) on the constrained long-only backtest HRP/BL land in a similar Sharpe band to the
+  others — the industry premium dominates and the long-only cap already regularises (the
+  Jagannathan–Ma effect), so BL's advantage is specifically the *unconstrained* case; (ii)
+  reported net-of-cost. Gate green: 889 tests (11 new), ruff + mypy + interrogate(100%) clean.
+  Delivered on branch `feat/hrp-blacklitterman` (PR, per the apps/PDE-Greeks workflow).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -523,10 +551,8 @@ https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (C
 §8–9 + the deferred apps) is fully delivered. Nothing remains on the critical path — the
 following are optional, none blocking:
 
-- **(A) HRP construction** — Hierarchical Risk Parity (López de Prado) would round out
-  the construction menu and pair naturally with the covariance-estimator study
-  (it sidesteps matrix inversion entirely). Small, self-contained; a fourth
-  construction rule the apps' capital-markets view could then expose.
+- **(A) HRP + Black–Litterman construction** — **✓ (step 11).** The apps' capital-markets
+  view could now expose them (HRP as a fourth construction rule; a BL views panel).
 - **(B) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
   end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
   breadth; strengthens the model-validation-specialist story.
@@ -535,14 +561,22 @@ following are optional, none blocking:
   solve); or an autocallable on the LSM/path machinery.
 
 **Recommendation:** none required — the portfolio is complete, validated, and live. If
-continuing, (A) HRP is the most self-contained library addition and the apps' capital
-view could then expose it.
+continuing, surfacing HRP/BL in the apps' capital-markets tab is the cheapest reviewer-
+facing win now that the construction methods exist.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **The scientific stack ships the plumbing, not the PM construction methods (step 11).**
+  `scipy.cluster.hierarchy` gives the linkage/leaf-order clustering and numpy/scipy the
+  linear algebra, but neither ships **HRP** or **Black–Litterman** as a construction rule —
+  those live only in dedicated portfolio libraries (PyPortfolioOpt, riskfolio-lib). Same
+  "the primitives exist, the method doesn't" category as the OOS covariance-estimator gap;
+  implementing the three HRP stages and the BL master formula on top of the scipy plumbing
+  is exactly the demonstrable skill (and lets both plug into the repo's own backtest +
+  validity layer, which those libraries do not ship).
 - **QuantLib's FD engine exposes no vega/rho (step 10).** `FdBlackScholesVanillaEngine`
   provides `delta()`, `gamma()` and `theta()` off its grid but raises "vega not provided" /
   "rho not provided" — the volatility- and rate-sensitivities are simply not computed by
