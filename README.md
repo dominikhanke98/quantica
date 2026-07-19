@@ -1030,6 +1030,66 @@ to strategy backtests. Three layers, headline last:
 > correlation without purging** and **≈ 0 with purging** — the leakage is real, and
 > purged + embargoed CV (López de Prado) removes it.
 
+### Hierarchical Risk Parity — allocation without inversion
+
+The two most-asked-about systematic-PM construction methods round out the pillar, both
+consuming the same `CovarianceEstimator` and pluggable into the walk-forward backtest.
+**Hierarchical Risk Parity** (López de Prado) runs three stages — cluster the assets on a
+correlation-distance tree (`scipy` linkage), reorder the covariance by the cluster tree
+(quasi-diagonalisation), then recursively bisect the tree splitting risk between the halves
+inversely to their variance. The whole point: it uses only cluster variances and diagonal
+inverse-variance weights, so it **never inverts the covariance**.
+
+> **Highlighted insight — HRP is robust exactly where the inverting portfolio blows up.**
+> This is the direct tie-back to the covariance-estimator finding above and to
+> Jagannathan–Ma, from the *construction* side. On the 49-industry universe with a short
+> 55-month window (n/T ≈ 0.9, sample-covariance condition number ~146,000), the realised
+> out-of-sample volatility of the minimum-variance portfolio
+> (`python scripts/hrp_robustness_report.py`):
+>
+> ```
+> Construction                    | Inverts Σ? | Realised OOS vol
+> ------------------------------- | :--------: | ---------------:
+> minimum-variance, sample cov    |    yes     |           28.4%   ← error maximiser
+> minimum-variance, Ledoit–Wolf   | yes (shrunk)|          11.1%
+> HRP, sample cov                 |     no     |           12.7%   ← no inversion, still robust
+> ```
+>
+> Inverting the near-singular sample covariance realises **28%** annualised vol; HRP reaches
+> **13% on the *raw* sample covariance without ever inverting it** — it earns shrinkage-like
+> robustness *structurally*, from the clustering, not from a better Σ. In the net-of-cost
+> backtest the constructions land in a similar Sharpe band (the industry premium dominates);
+> HRP's edge is that robustness and its low turnover, with no inversion or shrinkage tuning.
+
+### Black–Litterman — stabilising mean-variance
+
+**Black–Litterman** attacks mean-variance's other failure — its instability in the
+*return* estimate. It reverse-optimises the market/benchmark weights into equilibrium
+returns `π = δΣw_mkt`, blends them with subjective views `(P, Q, Ω)` through the Bayesian
+master formula, and feeds the posterior into mean-variance. Two clean known-truth anchors
+pin it: the reverse-optimisation **round-trips** (equilibrium returns fed back into
+mean-variance recover the market weights to **1.8e-14**), and with **no views the posterior
+is exactly the equilibrium**.
+
+> **Highlighted insight — BL is the shrinkage that lets you run mean-variance unconstrained.**
+> Naive mean-variance treats noisy return estimates as truth and inverts the covariance, so
+> a small change in the estimate swings the weights wildly. Perturbing the expected-return
+> estimate by 1% on the 49-industry universe (`python scripts/black_litterman_report.py`):
+>
+> ```
+> Construction          | Mean L1 weight swing under a 1% return shock
+> --------------------- | ------------------------------------------:
+> naive mean-variance   |  168.8   ← wild long-short swings
+> Black–Litterman       |   25.7   ← shrunk toward equilibrium (7× more stable)
+> ```
+>
+> The same 1% shock moves unconstrained mean-variance weights by **169** (L1) but the
+> Black–Litterman weights only **26** — **7× more stable**, because the posterior only
+> nudges the equilibrium by the views' confidence. Honest footnote: under a realistic
+> long-only cap the two nearly coincide, because the *constraint* already regularises the
+> weights (Jagannathan–Ma again) — BL's decisive advantage is precisely the unconstrained
+> case, where it substitutes for those hard constraints.
+
 ## Running the apps
 
 A thin **Streamlit + Plotly** UI tours all three pillars interactively — and it is

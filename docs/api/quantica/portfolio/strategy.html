@@ -51,6 +51,60 @@
             <h2>API Documentation</h2>
                 <ul class="memberlist">
             <li>
+                    <a class="class" href="#BlackLittermanStrategy">BlackLittermanStrategy</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#BlackLittermanStrategy.__init__">BlackLittermanStrategy</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BlackLittermanStrategy.estimator">estimator</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BlackLittermanStrategy.risk_aversion">risk_aversion</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#BlackLittermanStrategy.views">views</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BlackLittermanStrategy.market_weights">market_weights</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BlackLittermanStrategy.tau">tau</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BlackLittermanStrategy.constraints">constraints</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#BlackLittermanStrategy.name">name</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#BlackLittermanStrategy.target_weights">target_weights</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#HRPStrategy">HRPStrategy</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#HRPStrategy.__init__">HRPStrategy</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HRPStrategy.estimator">estimator</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HRPStrategy.linkage_method">linkage_method</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HRPStrategy.name">name</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#HRPStrategy.target_weights">target_weights</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#MeanVarianceStrategy">MeanVarianceStrategy</a>
                             <ul class="memberlist">
                         <li>
@@ -126,6 +180,18 @@
 
             </li>
             <li>
+                    <a class="class" href="#ViewGenerator">ViewGenerator</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#ViewGenerator.__init__">ViewGenerator</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="function" href="#absolute_mean_views">absolute_mean_views</a>
+            </li>
+            <li>
                     <a class="function" href="#historical_mean_signal">historical_mean_signal</a>
             </li>
     </ul>
@@ -163,6 +229,271 @@ same machinery.</p>
                 
                 
             </section>
+                <section id="BlackLittermanStrategy">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">BlackLittermanStrategy</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy"></a>
+    
+            <div class="docstring"><p>Black--Litterman construction: equilibrium + views → posterior → mean-variance.</p>
+
+<p>Reverse-optimises the <code><a href="#BlackLittermanStrategy.market_weights">market_weights</a></code> benchmark into equilibrium returns, blends
+them with the views from <code><a href="#BlackLittermanStrategy.views">views</a></code>, and feeds the posterior into mean-variance.
+<code><a href="#BlackLittermanStrategy.market_weights">market_weights</a></code> defaults to equal weight (a neutral benchmark when no market-cap
+data is available); <code><a href="#BlackLittermanStrategy.views">views</a></code> defaults to <code><a href="#absolute_mean_views">absolute_mean_views()</a></code>, so the
+strategy shrinks the noisy sample mean toward equilibrium.</p>
+</div>
+
+
+                            <div id="BlackLittermanStrategy.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">BlackLittermanStrategy</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">estimator</span><span class="p">:</span> <span class="n"><a href="../factor.html#CovarianceEstimator">quantica.factor.CovarianceEstimator</a></span>,</span><span class="param">	<span class="n">risk_aversion</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">views</span><span class="p">:</span> <span class="n"><a href="#ViewGenerator">ViewGenerator</a></span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">function</span> <span class="n">absolute_mean_views</span><span class="o">&gt;</span>,</span><span class="param">	<span class="n">market_weights</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">tau</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>,</span><span class="param">	<span class="n">constraints</span><span class="p">:</span> <span class="n"><a href="../portfolio.html#PortfolioConstraints">quantica.portfolio.PortfolioConstraints</a></span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">factory</span><span class="o">&gt;</span>,</span><span class="param">	<span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;black-litterman&#39;</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="BlackLittermanStrategy.estimator" class="classattr">
+                                <div class="attr variable">
+            <span class="name">estimator</span><span class="annotation">: <a href="../factor.html#CovarianceEstimator">quantica.factor.CovarianceEstimator</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.estimator"></a>
+    
+    
+
+                            </div>
+                            <div id="BlackLittermanStrategy.risk_aversion" class="classattr">
+                                <div class="attr variable">
+            <span class="name">risk_aversion</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.risk_aversion"></a>
+    
+    
+
+                            </div>
+                            <div id="BlackLittermanStrategy.views" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">views</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.views"></a>
+    
+            <div class="docstring"><p>Absolute Black--Litterman views: the trailing sample mean on every asset.</p>
+
+<p>Returns an identity picking matrix (one view per asset) and the sample-mean target
+returns. Blending these noisy estimates toward the market equilibrium is exactly how
+Black--Litterman stabilises the mean-variance weights.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (train, n)):
+The trailing training-window asset returns.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(P, Q)</code> — the <code>(n, n)</code> identity picking matrix and the <code>(n,)</code> sample-mean
+view targets.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="BlackLittermanStrategy.market_weights" class="classattr">
+                                <div class="attr variable">
+            <span class="name">market_weights</span><span class="annotation">: numpy.ndarray[tuple[Any, ...], numpy.dtype[numpy.float64]] | None</span>        =
+<span class="default_value">None</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.market_weights"></a>
+    
+    
+
+                            </div>
+                            <div id="BlackLittermanStrategy.tau" class="classattr">
+                                <div class="attr variable">
+            <span class="name">tau</span><span class="annotation">: float</span>        =
+<span class="default_value">0.05</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.tau"></a>
+    
+    
+
+                            </div>
+                            <div id="BlackLittermanStrategy.constraints" class="classattr">
+                                <div class="attr variable">
+            <span class="name">constraints</span><span class="annotation">: <a href="../portfolio.html#PortfolioConstraints">quantica.portfolio.PortfolioConstraints</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.constraints"></a>
+    
+    
+
+                            </div>
+                            <div id="BlackLittermanStrategy.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span><span class="annotation">: str</span>        =
+<span class="default_value">&#39;black-litterman&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.name"></a>
+    
+    
+
+                            </div>
+                            <div id="BlackLittermanStrategy.target_weights" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">target_weights</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">factor_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">w_prev</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#BlackLittermanStrategy.target_weights"></a>
+    
+            <div class="docstring"><p>Estimate the covariance, form the BL posterior, and mean-variance optimise.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (train, n)):
+The trailing training-window asset returns (drive both the covariance
+estimate and the views).</li>
+<li><strong>factor_returns</strong> (ndarray or None):
+Aligned factor returns, forwarded to a factor-model estimator.</li>
+<li><strong>w_prev</strong> (ndarray or None):
+Current holdings, used only by a turnover constraint.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n,)</strong>: The Black--Litterman mean-variance target weights.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="HRPStrategy">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">HRPStrategy</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#HRPStrategy"></a>
+    
+            <div class="docstring"><p>Hierarchical Risk Parity construction from an estimated covariance.</p>
+</div>
+
+
+                            <div id="HRPStrategy.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">HRPStrategy</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">estimator</span><span class="p">:</span> <span class="n"><a href="../factor.html#CovarianceEstimator">quantica.factor.CovarianceEstimator</a></span>,</span><span class="param">	<span class="n">linkage_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;single&#39;</span>,</span><span class="param">	<span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;hrp&#39;</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HRPStrategy.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="HRPStrategy.estimator" class="classattr">
+                                <div class="attr variable">
+            <span class="name">estimator</span><span class="annotation">: <a href="../factor.html#CovarianceEstimator">quantica.factor.CovarianceEstimator</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HRPStrategy.estimator"></a>
+    
+    
+
+                            </div>
+                            <div id="HRPStrategy.linkage_method" class="classattr">
+                                <div class="attr variable">
+            <span class="name">linkage_method</span><span class="annotation">: str</span>        =
+<span class="default_value">&#39;single&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HRPStrategy.linkage_method"></a>
+    
+    
+
+                            </div>
+                            <div id="HRPStrategy.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span><span class="annotation">: str</span>        =
+<span class="default_value">&#39;hrp&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HRPStrategy.name"></a>
+    
+    
+
+                            </div>
+                            <div id="HRPStrategy.target_weights" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">target_weights</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">factor_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">w_prev</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HRPStrategy.target_weights"></a>
+    
+            <div class="docstring"><p>Estimate the covariance and return the HRP weights (no matrix inversion).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (train, n)):
+The trailing training-window asset returns.</li>
+<li><strong>factor_returns</strong> (ndarray or None):
+Aligned factor returns, forwarded to a factor-model estimator.</li>
+<li><strong>w_prev</strong> (ndarray or None):
+Ignored — HRP is long-only and fully invested by construction (accepted for
+interface compatibility).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n,)</strong>: The Hierarchical Risk Parity target weights.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
                 <section id="MeanVarianceStrategy">
                     <div class="attr class">
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
@@ -489,6 +820,66 @@ it takes no turnover constraint (accepted for interface compatibility).</li>
     
 
                             </div>
+                </section>
+                <section id="ViewGenerator">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">ViewGenerator</span><wbr>(<span class="base">typing.Protocol</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#ViewGenerator"></a>
+    
+            <div class="docstring"><p>Maps a training window to Black--Litterman views <code>(P, Q)</code>.</p>
+</div>
+
+
+                            <div id="ViewGenerator.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">ViewGenerator</span><span class="signature pdoc-code condensed">(<span class="param"><span class="o">*</span><span class="n">args</span>, </span><span class="param"><span class="o">**</span><span class="n">kwargs</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ViewGenerator.__init__"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="absolute_mean_views">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">absolute_mean_views</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#absolute_mean_views"></a>
+    
+            <div class="docstring"><p>Absolute Black--Litterman views: the trailing sample mean on every asset.</p>
+
+<p>Returns an identity picking matrix (one view per asset) and the sample-mean target
+returns. Blending these noisy estimates toward the market equilibrium is exactly how
+Black--Litterman stabilises the mean-variance weights.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (train, n)):
+The trailing training-window asset returns.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(P, Q)</code> — the <code>(n, n)</code> identity picking matrix and the <code>(n,)</code> sample-mean
+view targets.</li>
+</ul>
+</div>
+
+
                 </section>
                 <section id="historical_mean_signal">
                     <div class="attr function">

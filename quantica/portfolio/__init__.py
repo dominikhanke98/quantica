@@ -4,8 +4,10 @@ The third pillar of ``quantica``. The framing that keeps it in this repo's ident
 *everyone ships a backtester; this ships the test of whether the backtest means
 anything.* Three layers:
 
-* **Construction** (:mod:`~quantica.portfolio.construction`) — mean-variance,
-  minimum-variance and risk-parity portfolios via ``cvxpy``, consuming a
+* **Construction** (:mod:`~quantica.portfolio.construction`,
+  :mod:`~quantica.portfolio.hrp`, :mod:`~quantica.portfolio.black_litterman`) —
+  mean-variance, minimum-variance, risk-parity, Hierarchical Risk Parity (no matrix
+  inversion), and Black--Litterman (equilibrium + views) portfolios, all consuming a
   :class:`~quantica.factor.estimators.CovarianceEstimator` from the factor step so the
   stage-2 estimator comparison plugs straight in.
 * **Backtest** (:mod:`~quantica.portfolio.backtest`) — a walk-forward engine with
@@ -27,6 +29,11 @@ from quantica.portfolio.backtest import (
     TransactionCostModel,
     walk_forward_backtest,
 )
+from quantica.portfolio.black_litterman import (
+    BlackLittermanResult,
+    black_litterman,
+    implied_equilibrium_returns,
+)
 from quantica.portfolio.construction import (
     PortfolioConstraints,
     mean_variance_weights,
@@ -35,6 +42,7 @@ from quantica.portfolio.construction import (
 )
 from quantica.portfolio.cv import PurgedFold, purged_kfold_indices
 from quantica.portfolio.data import TrialReturns, generate_trial_returns
+from quantica.portfolio.hrp import hrp_weights, quasi_diagonal_order
 from quantica.portfolio.overfitting import (
     DeflatedSharpeResult,
     PBOResult,
@@ -47,16 +55,23 @@ from quantica.portfolio.overfitting import (
     sharpe_ratio,
 )
 from quantica.portfolio.strategy import (
+    BlackLittermanStrategy,
+    HRPStrategy,
     MeanVarianceStrategy,
     MinimumVarianceStrategy,
     RiskParityStrategy,
     Signal,
+    ViewGenerator,
+    absolute_mean_views,
     historical_mean_signal,
 )
 
 __all__ = [
     "BacktestResult",
+    "BlackLittermanResult",
+    "BlackLittermanStrategy",
     "DeflatedSharpeResult",
+    "HRPStrategy",
     "MeanVarianceStrategy",
     "MinimumVarianceStrategy",
     "PBOResult",
@@ -68,17 +83,23 @@ __all__ = [
     "Strategy",
     "TransactionCostModel",
     "TrialReturns",
+    "ViewGenerator",
+    "absolute_mean_views",
+    "black_litterman",
     "deflated_sharpe_ratio",
     "deflated_sharpe_ratio_from_trials",
     "expected_maximum_sharpe",
     "generate_trial_returns",
     "historical_mean_signal",
+    "hrp_weights",
+    "implied_equilibrium_returns",
     "mean_variance_weights",
     "minimum_track_record_length",
     "minimum_variance_weights",
     "probabilistic_sharpe_ratio",
     "probability_of_backtest_overfitting",
     "purged_kfold_indices",
+    "quasi_diagonal_order",
     "risk_parity_weights",
     "sharpe_ratio",
     "walk_forward_backtest",
