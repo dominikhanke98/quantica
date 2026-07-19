@@ -286,7 +286,13 @@
                                 <a class="variable" href="#FiniteDifferenceEngine.num_std">num_std</a>
                         </li>
                         <li>
+                                <a class="variable" href="#FiniteDifferenceEngine.rannacher_steps">rannacher_steps</a>
+                        </li>
+                        <li>
                                 <a class="function" href="#FiniteDifferenceEngine.calculate">calculate</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FiniteDifferenceEngine.greeks">greeks</a>
                         </li>
                 </ul>
 
@@ -1633,7 +1639,7 @@ or PDE with an early-exercise/free-boundary condition).</p>
     </div>
     <a class="headerlink" href="#FiniteDifferenceEngine"></a>
     
-            <div class="docstring"><p>Crank--Nicolson PDE pricer for a vanilla option (European or American).</p>
+            <div class="docstring"><p>Crank--Nicolson PDE pricer + Greeks for a vanilla option (European or American).</p>
 
 <h6 id="parameters">Parameters</h6>
 
@@ -1648,23 +1654,26 @@ Number of time steps from maturity back to today (default 200).</li>
 Half-width of the log-price domain in standard deviations
 \( \sigma\sqrt{T} \) (default 6), widened if needed to enclose the
 strike. Larger values push the Dirichlet boundaries further out.</li>
+<li><strong>rannacher_steps</strong> (int, optional):
+Number of initial Crank--Nicolson steps (nearest expiry) replaced by
+backward-Euler half-step pairs to damp the payoff-kink oscillation in
+gamma (default 2). <code>0</code> disables Rannacher (pure Crank--Nicolson). Clamped
+to <code><a href="#FiniteDifferenceEngine.time_steps">time_steps</a></code>.</li>
 </ul>
 
 <h6 id="notes">Notes</h6>
 
-<p>Satisfies the <code>~<a href="quantica/pricing/engines.html#PricingEngine">quantica.pricing.engines.PricingEngine</a></code> protocol
-(price only). A European option is solved directly (tridiagonal solve per
-step) and is second-order accurate — halving both step sizes cuts the error
-by ~4. An American option solves the early-exercise LCP per step by projected
-SOR (see the module docstring); convergence is slightly below second order
-near the free boundary but still fast.</p>
+<p>Satisfies <code>~<a href="quantica/pricing/engines.html#GreeksEngine">quantica.pricing.engines.GreeksEngine</a></code>. A European option is
+solved by a tridiagonal solve per step and is second-order accurate — halving
+both step sizes cuts the error by ~4. An American option solves the
+early-exercise LCP per step by projected SOR (see the module docstring).</p>
 </div>
 
 
                             <div id="FiniteDifferenceEngine.__init__" class="classattr">
                                 <div class="attr function">
             
-        <span class="name">FiniteDifferenceEngine</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">space_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span>, </span><span class="param"><span class="n">time_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span>, </span><span class="param"><span class="n">num_std</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span></span>)</span>
+        <span class="name">FiniteDifferenceEngine</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">space_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span>,</span><span class="param">	<span class="n">time_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span>,</span><span class="param">	<span class="n">num_std</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">6.0</span>,</span><span class="param">	<span class="n">rannacher_steps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span></span>)</span>
 
         
     </div>
@@ -1706,6 +1715,17 @@ near the free boundary but still fast.</p>
     
 
                             </div>
+                            <div id="FiniteDifferenceEngine.rannacher_steps" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rannacher_steps</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FiniteDifferenceEngine.rannacher_steps"></a>
+    
+    
+
+                            </div>
                             <div id="FiniteDifferenceEngine.calculate" class="classattr">
                                 <div class="attr function">
             
@@ -1717,6 +1737,65 @@ near the free boundary but still fast.</p>
     <a class="headerlink" href="#FiniteDifferenceEngine.calculate"></a>
     
             <div class="docstring"><p>Present value of <code>instrument</code> under <code>process</code> via Crank--Nicolson.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>instrument</strong> (VanillaOption):
+The contract (European or American vanilla).</li>
+<li><strong>process</strong> (BlackScholesProcess):
+The market dynamics (spot, rate, dividend, volatility).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The present value at the spot node of the solved grid.</li>
+</ul>
+</div>
+
+
+                            </div>
+                            <div id="FiniteDifferenceEngine.greeks" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">greeks</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">instrument</span><span class="p">:</span> <span class="n"><a href="#VanillaOption">VanillaOption</a></span>,</span><span class="param">	<span class="n">process</span><span class="p">:</span> <span class="n"><a href="#BlackScholesProcess">BlackScholesProcess</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#Greeks">Greeks</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FiniteDifferenceEngine.greeks"></a>
+    
+            <div class="docstring"><p>First-order Greeks of <code>instrument</code> under <code>process</code> from the PDE solve.</p>
+
+<p>Delta and gamma are read off the solved value surface at the spot node
+(chain-rule central differences on the log-grid); theta is a central
+difference in the time direction; vega and rho are bump-and-reval on
+\( \sigma \) and \( r \). Rannacher start-up (on by default) keeps the
+gamma free of the Crank--Nicolson payoff-kink oscillation.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>instrument</strong> (VanillaOption):
+The contract (European or American vanilla).</li>
+<li><strong>process</strong> (BlackScholesProcess):
+The market dynamics.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>Greeks</strong>: Delta, gamma, vega, theta and rho (same conventions as
+<code>~<a href="#Greeks">quantica.pricing.greeks.Greeks</a></code>).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If \( \sigma = 0 \) or \( T = 0 \), where the Greeks are not well
+defined (delta becomes a step, gamma a Dirac spike).</li>
+</ul>
 </div>
 
 

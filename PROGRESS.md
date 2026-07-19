@@ -492,6 +492,29 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   (docstring = single source of truth; update it in the same commit; regenerate, never
   hand-edit `docs/api/`). README top matter links the reference; Development section
   documents the workflow. Gate green: 864 tests, ruff + mypy + interrogate(100%) clean.
+- **Step 10 — PDE Greeks + Rannacher start-up (closes the finitediff.py L-stability loop).**
+  `FiniteDifferenceEngine` now satisfies the `GreeksEngine` protocol. **Delta/gamma** come
+  off the solved value surface almost for free — central differences of adjacent nodes,
+  mapped from the log-grid by the chain rule (`Δ=V_x/S`, `Γ=(V_xx−V_x)/S²`); **theta** is a
+  central difference in the time direction (one extra CN step past today); **vega/rho** are
+  bump-and-reval re-solves reusing `process.with_vol`/`with_rate`. The engine was refactored
+  to one shared `_solve` path (grid + theta-scheme step machinery). **Rannacher start-up**:
+  a new `rannacher_steps` param (default **2**, `0`=pure CN) replaces the first CN steps
+  nearest expiry with backward-Euler half-step pairs (L-stable) to damp the payoff-kink
+  oscillation, then resumes CN. **Validated** (`test_finitediff.py`, +~12 tests): all five
+  Greeks agree with the analytic BS Greeks to O(h²) (rel 1e-3 at 400×400) and converge at
+  **second order** (log-log slope −2.00 each), calls & puts; American Greeks obey bounds
+  (put delta∈[−1,0], gamma>0); **the headline — Rannacher damps the gamma oscillation:
+  total variation of the gamma error 1.7e-2 (pure CN) → 1.9e-4 (Rannacher) = 89× smoother,
+  max error 143× lower** on a coarse-in-time (200×25) grid. QuantLib FD benchmark
+  (`test_benchmark_quantlib.py`, +2): our FD delta/gamma/theta match QuantLib's
+  `FdBlackScholesVanillaEngine` to an O(h²) inter-library difference. Demo
+  `scripts/rannacher_gamma_demo.py` (deterministic) prints the before/after metrics + the
+  gamma-vs-spot profile (plot data) → embedded in the README PDE-Greeks section. Default
+  Rannacher slightly shifted the FD prices, so the README convergence table's PDE rows were
+  regenerated. **The L-stability caveat the engine carried as a comment is now implemented
+  and demonstrated.** Gate green: 878 tests (14 new), ruff + mypy + interrogate(100%) clean.
+  Delivered on branch `feat/pde-greeks` (PR, per the apps workflow).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -507,9 +530,9 @@ following are optional, none blocking:
 - **(B) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
   end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
   breadth; strengthens the model-validation-specialist story.
-- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up (cashes in the
-  documented L-stability caveat in `finitediff.py`; PSOR → Brennan–Schwartz); or an
-  autocallable on the LSM/path machinery.
+- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up **✓ (step 10)**.
+  Remaining options: swap the American PSOR for Brennan–Schwartz (direct tridiagonal LCP
+  solve); or an autocallable on the LSM/path machinery.
 
 **Recommendation:** none required — the portfolio is complete, validated, and live. If
 continuing, (A) HRP is the most self-contained library addition and the apps' capital
@@ -520,6 +543,13 @@ view could then expose it.
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **QuantLib's FD engine exposes no vega/rho (step 10).** `FdBlackScholesVanillaEngine`
+  provides `delta()`, `gamma()` and `theta()` off its grid but raises "vega not provided" /
+  "rho not provided" — the volatility- and rate-sensitivities are simply not computed by
+  the FD engine (they need re-solves, which QuantLib leaves to the caller). So the PDE
+  vega/rho benchmark had to fall back to the analytic Greeks as the anchor (the delta/
+  gamma/theta QuantLib cross-check still stands). A concrete "the reference is missing the
+  quantity, not wrong" finding — the same category as the ES-backtest / FRTB-PLA gaps.
 - **Streamlit Community Cloud dependency handling (step 8b, deploy).** Cloud installed
   from `pyproject.toml` **via Poetry's main dependency group only** — it **ignored
   `requirements.txt` entirely and did not install optional extras**, so the `[app]`
