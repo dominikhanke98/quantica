@@ -19,6 +19,8 @@ from quantica.factor.estimators import (
 from quantica.portfolio.backtest import ProportionalCosts, walk_forward_backtest
 from quantica.portfolio.construction import PortfolioConstraints
 from quantica.portfolio.strategy import (
+    BlackLittermanStrategy,
+    HRPStrategy,
     MeanVarianceStrategy,
     MinimumVarianceStrategy,
     RiskParityStrategy,
@@ -39,6 +41,8 @@ def test_all_strategies_run_through_the_backtest() -> None:
         MinimumVarianceStrategy(LedoitWolfCovariance(), long_only),
         RiskParityStrategy(SampleCovariance()),
         MeanVarianceStrategy(LedoitWolfCovariance(), risk_aversion=5.0, constraints=long_only),
+        HRPStrategy(SampleCovariance()),
+        BlackLittermanStrategy(LedoitWolfCovariance(), risk_aversion=3.0, constraints=long_only),
     ]
     for strategy in strategies:
         result = walk_forward_backtest(
