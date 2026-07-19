@@ -146,6 +146,36 @@
                 </ul>
 
             </li>
+            <li>
+                    <a class="class" href="#AutocallableNote">AutocallableNote</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#AutocallableNote.__init__">AutocallableNote</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.maturity">maturity</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.n_observations">n_observations</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.autocall_barrier">autocall_barrier</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.coupon">coupon</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.downside_barrier">downside_barrier</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.notional">notional</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.observation_times">observation_times</a>
+                        </li>
+                </ul>
+
+            </li>
     </ul>
 
 
@@ -706,6 +736,156 @@ default 52).</li>
 
             </div>
                                 </dl>
+                            </div>
+                </section>
+                <section id="AutocallableNote">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">AutocallableNote</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote"></a>
+    
+            <div class="docstring"><p>An autocallable (auto-callable) structured note — the workhorse equity product.</p>
+
+<p>A principal-at-risk note observed on a schedule of equally spaced dates up to
+<code><a href="#AutocallableNote.maturity">maturity</a></code>. On each observation date, if the underlying is at or above the
+<code><a href="#AutocallableNote.autocall_barrier">autocall_barrier</a></code> the note <strong>redeems early</strong>, paying principal plus the accumulated
+coupon and terminating. If it never autocalls, the payoff at maturity is decided by a
+<strong>European</strong> <code><a href="#AutocallableNote.downside_barrier">downside_barrier</a></code>: at or above it the holder gets principal back; below
+it the holder takes the full downside, \( N\cdot S_T/S_0 \) — a short down-and-in put
+struck at the initial fixing. This "coupon while range-bound, capital at risk on a big
+drop" profile is short volatility and short skew, which is why flat-vol pricing
+misprices it (see <code>~<a href="../pricing.html#AutocallableMonteCarloEngine">quantica.pricing.engines.autocallable.AutocallableMonteCarloEngine</a></code>).</p>
+
+<p>Barriers are expressed as <strong>fractions of the initial fixing</strong> \( S_0 \) (the spot at
+inception), the market convention: <code>autocall_barrier=1.0</code> is 100% of initial,
+<code>downside_barrier=0.6</code> is a 60% barrier (a 40% buffer). The accumulated coupon paid
+on autocall at observation \( i \) (1-indexed) is \( i\cdot\text{coupon}\cdot N \)
+— the classic "express certificate" memory coupon.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>maturity</strong> (float):
+Time to the final observation in years, must be positive.</li>
+<li><strong>n_observations</strong> (int):
+Number of equally spaced observation dates up to (and including) <code><a href="#AutocallableNote.maturity">maturity</a></code>,
+must be at least 1. The step is <code>maturity / n_observations</code>.</li>
+<li><strong>autocall_barrier</strong> (float):
+Early-redemption trigger as a fraction of the initial fixing, must be positive
+(e.g. <code>1.0</code> for 100%).</li>
+<li><strong>coupon</strong> (float):
+Coupon rate per observation period, accrued and paid on autocall, must be
+non-negative.</li>
+<li><strong>downside_barrier</strong> (float):
+Capital-protection barrier at maturity as a fraction of the initial fixing, must
+be non-negative (e.g. <code>0.6</code>). Below it the holder is exposed to the loss.</li>
+<li><strong>notional</strong> (float, optional):
+Principal \( N \) (default <code>1.0</code>); prices scale linearly with it.</li>
+</ul>
+
+<h6 id="references">References</h6>
+
+<p>Bouzoubaa, M. &amp; Osseiran, A. (2010). <em>Exotic Options and Hybrids</em>, Wiley — ch. on
+autocallable/express structures.</p>
+</div>
+
+
+                            <div id="AutocallableNote.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">AutocallableNote</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">n_observations</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">autocall_barrier</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">coupon</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">downside_barrier</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">notional</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.maturity" class="classattr">
+                                <div class="attr variable">
+            <span class="name">maturity</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.maturity"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.n_observations" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_observations</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.n_observations"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.autocall_barrier" class="classattr">
+                                <div class="attr variable">
+            <span class="name">autocall_barrier</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.autocall_barrier"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.coupon" class="classattr">
+                                <div class="attr variable">
+            <span class="name">coupon</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.coupon"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.downside_barrier" class="classattr">
+                                <div class="attr variable">
+            <span class="name">downside_barrier</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.downside_barrier"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.notional" class="classattr">
+                                <div class="attr variable">
+            <span class="name">notional</span><span class="annotation">: float</span>        =
+<span class="default_value">1.0</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.notional"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.observation_times" class="classattr">
+                                <div class="attr variable">
+            <span class="name">observation_times</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.observation_times"></a>
+    
+            <div class="docstring"><p>The <code><a href="#AutocallableNote.n_observations">n_observations</a></code> equally spaced observation times <code>t_1..t_n</code> (years).</p>
+</div>
+
+
                             </div>
                 </section>
     </main>

@@ -117,6 +117,87 @@
 
             </li>
             <li>
+                    <a class="class" href="#AutocallableMonteCarloEngine">AutocallableMonteCarloEngine</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#AutocallableMonteCarloEngine.__init__">AutocallableMonteCarloEngine</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableMonteCarloEngine.n_paths">n_paths</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableMonteCarloEngine.rng">rng</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableMonteCarloEngine.heston_substeps">heston_substeps</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AutocallableMonteCarloEngine.calculate">calculate</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AutocallableMonteCarloEngine.estimate">estimate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#AutocallableNote">AutocallableNote</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#AutocallableNote.__init__">AutocallableNote</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.maturity">maturity</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.n_observations">n_observations</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.autocall_barrier">autocall_barrier</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.coupon">coupon</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.downside_barrier">downside_barrier</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.notional">notional</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableNote.observation_times">observation_times</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#AutocallableResult">AutocallableResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#AutocallableResult.__init__">AutocallableResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableResult.price">price</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableResult.std_error">std_error</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableResult.n_paths">n_paths</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableResult.autocall_probabilities">autocall_probabilities</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableResult.maturity_probability">maturity_probability</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AutocallableResult.loss_probability">loss_probability</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#AveragingType">AveragingType</a>
                             <ul class="memberlist">
                         <li>
@@ -1164,6 +1245,379 @@ Number of equally spaced averaging observations up to expiry
 
             </div>
                                 </dl>
+                            </div>
+                </section>
+                <section id="AutocallableMonteCarloEngine">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">AutocallableMonteCarloEngine</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableMonteCarloEngine"></a>
+    
+            <div class="docstring"><p>Monte Carlo pricer for an <code><a href="#AutocallableNote">AutocallableNote</a></code> under BS, Heston or Merton.</p>
+
+<p>The process type selects the path simulator; the payoff logic is identical across all
+three. See the module docstring for the discrete-monitoring reasoning.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n_paths</strong> (int):
+Number of simulated paths (must be &gt;= 2).</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator, injected for reproducibility.</li>
+<li><strong>heston_substeps</strong> (int, optional):
+Euler sub-steps per observation for the Heston simulator (default 32); ignored for
+the exact Black--Scholes and Merton simulators.</li>
+</ul>
+
+<h6 id="notes">Notes</h6>
+
+<p>Satisfies the price-only engine contract via <code><a href="#AutocallableMonteCarloEngine.calculate">calculate()</a></code>; use <code><a href="#AutocallableMonteCarloEngine.estimate">estimate()</a></code>
+for the price, its standard error, and the autocall-probability breakdown.</p>
+</div>
+
+
+                            <div id="AutocallableMonteCarloEngine.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">AutocallableMonteCarloEngine</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">heston_substeps</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">32</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableMonteCarloEngine.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableMonteCarloEngine.n_paths" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_paths</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableMonteCarloEngine.n_paths"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableMonteCarloEngine.rng" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rng</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableMonteCarloEngine.rng"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableMonteCarloEngine.heston_substeps" class="classattr">
+                                <div class="attr variable">
+            <span class="name">heston_substeps</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableMonteCarloEngine.heston_substeps"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableMonteCarloEngine.calculate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">calculate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">instrument</span><span class="p">:</span> <span class="n"><a href="#AutocallableNote">AutocallableNote</a></span>,</span><span class="param">	<span class="n">process</span><span class="p">:</span> <span class="n"><a href="#BlackScholesProcess">BlackScholesProcess</a></span> <span class="o">|</span> <span class="n"><a href="#HestonProcess">HestonProcess</a></span> <span class="o">|</span> <span class="n"><a href="#MertonProcess">MertonProcess</a></span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableMonteCarloEngine.calculate"></a>
+    
+            <div class="docstring"><p>Present value of <code>instrument</code> (the point estimate; see <code><a href="#AutocallableMonteCarloEngine.estimate">estimate()</a></code>).</p>
+</div>
+
+
+                            </div>
+                            <div id="AutocallableMonteCarloEngine.estimate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">estimate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">instrument</span><span class="p">:</span> <span class="n"><a href="#AutocallableNote">AutocallableNote</a></span>,</span><span class="param">	<span class="n">process</span><span class="p">:</span> <span class="n"><a href="#BlackScholesProcess">BlackScholesProcess</a></span> <span class="o">|</span> <span class="n"><a href="#HestonProcess">HestonProcess</a></span> <span class="o">|</span> <span class="n"><a href="#MertonProcess">MertonProcess</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#AutocallableResult">AutocallableResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableMonteCarloEngine.estimate"></a>
+    
+            <div class="docstring"><p>Price <code>instrument</code> under <code>process</code> with SE and autocall diagnostics.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="AutocallableNote">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">AutocallableNote</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote"></a>
+    
+            <div class="docstring"><p>An autocallable (auto-callable) structured note — the workhorse equity product.</p>
+
+<p>A principal-at-risk note observed on a schedule of equally spaced dates up to
+<code><a href="#AutocallableNote.maturity">maturity</a></code>. On each observation date, if the underlying is at or above the
+<code><a href="#AutocallableNote.autocall_barrier">autocall_barrier</a></code> the note <strong>redeems early</strong>, paying principal plus the accumulated
+coupon and terminating. If it never autocalls, the payoff at maturity is decided by a
+<strong>European</strong> <code><a href="#AutocallableNote.downside_barrier">downside_barrier</a></code>: at or above it the holder gets principal back; below
+it the holder takes the full downside, \( N\cdot S_T/S_0 \) — a short down-and-in put
+struck at the initial fixing. This "coupon while range-bound, capital at risk on a big
+drop" profile is short volatility and short skew, which is why flat-vol pricing
+misprices it (see <code>~<a href="#AutocallableMonteCarloEngine">quantica.pricing.engines.autocallable.AutocallableMonteCarloEngine</a></code>).</p>
+
+<p>Barriers are expressed as <strong>fractions of the initial fixing</strong> \( S_0 \) (the spot at
+inception), the market convention: <code>autocall_barrier=1.0</code> is 100% of initial,
+<code>downside_barrier=0.6</code> is a 60% barrier (a 40% buffer). The accumulated coupon paid
+on autocall at observation \( i \) (1-indexed) is \( i\cdot\text{coupon}\cdot N \)
+— the classic "express certificate" memory coupon.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>maturity</strong> (float):
+Time to the final observation in years, must be positive.</li>
+<li><strong>n_observations</strong> (int):
+Number of equally spaced observation dates up to (and including) <code><a href="#AutocallableNote.maturity">maturity</a></code>,
+must be at least 1. The step is <code>maturity / n_observations</code>.</li>
+<li><strong>autocall_barrier</strong> (float):
+Early-redemption trigger as a fraction of the initial fixing, must be positive
+(e.g. <code>1.0</code> for 100%).</li>
+<li><strong>coupon</strong> (float):
+Coupon rate per observation period, accrued and paid on autocall, must be
+non-negative.</li>
+<li><strong>downside_barrier</strong> (float):
+Capital-protection barrier at maturity as a fraction of the initial fixing, must
+be non-negative (e.g. <code>0.6</code>). Below it the holder is exposed to the loss.</li>
+<li><strong>notional</strong> (float, optional):
+Principal \( N \) (default <code>1.0</code>); prices scale linearly with it.</li>
+</ul>
+
+<h6 id="references">References</h6>
+
+<p>Bouzoubaa, M. &amp; Osseiran, A. (2010). <em>Exotic Options and Hybrids</em>, Wiley — ch. on
+autocallable/express structures.</p>
+</div>
+
+
+                            <div id="AutocallableNote.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">AutocallableNote</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">n_observations</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">autocall_barrier</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">coupon</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">downside_barrier</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">notional</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.maturity" class="classattr">
+                                <div class="attr variable">
+            <span class="name">maturity</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.maturity"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.n_observations" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_observations</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.n_observations"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.autocall_barrier" class="classattr">
+                                <div class="attr variable">
+            <span class="name">autocall_barrier</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.autocall_barrier"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.coupon" class="classattr">
+                                <div class="attr variable">
+            <span class="name">coupon</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.coupon"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.downside_barrier" class="classattr">
+                                <div class="attr variable">
+            <span class="name">downside_barrier</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.downside_barrier"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.notional" class="classattr">
+                                <div class="attr variable">
+            <span class="name">notional</span><span class="annotation">: float</span>        =
+<span class="default_value">1.0</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.notional"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableNote.observation_times" class="classattr">
+                                <div class="attr variable">
+            <span class="name">observation_times</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableNote.observation_times"></a>
+    
+            <div class="docstring"><p>The <code><a href="#AutocallableNote.n_observations">n_observations</a></code> equally spaced observation times <code>t_1..t_n</code> (years).</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="AutocallableResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">AutocallableResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult"></a>
+    
+            <div class="docstring"><p>Monte Carlo valuation of an autocallable, with its redemption diagnostics.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>price</strong> (float):
+Present value of the note (same units as the note's <code>notional</code>).</li>
+<li><strong>std_error</strong> (float):
+Monte Carlo standard error of <code><a href="#AutocallableResult.price">price</a></code>.</li>
+<li><strong>n_paths</strong> (int):
+Number of simulated paths.</li>
+<li><strong>autocall_probabilities</strong> (ndarray, shape (n_observations,)):
+Probability the note first autocalls on each observation date.</li>
+<li><strong>maturity_probability</strong> (float):
+Probability the note survives to maturity without autocalling.</li>
+<li><strong>loss_probability</strong> (float):
+Probability of a capital loss (survives to maturity <em>and</em> finishes below the
+downside barrier). <code>autocall_probabilities.sum() + maturity_probability</code> is
+<code>1</code> by construction.</li>
+</ul>
+</div>
+
+
+                            <div id="AutocallableResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">AutocallableResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">price</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">std_error</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">autocall_probabilities</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">maturity_probability</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">loss_probability</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableResult.price" class="classattr">
+                                <div class="attr variable">
+            <span class="name">price</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult.price"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableResult.std_error" class="classattr">
+                                <div class="attr variable">
+            <span class="name">std_error</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult.std_error"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableResult.n_paths" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_paths</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult.n_paths"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableResult.autocall_probabilities" class="classattr">
+                                <div class="attr variable">
+            <span class="name">autocall_probabilities</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult.autocall_probabilities"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableResult.maturity_probability" class="classattr">
+                                <div class="attr variable">
+            <span class="name">maturity_probability</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult.maturity_probability"></a>
+    
+    
+
+                            </div>
+                            <div id="AutocallableResult.loss_probability" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loss_probability</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AutocallableResult.loss_probability"></a>
+    
+    
+
                             </div>
                 </section>
                 <section id="AveragingType">

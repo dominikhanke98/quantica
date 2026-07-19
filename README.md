@@ -20,7 +20,7 @@ is hand-typed.
 
 | Pillar | One-line signature |
 | --- | --- |
-| **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
+| **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | A multi-factor risk model and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything. |
 
@@ -538,6 +538,71 @@ carrier). It is priced **two independent ways**:
 | Merton |          17.2 pts |           3.4 pts |             5.1× |
 | Heston |           8.0 pts |           6.5 pts |             1.2× |
 ```
+
+### Autocallable notes — composing the machinery into a traded product
+
+The autocallable is the workhorse equity structured product: a note that pays a
+coupon while the underlying stays range-bound and redeems early once it climbs
+back to an autocall barrier, but leaves the holder **short a down-and-in put** if
+it finishes through a downside barrier at maturity. It is priced here purely by
+*composition* — the [full-path simulators](quantica/pricing/engines/_paths.py)
+(GBM, plus new Merton jump-diffusion and Heston full-truncation simulators), the
+discrete-observation pattern from the [barrier engine](quantica/pricing/engines/barrier.py),
+and the [Heston / Merton processes](quantica/pricing/processes.py) — over a single
+new payoff. The note is the only new logic; the numerics are already validated.
+
+```python
+from quantica.pricing import AutocallableNote, AutocallableMonteCarloEngine, HestonProcess
+import numpy as np
+
+note = AutocallableNote(
+    maturity=3.0, n_observations=6,   # semi-annual observation schedule
+    autocall_barrier=1.0,             # redeem early at 100% of the initial fixing
+    coupon=0.04,                      # 4% accrued coupon, paid on autocall
+    downside_barrier=0.6,             # 60% barrier -> 40% buffer at maturity
+)
+heston = HestonProcess(spot=100, rate=0.03, v0=0.05, kappa=1.5, theta=0.05, xi=0.9, rho=-0.8)
+result = AutocallableMonteCarloEngine(400_000, rng=np.random.default_rng(0)).estimate(note, heston)
+result.price, result.std_error, result.autocall_probabilities  # PV, SE, redemption-by-date
+```
+
+**Validated by composition, not a new closed form.** The two new path simulators
+are anchored to the transform pricers they must agree with — Merton MC reprices a
+European call to within Monte Carlo error of `MertonClosedFormEngine`, Heston MC to
+within error of `HestonFFTEngine`. The payoff wiring is pinned exactly: a
+single-observation note decomposes into cash-or-nothing digitals plus an
+asset-or-nothing put, which the engine reproduces in closed form under
+Black–Scholes. Structural limits hold — an autocall barrier at zero collapses to a
+one-period coupon-plus-principal cashflow; full downside protection removes every
+loss path; the first-autocall and survival probabilities partition to one.
+
+> **Highlighted insight — flat vol misprices a short-skew structured product.**
+> An autocallable is short volatility *and* short skew, so pricing it with a single
+> flat Black–Scholes vol — even one matched to the at-the-money implied vol —
+> misprices it. Matching the flat vol to Heston's ATM level isolates the skew: the
+> steep negative skew makes the embedded down-and-in put dearer, so **flat vol
+> overprices the note by ~0.85% of notional and understates the probability of
+> capital loss** (3.8% → 4.9%) — money a flat-vol book would not see. A jump smile
+> (Merton) is roughly symmetric in the wings, so its net effect is small and
+> ambiguous — skew, not tail-fatness, is what the structure is short
+> (`python scripts/autocallable_smile_report.py`):
+
+```
+| Model              | ATM vol | Flat-vol price | Smile price | Flat − smile | P(loss) flat → smile |
+| ------------------ | ------: | -------------: | ----------: | -----------: | -------------------: |
+| Heston (stoch vol) |   19.1% |         0.9990 |      0.9905 |     +0.0085  |          3.8% → 4.9%  |
+| Merton (jumps)     |   23.9% |         0.9772 |      0.9792 |     −0.0020  |          7.7% → 7.3%  |
+```
+
+> **Genuinely discrete monitoring — no continuous-limit bias to correct.** Unlike a
+> continuously-monitored barrier (which needs the Brownian-bridge correction because
+> Monte Carlo misses between-step crossings), an autocallable's observation dates are
+> *contractual*: the discrete grid **is** the product. Under Black–Scholes and Merton
+> the marginals are exact at every observation, so there is no discretisation bias —
+> only Monte Carlo error. Under Heston the sole bias is the Euler variance
+> discretisation of the simulator (set by `heston_substeps`), not the monitoring; it
+> converges upward with more sub-steps, which only makes the flat-vol-overprices gap
+> more conservative.
 
 ## Pillar II — Risk & model validation
 
