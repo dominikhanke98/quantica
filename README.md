@@ -22,7 +22,7 @@ is hand-typed.
 | --- | --- |
 | **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
-| **[III — Capital markets](#pillar-iii--capital-markets)** | A multi-factor risk model and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything. |
+| **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything. |
 
 ## Headline results
 
@@ -1002,6 +1002,65 @@ Minimum-variance portfolio, 49 industries, 60-month window (n/T ≈ 0.8):
 > (condition number 61,123 → 36,082). The constraint *is* the regularisation — a
 > cross-pillar result the [test suite](tests/portfolio/test_jagannathan_ma.py) pins to
 > machine precision.
+
+### Statistical (PCA) factor model — discovering the factors, not assuming them
+
+The observable model above takes the factors as *given* (Fama–French market/size/value/
+momentum). The **statistical** model
+([`StatisticalFactorModel`](quantica/factor/statistical.py)) instead *discovers* them:
+the principal components of the return correlation matrix are the factors, the
+eigenvector-scaled loadings are the exposures. It completes the observable-vs-statistical
+pair and — sharing the `Σ = B F Bᵀ + D` assembly through a common
+[`LinearFactorModel`](quantica/factor/model.py) base — plugs straight into the same risk
+decomposition and the same out-of-sample estimator comparison
+([`StatisticalFactorCovariance`](quantica/factor/statistical.py)).
+
+Working on the **correlation** matrix (standardise, then eigendecompose — equivalently, SVD
+of the standardised returns) makes the reconstruction preserve the sample variances exactly
+on the diagonal, and makes the noise cut-off clean.
+
+**Component selection is treated as a real modelling decision, not a hard-coded `k`.** Three
+principled rules are implemented, the last being the differentiator:
+
+- **variance-explained** — the smallest `k` reaching a cumulative-variance target;
+- **scree elbow** — the geometric knee of the eigenvalue curve;
+- **Marchenko–Pastur (RMT)** — eigenvalues above the random-matrix edge
+  `λ₊ = σ²(1 + √(n/T))²` are statistically *real*; those in the bulk are indistinguishable
+  from noise. This says *how many factors are signal, not sampling artefact* — and is the
+  default.
+
+> **Highlighted insight — the RMT cutoff recovers the true factor count, and PC1 *is* the
+> market.** On synthetic returns from a known 3-factor structure the Marchenko–Pastur cutoff
+> recovers exactly 3 factors (across seeds) and the recovered loadings span the true factor
+> subspace (largest principal angle ≈ 0, similarity > 0.999); on pure noise it certifies
+> **zero** factors. On the real 49-industry universe the first eigenvalue alone carries ~57%
+> of the variance — the market mode — and the first principal component correlates **0.96**
+> with the observable Mkt-RF factor: PCA rediscovers the market without being told
+> (`python scripts/statistical_factor_report.py`):
+
+```
+| PC | Eigenvalue | Variance explained | Above MP edge (λ₊=1.97)? |
+| -: | ---------: | -----------------: | :----------------------: |
+|  1 |      27.91 |              57.0% |           yes (market)   |
+|  2 |       2.42 |               4.9% |               yes        |
+|  3 |       1.99 |               4.1% |               yes        |
+|  4 |       1.48 |               3.0% |               no         |
+
+Selection rule           | Factors kept
+------------------------ | -----------:
+Marchenko–Pastur (σ²=1)  |            3
+variance-explained ≥ 90% |           22   ← over-keeps: mostly noise
+```
+
+> **Highlighted insight — statistical vs observable, the honest tie-back.** Both factor
+> models forecast risk far better than the sample covariance out of sample; on real industry
+> data the *statistical* four-factor model (11.3% OOS min-variance vol, matching Ledoit–Wolf)
+> actually **edges the *observable* four-factor model** (12.3%) — the four Fama–French factors
+> do not fully span industry systematic risk, whereas PCA extracts the four directions that
+> genuinely dominate the covariance. The trade-off is interpretability: the observable factors
+> are economic and investable; the statistical factors are whatever the covariance says. PCA
+> wins the pure risk-forecasting contest it is built for; the observable model wins on economic
+> meaning — the same "which model to trust *when*" verdict as the estimator comparison.
 
 ### Systematic portfolio management — the test of whether a backtest means anything
 
