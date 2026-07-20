@@ -22,8 +22,8 @@ backtest + validity layer ✓** (this session). **Capital-markets / portfolio tr
 complete.**
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
-→ **Heston calibration ✓** → **Merton jump-diffusion ✓**. **Derivatives-pricing
-deepening track complete.**
+→ **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
+**Derivatives-pricing deepening track complete.**
 
 Phase-3 roadmap: **market-risk VaR/ES + backtesting ✓** → **derivatives-P&L
 integration ✓** (option book revalued through the pricers as the risk P&L source)
@@ -543,6 +543,38 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   Jagannathan–Ma effect), so BL's advantage is specifically the *unconstrained* case; (ii)
   reported net-of-cost. Gate green: 889 tests (11 new), ruff + mypy + interrogate(100%) clean.
   Delivered on branch `feat/hrp-blacklitterman` (PR, per the apps/PDE-Greeks workflow).
+- **Step 12 — Autocallable structured note (composing path / barrier / stochastic-vol
+  machinery into a traded product).** New `AutocallableNote` instrument (`instruments.py`,
+  a frozen dataclass — a note, not a `VanillaOption`: observation schedule, autocall
+  barrier, accrued coupon, downside barrier, all as fractions of the initial fixing) +
+  `AutocallableMonteCarloEngine` (`engines/autocallable.py`) pricing it by Monte Carlo
+  under **Black–Scholes, Heston and Merton** (`estimate` → `AutocallableResult`: price, SE,
+  per-date first-autocall probabilities, survival & loss probabilities). **Scope discipline
+  held — the note payoff is the only new logic.** Since the Heston/Merton engines are
+  transform-based (FFT/closed-form) and cannot price path-dependent products, two path
+  simulators were added to `engines/_paths.py` alongside the reused `GBMPathSimulator`:
+  `MertonPathSimulator` (GBM diffusion + exact compound-Poisson jump per step, compensated
+  drift) and `HestonPathSimulator` (full-truncation Euler on the CIR variance, `n_substeps`
+  sub-stepping). **Both anchored to the existing validated pricers** — the composition claim
+  made rigorous. Discrete monitoring is *genuinely* discrete (contractual dates), so — unlike
+  the continuous barrier — there is no continuous-limit bias to correct (exact BS/Merton
+  marginals; only Euler bias under Heston, set by `heston_substeps`). Validated
+  (`tests/pricing/engines/test_autocallable.py`, 10 tests): **Merton MC == closed form** and
+  **Heston MC == FFT** for a European call (within ~4 SE, the simulator anchors); **payoff
+  wiring pinned exactly** — a single-observation note == cash-or-nothing digitals +
+  asset-or-nothing put in closed form under BS; structural limits (autocall→0 collapses to a
+  one-period coupon-bond cashflow to machine precision; full protection → zero loss, price ≥
+  principal PV; autocall+survival probabilities partition to 1 within 1e-12); **the headline —
+  flat vol matched to Heston's ATM vol overprices the note by ~0.85% of notional and
+  understates P(loss) 3.8%→4.9%** (the note is short the down-and-in put; steep negative skew
+  makes it dearer), asserted at >8 combined SE; reproducibility (same seed bit-identical,
+  seeds agree within SE). Report `scripts/autocallable_smile_report.py` (BS-vs-Heston/Merton
+  mispricing table + Heston autocall-probability-by-date breakdown) → embedded in README.
+  **Honest finding:** the Merton (jump) smile is roughly symmetric in the wings, so its net
+  mispricing is small and opposite-signed — *skew*, not tail-fatness, is what an autocallable
+  is structurally short, which is why the diffusive-skew (Heston) result is the clean, material
+  one. Gate green: 899 tests (10 new), ruff + mypy + interrogate(100%) clean. Delivered on
+  branch `feat/autocallable` (PR, per the established workflow).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -556,9 +588,9 @@ following are optional, none blocking:
 - **(B) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
   end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
   breadth; strengthens the model-validation-specialist story.
-- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up **✓ (step 10)**.
-  Remaining options: swap the American PSOR for Brennan–Schwartz (direct tridiagonal LCP
-  solve); or an autocallable on the LSM/path machinery.
+- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up **✓ (step 10)**;
+  autocallable on the path machinery **✓ (step 12)**. Remaining option: swap the American
+  PSOR for Brennan–Schwartz (direct tridiagonal LCP solve).
 
 **Recommendation:** none required — the portfolio is complete, validated, and live. If
 continuing, surfacing HRP/BL in the apps' capital-markets tab is the cheapest reviewer-
@@ -569,6 +601,16 @@ facing win now that the construction methods exist.
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **No autocallable — and no path generator to price one — in QuantLib's Python wrapper
+  (step 12).** QuantLib ships vanilla/American/Asian/barrier instruments and both a Heston
+  and a Merton *process*, but (i) there is no autocallable instrument, and (ii) the generic
+  Monte Carlo path-generator machinery that would let you price a bespoke path-dependent
+  payoff under those processes is not exposed in the Python wrapper (it lives in C++
+  `MakeMC*` engine factories bound only for specific instruments). So there is no reference
+  to benchmark an autocallable against, *and* the Heston/Merton MC paths had to be
+  hand-written — which is why the two new path simulators are anchored to QuantLib-validated
+  transform prices (`HestonFFTEngine`, `MertonClosedFormEngine`) instead. Same "the
+  primitives exist, the product doesn't" category as the HRP/BL and OOS-covariance gaps.
 - **The scientific stack ships the plumbing, not the PM construction methods (step 11).**
   `scipy.cluster.hierarchy` gives the linkage/leaf-order clustering and numpy/scipy the
   linear algebra, but neither ships **HRP** or **Black–Litterman** as a construction rule —
@@ -689,6 +731,18 @@ this repo's independent implementation surfaced it. Add to this list as they occ
 - **Ignored-vol market carrier — RESOLVED (step 4a).** `implied_volatility` now
   takes a `Market` (spot, rate, div); there is no placeholder vol to ignore. The
   `Market` carrier is shared by `BlackScholesProcess` and `HestonProcess`.
+- **Autocallable MC is plain (no antithetic/control variate), price-then-diagnostics (step
+  12).** The engine runs plain seeded Monte Carlo and reports the SE, rather than reusing the
+  antithetic/control-variate paths the BS-only engines have. Deliberate: the payoff and the
+  path simulators must be *uniform* across BS/Heston/Merton, and antithetic pairing does not
+  compose cleanly with the Poisson jumps (Merton) or the correlated variance draws (Heston),
+  so keeping it plain keeps one code path across all three processes; the SE is small enough
+  (~2e-4 at 400k paths) that the headline is >8 SE regardless. The `AutocallableResult`
+  carries the autocall-probability breakdown alongside the price so the diagnostics come from
+  the same simulation, not a second pass. **Heston Euler bias**: the full-truncation scheme
+  has a small upward-converging discretisation bias in `heston_substeps` (0.989→0.992 over
+  16→128 on the headline note); it only makes the "flat vol overprices" gap *more*
+  conservative, so 64 sub-steps is used for the report and the direction is documented.
 - **`estimate()` vs `npv` for MC stats.** The standard error is exposed via
   `MonteCarloEngine.estimate()` rather than threading a stats flag through the
   generic `npv`/`PricingEngine` seam. Deliberate; revisit only if other engines
