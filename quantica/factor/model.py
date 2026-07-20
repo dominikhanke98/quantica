@@ -37,7 +37,12 @@ import numpy as np
 from quantica.core.types import FloatArray
 from quantica.factor.exposures import FactorExposures, estimate_exposures
 
-__all__ = ["AssetVarianceDecomposition", "FactorRiskModel", "PortfolioRiskDecomposition"]
+__all__ = [
+    "AssetVarianceDecomposition",
+    "FactorRiskModel",
+    "LinearFactorModel",
+    "PortfolioRiskDecomposition",
+]
 
 
 class AssetVarianceDecomposition(NamedTuple):
@@ -74,20 +79,111 @@ class PortfolioRiskDecomposition(NamedTuple):
 
 
 @dataclass(frozen=True)
-class FactorRiskModel:
-    """A fitted linear factor risk model :math:`\\Sigma = B F B^\\top + D`.
+class LinearFactorModel:
+    r"""A linear factor covariance model :math:`\Sigma = B F B^\top + D`.
 
-    Build with :meth:`fit`. Holds the loadings ``B`` (:attr:`betas`), the factor
-    covariance ``F`` (:attr:`factor_cov`), the specific variances (the diagonal of
-    ``D``), and the per-asset regression detail.
+    The shared algebra of every factor risk model in the package — the assembly of the
+    loadings ``B``, factor covariance ``F`` and specific variances ``D`` into a covariance,
+    and the risk decompositions built on it. It is *how the factors are estimated* that
+    differs between subclasses: :class:`FactorRiskModel` regresses on **observable** factor
+    returns, while :class:`~quantica.factor.statistical.StatisticalFactorModel` extracts
+    **statistical** factors (principal components) from the asset returns themselves. This
+    base was extracted once that second consumer appeared (CLAUDE.md §2, "extract on the
+    second use"), so both share one tested implementation of the covariance and
+    decomposition.
+
+    Attributes
+    ----------
+    asset_names, factor_names : tuple of str
+        Labels for the ``n`` assets and ``k`` factors.
+    betas : ndarray, shape (n, k)
+        The factor loadings ``B``.
+    factor_cov : ndarray, shape (k, k)
+        The factor covariance ``F``.
+    specific_var : ndarray, shape (n,)
+        The specific (idiosyncratic) variances — the diagonal of ``D``.
     """
 
     asset_names: tuple[str, ...]
     factor_names: tuple[str, ...]
     betas: FloatArray  # B: (n_assets, k)
-    alphas: FloatArray  # (n_assets,)
     factor_cov: FloatArray  # F: (k, k)
     specific_var: FloatArray  # diag(D): (n_assets,)
+
+    # --------------------------------------------------------------- covariance
+
+    def systematic_covariance(self) -> FloatArray:
+        """The factor-driven covariance :math:`B F B^\\top`."""
+        return np.asarray(self.betas @ self.factor_cov @ self.betas.T, dtype=np.float64)
+
+    def covariance(self) -> FloatArray:
+        r"""The assembled asset covariance :math:`\Sigma = B F B^\top + D`.
+
+        Symmetrised against floating-point asymmetry; PSD by construction (``F`` is
+        a sample/identity covariance, so ``B F B^\top`` is PSD, and ``D`` is non-negative
+        diagonal).
+        """
+        sigma = self.systematic_covariance()
+        sigma = sigma + np.diag(self.specific_var)
+        return np.asarray(0.5 * (sigma + sigma.T), dtype=np.float64)
+
+    # --------------------------------------------------------------- decomposition
+
+    def variance_decomposition(self) -> tuple[AssetVarianceDecomposition, ...]:
+        """Per-asset split of total variance into systematic and specific parts."""
+        systematic = np.diag(self.systematic_covariance())
+        return tuple(
+            AssetVarianceDecomposition(
+                asset=name,
+                total_variance=float(systematic[i] + self.specific_var[i]),
+                systematic_variance=float(systematic[i]),
+                specific_variance=float(self.specific_var[i]),
+            )
+            for i, name in enumerate(self.asset_names)
+        )
+
+    def portfolio_factor_exposure(self, weights: FloatArray) -> FloatArray:
+        r"""The portfolio's net factor loadings :math:`B^\top w`."""
+        w = self._check_weights(weights)
+        return np.asarray(self.betas.T @ w, dtype=np.float64)
+
+    def portfolio_variance(self, weights: FloatArray) -> float:
+        r"""Portfolio variance :math:`w^\top \Sigma w`."""
+        w = self._check_weights(weights)
+        return float(w @ self.covariance() @ w)
+
+    def portfolio_risk_decomposition(self, weights: FloatArray) -> PortfolioRiskDecomposition:
+        r"""Split portfolio variance into systematic (:math:`(B^\top w)^\top F (B^\top w)`)
+        and specific (:math:`\sum_i w_i^2 D_i`) parts.
+        """
+        w = self._check_weights(weights)
+        exposure = self.betas.T @ w
+        systematic = float(exposure @ self.factor_cov @ exposure)
+        specific = float(np.sum(w * w * self.specific_var))
+        return PortfolioRiskDecomposition(
+            total_variance=systematic + specific,
+            systematic_variance=systematic,
+            specific_variance=specific,
+            factor_exposure=np.asarray(exposure, dtype=np.float64),
+        )
+
+    def _check_weights(self, weights: FloatArray) -> FloatArray:
+        w = np.asarray(weights, dtype=np.float64)
+        if w.shape != (len(self.asset_names),):
+            raise ValueError(f"weights must have shape ({len(self.asset_names)},), got {w.shape}")
+        return w
+
+
+@dataclass(frozen=True)
+class FactorRiskModel(LinearFactorModel):
+    """A fitted **observable**-factor risk model :math:`\\Sigma = B F B^\\top + D`.
+
+    Build with :meth:`fit`. Extends :class:`LinearFactorModel` with the regression
+    intercepts (:attr:`alphas`) and the per-asset regression detail (:attr:`exposures`);
+    the covariance and decomposition methods are inherited.
+    """
+
+    alphas: FloatArray  # (n_assets,)
     exposures: tuple[FactorExposures, ...]
 
     # --------------------------------------------------------------- fitting
@@ -148,66 +244,3 @@ class FactorRiskModel:
             specific_var=specific_var,
             exposures=exposures,
         )
-
-    # --------------------------------------------------------------- covariance
-
-    def systematic_covariance(self) -> FloatArray:
-        """The factor-driven covariance :math:`B F B^\\top`."""
-        return np.asarray(self.betas @ self.factor_cov @ self.betas.T, dtype=np.float64)
-
-    def covariance(self) -> FloatArray:
-        r"""The assembled asset covariance :math:`\Sigma = B F B^\top + D`.
-
-        Symmetrised against floating-point asymmetry; PSD by construction (``F`` is
-        a sample covariance, so ``B F B^\top`` is PSD, and ``D`` is non-negative
-        diagonal).
-        """
-        sigma = self.systematic_covariance()
-        sigma = sigma + np.diag(self.specific_var)
-        return np.asarray(0.5 * (sigma + sigma.T), dtype=np.float64)
-
-    # --------------------------------------------------------------- decomposition
-
-    def variance_decomposition(self) -> tuple[AssetVarianceDecomposition, ...]:
-        """Per-asset split of total variance into systematic and specific parts."""
-        systematic = np.diag(self.systematic_covariance())
-        return tuple(
-            AssetVarianceDecomposition(
-                asset=name,
-                total_variance=float(systematic[i] + self.specific_var[i]),
-                systematic_variance=float(systematic[i]),
-                specific_variance=float(self.specific_var[i]),
-            )
-            for i, name in enumerate(self.asset_names)
-        )
-
-    def portfolio_factor_exposure(self, weights: FloatArray) -> FloatArray:
-        r"""The portfolio's net factor loadings :math:`B^\top w`."""
-        w = self._check_weights(weights)
-        return np.asarray(self.betas.T @ w, dtype=np.float64)
-
-    def portfolio_variance(self, weights: FloatArray) -> float:
-        r"""Portfolio variance :math:`w^\top \Sigma w`."""
-        w = self._check_weights(weights)
-        return float(w @ self.covariance() @ w)
-
-    def portfolio_risk_decomposition(self, weights: FloatArray) -> PortfolioRiskDecomposition:
-        r"""Split portfolio variance into systematic (:math:`(B^\top w)^\top F (B^\top w)`)
-        and specific (:math:`\sum_i w_i^2 D_i`) parts.
-        """
-        w = self._check_weights(weights)
-        exposure = self.betas.T @ w
-        systematic = float(exposure @ self.factor_cov @ exposure)
-        specific = float(np.sum(w * w * self.specific_var))
-        return PortfolioRiskDecomposition(
-            total_variance=systematic + specific,
-            systematic_variance=systematic,
-            specific_variance=specific,
-            factor_exposure=np.asarray(exposure, dtype=np.float64),
-        )
-
-    def _check_weights(self, weights: FloatArray) -> FloatArray:
-        w = np.asarray(weights, dtype=np.float64)
-        if w.shape != (len(self.asset_names),):
-            raise ValueError(f"weights must have shape ({len(self.asset_names)},), got {w.shape}")
-        return w
