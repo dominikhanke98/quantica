@@ -608,27 +608,55 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   = Ledoit–Wolf) **edges the *observable* 4-factor model** (12.3%) — the 4 FF factors don't
   fully span industry risk, while PCA targets the covariance directly; the trade-off is
   interpretability. Gate green: 921 tests (22 new), ruff + mypy + interrogate(100%) clean.
-  Delivered on branch `feat/statistical-factors` (PR, per the established workflow).
+  Delivered on branch `feat/statistical-factors` as **PR #5 — open, CI-green (py3.11,
+  py3.12, benchmark, docs all pass), awaiting review** (not yet merged; the merge is left to
+  the author, per the established workflow).
 
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
 https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (CLAUDE.md
-§8–9 + the deferred apps) is fully delivered. Nothing remains on the critical path — the
-following are optional, none blocking:
+§8–9 + the deferred apps) is fully delivered. Nothing remains on the critical path.
 
-- **(A) HRP + Black–Litterman construction** — **✓ (step 11).** The apps' capital-markets
-  view could now expose them (HRP as a fourth construction rule; a BL views panel).
-- **(B) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
-  end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
-  breadth; strengthens the model-validation-specialist story.
-- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up **✓ (step 10)**;
-  autocallable on the path machinery **✓ (step 12)**. Remaining option: swap the American
-  PSOR for Brennan–Schwartz (direct tridiagonal LCP solve).
+**Depth-encore build queue — essentially complete:**
+- **(C1) PDE Greeks + Rannacher start-up** — **✓ (step 10, PR #2 merged).**
+- **(A) HRP + Black–Litterman construction** — **✓ (step 11, PR #3 merged).**
+- **(C2) Autocallable on the path machinery** — **✓ (step 12, PR #4 merged `dc6a574`):**
+  composes the path/barrier/stochastic-vol machinery into a real traded product; headline
+  BS-vs-Heston smile mispricing ~**0.85% of notional** (flat vol overprices — the note is
+  short *skew*, not tail-fatness, hence Merton jumps net near-zero).
+- **(D) Statistical PCA/RMT factor model** — **✓ (step 13, PR #5 open, CI-green, awaiting
+  review):** correlation-PCA into Σ=BBᵀ+D, Marchenko–Pastur component selection (recovers
+  the planted count 3/3, subspace >0.99), shared `factor/model.py` `LinearFactorModel` base
+  extracted (§2 second consumer); tie-back — PC1↔market 0.96, statistical 4-factor 11.3% OOS
+  vs observable 12.3% (observable wins on interpretability, not accuracy).
 
-**Recommendation:** none required — the portfolio is complete, validated, and live. If
-continuing, surfacing HRP/BL in the apps' capital-markets tab is the cheapest reviewer-
-facing win now that the construction methods exist.
+Remaining optional build items (none started, none blocking): swap the American PSOR for
+Brennan–Schwartz (direct tridiagonal LCP solve); the FRTB expected-shortfall capital charge
+at 97.5% (liquidity-horizon scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the
+apps' capital-markets tab.
+
+## Presentation backlog (pending — the encore's write-up half)
+
+The *building* is essentially done; the **presentation** half is the remaining work.
+**Seven blog posts are drafted, awaiting number-verification (re-run each source script and
+check every figure against the current code) and publishing:**
+1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
+   PDs (validate-the-validator size study).
+2. SHAP output-scale trap — log-odds vs probability, and how `check_local_accuracy` catches
+   the silent failure.
+3. Gamma / Rannacher start-up — damping the Crank–Nicolson gamma oscillation at the payoff
+   kink (89× smoother).
+4. HRP without inversion — robustness exactly where the inverting min-variance portfolio
+   blows up.
+5. Autocallable skew — flat vol misprices a short-skew structured product (~0.85% of
+   notional; skew, not tail-fatness).
+6. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+   validation-first thesis across all three pillars.
+
+**Before publishing any figure, re-run its script and reconcile against the current code** —
+the code has moved since some drafts (e.g. the FF-data reports, the Rannacher table, the
+autocallable numbers) and the README embeds captured runs that are the source of truth.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
