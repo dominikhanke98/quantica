@@ -18,8 +18,8 @@ and is demonstrable in one click. Next: optional depth only — see "Next".
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
 Ledoit–Wolf vs factor; ill-conditioning demo; bias stats) → **portfolio construction +
-backtest + validity layer ✓** (this session). **Capital-markets / portfolio track
-complete.**
+backtest + validity layer ✓** → **statistical (PCA/RMT) factor model ✓** (completes the
+observable-vs-statistical pair). **Capital-markets / portfolio track complete.**
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -574,33 +574,107 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   mispricing is small and opposite-signed — *skew*, not tail-fatness, is what an autocallable
   is structurally short, which is why the diffusive-skew (Heston) result is the clean, material
   one. Gate green: 899 tests (10 new), ruff + mypy + interrogate(100%) clean. Delivered on
-  branch `feat/autocallable` (PR, per the established workflow).
+  branch `feat/autocallable` (PR #4, merged to `main` via merge commit `dc6a574`).
+- **Step 13 — Statistical (PCA / RMT) factor model — completes the observable-vs-statistical
+  pair.** New `quantica/factor/statistical.py`. **Scope discipline held**: the
+  eigendecomposition/SVD leans on `numpy.linalg`/`scipy.linalg`; the demonstrable skill is
+  the factor-model construction, the component-selection reasoning, and the validation.
+  **Shared-base refactor (CLAUDE.md §2, second consumer):** extracted `LinearFactorModel`
+  (the Σ=BFBᵀ+D assembly + risk decomposition) from `FactorRiskModel`; both the observable
+  model and the new `StatisticalFactorModel` inherit it (observable model behaviour
+  unchanged — 36 factor tests still green). **`StatisticalFactorModel.fit`** does
+  correlation-PCA: standardise → eigendecompose the correlation matrix (≡ SVD of the
+  standardised returns) → keep `k` PCs → `B = diag(s)·V_k·√Λ_k`, `F = I_k`,
+  `D = diag(s²·(1−communality))`, so `Σ = BBᵀ + D` **preserves the sample variances exactly**
+  on the diagonal and only approximates the off-diagonal. **Component selection as a real
+  modelling decision** — three rules: `variance_explained_rank`, `scree_elbow_rank` (geometric
+  knee), and the headline **`marchenko_pastur_rank`** (RMT: count eigenvalues above
+  `λ₊ = σ²(1+√(n/T))²`; optional single-pass bulk-variance refit for a dominant market mode,
+  default off — the plain σ²=1 cutoff is stable/textbook). `subspace_similarity` (cos of the
+  largest principal angle, via `scipy.linalg.subspace_angles`) checks span recovery.
+  **`StatisticalFactorCovariance`** is a `CovarianceEstimator` (needs *no* observable factors)
+  so it plugs into the stage-2 OOS comparison. Validated (`tests/factor/test_statistical.py`,
+  22 tests): **known-truth — MP recovers the exact planted factor count (3/3 across seeds) and
+  the loadings span the true subspace (similarity > 0.99); pure noise → 0 factors** (headline);
+  anchors (Σ symmetric PSD; EVR sums to 1; diag == sample variances exactly; k=n reproduces the
+  sample covariance; **eigh == independent SVD**); selection-rule behaviour (variance monotone,
+  scree elbow on a two-block spectrum, MP edge formula; the bulk refit recovers weak factors
+  σ²=1 misses under a dominant market); **tie-back — the PCA covariance beats sample OOS and on
+  known-truth min-var loss, competing with the observable factor model.** Report
+  `scripts/statistical_factor_report.py`: synthetic recovery (no network) + real 49-industry
+  scree/RMT cutoff + statistical-vs-observable comparison. **Honest findings:** (i) on real
+  data PC1 carries ~57% of variance (the market) and correlates **0.96** with observable
+  Mkt-RF — PCA rediscovers the market; (ii) the *statistical* 4-factor model (11.3% OOS vol,
+  = Ledoit–Wolf) **edges the *observable* 4-factor model** (12.3%) — the 4 FF factors don't
+  fully span industry risk, while PCA targets the covariance directly; the trade-off is
+  interpretability. Gate green: 921 tests (22 new), ruff + mypy + interrogate(100%) clean.
+  Delivered on branch `feat/statistical-factors` as **PR #5 — open, CI-green (py3.11,
+  py3.12, benchmark, docs all pass), awaiting review** (not yet merged; the merge is left to
+  the author, per the established workflow).
 
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
 https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (CLAUDE.md
-§8–9 + the deferred apps) is fully delivered. Nothing remains on the critical path — the
-following are optional, none blocking:
+§8–9 + the deferred apps) is fully delivered. Nothing remains on the critical path.
 
-- **(A) HRP + Black–Litterman construction** — **✓ (step 11).** The apps' capital-markets
-  view could now expose them (HRP as a fourth construction rule; a BL views panel).
-- **(B) Deepen the risk pillar** — the FRTB expected-shortfall charge at 97.5%
-  end-to-end (liquidity-horizon scaling, regulatory ES aggregation). Regulatory-plumbing
-  breadth; strengthens the model-validation-specialist story.
-- **(C) Derivatives deepening** — PDE Greeks + Rannacher start-up **✓ (step 10)**;
-  autocallable on the path machinery **✓ (step 12)**. Remaining option: swap the American
-  PSOR for Brennan–Schwartz (direct tridiagonal LCP solve).
+**Depth-encore build queue — essentially complete:**
+- **(C1) PDE Greeks + Rannacher start-up** — **✓ (step 10, PR #2 merged).**
+- **(A) HRP + Black–Litterman construction** — **✓ (step 11, PR #3 merged).**
+- **(C2) Autocallable on the path machinery** — **✓ (step 12, PR #4 merged `dc6a574`):**
+  composes the path/barrier/stochastic-vol machinery into a real traded product; headline
+  BS-vs-Heston smile mispricing ~**0.85% of notional** (flat vol overprices — the note is
+  short *skew*, not tail-fatness, hence Merton jumps net near-zero).
+- **(D) Statistical PCA/RMT factor model** — **✓ (step 13, PR #5 open, CI-green, awaiting
+  review):** correlation-PCA into Σ=BBᵀ+D, Marchenko–Pastur component selection (recovers
+  the planted count 3/3, subspace >0.99), shared `factor/model.py` `LinearFactorModel` base
+  extracted (§2 second consumer); tie-back — PC1↔market 0.96, statistical 4-factor 11.3% OOS
+  vs observable 12.3% (observable wins on interpretability, not accuracy).
 
-**Recommendation:** none required — the portfolio is complete, validated, and live. If
-continuing, surfacing HRP/BL in the apps' capital-markets tab is the cheapest reviewer-
-facing win now that the construction methods exist.
+Remaining optional build items (none started, none blocking): swap the American PSOR for
+Brennan–Schwartz (direct tridiagonal LCP solve); the FRTB expected-shortfall capital charge
+at 97.5% (liquidity-horizon scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the
+apps' capital-markets tab.
+
+## Presentation backlog (pending — the encore's write-up half)
+
+The *building* is essentially done; the **presentation** half is the remaining work.
+**Seven blog posts are drafted, awaiting number-verification (re-run each source script and
+check every figure against the current code) and publishing:**
+1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
+   PDs (validate-the-validator size study).
+2. SHAP output-scale trap — log-odds vs probability, and how `check_local_accuracy` catches
+   the silent failure.
+3. Gamma / Rannacher start-up — damping the Crank–Nicolson gamma oscillation at the payoff
+   kink (89× smoother).
+4. HRP without inversion — robustness exactly where the inverting min-variance portfolio
+   blows up.
+5. Autocallable skew — flat vol misprices a short-skew structured product (~0.85% of
+   notional; skew, not tail-fatness).
+6. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+   validation-first thesis across all three pillars.
+
+**Before publishing any figure, re-run its script and reconcile against the current code** —
+the code has moved since some drafts (e.g. the FF-data reports, the Rannacher table, the
+autocallable numbers) and the README embeds captured runs that are the source of truth.
 
 ## Gaps in existing tools (accumulating — portfolio-narrative material)
 
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **The scientific stack ships PCA, not a PCA *risk model* with a principled factor count
+  (step 13).** `sklearn.decomposition.PCA` and `numpy.linalg.eigh`/`svd` give the
+  eigendecomposition, but neither ships (i) the reconstruction into a well-conditioned
+  Σ = BBᵀ + D risk model consistent with an observable-factor interface, nor (ii) a
+  *principled* component-selection rule — `PCA(n_components=…)` wants the count handed to it,
+  and `n_components=0.9` (variance-explained) demonstrably over-keeps (22 of 49 industry PCs,
+  mostly noise). The Marchenko–Pastur / random-matrix cutoff that separates signal
+  eigenvalues from the noise bulk is the actual modelling decision, and it lives only in
+  specialist RMT code — the same "the primitives exist, the method doesn't" category as the
+  HRP/BL and OOS-covariance gaps. (Also a validation-flavoured finding: the naive
+  bulk-variance fixed point *spirals* on finite-size stragglers near the edge, so the stable
+  choice is the plain σ²=1 cutoff with a single optional refit — documented in the code.)
 - **No autocallable — and no path generator to price one — in QuantLib's Python wrapper
   (step 12).** QuantLib ships vanilla/American/Asian/barrier instruments and both a Heston
   and a Merton *process*, but (i) there is no autocallable instrument, and (ii) the generic
@@ -712,6 +786,19 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   an *unconstrained* phenomenon; long-only regularises it (23.0% → 11.6% OOS vol on FF),
   so `minvar/sample` winning the long-only backtest does not contradict factor stage 2.
   Pinned by `tests/portfolio/test_jagannathan_ma.py`.
+- **`LinearFactorModel` base extracted on the second consumer (step 13).** The Σ=BFBᵀ+D
+  assembly and risk decomposition now live in a shared `LinearFactorModel` base;
+  `FactorRiskModel` (observable, regression loadings) and `StatisticalFactorModel` (PCA
+  loadings) differ only in their `fit` and their extra fields. Done per CLAUDE.md §2 (extract
+  on the *second* use, not up front) — the statistical model was that second consumer. All
+  construction is via `.fit()` with kwargs, so the dataclass-inheritance field reordering is
+  invisible to callers; the 36 pre-existing factor tests pin the observable model unchanged.
+- **Correlation-PCA (not covariance-PCA) is the deliberate choice (step 13).** Standardising
+  to unit variance before the eigendecomposition (i) makes the Marchenko–Pastur bulk edges
+  clean (σ²=1 for i.i.d. noise), the whole point of the RMT cutoff, and (ii) makes the
+  reconstruction preserve the sample variances exactly on the diagonal (kept + dropped
+  communality = 1), so only the off-diagonal cross-correlations are approximated. `F = I_k`
+  because the PCs are orthonormal with their variance folded into the loadings.
 - **Portfolio validity layer operates on return *matrices*, decoupled from the
   backtester (Phase 2).** `overfitting.py` (DSR/PBO) takes a `(T, N)` trial-return
   matrix, not a backtest object — so it is testable on synthetic known-truth without

@@ -81,22 +81,7 @@
                                 <a class="function" href="#FactorRiskModel.__init__">FactorRiskModel</a>
                         </li>
                         <li>
-                                <a class="variable" href="#FactorRiskModel.asset_names">asset_names</a>
-                        </li>
-                        <li>
-                                <a class="variable" href="#FactorRiskModel.factor_names">factor_names</a>
-                        </li>
-                        <li>
-                                <a class="variable" href="#FactorRiskModel.betas">betas</a>
-                        </li>
-                        <li>
                                 <a class="variable" href="#FactorRiskModel.alphas">alphas</a>
-                        </li>
-                        <li>
-                                <a class="variable" href="#FactorRiskModel.factor_cov">factor_cov</a>
-                        </li>
-                        <li>
-                                <a class="variable" href="#FactorRiskModel.specific_var">specific_var</a>
                         </li>
                         <li>
                                 <a class="variable" href="#FactorRiskModel.exposures">exposures</a>
@@ -104,23 +89,47 @@
                         <li>
                                 <a class="function" href="#FactorRiskModel.fit">fit</a>
                         </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#LinearFactorModel">LinearFactorModel</a>
+                            <ul class="memberlist">
                         <li>
-                                <a class="function" href="#FactorRiskModel.systematic_covariance">systematic_covariance</a>
+                                <a class="function" href="#LinearFactorModel.__init__">LinearFactorModel</a>
                         </li>
                         <li>
-                                <a class="function" href="#FactorRiskModel.covariance">covariance</a>
+                                <a class="variable" href="#LinearFactorModel.asset_names">asset_names</a>
                         </li>
                         <li>
-                                <a class="function" href="#FactorRiskModel.variance_decomposition">variance_decomposition</a>
+                                <a class="variable" href="#LinearFactorModel.factor_names">factor_names</a>
                         </li>
                         <li>
-                                <a class="function" href="#FactorRiskModel.portfolio_factor_exposure">portfolio_factor_exposure</a>
+                                <a class="variable" href="#LinearFactorModel.betas">betas</a>
                         </li>
                         <li>
-                                <a class="function" href="#FactorRiskModel.portfolio_variance">portfolio_variance</a>
+                                <a class="variable" href="#LinearFactorModel.factor_cov">factor_cov</a>
                         </li>
                         <li>
-                                <a class="function" href="#FactorRiskModel.portfolio_risk_decomposition">portfolio_risk_decomposition</a>
+                                <a class="variable" href="#LinearFactorModel.specific_var">specific_var</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#LinearFactorModel.systematic_covariance">systematic_covariance</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#LinearFactorModel.covariance">covariance</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#LinearFactorModel.variance_decomposition">variance_decomposition</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#LinearFactorModel.portfolio_factor_exposure">portfolio_factor_exposure</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#LinearFactorModel.portfolio_variance">portfolio_variance</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#LinearFactorModel.portfolio_risk_decomposition">portfolio_risk_decomposition</a>
                         </li>
                 </ul>
 
@@ -300,61 +309,28 @@ for the stage-2 out-of-sample check to probe.</p>
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
 
     <span class="def">class</span>
-    <span class="name">FactorRiskModel</span>:
+    <span class="name">FactorRiskModel</span><wbr>(<span class="base"><a href="#LinearFactorModel">LinearFactorModel</a></span>):
 
         
     </div>
     <a class="headerlink" href="#FactorRiskModel"></a>
     
-            <div class="docstring"><p>A fitted linear factor risk model \( \Sigma = B F B^\top + D \).</p>
+            <div class="docstring"><p>A fitted <strong>observable</strong>-factor risk model \( \Sigma = B F B^\top + D \).</p>
 
-<p>Build with <code><a href="#FactorRiskModel.fit">fit()</a></code>. Holds the loadings <code>B</code> (<code><a href="#FactorRiskModel.betas">betas</a></code>), the factor
-covariance <code>F</code> (<code><a href="#FactorRiskModel.factor_cov">factor_cov</a></code>), the specific variances (the diagonal of
-<code>D</code>), and the per-asset regression detail.</p>
+<p>Build with <code><a href="#FactorRiskModel.fit">fit()</a></code>. Extends <code><a href="#LinearFactorModel">LinearFactorModel</a></code> with the regression
+intercepts (<code><a href="#FactorRiskModel.alphas">alphas</a></code>) and the per-asset regression detail (<code><a href="#FactorRiskModel.exposures">exposures</a></code>);
+the covariance and decomposition methods are inherited.</p>
 </div>
 
 
                             <div id="FactorRiskModel.__init__" class="classattr">
                                 <div class="attr function">
             
-        <span class="name">FactorRiskModel</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">asset_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">factor_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">betas</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">alphas</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">factor_cov</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">specific_var</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">exposures</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n"><a href="../factor.html#FactorExposures">quantica.factor.FactorExposures</a></span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></span>)</span>
+        <span class="name">FactorRiskModel</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">asset_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">factor_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">betas</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">factor_cov</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">specific_var</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">alphas</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">exposures</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="n"><a href="../factor.html#FactorExposures">quantica.factor.FactorExposures</a></span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></span>)</span>
 
         
     </div>
     <a class="headerlink" href="#FactorRiskModel.__init__"></a>
-    
-    
-
-                            </div>
-                            <div id="FactorRiskModel.asset_names" class="classattr">
-                                <div class="attr variable">
-            <span class="name">asset_names</span><span class="annotation">: tuple[str, ...]</span>
-
-        
-    </div>
-    <a class="headerlink" href="#FactorRiskModel.asset_names"></a>
-    
-    
-
-                            </div>
-                            <div id="FactorRiskModel.factor_names" class="classattr">
-                                <div class="attr variable">
-            <span class="name">factor_names</span><span class="annotation">: tuple[str, ...]</span>
-
-        
-    </div>
-    <a class="headerlink" href="#FactorRiskModel.factor_names"></a>
-    
-    
-
-                            </div>
-                            <div id="FactorRiskModel.betas" class="classattr">
-                                <div class="attr variable">
-            <span class="name">betas</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
-
-        
-    </div>
-    <a class="headerlink" href="#FactorRiskModel.betas"></a>
     
     
 
@@ -366,28 +342,6 @@ covariance <code>F</code> (<code><a href="#FactorRiskModel.factor_cov">factor_co
         
     </div>
     <a class="headerlink" href="#FactorRiskModel.alphas"></a>
-    
-    
-
-                            </div>
-                            <div id="FactorRiskModel.factor_cov" class="classattr">
-                                <div class="attr variable">
-            <span class="name">factor_cov</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
-
-        
-    </div>
-    <a class="headerlink" href="#FactorRiskModel.factor_cov"></a>
-    
-    
-
-                            </div>
-                            <div id="FactorRiskModel.specific_var" class="classattr">
-                                <div class="attr variable">
-            <span class="name">specific_var</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
-
-        
-    </div>
-    <a class="headerlink" href="#FactorRiskModel.specific_var"></a>
     
     
 
@@ -436,7 +390,132 @@ covariance of the factor returns.</p>
 
 
                             </div>
-                            <div id="FactorRiskModel.systematic_covariance" class="classattr">
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#LinearFactorModel">LinearFactorModel</a></dt>
+                                <dd id="FactorRiskModel.asset_names" class="variable"><a href="#LinearFactorModel.asset_names">asset_names</a></dd>
+                <dd id="FactorRiskModel.factor_names" class="variable"><a href="#LinearFactorModel.factor_names">factor_names</a></dd>
+                <dd id="FactorRiskModel.betas" class="variable"><a href="#LinearFactorModel.betas">betas</a></dd>
+                <dd id="FactorRiskModel.factor_cov" class="variable"><a href="#LinearFactorModel.factor_cov">factor_cov</a></dd>
+                <dd id="FactorRiskModel.specific_var" class="variable"><a href="#LinearFactorModel.specific_var">specific_var</a></dd>
+                <dd id="FactorRiskModel.systematic_covariance" class="function"><a href="#LinearFactorModel.systematic_covariance">systematic_covariance</a></dd>
+                <dd id="FactorRiskModel.covariance" class="function"><a href="#LinearFactorModel.covariance">covariance</a></dd>
+                <dd id="FactorRiskModel.variance_decomposition" class="function"><a href="#LinearFactorModel.variance_decomposition">variance_decomposition</a></dd>
+                <dd id="FactorRiskModel.portfolio_factor_exposure" class="function"><a href="#LinearFactorModel.portfolio_factor_exposure">portfolio_factor_exposure</a></dd>
+                <dd id="FactorRiskModel.portfolio_variance" class="function"><a href="#LinearFactorModel.portfolio_variance">portfolio_variance</a></dd>
+                <dd id="FactorRiskModel.portfolio_risk_decomposition" class="function"><a href="#LinearFactorModel.portfolio_risk_decomposition">portfolio_risk_decomposition</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
+                <section id="LinearFactorModel">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">LinearFactorModel</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#LinearFactorModel"></a>
+    
+            <div class="docstring"><p>A linear factor covariance model \( \Sigma = B F B^\top + D \).</p>
+
+<p>The shared algebra of every factor risk model in the package — the assembly of the
+loadings <code>B</code>, factor covariance <code>F</code> and specific variances <code>D</code> into a covariance,
+and the risk decompositions built on it. It is <em>how the factors are estimated</em> that
+differs between subclasses: <code><a href="#FactorRiskModel">FactorRiskModel</a></code> regresses on <strong>observable</strong> factor
+returns, while <code>~<a href="../factor.html#StatisticalFactorModel">quantica.factor.statistical.StatisticalFactorModel</a></code> extracts
+<strong>statistical</strong> factors (principal components) from the asset returns themselves. This
+base was extracted once that second consumer appeared (CLAUDE.md §2, "extract on the
+second use"), so both share one tested implementation of the covariance and
+decomposition.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>asset_names, factor_names</strong> (tuple of str):
+Labels for the <code>n</code> assets and <code>k</code> factors.</li>
+<li><strong>betas</strong> (ndarray, shape (n, k)):
+The factor loadings <code>B</code>.</li>
+<li><strong>factor_cov</strong> (ndarray, shape (k, k)):
+The factor covariance <code>F</code>.</li>
+<li><strong>specific_var</strong> (ndarray, shape (n,)):
+The specific (idiosyncratic) variances — the diagonal of <code>D</code>.</li>
+</ul>
+</div>
+
+
+                            <div id="LinearFactorModel.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">LinearFactorModel</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">asset_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">factor_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">betas</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">factor_cov</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">specific_var</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LinearFactorModel.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="LinearFactorModel.asset_names" class="classattr">
+                                <div class="attr variable">
+            <span class="name">asset_names</span><span class="annotation">: tuple[str, ...]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LinearFactorModel.asset_names"></a>
+    
+    
+
+                            </div>
+                            <div id="LinearFactorModel.factor_names" class="classattr">
+                                <div class="attr variable">
+            <span class="name">factor_names</span><span class="annotation">: tuple[str, ...]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LinearFactorModel.factor_names"></a>
+    
+    
+
+                            </div>
+                            <div id="LinearFactorModel.betas" class="classattr">
+                                <div class="attr variable">
+            <span class="name">betas</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LinearFactorModel.betas"></a>
+    
+    
+
+                            </div>
+                            <div id="LinearFactorModel.factor_cov" class="classattr">
+                                <div class="attr variable">
+            <span class="name">factor_cov</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LinearFactorModel.factor_cov"></a>
+    
+    
+
+                            </div>
+                            <div id="LinearFactorModel.specific_var" class="classattr">
+                                <div class="attr variable">
+            <span class="name">specific_var</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LinearFactorModel.specific_var"></a>
+    
+    
+
+                            </div>
+                            <div id="LinearFactorModel.systematic_covariance" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
@@ -444,14 +523,14 @@ covariance of the factor returns.</p>
 
         
     </div>
-    <a class="headerlink" href="#FactorRiskModel.systematic_covariance"></a>
+    <a class="headerlink" href="#LinearFactorModel.systematic_covariance"></a>
     
             <div class="docstring"><p>The factor-driven covariance \( B F B^\top \).</p>
 </div>
 
 
                             </div>
-                            <div id="FactorRiskModel.covariance" class="classattr">
+                            <div id="LinearFactorModel.covariance" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
@@ -459,18 +538,18 @@ covariance of the factor returns.</p>
 
         
     </div>
-    <a class="headerlink" href="#FactorRiskModel.covariance"></a>
+    <a class="headerlink" href="#LinearFactorModel.covariance"></a>
     
             <div class="docstring"><p>The assembled asset covariance \( \Sigma = B F B^\top + D \).</p>
 
 <p>Symmetrised against floating-point asymmetry; PSD by construction (<code>F</code> is
-a sample covariance, so <code>B F B^\top</code> is PSD, and <code>D</code> is non-negative
+a sample/identity covariance, so <code>B F B^\top</code> is PSD, and <code>D</code> is non-negative
 diagonal).</p>
 </div>
 
 
                             </div>
-                            <div id="FactorRiskModel.variance_decomposition" class="classattr">
+                            <div id="LinearFactorModel.variance_decomposition" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
@@ -478,14 +557,14 @@ diagonal).</p>
 
         
     </div>
-    <a class="headerlink" href="#FactorRiskModel.variance_decomposition"></a>
+    <a class="headerlink" href="#LinearFactorModel.variance_decomposition"></a>
     
             <div class="docstring"><p>Per-asset split of total variance into systematic and specific parts.</p>
 </div>
 
 
                             </div>
-                            <div id="FactorRiskModel.portfolio_factor_exposure" class="classattr">
+                            <div id="LinearFactorModel.portfolio_factor_exposure" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
@@ -493,14 +572,14 @@ diagonal).</p>
 
         
     </div>
-    <a class="headerlink" href="#FactorRiskModel.portfolio_factor_exposure"></a>
+    <a class="headerlink" href="#LinearFactorModel.portfolio_factor_exposure"></a>
     
             <div class="docstring"><p>The portfolio's net factor loadings \( B^\top w \).</p>
 </div>
 
 
                             </div>
-                            <div id="FactorRiskModel.portfolio_variance" class="classattr">
+                            <div id="LinearFactorModel.portfolio_variance" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
@@ -508,14 +587,14 @@ diagonal).</p>
 
         
     </div>
-    <a class="headerlink" href="#FactorRiskModel.portfolio_variance"></a>
+    <a class="headerlink" href="#LinearFactorModel.portfolio_variance"></a>
     
             <div class="docstring"><p>Portfolio variance \( w^\top \Sigma w \).</p>
 </div>
 
 
                             </div>
-                            <div id="FactorRiskModel.portfolio_risk_decomposition" class="classattr">
+                            <div id="LinearFactorModel.portfolio_risk_decomposition" class="classattr">
                                 <div class="attr function">
             
         <span class="def">def</span>
@@ -523,7 +602,7 @@ diagonal).</p>
 
         
     </div>
-    <a class="headerlink" href="#FactorRiskModel.portfolio_risk_decomposition"></a>
+    <a class="headerlink" href="#LinearFactorModel.portfolio_risk_decomposition"></a>
     
             <div class="docstring"><p>Split portfolio variance into systematic (\( (B^\top w)^\top F (B^\top w) \))
 and specific (\( \sum_i w_i^2 D_i \)) parts.</p>

@@ -40,7 +40,17 @@ from quantica.factor.exposures import FactorExposures, estimate_exposures
 from quantica.factor.model import (
     AssetVarianceDecomposition,
     FactorRiskModel,
+    LinearFactorModel,
     PortfolioRiskDecomposition,
+)
+from quantica.factor.statistical import (
+    StatisticalFactorCovariance,
+    StatisticalFactorModel,
+    marchenko_pastur_edges,
+    marchenko_pastur_rank,
+    scree_elbow_rank,
+    subspace_similarity,
+    variance_explained_rank,
 )
 
 __all__ = [
@@ -53,8 +63,11 @@ __all__ = [
     "FactorExposures",
     "FactorRiskModel",
     "LedoitWolfCovariance",
+    "LinearFactorModel",
     "PortfolioRiskDecomposition",
     "SampleCovariance",
+    "StatisticalFactorCovariance",
+    "StatisticalFactorModel",
     "SyntheticFactorData",
     "WalkForwardWindow",
     "compare_estimators",
@@ -62,7 +75,12 @@ __all__ = [
     "estimate_exposures",
     "frobenius_error",
     "generate_factor_data",
+    "marchenko_pastur_edges",
+    "marchenko_pastur_rank",
     "min_variance_true_loss",
     "min_variance_weights",
+    "scree_elbow_rank",
+    "subspace_similarity",
+    "variance_explained_rank",
     "walk_forward_windows",
 ]
