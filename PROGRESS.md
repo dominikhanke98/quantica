@@ -13,13 +13,20 @@ factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is closed
 deferred **thin Streamlit apps (step 8) are merged to `main` (PR #1) and LIVE** on
 Streamlit Community Cloud at **https://quantica.streamlit.app/** (linked from the README
 top matter). Everything the CLAUDE.md brief set out to build now exists, is validated,
-and is demonstrable in one click. Next: optional depth only — see "Next".
+and is demonstrable in one click. Beyond that scope, a **statistical-arbitrage track** has
+been opened (step 14: cointegration + spread foundation) as the signal-research stage the
+portfolio pillar was missing. Next: optional depth only — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
 Ledoit–Wolf vs factor; ill-conditioning demo; bias stats) → **portfolio construction +
 backtest + validity layer ✓** → **statistical (PCA/RMT) factor model ✓** (completes the
 observable-vs-statistical pair). **Capital-markets / portfolio track complete.**
+
+Statistical-arbitrage roadmap (new track — the signal-research stage the portfolio pillar
+was missing): **cointegration + spread ✓** (Engle–Granger + Johansen tests, OU half-life) →
+**Kalman dynamic hedge ratio** (next) → **mean-reversion strategy + DSR/PBO backtest**
+(reusing the portfolio backtest + validity layer).
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -608,9 +615,36 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   = Ledoit–Wolf) **edges the *observable* 4-factor model** (12.3%) — the 4 FF factors don't
   fully span industry risk, while PCA targets the covariance directly; the trade-off is
   interpretability. Gate green: 921 tests (22 new), ruff + mypy + interrogate(100%) clean.
-  Delivered on branch `feat/statistical-factors` as **PR #5 — open, CI-green (py3.11,
-  py3.12, benchmark, docs all pass), awaiting review** (not yet merged; the merge is left to
-  the author, per the established workflow).
+  Delivered on branch `feat/statistical-factors` as **PR #5 — merged to `main` via merge
+  commit `f3187b8`.**
+- **Step 14 — Statistical-arbitrage track opened: cointegration + spread foundation.** New
+  top-level `quantica/statarb/` package — the signal-research stage the portfolio pillar was
+  missing (construction/backtest/validity existed, but the *signal* was taken as given).
+  This step ships the **cointegration + spread** foundation only (Kalman hedge ratio +
+  strategy/backtest are later steps). **Scope discipline held**: `statsmodels` for the OLS /
+  ADF primitives; the cointegration *logic* and OU estimation are hand-implemented — the
+  demonstrable skill. Modules: `cointegration.py` — **`engle_granger`** (two-step residual
+  test; the subtlety a naive version gets wrong: an *estimated* residual needs the
+  **MacKinnon cointegration** critical values, not standard ADF — anchored to statsmodels
+  `coint` to ~1e-8 on stat *and* p-value) and **`johansen`** (reduced-rank eigenvalue
+  computation implemented from the moment matrices — matches `coint_johansen` eigenvalues /
+  trace / max-eig to ~1e-8; embedded Osterwald–Lenum critical-value tables for det_order
+  ∈ {-1,0,1}, n-r ≤ 12, guarded against statsmodels' own); `spread.py` — **`estimate_ou_process`**
+  (exact OU↔AR(1) discretisation → κ, μ, σ, and **half-life = ln2/κ**); `data.py` —
+  cointegrated-pair / spurious-random-walk / known-parameter-OU generators. Validated
+  (`tests/statarb/`, 16 tests): **headline known-truth — both tests detect a genuinely
+  cointegrated pair AND reject independent random walks (the spurious case that sinks naive
+  pairs trading)**; **validate-the-validator size/power — EG well-sized (~6%), Johansen trace
+  over-rejects (~14%, documented finite-sample bias), both ~100% power**; statsmodels anchors
+  (EG stat+p, Johansen eig/trace/maxeig, crit-value tables); Johansen worked example (3 series,
+  2 common trends → rank 1); OU recovers planted κ/μ/σ/half-life; a random walk gives an
+  untradeable (huge) half-life. Report `scripts/statarb_cointegration_report.py`: known-truth
+  detect/reject + size/power (no network) and a **real FF-industry pair — Soda vs Meals**
+  (cumulative log-price indices), both tests agree (EG p=0.0004, Johansen rank 1), **5.5-month
+  half-life**; honest aside that borderline pairs (Health–MedEq, Aero–Defense) clear EG but
+  fail Johansen (why you run both). Gate green: 937 tests (16 new), ruff + mypy +
+  interrogate(100%) clean. Delivered on branch `feat/statarb-cointegration` (PR, per the
+  established workflow — open, stop before merge).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -630,6 +664,16 @@ https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (C
   the planted count 3/3, subspace >0.99), shared `factor/model.py` `LinearFactorModel` base
   extracted (§2 second consumer); tie-back — PC1↔market 0.96, statistical 4-factor 11.3% OOS
   vs observable 12.3% (observable wins on interpretability, not accuracy).
+
+**New track opened — statistical arbitrage (the portfolio pillar's missing signal stage):**
+- **(E1) Cointegration + spread foundation** — **✓ (step 14, PR open, awaiting review):**
+  Engle–Granger + Johansen tests (hand-implemented, statsmodels-anchored), OU spread +
+  half-life; headline known-truth "detect real cointegration AND reject spurious pairs."
+- **(E2) Kalman dynamic hedge ratio** — *next step* (a time-varying β via a Kalman filter,
+  vs the static OLS hedge ratio).
+- **(E3) Mean-reversion strategy + backtest** — run the spread signal through the existing
+  portfolio walk-forward backtest and the DSR/PBO validity layer (closing the loop with the
+  portfolio pillar).
 
 Remaining optional build items (none started, none blocking): swap the American PSOR for
 Brennan–Schwartz (direct tridiagonal LCP solve); the FRTB expected-shortfall capital charge
@@ -663,6 +707,18 @@ autocallable numbers) and the README embeds captured runs that are the source of
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **The naive Engle–Granger test uses the wrong critical values (step 14).** The textbook
+  two-step is "regress, then ADF the residual" — but the residual is *estimated*, so its
+  Dickey–Fuller statistic does **not** follow the standard ADF distribution; using
+  `adfuller`'s own p-value (as many hand-rolled implementations do) is silently wrong and
+  **over-rejects** the null of no cointegration — i.e. it manufactures spurious pairs, the
+  exact failure statarb must avoid. The correct p-value comes from the MacKinnon
+  cointegration distribution (which depends on the number of series). `engle_granger` applies
+  it and is anchored to statsmodels `coint`; a "the naive approach is quietly wrong" finding
+  in the same family as the Hosmer–Lemeshow-dof and ES-backtest gaps. Related: the Johansen
+  trace test is *known* to over-reject in finite samples (measured ~14% size at nominal 5%,
+  T=300), surfaced by the validate-the-validator size/power study — a reason to run both
+  tests, not one.
 - **The scientific stack ships PCA, not a PCA *risk model* with a principled factor count
   (step 13).** `sklearn.decomposition.PCA` and `numpy.linalg.eigh`/`svd` give the
   eigendecomposition, but neither ships (i) the reconstruction into a well-conditioned
@@ -793,6 +849,15 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   on the *second* use, not up front) — the statistical model was that second consumer. All
   construction is via `.fit()` with kwargs, so the dataclass-inheritance field reordering is
   invisible to callers; the 36 pre-existing factor tests pin the observable model unchanged.
+- **`statarb` is a top-level package, and the Johansen critical values are embedded (step
+  14).** Placed at top level (not under `portfolio`) because it is the signal-research stage
+  *feeding* portfolio construction, the same "shared upstream" rationale as `factor/`. The
+  Johansen eigenvalue procedure is hand-implemented (the statistical content), but the
+  critical values are the published Osterwald–Lenum tables *embedded* as constants — the
+  standard practice (statsmodels does the same); a test guards the embedded values against
+  statsmodels' to ~0.02 so a transcription slip cannot pass. The OU estimator reports the raw
+  fit even for a near-unit-root series (huge half-life) rather than forcing an arbitrary
+  "not mean-reverting" cutoff — the enormous half-life is itself the screen.
 - **Correlation-PCA (not covariance-PCA) is the deliberate choice (step 13).** Standardising
   to unit variance before the eigendecomposition (i) makes the Marchenko–Pastur bulk edges
   clean (σ²=1 for i.i.d. noise), the whole point of the RMT cutoff, and (ii) makes the

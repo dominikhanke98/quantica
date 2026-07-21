@@ -22,7 +22,7 @@ is hand-typed.
 | --- | --- |
 | **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
-| **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything. |
+| **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a **statistical-arbitrage** signal track (cointegration + mean-reverting spreads). |
 
 ## Headline results
 
@@ -1213,6 +1213,66 @@ is exactly the equilibrium**.
 > long-only cap the two nearly coincide, because the *constraint* already regularises the
 > weights (Jagannathan–Ma again) — BL's decisive advantage is precisely the unconstrained
 > case, where it substitutes for those hard constraints.
+
+### Statistical arbitrage — cointegration and the mean-reverting spread
+
+The portfolio pillar ships construction, backtesting and the backtest-validity layer but
+takes the *signal* as given. This track fills that gap with the classic mean-reversion /
+pairs-trading pipeline — and, in keeping with the repo's thesis, builds it validation-first.
+This foundational step is the [cointegration + spread](quantica/statarb) layer (the Kalman
+dynamic hedge ratio and the strategy backtest are later steps).
+
+Two series can each wander yet move together, so a linear combination is stationary — the
+tradeable *spread*. Two tests, hand-implemented on the library primitives and anchored to
+`statsmodels` to machine precision:
+
+- **[`engle_granger`](quantica/statarb/cointegration.py)** — the two-step residual test.
+  The subtlety a naive implementation gets wrong: the residual is *estimated*, so its
+  Dickey–Fuller statistic needs the **MacKinnon cointegration** critical values, not the
+  standard ADF ones. Returns the hedge ratio, the spread, and the correct p-value.
+- **[`johansen`](quantica/statarb/cointegration.py)** — the multivariate reduced-rank test
+  for the *number* of cointegrating relations. The eigenvalue computation is implemented
+  from the moment matrices (matching `coint_johansen` to ~1e-8); trace and
+  maximum-eigenvalue statistics are read off the eigen-system against the embedded
+  Osterwald–Lenum tables.
+- **[`estimate_ou_process`](quantica/statarb/spread.py)** — models the spread as an
+  Ornstein–Uhlenbeck process and derives the **half-life** `ln 2 / κ`, the natural holding
+  period that screens pairs reverting too slowly to trade.
+
+> **Highlighted insight — detect real cointegration AND reject spurious pairs.** The
+> effective challenge is not detecting cointegration; it is *not being fooled* by two
+> independent random walks that look correlated in-sample — the failure mode that sinks
+> naive pairs trading. On known truth both tests catch a genuinely cointegrated pair and
+> correctly leave independent walks alone, and the size/power study **validates the
+> validators** — surfacing that the Johansen trace test over-rejects in finite samples, a
+> documented small-sample bias (`python scripts/statarb_cointegration_report.py`):
+
+```
+Series                 | Engle–Granger p | Johansen rank | verdict
+---------------------- | --------------: | ------------: | ------------
+cointegrated (β=1.5)   |          0.0005 |             1 | cointegrated
+independent walks      |           0.980 |             0 | no (correct)
+
+Test              | Power (detect real) | Size (false positive @ 5%)
+----------------- | ------------------: | -------------------------:
+Engle–Granger     |                100% |                       6.5%   ← well-sized
+Johansen (trace)  |                100% |                      14.0%   ← over-rejects
+```
+
+> **Real pair — Soda vs Meals** (soft drinks vs. restaurants, 49-industry FF, cumulative
+> log-price indices). Both tests agree it is cointegrated, and the OU fit yields a tradeable
+> half-life:
+
+```
+Engle–Granger ADF | -4.76  (5% crit -3.35),  p = 0.0004
+Johansen trace    | 25.98  (5% crit 15.49),  rank = 1
+Hedge ratio (β)   | 0.85
+Spread half-life  | 5.5 months   (κ = 0.127 / month)
+```
+
+> Honest aside: other plausible pairs (Healthcare–MedEquip, Aero–Defense) clear
+> Engle–Granger yet fail Johansen at 5% — borderline cases where the two tests disagree,
+> which is exactly why a disciplined screen runs both rather than trusting one.
 
 ## Running the apps
 
