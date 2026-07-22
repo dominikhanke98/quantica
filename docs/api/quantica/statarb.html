@@ -126,6 +126,39 @@
 
             </li>
             <li>
+                    <a class="class" href="#KalmanHedgeResult">KalmanHedgeResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#KalmanHedgeResult.__init__">KalmanHedgeResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.hedge_ratio">hedge_ratio</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.intercept">intercept</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.spread">spread</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.innovation_variance">innovation_variance</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.hedge_ratio_var">hedge_ratio_var</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.process_var">process_var</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.obs_var">obs_var</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#KalmanHedgeResult.hedge_ratio_std">hedge_ratio_std</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#OUProcess">OUProcess</a>
                             <ul class="memberlist">
                         <li>
@@ -168,7 +201,13 @@
                     <a class="function" href="#generate_independent_random_walks">generate_independent_random_walks</a>
             </li>
             <li>
+                    <a class="function" href="#generate_time_varying_pair">generate_time_varying_pair</a>
+            </li>
+            <li>
                     <a class="function" href="#johansen">johansen</a>
+            </li>
+            <li>
+                    <a class="function" href="#kalman_hedge_ratio">kalman_hedge_ratio</a>
             </li>
             <li>
                     <a class="function" href="#ou_half_life">ou_half_life</a>
@@ -209,12 +248,15 @@ Johansen (the multivariate reduced-rank trace / maximum-eigenvalue test for the 
 cointegrating relations), each anchored to <code>statsmodels</code>.</li>
 <li><strong>Spread modelling</strong> (<code>~<a href="statarb/spread.html">quantica.statarb.spread</a></code>) — the Ornstein--Uhlenbeck fit of a
 mean-reverting spread and its half-life, the practically useful holding-period summary.</li>
-<li><strong>Synthetic data</strong> (<code>~<a href="statarb/data.html">quantica.statarb.data</a></code>) — cointegrated pairs, spurious random
-walks, and known-parameter OU paths for the known-truth validation.</li>
+<li><strong>Dynamic hedge ratio</strong> (<code>~<a href="statarb/kalman.html">quantica.statarb.kalman</a></code>) — a Kalman filter estimating a
+<em>time-varying</em> hedge ratio (an evolving latent state), for relationships that drift away
+from the static cointegrating coefficient.</li>
+<li><strong>Synthetic data</strong> (<code>~<a href="statarb/data.html">quantica.statarb.data</a></code>) — cointegrated pairs, time-varying-ratio
+pairs, spurious random walks, and known-parameter OU paths for the known-truth validation.</li>
 </ul>
 
-<p>Later steps (not in this foundation): the Kalman-filter dynamic hedge ratio, and the
-mean-reversion strategy run through the portfolio backtest and its DSR/PBO validity layer.</p>
+<p>Later step (not yet built): the mean-reversion strategy run through the portfolio backtest
+and its DSR/PBO validity layer.</p>
 </div>
 
                 
@@ -558,6 +600,146 @@ Which statistic to use (default the trace test).</li>
 
                             </div>
                 </section>
+                <section id="KalmanHedgeResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">KalmanHedgeResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult"></a>
+    
+            <div class="docstring"><p>Filtered output of the dynamic-hedge-ratio Kalman filter.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>hedge_ratio</strong> (ndarray, shape (T,)):
+The filtered time-varying hedge ratio \( \beta_t \) (the loading on <code>x</code>).</li>
+<li><strong>intercept</strong> (ndarray, shape (T,)):
+The filtered intercept path (all zeros when <code>fit_intercept=False</code>).</li>
+<li><strong>spread</strong> (ndarray, shape (T,)):
+The one-step-ahead prediction error \( e_t = y_t - H_t\beta_{t-1} \) — the
+dynamic spread / innovation series.</li>
+<li><strong>innovation_variance</strong> (ndarray, shape (T,)):
+The variance \( S_t \) of each innovation; <code>spread / sqrt(innovation_variance)</code>
+is the standardised innovation (white when the model fits).</li>
+<li><strong>hedge_ratio_var</strong> (ndarray, shape (T,)):
+The filtered variance of the hedge-ratio state, \( P_t[0,0] \); its square root is
+the one-sigma uncertainty band on <code><a href="#KalmanHedgeResult.hedge_ratio">hedge_ratio</a></code>.</li>
+<li><strong>process_var</strong> (float):
+The state-evolution variance \( q \) used (diagonal of <code>Q</code>).</li>
+<li><strong>obs_var</strong> (float):
+The observation variance \( r \) used (<code>R</code>).</li>
+</ul>
+</div>
+
+
+                            <div id="KalmanHedgeResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">KalmanHedgeResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">hedge_ratio</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">intercept</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">spread</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">innovation_variance</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">hedge_ratio_var</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">process_var</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">obs_var</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.hedge_ratio" class="classattr">
+                                <div class="attr variable">
+            <span class="name">hedge_ratio</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.hedge_ratio"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.intercept" class="classattr">
+                                <div class="attr variable">
+            <span class="name">intercept</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.intercept"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.spread" class="classattr">
+                                <div class="attr variable">
+            <span class="name">spread</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.spread"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.innovation_variance" class="classattr">
+                                <div class="attr variable">
+            <span class="name">innovation_variance</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.innovation_variance"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.hedge_ratio_var" class="classattr">
+                                <div class="attr variable">
+            <span class="name">hedge_ratio_var</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.hedge_ratio_var"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.process_var" class="classattr">
+                                <div class="attr variable">
+            <span class="name">process_var</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.process_var"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.obs_var" class="classattr">
+                                <div class="attr variable">
+            <span class="name">obs_var</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.obs_var"></a>
+    
+    
+
+                            </div>
+                            <div id="KalmanHedgeResult.hedge_ratio_std" class="classattr">
+                                <div class="attr variable">
+            <span class="name">hedge_ratio_std</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KalmanHedgeResult.hedge_ratio_std"></a>
+    
+            <div class="docstring"><p>One-sigma uncertainty band on the filtered hedge ratio.</p>
+</div>
+
+
+                            </div>
+                </section>
                 <section id="OUProcess">
                     <div class="attr class">
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
@@ -850,6 +1032,49 @@ Per-step innovation volatility (default 1.0).</li>
 
 
                 </section>
+                <section id="generate_time_varying_pair">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">generate_time_varying_pair</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">beta_path</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">x_start</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">50.0</span>,</span><span class="param">	<span class="n">trend_vol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">	<span class="n">obs_vol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#generate_time_varying_pair"></a>
+    
+            <div class="docstring"><p>A pair whose <em>true</em> hedge ratio varies over time — the Kalman known-truth.</p>
+
+<p>Builds <code>x</code> as a random walk and <code>y_t = alpha + beta_path[t] * x_t + noise</code> with a
+<strong>time-varying</strong> true hedge ratio <code>beta_path</code> (a drift, a step, anything). A static
+coefficient cannot track it; a Kalman filter can. <code>x</code> is started away from zero so the
+hedge ratio is well identified at every point.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>beta_path</strong> (ndarray, shape (T,)):
+The true hedge ratio at each time (its length sets <code>T</code>).</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator.</li>
+<li><strong>alpha</strong> (float, optional):
+The (constant) intercept (default 0).</li>
+<li><strong>x_start</strong> (float, optional):
+Starting level of <code>x</code> (default 50, to keep it away from zero).</li>
+<li><strong>trend_vol</strong> (float, optional):
+Innovation volatility of the <code>x</code> random walk (default 1.0).</li>
+<li><strong>obs_vol</strong> (float, optional):
+Observation-noise volatility on <code>y</code> (default 1.0).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(y, x)</code>, each of shape <code>(T,)</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="johansen">
                     <div class="attr function">
             
@@ -893,6 +1118,60 @@ critical values.</li>
 <ul>
 <li><strong>ValueError</strong>: If <code>data</code> is not 2-D with at least two columns, <code>det_order</code> is unsupported, or
 there are too few observations for the requested lag.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="kalman_hedge_ratio">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">kalman_hedge_ratio</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">x</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">process_var</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">obs_var</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">fit_intercept</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">initial_state</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">initial_cov</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">100000.0</span></span><span class="return-annotation">) -> <span class="n"><a href="#KalmanHedgeResult">KalmanHedgeResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#kalman_hedge_ratio"></a>
+    
+            <div class="docstring"><p>Estimate a time-varying hedge ratio with a Kalman filter (predict/update).</p>
+
+<p>Runs the linear-Gaussian filter for the state-space model in the module docstring: the
+hedge ratio (and optional intercept) is a random-walk state; <code>y</code> is observed as
+\( H_t\beta_t + \varepsilon_t \) with \( H_t = [x_t, 1] \). A diffuse prior
+(<code>initial_cov</code> large) lets the estimate lock on quickly regardless of the starting
+guess.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>y, x</strong> (ndarray, shape (T,)):
+The two price series; <code>y</code> is explained by <code>x</code> through the hedge ratio.</li>
+<li><strong>process_var</strong> (float):
+The state-evolution variance \( q \) (diagonal of <code>Q</code>), non-negative. Larger
+values let the hedge ratio adapt faster (see the module docstring on <code>q/r</code>).</li>
+<li><strong>obs_var</strong> (float):
+The observation variance \( r \) (<code>R</code>), positive.</li>
+<li><strong>fit_intercept</strong> (bool, optional):
+Include a drifting intercept in the state (default <code>True</code>); if <code>False</code> the state
+is the hedge ratio alone.</li>
+<li><strong>initial_state</strong> (ndarray, optional):
+Initial state <code>[hedge_ratio, intercept]</code> (or <code>[hedge_ratio]</code>); default zeros.</li>
+<li><strong>initial_cov</strong> (float, optional):
+Initial state-covariance scale (a diffuse prior); default <code>1e5</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>KalmanHedgeResult</strong>: The filtered hedge-ratio path, intercept path, dynamic spread (innovations), and
+the uncertainty series.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>y</code> and <code>x</code> are not 1-D of equal length, the noise parameters are invalid, or
+<code>initial_state</code> has the wrong shape.</li>
 </ul>
 </div>
 
