@@ -13,9 +13,10 @@ factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is closed
 deferred **thin Streamlit apps (step 8) are merged to `main` (PR #1) and LIVE** on
 Streamlit Community Cloud at **https://quantica.streamlit.app/** (linked from the README
 top matter). Everything the CLAUDE.md brief set out to build now exists, is validated,
-and is demonstrable in one click. Beyond that scope, a **statistical-arbitrage track** has
-been opened (step 14: cointegration + spread foundation) as the signal-research stage the
-portfolio pillar was missing. Next: optional depth only — see "Next".
+and is demonstrable in one click. Beyond that scope, a **statistical-arbitrage track** is now
+**complete end-to-end** (steps 14–16: cointegration → Kalman dynamic hedge ratio → pairs
+strategy with an overfitting-aware backtest) — the signal→construction→validated-backtest arc
+the portfolio pillar was missing. Next: optional depth only — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -703,7 +704,8 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   not DSR-significant, PBO 61%, median negative. **Cointegration is necessary but not
   sufficient; the validity layer correctly declines to certify a non-edge — reported straight.**
   Gate green: 953 tests (10 new), ruff + mypy + interrogate(100%) clean. Delivered on branch
-  `feat/statarb-strategy` (PR, per the established workflow — open, stop before merge).
+  `feat/statarb-strategy` as **PR #8 — open, CI-green (py3.11, py3.12, benchmark, docs all
+  pass), awaiting review** (not yet merged; the merge is left to the author).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -732,11 +734,14 @@ https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (C
   state-space predict/update filter for a time-varying β; headline — tracks a drifting ratio
   (13× lower RMSE than static OLS), reduces to OLS as process_var→0; real Soda–Meals hedge
   drifts 0.59–1.80, dynamic spread reverts faster (4.8 vs 5.5-month half-life).
-- **(E3) Mean-reversion strategy + backtest** — **✓ (step 16, PR open, awaiting review):**
-  z-score pairs strategy on the (static or Kalman) spread, backtested net of costs and judged
-  by DSR/PBO — **the arc's tie-back**. Headline: mining 276 spurious pairs, the best (ann.
-  Sharpe ~1.5) is flagged by DSR/PBO while a genuine pair passes PSR; honest real-data negative
-  result (no robust industry pairs edge after costs). **Statistical-arbitrage arc complete.**
+- **(E3) Mean-reversion strategy + backtest** — **✓ (step 16, PR #8 open, CI-green, awaiting
+  review):** z-score pairs strategy on the (static or Kalman) spread, backtested net of costs
+  and judged by DSR/PBO — **the arc's tie-back**. Headline: mining 276 spurious pairs, the best
+  (ann. Sharpe ~1.5) is flagged (DSR insignificant, PBO ~0.48) while a genuine pair passes
+  PSR>0.95; honest real-data verdict — best industry pair 0.63 Sharpe, PBO 61%, not certified
+  (cointegration necessary but not sufficient; the validity layer correctly declines to certify
+  a non-edge). **Statistical-arbitrage arc COMPLETE — signal → construction → validated
+  backtest, end-to-end.**
 
 Remaining optional build items (none started, none blocking): swap the American PSOR for
 Brennan–Schwartz (direct tridiagonal LCP solve); the FRTB expected-shortfall capital charge
@@ -746,8 +751,8 @@ apps' capital-markets tab.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**Seven blog posts are drafted, awaiting number-verification (re-run each source script and
-check every figure against the current code) and publishing:**
+**~Nine blog posts are drafted or obvious, awaiting number-verification (re-run each source
+script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
 2. SHAP output-scale trap — log-odds vs probability, and how `check_local_accuracy` catches
@@ -758,8 +763,14 @@ check every figure against the current code) and publishing:**
    blows up.
 5. Autocallable skew — flat vol misprices a short-skew structured product (~0.85% of
    notional; skew, not tail-fatness).
-6. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
-   validation-first thesis across all three pillars.
+6. MacKinnon critical values — why the naive Engle–Granger residual ADF over-rejects (an
+   *estimated* residual needs cointegration, not standard-ADF, critical values).
+7. Mine many pairs → DSR/PBO flags the spurious winner — the two-guards marriage
+   (cointegration guards the signal, DSR/PBO the backtest); best-of-1176 industry pairs at
+   0.63 Sharpe / PBO 61%, not certified.
+8. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+   validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
+   stat-arb).
 
 **Before publishing any figure, re-run its script and reconcile against the current code** —
 the code has moved since some drafts (e.g. the FF-data reports, the Rannacher table, the
