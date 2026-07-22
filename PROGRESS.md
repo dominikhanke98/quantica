@@ -25,8 +25,9 @@ observable-vs-statistical pair). **Capital-markets / portfolio track complete.**
 
 Statistical-arbitrage roadmap (new track — the signal-research stage the portfolio pillar
 was missing): **cointegration + spread ✓** (Engle–Granger + Johansen tests, OU half-life) →
-**Kalman dynamic hedge ratio** (next) → **mean-reversion strategy + DSR/PBO backtest**
-(reusing the portfolio backtest + validity layer).
+**Kalman dynamic hedge ratio ✓** (time-varying β via a state-space filter) →
+**mean-reversion strategy + DSR/PBO backtest** (next/final — reusing the portfolio backtest +
+validity layer).
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -643,8 +644,33 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   (cumulative log-price indices), both tests agree (EG p=0.0004, Johansen rank 1), **5.5-month
   half-life**; honest aside that borderline pairs (Health–MedEq, Aero–Defense) clear EG but
   fail Johansen (why you run both). Gate green: 937 tests (16 new), ruff + mypy +
-  interrogate(100%) clean. Delivered on branch `feat/statarb-cointegration` (PR, per the
-  established workflow — open, stop before merge).
+  interrogate(100%) clean. Delivered on branch `feat/statarb-cointegration` as **PR #6 —
+  merged to `main` via merge commit `ab64e9a`.**
+- **Step 15 — Statistical-arbitrage step 2: Kalman dynamic hedge ratio.** New
+  `quantica/statarb/kalman.py`. **Scope discipline held**: the Kalman predict/update recursion
+  and the state-space formulation are hand-implemented in **numpy only** (no filtering library)
+  — that IS the demonstrable skill. **Motivation**: the static cointegrating coefficient (step
+  1) assumes a constant hedge ratio, but real relationships drift; the filter estimates a
+  *time-varying* hedge ratio as a latent random-walk state, updated as prices arrive.
+  **`kalman_hedge_ratio(y, x, *, process_var, obs_var, fit_intercept=True, ...)`** → the pair
+  as a linear state-space model (state = [hedge ratio, intercept] random walk; obs
+  `y_t = [x_t,1]·β_t + ε_t`), running the standard predict/update loop under a diffuse prior.
+  Returns `KalmanHedgeResult`: filtered hedge-ratio path, intercept path, the **dynamic spread**
+  (one-step-ahead innovations), innovation variances, and the hedge-ratio uncertainty
+  (`hedge_ratio_std`). **The tuning knob is exposed, not hard-coded**: `process_var`/`obs_var`
+  — their ratio controls adaptation speed (documented; larger adapts faster, →0 reduces to
+  RLS/OLS). New data generator `generate_time_varying_pair` (drift/step true ratio). Validated
+  (`tests/statarb/test_kalman.py`, 6 tests): **headline known-truth — the filter tracks a
+  drifting true ratio (RMSE 0.065 vs static OLS 0.809, ~13×) within its uncertainty band
+  (100% ±3σ coverage), and recovers a step change**; **anchor — process_var→0 on a constant
+  ratio converges to the OLS estimate** (β and intercept to ~1e-4, the RLS limit); **innovations
+  are white** when well-specified (|lag-1 acf| < 0.1); the tuning knob adapts faster with larger
+  process_var; input validation. Report `scripts/statarb_kalman_report.py`: known-truth tracking
+  table (no network) + **real Soda vs Meals** — static hedge 0.85 vs Kalman drifting **0.59–1.80**,
+  and the **dynamic spread mean-reverts faster (4.8 vs 5.5-month half-life)** because the drift is
+  filtered into the state. Gate green: 943 tests (6 new), ruff + mypy + interrogate(100%) clean.
+  Delivered on branch `feat/statarb-kalman` (PR, per the established workflow — open, stop before
+  merge).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -666,14 +692,16 @@ https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (C
   vs observable 12.3% (observable wins on interpretability, not accuracy).
 
 **New track opened — statistical arbitrage (the portfolio pillar's missing signal stage):**
-- **(E1) Cointegration + spread foundation** — **✓ (step 14, PR open, awaiting review):**
+- **(E1) Cointegration + spread foundation** — **✓ (step 14, PR #6 merged `ab64e9a`):**
   Engle–Granger + Johansen tests (hand-implemented, statsmodels-anchored), OU spread +
   half-life; headline known-truth "detect real cointegration AND reject spurious pairs."
-- **(E2) Kalman dynamic hedge ratio** — *next step* (a time-varying β via a Kalman filter,
-  vs the static OLS hedge ratio).
-- **(E3) Mean-reversion strategy + backtest** — run the spread signal through the existing
-  portfolio walk-forward backtest and the DSR/PBO validity layer (closing the loop with the
-  portfolio pillar).
+- **(E2) Kalman dynamic hedge ratio** — **✓ (step 15, PR open, awaiting review):** numpy-only
+  state-space predict/update filter for a time-varying β; headline — tracks a drifting ratio
+  (13× lower RMSE than static OLS), reduces to OLS as process_var→0; real Soda–Meals hedge
+  drifts 0.59–1.80, dynamic spread reverts faster (4.8 vs 5.5-month half-life).
+- **(E3) Mean-reversion strategy + backtest** — *next/final step*: run the spread signal
+  (static or Kalman) through the existing portfolio walk-forward backtest and the DSR/PBO
+  validity layer (closing the loop with the portfolio pillar).
 
 Remaining optional build items (none started, none blocking): swap the American PSOR for
 Brennan–Schwartz (direct tridiagonal LCP solve); the FRTB expected-shortfall capital charge
@@ -707,6 +735,16 @@ autocallable numbers) and the README embeds captured runs that are the source of
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **No light time-varying-regression Kalman filter in the ecosystem (step 15).** numpy ships
+  no Kalman filter; `statsmodels` has a full state-space framework (`KalmanFilter` /
+  `MLEModel`), but it is heavy machinery aimed at SARIMAX / UnobservedComponents estimation —
+  wiring a simple time-varying-hedge-ratio regression through it is far more ceremony than the
+  ~10-line predict/update recursion it reduces to, and the once-standard dedicated library
+  (`pykalman`) is effectively unmaintained. So the pairs-trading Kalman is one of those cases
+  where hand-implementing the recursion is both *cleaner* than the library and the actual
+  demonstrable skill — the same "the method is a handful of lines, but no tool packages it for
+  this use" category as the OOS-covariance and HRP gaps. (A validation nicety falls out: the
+  process-noise → 0 limit gives recursive least squares, so the filter is anchored to OLS.)
 - **The naive Engle–Granger test uses the wrong critical values (step 14).** The textbook
   two-step is "regress, then ADF the residual" — but the residual is *estimated*, so its
   Dickey–Fuller statistic does **not** follow the standard ADF distribution; using
@@ -858,6 +896,16 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   statsmodels' to ~0.02 so a transcription slip cannot pass. The OU estimator reports the raw
   fit even for a near-unit-root series (huge half-life) rather than forcing an arbitrary
   "not mean-reverting" cutoff — the enormous half-life is itself the screen.
+- **Kalman hedge ratio: 2-D state with a diffuse prior, tuning knob exposed (step 15).** The
+  latent state is `[hedge_ratio, intercept]` (a drifting intercept as well as slope, matching
+  the EG `trend="c"` regression) following a random walk (transition = identity), so "predict"
+  only inflates the covariance by the process noise. A large `initial_cov` (diffuse prior)
+  makes the estimate lock on within a burn-in regardless of the zero starting guess (the real
+  demo drops the first 36 months). `process_var`/`obs_var` are required parameters, not
+  defaulted to a magic value — their ratio is the responsiveness knob and there is no
+  universally correct setting, so the choice is the caller's and is documented. The reported
+  `spread` is the one-step-ahead innovation `y_t − H_t β_{t−1}` (the tradeable dynamic spread),
+  and `hedge_ratio_var` (= `P_t[0,0]`) gives the uncertainty band.
 - **Correlation-PCA (not covariance-PCA) is the deliberate choice (step 13).** Standardising
   to unit variance before the eigendecomposition (i) makes the Marchenko–Pastur bulk edges
   clean (σ²=1 for i.i.d. noise), the whole point of the RMT cutoff, and (ii) makes the

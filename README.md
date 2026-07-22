@@ -22,7 +22,7 @@ is hand-typed.
 | --- | --- |
 | **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
-| **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a **statistical-arbitrage** signal track (cointegration + mean-reverting spreads). |
+| **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a **statistical-arbitrage** signal track (cointegration, mean-reverting spreads, and a Kalman dynamic hedge ratio). |
 
 ## Headline results
 
@@ -1273,6 +1273,44 @@ Spread half-life  | 5.5 months   (κ = 0.127 / month)
 > Honest aside: other plausible pairs (Healthcare–MedEquip, Aero–Defense) clear
 > Engle–Granger yet fail Johansen at 5% — borderline cases where the two tests disagree,
 > which is exactly why a disciplined screen runs both rather than trusting one.
+
+### Dynamic hedge ratio — a Kalman filter for a drifting relationship
+
+The cointegrating coefficient above is **static** — one number, fitted once, assuming the
+hedge ratio never moves. Real relationships drift, so a single coefficient is a compromise
+that tracks neither the early nor the late regime. The
+[Kalman filter](quantica/statarb/kalman.py) treats the hedge ratio as an **unobserved state
+that evolves**, re-estimated as each price arrives. The pair is written as a linear
+state-space model — the hedge ratio (and intercept) is a random-walk state, `y_t = [x_t,1]·βₜ
++ εₜ` the observation — and the standard predict/update recursion is implemented directly in
+numpy (no filtering library; the recursion *is* the skill). It produces the filtered
+hedge-ratio path with its uncertainty band, and the one-step-ahead innovation — the **dynamic
+spread** a mean-reversion strategy trades. The **tuning knob** is the process/observation
+variance ratio: larger adapts faster, smaller pins the ratio down (in the limit → 0 the
+filter is recursive least squares and converges to OLS) — a documented parameter, not a magic
+constant.
+
+> **Highlighted insight — the Kalman filter tracks a drifting ratio a static fit cannot.**
+> On known truth — a pair whose *true* hedge ratio drifts linearly from 1.0 to 2.0 — the
+> filter follows the moving ratio inside its own uncertainty band, while a static OLS
+> coefficient sits near the average and tracks neither end. Dynamic beats static by an order
+> of magnitude exactly when the relationship moves
+> (`python scripts/statarb_kalman_report.py`):
+
+```
+Estimator                    | Tracking RMSE vs the true (drifting) path
+---------------------------- | ----------------------------------------:
+static OLS (one coefficient) |  0.809   ← stuck near the ~0.74 average
+Kalman (dynamic)             |  0.065   ← 13× lower; true path in-band 100%
+```
+
+> Two anchors pin the recursion: process variance → 0 on a constant ratio makes it recursive
+> least squares (converging to the OLS estimate), and a well-specified fit yields white
+> standardised innovations. **Real pair — Soda vs Meals:** the static hedge ratio is a single
+> 0.85, but the Kalman ratio drifts between **0.59 and 1.80** over the sample — and because
+> that drift is filtered into the state rather than left in the residual, the dynamic spread
+> mean-reverts **faster (4.8 vs 5.5-month half-life)**, a cleaner signal for the strategy step
+> to come.
 
 ## Running the apps
 

@@ -26,8 +26,54 @@ if TYPE_CHECKING:
 __all__ = [
     "generate_cointegrated_pair",
     "generate_independent_random_walks",
+    "generate_time_varying_pair",
     "simulate_ou_process",
 ]
+
+
+def generate_time_varying_pair(
+    beta_path: FloatArray,
+    rng: np.random.Generator,
+    *,
+    alpha: float = 0.0,
+    x_start: float = 50.0,
+    trend_vol: float = 1.0,
+    obs_vol: float = 1.0,
+) -> tuple[FloatArray, FloatArray]:
+    r"""A pair whose *true* hedge ratio varies over time — the Kalman known-truth.
+
+    Builds ``x`` as a random walk and ``y_t = alpha + beta_path[t] * x_t + noise`` with a
+    **time-varying** true hedge ratio ``beta_path`` (a drift, a step, anything). A static
+    coefficient cannot track it; a Kalman filter can. ``x`` is started away from zero so the
+    hedge ratio is well identified at every point.
+
+    Parameters
+    ----------
+    beta_path : ndarray, shape (T,)
+        The true hedge ratio at each time (its length sets ``T``).
+    rng : numpy.random.Generator
+        Seeded generator.
+    alpha : float, optional
+        The (constant) intercept (default 0).
+    x_start : float, optional
+        Starting level of ``x`` (default 50, to keep it away from zero).
+    trend_vol : float, optional
+        Innovation volatility of the ``x`` random walk (default 1.0).
+    obs_vol : float, optional
+        Observation-noise volatility on ``y`` (default 1.0).
+
+    Returns
+    -------
+    tuple of ndarray
+        ``(y, x)``, each of shape ``(T,)``.
+    """
+    beta = np.asarray(beta_path, dtype=np.float64)
+    if beta.ndim != 1 or beta.shape[0] < 2:
+        raise ValueError(f"beta_path must be a 1-D series of length >= 2, got {beta.shape}")
+    n_obs = beta.shape[0]
+    x = x_start + np.cumsum(rng.normal(0.0, trend_vol, size=n_obs))
+    y = alpha + beta * x + rng.normal(0.0, obs_vol, size=n_obs)
+    return np.asarray(y, dtype=np.float64), np.asarray(x, dtype=np.float64)
 
 
 def generate_cointegrated_pair(
