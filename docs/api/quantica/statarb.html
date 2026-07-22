@@ -189,6 +189,72 @@
 
             </li>
             <li>
+                    <a class="class" href="#PairsBacktestResult">PairsBacktestResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#PairsBacktestResult.__init__">PairsBacktestResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.net_returns">net_returns</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.gross_returns">gross_returns</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.positions">positions</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.spread">spread</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.zscore">zscore</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.hedge_ratio">hedge_ratio</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.n_trades">n_trades</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.avg_holding_period">avg_holding_period</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.hit_rate">hit_rate</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsBacktestResult.total_cost">total_cost</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#PairsBacktestResult.sharpe_ratio">sharpe_ratio</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#PairsStrategyConfig">PairsStrategyConfig</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#PairsStrategyConfig.__init__">PairsStrategyConfig</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsStrategyConfig.entry_z">entry_z</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsStrategyConfig.exit_z">exit_z</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsStrategyConfig.stop_z">stop_z</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsStrategyConfig.zscore_window">zscore_window</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#PairsStrategyConfig.cost_rate">cost_rate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="function" href="#engle_granger">engle_granger</a>
             </li>
             <li>
@@ -211,6 +277,12 @@
             </li>
             <li>
                     <a class="function" href="#ou_half_life">ou_half_life</a>
+            </li>
+            <li>
+                    <a class="function" href="#pairs_backtest">pairs_backtest</a>
+            </li>
+            <li>
+                    <a class="function" href="#pairs_return_matrix">pairs_return_matrix</a>
             </li>
             <li>
                     <a class="function" href="#simulate_ou_process">simulate_ou_process</a>
@@ -251,12 +323,13 @@ mean-reverting spread and its half-life, the practically useful holding-period s
 <li><strong>Dynamic hedge ratio</strong> (<code>~<a href="statarb/kalman.html">quantica.statarb.kalman</a></code>) — a Kalman filter estimating a
 <em>time-varying</em> hedge ratio (an evolving latent state), for relationships that drift away
 from the static cointegrating coefficient.</li>
+<li><strong>Pairs strategy + backtest</strong> (<code>~<a href="statarb/strategy.html">quantica.statarb.strategy</a></code>) — the z-score
+mean-reversion rule on the spread, backtested walk-forward net of costs and subjected to the
+portfolio pillar's Deflated-Sharpe / PBO validity layer. Cointegration guards against a
+spurious <em>signal</em>; DSR/PBO guard against a spurious <em>backtest</em>.</li>
 <li><strong>Synthetic data</strong> (<code>~<a href="statarb/data.html">quantica.statarb.data</a></code>) — cointegrated pairs, time-varying-ratio
 pairs, spurious random walks, and known-parameter OU paths for the known-truth validation.</li>
 </ul>
-
-<p>Later step (not yet built): the mean-reversion strategy run through the portfolio backtest
-and its DSR/PBO validity layer.</p>
 </div>
 
                 
@@ -866,6 +939,290 @@ The sampling step used in the estimation.</li>
 
                             </div>
                 </section>
+                <section id="PairsBacktestResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">PairsBacktestResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult"></a>
+    
+            <div class="docstring"><p>Output of a pairs backtest: the out-of-sample return series and trade accounting.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>net_returns</strong> (ndarray, shape (T_oos,)):
+Per-period return after trading costs (the series fed to the validity layer).</li>
+<li><strong>gross_returns</strong> (ndarray, shape (T_oos,)):
+Per-period return before costs.</li>
+<li><strong>positions</strong> (ndarray, shape (T_oos,)):
+The held position each period: <code>+1</code> long the spread, <code>-1</code> short, <code>0</code> flat.</li>
+<li><strong>spread</strong> (ndarray, shape (T_oos,)):
+The level trading spread <code>y - beta*x</code> (the hedge ratio is constant for <code>static</code>,
+drifting for <code>kalman</code>).</li>
+<li><strong>zscore</strong> (ndarray, shape (T_oos,)):
+The spread z-score that drives entries and exits.</li>
+<li><strong>hedge_ratio</strong> (ndarray, shape (T_oos,)):
+The hedge ratio used each period (constant for <code>static</code>, drifting for <code>kalman</code>).</li>
+<li><strong>n_trades</strong> (int):
+Number of completed round-trips (entries).</li>
+<li><strong>avg_holding_period</strong> (float):
+Mean number of periods a position is held (compare against the spread half-life).</li>
+<li><strong>hit_rate</strong> (float):
+Fraction of completed round-trips that were profitable.</li>
+<li><strong>total_cost</strong> (float):
+Total trading cost paid over the backtest.</li>
+</ul>
+</div>
+
+
+                            <div id="PairsBacktestResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">PairsBacktestResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">net_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">gross_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">positions</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">spread</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">zscore</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">hedge_ratio</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_trades</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">avg_holding_period</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">hit_rate</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">total_cost</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.net_returns" class="classattr">
+                                <div class="attr variable">
+            <span class="name">net_returns</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.net_returns"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.gross_returns" class="classattr">
+                                <div class="attr variable">
+            <span class="name">gross_returns</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.gross_returns"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.positions" class="classattr">
+                                <div class="attr variable">
+            <span class="name">positions</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.positions"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.spread" class="classattr">
+                                <div class="attr variable">
+            <span class="name">spread</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.spread"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.zscore" class="classattr">
+                                <div class="attr variable">
+            <span class="name">zscore</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.zscore"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.hedge_ratio" class="classattr">
+                                <div class="attr variable">
+            <span class="name">hedge_ratio</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.hedge_ratio"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.n_trades" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_trades</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.n_trades"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.avg_holding_period" class="classattr">
+                                <div class="attr variable">
+            <span class="name">avg_holding_period</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.avg_holding_period"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.hit_rate" class="classattr">
+                                <div class="attr variable">
+            <span class="name">hit_rate</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.hit_rate"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.total_cost" class="classattr">
+                                <div class="attr variable">
+            <span class="name">total_cost</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.total_cost"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsBacktestResult.sharpe_ratio" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">sharpe_ratio</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">periods_per_year</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">252</span>, </span><span class="param"><span class="o">*</span>, </span><span class="param"><span class="n">gross</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsBacktestResult.sharpe_ratio"></a>
+    
+            <div class="docstring"><p>Annualised Sharpe ratio of the (net by default) out-of-sample return series.</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="PairsStrategyConfig">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">PairsStrategyConfig</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#PairsStrategyConfig"></a>
+    
+            <div class="docstring"><p>Thresholds and costs for the z-score mean-reversion rule.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>entry_z</strong> (float):
+Enter when <code>|z| &gt;= entry_z</code> (default 2.0): the spread is far from its mean.</li>
+<li><strong>exit_z</strong> (float):
+Exit when <code>|z| &lt;= exit_z</code> (default 0.5): the spread has reverted.</li>
+<li><strong>stop_z</strong> (float):
+Stop out when <code>|z| &gt;= stop_z</code> (default 4.0): the spread is diverging, not
+reverting — the relationship may have broken.</li>
+<li><strong>zscore_window</strong> (int):
+Trailing window (periods) for the <strong>static</strong> spread's rolling mean/std (default 60);
+ignored for the Kalman spread, which standardises by the filter's innovation variance.</li>
+<li><strong>cost_rate</strong> (float):
+One-way proportional trading cost per unit of leg turnover (default 0.0005 = 5 bps).</li>
+</ul>
+</div>
+
+
+                            <div id="PairsStrategyConfig.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">PairsStrategyConfig</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">entry_z</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span>,</span><span class="param">	<span class="n">exit_z</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>,</span><span class="param">	<span class="n">stop_z</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">4.0</span>,</span><span class="param">	<span class="n">zscore_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span>,</span><span class="param">	<span class="n">cost_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0005</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsStrategyConfig.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsStrategyConfig.entry_z" class="classattr">
+                                <div class="attr variable">
+            <span class="name">entry_z</span><span class="annotation">: float</span>        =
+<span class="default_value">2.0</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsStrategyConfig.entry_z"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsStrategyConfig.exit_z" class="classattr">
+                                <div class="attr variable">
+            <span class="name">exit_z</span><span class="annotation">: float</span>        =
+<span class="default_value">0.5</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsStrategyConfig.exit_z"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsStrategyConfig.stop_z" class="classattr">
+                                <div class="attr variable">
+            <span class="name">stop_z</span><span class="annotation">: float</span>        =
+<span class="default_value">4.0</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsStrategyConfig.stop_z"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsStrategyConfig.zscore_window" class="classattr">
+                                <div class="attr variable">
+            <span class="name">zscore_window</span><span class="annotation">: int</span>        =
+<span class="default_value">60</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsStrategyConfig.zscore_window"></a>
+    
+    
+
+                            </div>
+                            <div id="PairsStrategyConfig.cost_rate" class="classattr">
+                                <div class="attr variable">
+            <span class="name">cost_rate</span><span class="annotation">: float</span>        =
+<span class="default_value">0.0005</span>
+
+        
+    </div>
+    <a class="headerlink" href="#PairsStrategyConfig.cost_rate"></a>
+    
+    
+
+                            </div>
+                </section>
                 <section id="engle_granger">
                     <div class="attr function">
             
@@ -1188,6 +1545,103 @@ the uncertainty series.</li>
     <a class="headerlink" href="#ou_half_life"></a>
     
             <div class="docstring"><p>The mean-reversion half-life \( \ln 2 / \kappa \) (<code>inf</code> if not mean-reverting).</p>
+</div>
+
+
+                </section>
+                <section id="pairs_backtest">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">pairs_backtest</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">x</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">config</span><span class="p">:</span> <span class="n"><a href="#PairsStrategyConfig">PairsStrategyConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;static&#39;</span>,</span><span class="param">	<span class="n">train_window</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">hedge_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">process_var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">obs_var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#PairsBacktestResult">PairsBacktestResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#pairs_backtest"></a>
+    
+            <div class="docstring"><p>Backtest the z-score mean-reversion rule on a pair, out of sample and net of costs.</p>
+
+<p>The hedge ratio and spread statistics are formed causally: the static hedge ratio is
+estimated on the first <code>train_window</code> observations, the Kalman hedge ratio is the
+filter's causal time-varying estimate, and the z-score uses a trailing window in both
+cases. Trading happens only <em>after</em> <code>train_window</code> (the estimation / filter burn-in), so
+there is no look-ahead. The per-period P&amp;L of the dollar-neutral position is
+\( \text{pos}_{t-1}\,(\Delta y_t - \beta_{t-1}\,\Delta x_t) \), less
+<code>cost_rate * |\Delta\text{pos}| * (1 + |\beta|)</code> when the position changes.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>y, x</strong> (ndarray, shape (T,)):
+The two (log-)price series; <code>y</code> is traded against <code>x</code> via the hedge ratio.</li>
+<li><strong>config</strong> (PairsStrategyConfig, optional):
+Entry/exit/stop thresholds and cost (default <code><a href="#PairsStrategyConfig">PairsStrategyConfig</a></code>).</li>
+<li><strong>method</strong> ({"static", "kalman"}, optional):
+<code>"static"</code> uses the fixed OLS/Engle--Granger hedge ratio; <code>"kalman"</code> uses the
+drifting filtered hedge ratio in the level spread. Both z-score on a trailing window.</li>
+<li><strong>train_window</strong> (int):
+Estimation / burn-in length; trading starts after it (keyword-only).</li>
+<li><strong>hedge_ratio</strong> (float, optional):
+Override the static hedge ratio (else estimated by Engle--Granger on the train slice).</li>
+<li><strong>process_var, obs_var</strong> (float, optional):
+Kalman noise parameters; <code>obs_var</code> defaults to the training-spread variance and
+<code>process_var</code> to <code>1e-4 * obs_var</code> (a slowly drifting hedge ratio).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>PairsBacktestResult</strong>: The out-of-sample net/gross return series, positions, spread, and trade statistics.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If the inputs are not 1-D of equal length, <code>train_window</code> leaves too little data, or
+<code>method</code> is unknown.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="pairs_return_matrix">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">pairs_return_matrix</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">prices</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">pairs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span>,</span><span class="param">	<span class="n">config</span><span class="p">:</span> <span class="n"><a href="#PairsStrategyConfig">PairsStrategyConfig</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;static&#39;</span>,</span><span class="param">	<span class="n">train_window</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#pairs_return_matrix"></a>
+    
+            <div class="docstring"><p>Stack the out-of-sample net returns of many candidate pairs into a <code>(T_oos, N)</code> matrix.</p>
+
+<p>Runs <code><a href="#pairs_backtest">pairs_backtest()</a></code> for each <code>(i, j)</code> column pair of <code>prices</code> and stacks the
+resulting net-return series. This is the input to the overfitting layer
+(<code>~<a href="portfolio.html#deflated_sharpe_ratio_from_trials">quantica.portfolio.overfitting.deflated_sharpe_ratio_from_trials()</a></code> /
+<code>~<a href="portfolio.html#probability_of_backtest_overfitting">quantica.portfolio.overfitting.probability_of_backtest_overfitting()</a></code>) — mining many
+pairs is exactly the multiple-testing setting DSR/PBO exist to police.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>prices</strong> (ndarray, shape (T, n_assets)):
+The (log-)price panel.</li>
+<li><strong>pairs</strong> (list of (int, int)):
+Column-index pairs to backtest.</li>
+<li><strong>config</strong> (PairsStrategyConfig, optional):
+Strategy configuration (default <code><a href="#PairsStrategyConfig">PairsStrategyConfig</a></code>).</li>
+<li><strong>method</strong> ({"static", "kalman"}, optional):
+The spread construction (default <code>"static"</code>).</li>
+<li><strong>train_window</strong> (int):
+Estimation / burn-in length (keyword-only).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T_oos, len(pairs))</strong>: Column <code>k</code> is the OOS net-return series of <code>pairs[k]</code>.</li>
+</ul>
 </div>
 
 
