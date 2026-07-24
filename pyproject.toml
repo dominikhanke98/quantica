@@ -61,7 +61,10 @@ dev = [
     # SHAP values for the ML-validation demo and tests. Same posture: the
     # ml_validation package consumes SHAP matrices / predict callables only.
     "shap>=0.46",
-    "ruff>=0.6",
+    # Pinned below 0.16: ruff 0.16 changed `docstring-code-format` output (inline-comment
+    # spacing in embedded examples), so an unpinned formatter makes the format gate
+    # non-reproducible between local and CI. Bump deliberately, reformatting in the same commit.
+    "ruff>=0.6,<0.16",
     "mypy>=1.11",
     "hypothesis>=6.100",
 ]

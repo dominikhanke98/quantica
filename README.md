@@ -16,13 +16,14 @@ is hand-typed.
 **🔗 Live demo — https://quantica.streamlit.app/** (interactive tour of all three pillars)
 &nbsp;·&nbsp; **📖 [API reference](https://raw.githack.com/dominikhanke98/quantica/main/docs/api/index.html)** (every public symbol, generated from the docstrings)
 
-## The three pillars
+## The pillars
 
 | Pillar | One-line signature |
 | --- | --- |
 | **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
+| **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class: **yield-curve construction** — a discount curve bootstrapped from deposits and par swaps that reprices every input to par to machine precision, under hand-rolled interpolation schemes (linear, log-linear, natural & monotone cubic) whose **choice materially changes the forward rates** it implies. |
 
 ## Headline results
 
@@ -1348,6 +1349,52 @@ Probabilistic Sharpe > 95%?   |            —             |   yes (PSR 1.00)
 > Cointegration is *necessary but not sufficient*: the spread reverts, but not far or often
 > enough to beat costs, and the validity layer correctly declines to certify it. That the
 > whole stack refuses to manufacture an edge it cannot support is exactly the deliverable.
+
+## Pillar IV — Rates & fixed income
+
+The first non-equity asset class in the repo. Every rates desk begins with the same object —
+a **discount curve** — and building it is where the modelling starts. The
+[rates pillar](quantica/rates) bootstraps a curve from market instruments and exposes discount
+factors, zero rates and forward rates under a **configurable interpolation scheme**.
+
+- **Curve** ([`DiscountCurve`](quantica/rates/curve.py)) — discount factors, zero rates, simple
+  and instantaneous forwards, all consistent with one another.
+- **Bootstrap** ([`bootstrap`](quantica/rates/bootstrap.py)) — deposits (short end) and par
+  swaps (long end), solved shortest-first; a swap's pillar needs a 1-D root solve (the only
+  place `scipy` is used), and non-local cubic schemes are refined in sweeps so every input
+  ends up at par.
+- **Interpolation** ([`interpolation.py`](quantica/rates/interpolation.py)) — linear, natural
+  cubic and monotone (PCHIP) cubic, each hand-implemented and aware of its own derivative
+  (because the instantaneous forward *is* a derivative of the curve). The monotone cubic is
+  validated against `scipy`'s PCHIP and the curve interpolation against QuantLib to machine
+  precision.
+
+> **Highlighted insight — interpolation is a modelling decision, not a detail.** The
+> bootstrap's foundational anchor is that the curve reprices **every** input instrument back to
+> par to machine precision (a 3-deposit / 5-swap curve reprices to ~2e-16), *whatever* the
+> interpolation. Yet the schemes — all repricing the inputs exactly — imply forward curves that
+> disagree by tens of basis points, and the smooth cubic schemes can even manufacture
+> **negative** forwards where the robust log-linear scheme cannot
+> (`python scripts/rates_curve_report.py`):
+
+```
+Instantaneous forward (%)     | linear-zero | log-linear | natural-cubic | monotone-cubic
+----------------------------- | ----------: | ---------: | ------------: | -------------:
+ at 6.0y                      |      4.871  |     4.868  |        4.898  |         4.934
+max cross-scheme disagreement | ----------------------------- 36 bps -----------------------------
+
+Stress (4y trading rich)      | min instantaneous forward
+----------------------------- | -------------------------:
+log-linear-discount           |    +0.43%   ← robust: piecewise-flat forwards, never negative
+natural-cubic-zero            |    -0.89%   ← the cubic-spline oscillation artifact
+monotone-cubic-zero           |    -1.03%   ← monotone *zeros* ≠ positive *forwards*
+```
+
+> All inputs still reprice to par in every column — the disagreement is pure modelling choice.
+> The honest subtlety: even a *monotone* cubic on the zero rates goes negative here, because
+> preserving the monotonicity of the zeros does not preserve the positivity of the forwards —
+> exactly the point Hagan–West make when they interpolate the forwards directly. For a curve
+> you will differentiate, robust beats smooth.
 
 ## Running the apps
 
