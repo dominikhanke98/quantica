@@ -17,11 +17,12 @@ This foundational step ships the **cointegration + spread** layer:
 * **Dynamic hedge ratio** (:mod:`~quantica.statarb.kalman`) — a Kalman filter estimating a
   *time-varying* hedge ratio (an evolving latent state), for relationships that drift away
   from the static cointegrating coefficient.
+* **Pairs strategy + backtest** (:mod:`~quantica.statarb.strategy`) — the z-score
+  mean-reversion rule on the spread, backtested walk-forward net of costs and subjected to the
+  portfolio pillar's Deflated-Sharpe / PBO validity layer. Cointegration guards against a
+  spurious *signal*; DSR/PBO guard against a spurious *backtest*.
 * **Synthetic data** (:mod:`~quantica.statarb.data`) — cointegrated pairs, time-varying-ratio
   pairs, spurious random walks, and known-parameter OU paths for the known-truth validation.
-
-Later step (not yet built): the mean-reversion strategy run through the portfolio backtest
-and its DSR/PBO validity layer.
 """
 
 from __future__ import annotations
@@ -40,12 +41,20 @@ from quantica.statarb.data import (
 )
 from quantica.statarb.kalman import KalmanHedgeResult, kalman_hedge_ratio
 from quantica.statarb.spread import OUProcess, estimate_ou_process, ou_half_life
+from quantica.statarb.strategy import (
+    PairsBacktestResult,
+    PairsStrategyConfig,
+    pairs_backtest,
+    pairs_return_matrix,
+)
 
 __all__ = [
     "EngleGrangerResult",
     "JohansenResult",
     "KalmanHedgeResult",
     "OUProcess",
+    "PairsBacktestResult",
+    "PairsStrategyConfig",
     "engle_granger",
     "estimate_ou_process",
     "generate_cointegrated_pair",
@@ -54,5 +63,7 @@ __all__ = [
     "johansen",
     "kalman_hedge_ratio",
     "ou_half_life",
+    "pairs_backtest",
+    "pairs_return_matrix",
     "simulate_ou_process",
 ]

@@ -22,7 +22,7 @@ is hand-typed.
 | --- | --- |
 | **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
-| **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a **statistical-arbitrage** signal track (cointegration, mean-reverting spreads, and a Kalman dynamic hedge ratio). |
+| **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
 
 ## Headline results
 
@@ -1311,6 +1311,43 @@ Kalman (dynamic)             |  0.065   ← 13× lower; true path in-band 100%
 > that drift is filtered into the state rather than left in the residual, the dynamic spread
 > mean-reverts **faster (4.8 vs 5.5-month half-life)**, a cleaner signal for the strategy step
 > to come.
+
+### Pairs strategy and its overfitting-aware backtest — the two guards together
+
+The arc closes by turning the spread into a **trading strategy** and — the whole point —
+subjecting it to the portfolio pillar's **backtest-validity layer**. The
+[strategy](quantica/statarb/strategy.py) is a textbook z-score mean-reversion rule (enter at
+`entry_z`, exit on reversion, stop out on divergence) on the cointegration-derived,
+Kalman-hedged spread; it is backtested walk-forward net of costs, reusing
+[`ProportionalCosts`](quantica/portfolio/backtest.py) and — for the verdict — the
+[Deflated Sharpe Ratio and PBO](quantica/portfolio/overfitting.py). Statistical arbitrage is
+the strategy class *most* prone to overfitting (mining many pairs finds spurious winners by
+chance), so this is the natural marriage: **cointegration guards the signal, DSR/PBO guard the
+backtest.**
+
+> **Highlighted insight — mine many pairs → the overfitting guard flags the spurious winner;
+> the truly cointegrated pair survives.** On known truth — 276 pairs from independent random
+> walks — the best in-sample result *looks* tradeable, but the two guards see through it, while
+> a genuinely cointegrated pair (one trial) clears the probabilistic-Sharpe bar
+> (`python scripts/statarb_strategy_report.py`):
+
+```
+                              | Best mined spurious pair | Genuine cointegrated pair
+----------------------------- | -----------------------: | ------------------------:
+Annualised Sharpe (in-sample) |            1.49          |           1.78
+Deflated Sharpe significant?  |   no  (DSR 0.71)         |   —  (single trial)
+Prob. of backtest overfitting |        48%               |           —
+Probabilistic Sharpe > 95%?   |            —             |   yes (PSR 1.00)
+```
+
+> **The credible negative result, reported straight.** On real 49-industry data the honest
+> finding is that there is *no* robust pairs edge after costs. Even the best economically-
+> motivated pair (Soda–Meals) nets only a **+0.24** annualised Sharpe and fails the 95%
+> probabilistic-Sharpe bar; the others lose money. Mining all **1176** industry pairs, the
+> best manages just **0.63** — not DSR-significant, **PBO 61%**, median pair negative.
+> Cointegration is *necessary but not sufficient*: the spread reverts, but not far or often
+> enough to beat costs, and the validity layer correctly declines to certify it. That the
+> whole stack refuses to manufacture an edge it cannot support is exactly the deliverable.
 
 ## Running the apps
 

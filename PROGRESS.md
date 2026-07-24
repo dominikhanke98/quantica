@@ -13,9 +13,10 @@ factor track. The derivatives / risk / portfolio triad (CLAUDE.md §9) is closed
 deferred **thin Streamlit apps (step 8) are merged to `main` (PR #1) and LIVE** on
 Streamlit Community Cloud at **https://quantica.streamlit.app/** (linked from the README
 top matter). Everything the CLAUDE.md brief set out to build now exists, is validated,
-and is demonstrable in one click. Beyond that scope, a **statistical-arbitrage track** has
-been opened (step 14: cointegration + spread foundation) as the signal-research stage the
-portfolio pillar was missing. Next: optional depth only — see "Next".
+and is demonstrable in one click. Beyond that scope, a **statistical-arbitrage track** is now
+**complete end-to-end** (steps 14–16: cointegration → Kalman dynamic hedge ratio → pairs
+strategy with an overfitting-aware backtest) — the signal→construction→validated-backtest arc
+the portfolio pillar was missing. Next: optional depth only — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -26,8 +27,9 @@ observable-vs-statistical pair). **Capital-markets / portfolio track complete.**
 Statistical-arbitrage roadmap (new track — the signal-research stage the portfolio pillar
 was missing): **cointegration + spread ✓** (Engle–Granger + Johansen tests, OU half-life) →
 **Kalman dynamic hedge ratio ✓** (time-varying β via a state-space filter) →
-**mean-reversion strategy + DSR/PBO backtest** (next/final — reusing the portfolio backtest +
-validity layer).
+**mean-reversion strategy + DSR/PBO backtest ✓** (z-score pairs strategy, overfitting-aware
+backtest reusing the portfolio validity layer). **Statistical-arbitrage arc complete** —
+signal → construction → validated backtest.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -669,8 +671,41 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   table (no network) + **real Soda vs Meals** — static hedge 0.85 vs Kalman drifting **0.59–1.80**,
   and the **dynamic spread mean-reverts faster (4.8 vs 5.5-month half-life)** because the drift is
   filtered into the state. Gate green: 943 tests (6 new), ruff + mypy + interrogate(100%) clean.
-  Delivered on branch `feat/statarb-kalman` (PR, per the established workflow — open, stop before
-  merge).
+  Delivered on branch `feat/statarb-kalman` as **PR #7 — merged to `main` via merge commit
+  `8171d64`.**
+- **Step 16 — Statistical-arbitrage step 3 (final): pairs strategy + overfitting-aware backtest
+  — the arc closes.** New `quantica/statarb/strategy.py`. **The tie-back is the deliverable**:
+  the cointegration-derived, Kalman-hedged spread becomes a trading strategy, backtested
+  walk-forward net of costs and **judged by the portfolio pillar's DSR/PBO validity layer**.
+  Stat-arb is the strategy class most prone to overfitting (mining many pairs finds spurious
+  winners), so the marriage is: **cointegration guards the signal, DSR/PBO guard the backtest.**
+  **Scope discipline held**: reuses `ProportionalCosts`, the no-lookahead window machinery, and
+  the whole `deflated_sharpe_ratio_from_trials` / `probability_of_backtest_overfitting` /
+  `probabilistic_sharpe_ratio` layer from `quantica/portfolio/`; the new part is the strategy
+  logic (signal → positions). **`pairs_backtest(y, x, config, *, method, train_window)`**: a
+  z-score mean-reversion rule (`PairsStrategyConfig`: entry/exit/stop thresholds, cost) on the
+  level spread `y − β·x` — `static` holds β fixed (EG on train), `kalman` lets it drift (causal
+  filtered estimate); event-driven positions, dollar-neutral P&L `posₜ₋₁·(Δy − βₜ₋₁·Δx)`, costs
+  on turnover; returns net/gross series + trade stats (round-trips, holding period, hit rate).
+  `pairs_return_matrix` stacks many pairs' OOS returns for the DSR/PBO screen. **Note**: the
+  pairs backtest is deliberately event-driven, so it does *not* use the portfolio
+  weights-rebalance `walk_forward_backtest` engine directly (that holds weights over a
+  schedule) — it reuses the cost model + validity layer, which operate on the return series.
+  Validated (`tests/statarb/test_strategy.py`, 10 tests): **headline — mining 276 spurious
+  (random-walk) pairs, the best in-sample ann. Sharpe ~1.5 looks tradeable but DSR is NOT
+  significant + PBO ~0.48, while a genuine cointegrated pair (1 trial) clears PSR>0.95**;
+  profitable on a real cointegrated pair (both methods); spurious single pairs significant only
+  ~nominally; **no-lookahead pinned** (corrupting the future leaves earlier OOS returns
+  bit-identical); costs reconcile (gross−net==total_cost to 1e-12); determinism; holding period
+  a small multiple of the OU half-life; Kalman beats static on a drifting-β pair. Report
+  `scripts/statarb_strategy_report.py`: the known-truth marriage + **honest real-data negative
+  result** — best economically-motivated pair (Soda–Meals) only +0.24 ann. Sharpe net of 10bps
+  and PSR 0.86 (not significant); mining all **1176** real industry pairs the best manages 0.63,
+  not DSR-significant, PBO 61%, median negative. **Cointegration is necessary but not
+  sufficient; the validity layer correctly declines to certify a non-edge — reported straight.**
+  Gate green: 953 tests (10 new), ruff + mypy + interrogate(100%) clean. Delivered on branch
+  `feat/statarb-strategy` as **PR #8 — open, CI-green (py3.11, py3.12, benchmark, docs all
+  pass), awaiting review** (not yet merged; the merge is left to the author).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -695,13 +730,18 @@ https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (C
 - **(E1) Cointegration + spread foundation** — **✓ (step 14, PR #6 merged `ab64e9a`):**
   Engle–Granger + Johansen tests (hand-implemented, statsmodels-anchored), OU spread +
   half-life; headline known-truth "detect real cointegration AND reject spurious pairs."
-- **(E2) Kalman dynamic hedge ratio** — **✓ (step 15, PR open, awaiting review):** numpy-only
+- **(E2) Kalman dynamic hedge ratio** — **✓ (step 15, PR #7 merged `8171d64`):** numpy-only
   state-space predict/update filter for a time-varying β; headline — tracks a drifting ratio
   (13× lower RMSE than static OLS), reduces to OLS as process_var→0; real Soda–Meals hedge
   drifts 0.59–1.80, dynamic spread reverts faster (4.8 vs 5.5-month half-life).
-- **(E3) Mean-reversion strategy + backtest** — *next/final step*: run the spread signal
-  (static or Kalman) through the existing portfolio walk-forward backtest and the DSR/PBO
-  validity layer (closing the loop with the portfolio pillar).
+- **(E3) Mean-reversion strategy + backtest** — **✓ (step 16, PR #8 open, CI-green, awaiting
+  review):** z-score pairs strategy on the (static or Kalman) spread, backtested net of costs
+  and judged by DSR/PBO — **the arc's tie-back**. Headline: mining 276 spurious pairs, the best
+  (ann. Sharpe ~1.5) is flagged (DSR insignificant, PBO ~0.48) while a genuine pair passes
+  PSR>0.95; honest real-data verdict — best industry pair 0.63 Sharpe, PBO 61%, not certified
+  (cointegration necessary but not sufficient; the validity layer correctly declines to certify
+  a non-edge). **Statistical-arbitrage arc COMPLETE — signal → construction → validated
+  backtest, end-to-end.**
 
 Remaining optional build items (none started, none blocking): swap the American PSOR for
 Brennan–Schwartz (direct tridiagonal LCP solve); the FRTB expected-shortfall capital charge
@@ -711,8 +751,8 @@ apps' capital-markets tab.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**Seven blog posts are drafted, awaiting number-verification (re-run each source script and
-check every figure against the current code) and publishing:**
+**~Nine blog posts are drafted or obvious, awaiting number-verification (re-run each source
+script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
 2. SHAP output-scale trap — log-odds vs probability, and how `check_local_accuracy` catches
@@ -723,8 +763,14 @@ check every figure against the current code) and publishing:**
    blows up.
 5. Autocallable skew — flat vol misprices a short-skew structured product (~0.85% of
    notional; skew, not tail-fatness).
-6. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
-   validation-first thesis across all three pillars.
+6. MacKinnon critical values — why the naive Engle–Granger residual ADF over-rejects (an
+   *estimated* residual needs cointegration, not standard-ADF, critical values).
+7. Mine many pairs → DSR/PBO flags the spurious winner — the two-guards marriage
+   (cointegration guards the signal, DSR/PBO the backtest); best-of-1176 industry pairs at
+   0.63 Sharpe / PBO 61%, not certified.
+8. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+   validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
+   stat-arb).
 
 **Before publishing any figure, re-run its script and reconcile against the current code** —
 the code has moved since some drafts (e.g. the FF-data reports, the Rannacher table, the
@@ -735,6 +781,17 @@ autocallable numbers) and the README embeds captured runs that are the source of
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **Open-source backtesters ship the engine, not the pairs-strategy overfitting verdict (step
+  16).** The popular pairs-trading tutorials and backtesters (`backtrader`, `vectorbt`,
+  `pandas`-based notebooks) will happily compute a z-score pairs strategy and print an
+  in-sample Sharpe — but none pairs it with the multiple-testing correction that matters *most*
+  for stat-arb, where mining hundreds of pairs guarantees a lucky in-sample winner. The
+  Deflated Sharpe Ratio and PBO that deflate for the number of pairs screened are exactly the
+  missing piece; here they were *reused* from the portfolio pillar (the "backtest-validity
+  layer absent from mainstream backtesters" gap already logged in Phase 2), now applied to the
+  field most in need of them. The measured payoff: a mined best-of-1176-pairs "edge" (ann.
+  Sharpe 0.63) that the layer correctly refuses to certify (PBO 61%) — the tool that stops a
+  tempting number from becoming a strategy.
 - **No light time-varying-regression Kalman filter in the ecosystem (step 15).** numpy ships
   no Kalman filter; `statsmodels` has a full state-space framework (`KalmanFilter` /
   `MLEModel`), but it is heavy machinery aimed at SARIMAX / UnobservedComponents estimation —
@@ -896,6 +953,16 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   statsmodels' to ~0.02 so a transcription slip cannot pass. The OU estimator reports the raw
   fit even for a near-unit-root series (huge half-life) rather than forcing an arbitrary
   "not mean-reverting" cutoff — the enormous half-life is itself the screen.
+- **Pairs backtest is event-driven, not weights-rebalance (step 16).** The portfolio
+  `walk_forward_backtest` holds target weights over a fixed rebalance schedule; a z-score pairs
+  strategy flips position on signal *crossings*, so shoehorning it into the weights engine would
+  misrepresent it. Instead the pairs backtest is its own event-driven loop but **reuses the
+  parts that genuinely fit** — `ProportionalCosts` and, crucially, the DSR/PBO/PSR validity
+  layer (which operate on the return series, not on weights). The Kalman `method` trades the
+  *level* spread `y − βₜ·x` with the filtered (causal) βₜ, not the filter's raw innovation: the
+  innovation is white by construction (no mean-reversion level to trade), whereas the level
+  spread retains the deviation-from-equilibrium the z-score rule needs; the Kalman contribution
+  is the *drifting* hedge ratio, which is what helps when the relationship moves.
 - **Kalman hedge ratio: 2-D state with a diffuse prior, tuning knob exposed (step 15).** The
   latent state is `[hedge_ratio, intercept]` (a drifting intercept as well as slope, matching
   the EG `trend="c"` regression) following a random walk (transition = identity), so "predict"
