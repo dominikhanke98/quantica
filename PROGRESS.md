@@ -16,7 +16,9 @@ top matter). Everything the CLAUDE.md brief set out to build now exists, is vali
 and is demonstrable in one click. Beyond that scope, a **statistical-arbitrage track** is now
 **complete end-to-end** (steps 14–16: cointegration → Kalman dynamic hedge ratio → pairs
 strategy with an overfitting-aware backtest) — the signal→construction→validated-backtest arc
-the portfolio pillar was missing. Next: optional depth only — see "Next".
+the portfolio pillar was missing. A **fourth pillar — rates / fixed income** is now opened
+too (step 17: yield-curve construction), the first non-equity asset class in the repo. Next:
+optional depth only — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -30,6 +32,11 @@ was missing): **cointegration + spread ✓** (Engle–Granger + Johansen tests, 
 **mean-reversion strategy + DSR/PBO backtest ✓** (z-score pairs strategy, overfitting-aware
 backtest reusing the portfolio validity layer). **Statistical-arbitrage arc complete** —
 signal → construction → validated backtest.
+
+Fixed-income / rates roadmap (**new pillar — the first non-equity asset class**):
+**yield-curve construction ✓** (discount curve + interpolation schemes + bootstrap from
+deposits/par swaps) → **short-rate models** (Vasicek, Hull–White — next) → **rates products**
+(swaptions, caps/floors — later).
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -704,8 +711,33 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   not DSR-significant, PBO 61%, median negative. **Cointegration is necessary but not
   sufficient; the validity layer correctly declines to certify a non-edge — reported straight.**
   Gate green: 953 tests (10 new), ruff + mypy + interrogate(100%) clean. Delivered on branch
-  `feat/statarb-strategy` as **PR #8 — open, CI-green (py3.11, py3.12, benchmark, docs all
-  pass), awaiting review** (not yet merged; the merge is left to the author).
+  `feat/statarb-strategy` as **PR #8 — merged to `main` via merge commit `fb45fd6`.**
+- **Step 17 — Rates / fixed-income pillar opened: yield-curve construction.** New top-level
+  `quantica/rates/` package — the **first non-equity asset class** in the repo. This step is
+  curve construction only (short-rate models + products are later). **Scope discipline held**:
+  the bootstrap and all interpolation schemes are hand-implemented; `scipy` is used only for the
+  1-D root solve the swap pillar needs. Modules: `interpolation.py` — hand-rolled `Linear`,
+  `NaturalCubic` (tridiagonal/Thomas solve) and `MonotoneCubic` (Fritsch–Carlson/PCHIP) schemes,
+  each exposing value **and derivative** (the forward is a curve derivative); `curve.py` —
+  `DiscountCurve` (discount factors, zero rates, simple + instantaneous forwards) with a
+  `CurveInterpolation` strategy choosing *what* is interpolated (zeros vs log-discounts) and
+  *how*; `instruments.py` — `Deposit` (closed-form pillar) + par `Swap`; `bootstrap.py` —
+  sequential bootstrap with **iterative refinement** (non-local cubic interpolation breaks
+  earlier pars when later pillars are added, so sweep to convergence). Validated
+  (`tests/rates/`, 42 tests + 2 benchmark): **headline self-consistency — the curve reprices
+  every input to par to ~1e-13 for all four schemes** (the known-truth bootstrap proof);
+  hand-computed deposit+swap; interpolation anchors — Linear==`numpy.interp`,
+  NaturalCubic==`scipy` natural CubicSpline, MonotoneCubic==`scipy` PCHIP (value+derivative);
+  **the headline — interpolation changes forwards** (same inputs, all repriced, forwards diverge
+  ~36 bps) and the **shape-preservation artifact** (cubic schemes go to negative forwards under
+  a mild stress while log-linear stays positive; even *monotone zeros ≠ positive forwards* —
+  Hagan–West); arbitrage sanity (DFs positive & decreasing, forwards finite); QuantLib benchmark
+  (`-m benchmark`): log-linear vs `ql.DiscountCurve` and linear vs `ql.ZeroCurve` **exact to
+  1e-13** with aligned time metrics. Report `scripts/rates_curve_report.py` (no network):
+  bootstrap + reprice-to-par + the forward-divergence and negative-forward tables → embedded in
+  README. Gate green: 995 tests (+42; +2 benchmark), ruff + mypy + interrogate(100%) clean.
+  Delivered on branch `feat/rates-curve` (PR, per the established workflow — open, stop before
+  merge).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -780,6 +812,22 @@ autocallable numbers) and the README embeds captured runs that are the source of
 
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
+
+- **QuantLib's curve *bootstrap* can't be cleanly benchmarked against a simplified model, and
+  its "monotone cubic" is a different algorithm (step 17).** QuantLib exposes
+  `PiecewiseYieldCurve` with `DepositRateHelper` / `SwapRateHelper`, but those helpers impose
+  the full market-convention machinery — calendars, business-day adjustment, float-index day
+  counts and fixings, settlement lags — so a single-curve model that deliberately abstracts
+  conventions away (year fractions = plain time) cannot reproduce QuantLib's bootstrapped
+  discount factors to machine precision; the mismatch is convention, not method. So the
+  *bootstrap* is validated by exact self-consistency (reprice-to-par ~1e-13) + a hand
+  computation, and only the *interpolation* is QuantLib-benchmarked — where, with the time
+  metric aligned, our log-linear-discount matches `ql.DiscountCurve` and linear-zero matches
+  `ql.ZeroCurve` to 1e-13. Second finding: QuantLib's `MonotonicCubicZeroCurve` is a
+  Hyman-filtered cubic, a *different* monotone scheme from Fritsch–Carlson/PCHIP, so it does
+  **not** agree with ours to machine precision — our PCHIP is validated against `scipy` instead.
+  A concrete "the reference can't be matched because it bundles conventions / uses a different
+  algorithm" finding, same family as the day-count and FD-vega gaps.
 
 - **Open-source backtesters ship the engine, not the pairs-strategy overfitting verdict (step
   16).** The popular pairs-trading tutorials and backtesters (`backtrader`, `vectorbt`,
@@ -953,6 +1001,19 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   statsmodels' to ~0.02 so a transcription slip cannot pass. The OU estimator reports the raw
   fit even for a near-unit-root series (huge half-life) rather than forcing an arbitrary
   "not mean-reverting" cutoff — the enormous half-life is itself the screen.
+- **Iterative bootstrap for non-local interpolation, and monotone-zeros ≠ positive-forwards
+  (step 17).** A *local* interpolation (linear, log-linear) lets a single sequential pass
+  reprice every input exactly; a *non-local* cubic spline does not, because adding a later
+  pillar shifts the interpolant at an earlier swap's intermediate coupon dates and knocks it off
+  par. So the bootstrap does a sequential first pass then **sweeps** the swap pillars against the
+  full curve until every instrument reprices to ~1e-13 (the standard iterative bootstrap; a
+  no-op for local schemes). Separately, the curve interpolates a *quantity* (zeros or
+  log-discounts) chosen by the scheme, and each scheme owns the value→discount→forward calculus.
+  The honest headline caveat: a PCHIP-*monotone* interpolation on the **zero rates** preserves
+  the monotonicity of the zeros but **not** the positivity of the **forwards** (which depend on
+  `z + t·z'`), so it can still produce negative forwards — the reason Hagan–West interpolate the
+  forwards directly. Robust (log-linear-discount) beats smooth for a curve that gets
+  differentiated.
 - **Pairs backtest is event-driven, not weights-rebalance (step 16).** The portfolio
   `walk_forward_backtest` holds target weights over a fixed rebalance schedule; a z-score pairs
   strategy flips position on signal *crossings*, so shoehorning it into the weights engine would
