@@ -23,7 +23,7 @@ is hand-typed.
 | **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
-| **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class: **yield-curve construction** — a discount curve bootstrapped from deposits and par swaps that reprices every input to par to machine precision, under hand-rolled interpolation schemes (linear, log-linear, natural & monotone cubic) whose **choice materially changes the forward rates** it implies. |
+| **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class: **yield-curve construction** (a discount curve bootstrapped from deposits and par swaps, repriced to par to machine precision, under hand-rolled interpolation schemes whose choice materially changes the implied forwards) plus **one-factor short-rate models** (Vasicek / CIR / Hull–White) with analytic bonds, exact-transition simulation, and curve calibration where Hull–White fits exactly and Vasicek/CIR best-fit. |
 
 ## Headline results
 
@@ -1395,6 +1395,51 @@ monotone-cubic-zero           |    -1.03%   ← monotone *zeros* ≠ positive *f
 > preserving the monotonicity of the zeros does not preserve the positivity of the forwards —
 > exactly the point Hagan–West make when they interpolate the forwards directly. For a curve
 > you will differentiate, robust beats smooth.
+
+### Short-rate models — Vasicek, CIR, Hull–White
+
+The curve is a static snapshot; a **short-rate model** describes how the whole curve can
+evolve, driven by a single factor `rₜ`. Three one-factor models
+([`short_rate.py`](quantica/rates/short_rate.py)) share a common interface — all **affine**, so
+the zero-coupon bond has the closed form `P(t,T) = A(t,T)·exp(−B(t,T)·rₜ)`:
+
+- **[`Vasicek`](quantica/rates/short_rate.py)** — Gaussian OU, simple and analytic but allows
+  negative rates.
+- **[`CIR`](quantica/rates/short_rate.py)** — the square-root diffusion; non-negative under the
+  **Feller condition** `2ab ≥ σ²` (surfaced via a flag) — the *same* square-root process as the
+  Heston variance in the pricing pillar, and the same honesty about hitting zero.
+- **[`HullWhite`](quantica/rates/short_rate.py)** — Vasicek with a time-dependent drift `θ(t)`
+  fitted to the initial curve.
+
+Each gives the analytic bond price and **exact-transition** Monte Carlo simulation (Gaussian for
+Vasicek/Hull–White, non-central χ² for CIR — no Euler bias). Vasicek and CIR bond prices match
+QuantLib to machine precision; the analytic price and the simulation are cross-checked against
+each other via `E[exp(−∫r ds)]`.
+
+> **Highlighted insight — Hull–White fits the curve exactly where Vasicek/CIR can't.** Calibrate
+> all three to the step-1 curve and reprice its own discount factors: Hull–White reproduces the
+> term structure **exactly** (its `θ(t)` absorbs the whole curve, for any volatility), while the
+> constant-parameter Vasicek and CIR can only best-fit and leave a residual — the concrete reason
+> practitioners use Hull–White for anything that must be arbitrage-free to the current curve
+> (`python scripts/rates_short_rate_report.py`):
+
+```
+Model         | Curve-fit zero-rate RMSE | Reprices the curve?
+------------- | -----------------------: | -------------------
+Vasicek       |                  4.1 bps | best-fit (residual)
+CIR           |                  4.2 bps | best-fit (residual)
+Hull–White    |                 ~1e-16   | exact, by construction
+
+Analytic bond P(0,5) vs Monte Carlo of E[exp(−∫r ds)] (exact-transition sim):
+Vasicek 0.812550 vs 0.812476 ± 0.000420   (−0.2 SE)
+CIR     0.812425 vs 0.812361 ± 0.000326   (−0.2 SE)
+Hull–W. 0.812998 vs 0.812967 ± 0.000139   (−0.2 SE)
+```
+
+> The analytic affine formula and the exact-transition simulation agree within a standard error
+> for every model — each validates the other, no external reference needed. (Honest caveat: the
+> *curve* barely identifies σ — it enters only through a small convexity term — so pinning down
+> volatility really needs caps/swaptions, the next step; the exact-fit *residual* is the point.)
 
 ## Running the apps
 
