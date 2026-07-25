@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from quantica.rates import DiscountCurve, linear_zero, log_linear_discount
+from quantica.rates import CIR, DiscountCurve, Vasicek, linear_zero, log_linear_discount
 
 pytestmark = pytest.mark.benchmark
 
@@ -57,3 +57,31 @@ def test_linear_zero_matches_quantlib() -> None:
     mine = DiscountCurve(times, dfs, linear_zero())
     ql_zeros = np.array([ql_curve.zeroRate(d, dc, ql.Continuous).rate() for d in q_dates])
     assert np.allclose(mine.zero_rate(q_times), ql_zeros, atol=1e-13)
+
+
+def test_vasicek_bond_matches_quantlib() -> None:
+    """Our Vasicek zero-coupon bond matches ``ql.Vasicek.discountBond`` to machine precision."""
+    ql = pytest.importorskip("QuantLib")
+    a, b, sigma, r0 = 0.3, 0.04, 0.015, 0.03
+    mine = Vasicek(a=a, b=b, sigma=sigma, r0=r0)
+    ql_model = ql.Vasicek(r0, a, b, sigma)  # ql.Vasicek(r0, a, b, sigma)
+    for maturity in (1.0, 5.0, 10.0):
+        assert np.isclose(
+            float(mine.zero_coupon_bond(0.0, maturity, r0)),
+            ql_model.discountBond(0.0, maturity, r0),
+            atol=1e-13,
+        )
+
+
+def test_cir_bond_matches_quantlib() -> None:
+    """Our CIR zero-coupon bond matches ``ql.CoxIngersollRoss.discountBond`` exactly."""
+    ql = pytest.importorskip("QuantLib")
+    a, b, sigma, r0 = 0.5, 0.04, 0.05, 0.03
+    mine = CIR(a=a, b=b, sigma=sigma, r0=r0)
+    ql_model = ql.CoxIngersollRoss(r0, b, a, sigma)  # ql.CoxIngersollRoss(r0, theta=b, k=a, sigma)
+    for maturity in (1.0, 5.0, 10.0):
+        assert np.isclose(
+            float(mine.zero_coupon_bond(0.0, maturity, r0)),
+            ql_model.discountBond(0.0, maturity, r0),
+            atol=1e-13,
+        )
