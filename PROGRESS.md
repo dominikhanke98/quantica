@@ -33,10 +33,12 @@ was missing): **cointegration + spread ✓** (Engle–Granger + Johansen tests, 
 backtest reusing the portfolio validity layer). **Statistical-arbitrage arc complete** —
 signal → construction → validated backtest.
 
-Fixed-income / rates roadmap (**Pillar IV — the first non-equity asset class, now open**):
+Fixed-income / rates roadmap (**Pillar IV — the first non-equity asset class**):
 **yield-curve construction ✓** (discount curve + interpolation schemes + bootstrap from
-deposits/par swaps — PR #9 open) → **short-rate models** (Vasicek / CIR / Hull–White — next)
-→ **rates products** (swaps, caps/floors, swaptions — later).
+deposits/par swaps — PR #9 merged `d8b5564`) → **short-rate models ✓** (Vasicek / CIR /
+Hull–White: analytic bonds, exact-transition MC, curve calibration — PR #10 open) → **rates
+products** (swaps, caps/floors, swaptions — next), where the volatility `σ` — only weakly
+identified from the curve (convexity-only) — finally gets pinned down from the vol surface.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -741,7 +743,34 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   note:** the test jobs first went red not from the rates code but because CI floats
   `ruff>=0.6` and picked up ruff 0.16.0, which changed `docstring-code-format` output on
   *pre-existing* docstrings; fixed reproducibly by pinning `ruff<0.16` (see the standing
-  follow-up in "Next") rather than churning unrelated files.
+  follow-up in "Next") rather than churning unrelated files. **PR #9 merged to `main` via merge
+  commit `d8b5564`** (and the ruff pin turned `main` green again — it had been red at `fb45fd6`).
+- **Step 18 — Rates pillar step 2: one-factor short-rate models (Vasicek / CIR / Hull–White).**
+  New `quantica/rates/short_rate.py` + `calibration.py`, building on the step-1 curve. **Scope
+  discipline held**: the models, their analytic affine bond formulas, the exact-transition
+  simulation, and the calibration are hand-implemented; `scipy.optimize` is used only for the
+  calibration least-squares. Three models behind a `ShortRateModel` ABC, all affine
+  (`P(t,T)=A·exp(-B·r)`): **`Vasicek`** (Gaussian OU, allows negative rates), **`CIR`**
+  (square-root, non-negative under Feller `2ab≥σ²` surfaced via `feller_satisfied` — the same
+  process as Heston's variance), **`HullWhite`** (time-dependent drift fitted to the curve via
+  `from_curve`, using only the curve's `f(0,t)` — no explicit θ(t)/f' needed). Each exposes the
+  analytic `zero_coupon_bond`/`discount_bond` and **exact-transition** `simulate` (Gaussian for
+  Vasicek/HW, non-central χ² for CIR — no Euler bias), plus `monte_carlo_discount` for
+  E[exp(-∫r)]. **Calibration** (`calibrate_vasicek`/`calibrate_cir`) fits `(a,b,σ,r0)` to the
+  curve zero rates by least squares; HW needs none (exact by construction). Validated
+  (`tests/rates/`, +21 incl. +2 benchmark): **headline exact-fit-vs-best-fit — HW reprices the
+  curve to ~1e-16 while Vasicek/CIR leave a ~4 bps residual**; **known-truth — a Vasicek-generated
+  curve is recovered by Vasicek calibration to <1e-6**; **analytic-vs-MC cross-check within SE for
+  all three** (exact-transition sim); Vasicek exact-marginal (transition mean/var); ZCB limits
+  (`P(T,T)=1`; σ→0 deterministic discount); CIR Feller flag + violation lets the rate touch zero;
+  Vasicek goes negative / CIR does not; **QuantLib benchmark — Vasicek & CIR bond prices match
+  `ql.Vasicek`/`ql.CoxIngersollRoss` to 1e-13** (`-m benchmark`). Report
+  `scripts/rates_short_rate_report.py` (no network): the exact-fit-vs-residual table + the
+  analytic-vs-MC table → embedded in README. Honest caveat surfaced: the *curve* barely identifies
+  σ (enters only via a small convexity term) — vol needs caps/swaptions (next step). Gate green:
+  1012 tests (+17; +2 benchmark), ruff + mypy + interrogate(100%) clean. Delivered on branch
+  `feat/rates-short-rate` as **PR #10 — open, CI-green (py3.11, py3.12, benchmark, docs all
+  pass), awaiting review** (not yet merged; the merge is left to the author).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -796,7 +825,7 @@ convenient** — recorded here so the pin doesn't age silently.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**~Ten blog posts are drafted or obvious, awaiting number-verification (re-run each source
+**~Eleven blog posts are drafted or obvious, awaiting number-verification (re-run each source
 script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
@@ -816,9 +845,17 @@ script and check every figure against the current code) and publishing:**
 8. Yield-curve interpolation is a modelling decision — identical market inputs (all repriced
    to par) imply forwards diverging ~36 bps, and cubic schemes go negative under stress where
    log-linear stays positive (Hagan–West; monotone *zeros* ≠ positive *forwards*).
-9. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
-   validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
-   rates — with the cross-cutting stat-arb arc inside capital markets).
+9. Hull–White fits the curve exactly, Vasicek/CIR can't — calibrate all three to the same
+   curve; HW reprices to ~1e-16 by construction while the constant-parameter models leave a
+   ~4 bps residual (why HW is used where arbitrage-freeness to the current curve matters), and
+   the curve only weakly identifies σ (convexity-only) — motivating the products/vol step.
+10. Library convention mismatches bite silently — QuantLib's `CoxIngersollRoss(r0, theta, k,
+    sigma)` swaps the speed/mean slots vs the usual `(a, b)` convention, a ~15% bond-price
+    mismatch until aligned (both implementations individually correct); the same "read the
+    reference's conventions" lesson as the day-count and Greek-scaling gaps.
+11. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+    validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
+    rates — with the cross-cutting stat-arb arc inside capital markets).
 
 **Before publishing any figure, re-run its script and reconcile against the current code** —
 the code has moved since some drafts (e.g. the FF-data reports, the Rannacher table, the
@@ -829,6 +866,16 @@ autocallable numbers) and the README embeds captured runs that are the source of
 Findings where standard libraries are silently wrong, missing, or opaque — and
 this repo's independent implementation surfaced it. Add to this list as they occur.
 
+- **QuantLib's short-rate constructors disagree on parameter order — a silent-mismatch trap
+  (step 18).** `ql.Vasicek(r0, a, b, sigma)` matches ours to 1e-13 out of the box, but
+  `ql.CoxIngersollRoss(r0, theta, k, sigma)` orders its arguments as *(rate, long-run mean,
+  mean-reversion speed, vol)* — the mean-reversion and long-run-mean slots are swapped versus
+  the `(a=speed, b=mean)` convention everywhere else — so a naive `CoxIngersollRoss(r0, a, b,
+  sigma)` benchmark disagrees by ~15% while *both* implementations are individually correct. A
+  concrete "the reference is right but its API convention will bite you" finding: the CIR
+  benchmark passes to 1e-13 only once the argument order is matched (documented in the test).
+  Hull–White additionally can't be benchmarked without wrapping our curve in a QuantLib term
+  structure, so its exact-fit-to-the-curve reproduction (~1e-16) is its own anchor instead.
 - **QuantLib's curve *bootstrap* can't be cleanly benchmarked against a simplified model, and
   its "monotone cubic" is a different algorithm (step 17).** QuantLib exposes
   `PiecewiseYieldCurve` with `DepositRateHelper` / `SwapRateHelper`, but those helpers impose
@@ -1017,6 +1064,19 @@ this repo's independent implementation surfaced it. Add to this list as they occ
   statsmodels' to ~0.02 so a transcription slip cannot pass. The OU estimator reports the raw
   fit even for a near-unit-root series (huge half-life) rather than forcing an arbitrary
   "not mean-reverting" cutoff — the enormous half-life is itself the screen.
+- **Hull–White fits the curve without ever forming θ(t); short-rate MC integrates a
+  discount-factor bias, not a marginal one (step 18).** HW's `from_curve` reproduces the term
+  structure exactly using only the curve's `f(0,t)` (via `P^M(0,T)/P^M(0,t)` in the bond
+  formula and `α(t)=f(0,t)+σ²/2a²(1-e^{-at})²` in the simulation) — the explicit drift
+  `θ(t)=∂f/∂t + a f + …` is *never* computed, dodging the noisy `f'` an interpolated curve would
+  give. All models simulate with the **exact transition law** (Gaussian / non-central χ²), so
+  the marginals carry no time-stepping bias; the only Monte Carlo bias is in the **trapezoidal
+  approximation of ∫r ds** for the discount factor, which shrinks with more steps (verified: the
+  ~2-SE gap at 300 steps tightens toward 0 at 600) — so the analytic-vs-MC check uses a 4-SE
+  tolerance and enough steps, and the *terminal-rate* marginal is checked separately against the
+  closed-form mean/variance to pin the simulation exactly. Calibration fits `(a,b,σ,r0)` (r0
+  free, not pinned to the interpolation-dependent `f(0,0)`), which is what lets a
+  Vasicek-generated curve be recovered to <1e-6.
 - **Iterative bootstrap for non-local interpolation, and monotone-zeros ≠ positive-forwards
   (step 17).** A *local* interpolation (linear, log-linear) lets a single sequential pass
   reprice every input exactly; a *non-local* cubic spline does not, because adding a later

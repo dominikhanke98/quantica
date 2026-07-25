@@ -17,13 +17,24 @@ This foundational step ships:
   :mod:`~quantica.rates.bootstrap`) — deposits and par swaps, and the sequential bootstrap that
   makes the curve self-consistent with them.
 
-Later steps (not in this foundation): short-rate models (Vasicek, Hull--White) and the rates
-products that price off the curve.
+Building on the curve, the **short-rate models** (:mod:`~quantica.rates.short_rate`) — Vasicek,
+CIR and Hull--White — add the dynamics: each gives the analytic zero-coupon bond price and
+exact-transition Monte Carlo simulation, and is calibrated to the curve
+(:mod:`~quantica.rates.calibration`), where Hull--White fits it exactly and Vasicek/CIR
+best-fit.
+
+Later step (not yet built): the interest-rate products (swaps, caps/floors, swaptions) that
+price off the curve and the models.
 """
 
 from __future__ import annotations
 
 from quantica.rates.bootstrap import bootstrap
+from quantica.rates.calibration import (
+    CalibrationResult,
+    calibrate_cir,
+    calibrate_vasicek,
+)
 from quantica.rates.curve import (
     LOG_LINEAR_DISCOUNT,
     MONOTONE_CUBIC_ZERO,
@@ -43,24 +54,39 @@ from quantica.rates.interpolation import (
     MonotoneCubicInterpolation,
     NaturalCubicInterpolation,
 )
+from quantica.rates.short_rate import (
+    CIR,
+    HullWhite,
+    ShortRateModel,
+    Vasicek,
+    monte_carlo_discount,
+)
 
 __all__ = [
+    "CIR",
     "LOG_LINEAR_DISCOUNT",
     "MONOTONE_CUBIC_ZERO",
     "NATURAL_CUBIC_ZERO",
+    "CalibrationResult",
     "CurveInterpolation",
     "Deposit",
     "DiscountCurve",
+    "HullWhite",
     "Interpolant",
     "InterpolationScheme",
     "LinearInterpolation",
     "MonotoneCubicInterpolation",
     "NaturalCubicInterpolation",
     "RateInstrument",
+    "ShortRateModel",
     "Swap",
+    "Vasicek",
     "bootstrap",
+    "calibrate_cir",
+    "calibrate_vasicek",
     "linear_zero",
     "log_linear_discount",
     "monotone_cubic_zero",
+    "monte_carlo_discount",
     "natural_cubic_zero",
 ]

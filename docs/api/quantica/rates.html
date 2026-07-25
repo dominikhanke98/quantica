@@ -55,6 +55,36 @@
             <h2>API Documentation</h2>
                 <ul class="memberlist">
             <li>
+                    <a class="class" href="#CIR">CIR</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#CIR.__init__">CIR</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CIR.a">a</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CIR.b">b</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CIR.sigma">sigma</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CIR.r0">r0</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CIR.feller_satisfied">feller_satisfied</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#CIR.zero_coupon_bond">zero_coupon_bond</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#CIR.simulate">simulate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="variable" href="#LOG_LINEAR_DISCOUNT">LOG_LINEAR_DISCOUNT</a>
             </li>
             <li>
@@ -62,6 +92,27 @@
             </li>
             <li>
                     <a class="variable" href="#NATURAL_CUBIC_ZERO">NATURAL_CUBIC_ZERO</a>
+            </li>
+            <li>
+                    <a class="class" href="#CalibrationResult">CalibrationResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#CalibrationResult.__init__">CalibrationResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CalibrationResult.model">model</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CalibrationResult.rmse">rmse</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CalibrationResult.max_abs_error">max_abs_error</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#CalibrationResult.n_pillars">n_pillars</a>
+                        </li>
+                </ul>
+
             </li>
             <li>
                     <a class="class" href="#CurveInterpolation">CurveInterpolation</a>
@@ -134,6 +185,33 @@
                         </li>
                         <li>
                                 <a class="function" href="#DiscountCurve.forward_rate">forward_rate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#HullWhite">HullWhite</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#HullWhite.__init__">HullWhite</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HullWhite.a">a</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HullWhite.sigma">sigma</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HullWhite.curve">curve</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#HullWhite.from_curve">from_curve</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#HullWhite.zero_coupon_bond">zero_coupon_bond</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#HullWhite.simulate">simulate</a>
                         </li>
                 </ul>
 
@@ -220,6 +298,24 @@
 
             </li>
             <li>
+                    <a class="class" href="#ShortRateModel">ShortRateModel</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#ShortRateModel.r0">r0</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ShortRateModel.zero_coupon_bond">zero_coupon_bond</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ShortRateModel.discount_bond">discount_bond</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ShortRateModel.simulate">simulate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#Swap">Swap</a>
                             <ul class="memberlist">
                         <li>
@@ -247,7 +343,40 @@
 
             </li>
             <li>
+                    <a class="class" href="#Vasicek">Vasicek</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#Vasicek.__init__">Vasicek</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Vasicek.a">a</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Vasicek.b">b</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Vasicek.sigma">sigma</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#Vasicek.r0">r0</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Vasicek.zero_coupon_bond">zero_coupon_bond</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Vasicek.simulate">simulate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="function" href="#bootstrap">bootstrap</a>
+            </li>
+            <li>
+                    <a class="function" href="#calibrate_cir">calibrate_cir</a>
+            </li>
+            <li>
+                    <a class="function" href="#calibrate_vasicek">calibrate_vasicek</a>
             </li>
             <li>
                     <a class="function" href="#linear_zero">linear_zero</a>
@@ -257,6 +386,9 @@
             </li>
             <li>
                     <a class="function" href="#monotone_cubic_zero">monotone_cubic_zero</a>
+            </li>
+            <li>
+                    <a class="function" href="#monte_carlo_discount">monte_carlo_discount</a>
             </li>
             <li>
                     <a class="function" href="#natural_cubic_zero">natural_cubic_zero</a>
@@ -298,14 +430,157 @@ of its own derivative (for the forwards).</li>
 makes the curve self-consistent with them.</li>
 </ul>
 
-<p>Later steps (not in this foundation): short-rate models (Vasicek, Hull--White) and the rates
-products that price off the curve.</p>
+<p>Building on the curve, the <strong>short-rate models</strong> (<code>~<a href="rates/short_rate.html">quantica.rates.short_rate</a></code>) — Vasicek,
+CIR and Hull--White — add the dynamics: each gives the analytic zero-coupon bond price and
+exact-transition Monte Carlo simulation, and is calibrated to the curve
+(<code>~<a href="rates/calibration.html">quantica.rates.calibration</a></code>), where Hull--White fits it exactly and Vasicek/CIR
+best-fit.</p>
+
+<p>Later step (not yet built): the interest-rate products (swaps, caps/floors, swaptions) that
+price off the curve and the models.</p>
 </div>
 
                 
                 
                 
             </section>
+                <section id="CIR">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">CIR</span><wbr>(<span class="base"><a href="#ShortRateModel">quantica.rates.ShortRateModel</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#CIR"></a>
+    
+            <div class="docstring"><p>The Cox--Ingersoll--Ross square-root model <code>dr = a(b - r)dt + sigma*sqrt(r) dW</code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>a</strong> (float):
+Mean-reversion speed (<code>&gt; 0</code>).</li>
+<li><strong>b</strong> (float):
+Long-run mean level (<code>&gt; 0</code>).</li>
+<li><strong>sigma</strong> (float):
+Volatility (<code>&gt;= 0</code>).</li>
+<li><strong>r0</strong> (float):
+Initial short rate (<code>&gt;= 0</code>).</li>
+</ul>
+</div>
+
+
+                            <div id="CIR.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">CIR</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">a</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">b</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">r0</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="CIR.a" class="classattr">
+                                <div class="attr variable">
+            <span class="name">a</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.a"></a>
+    
+    
+
+                            </div>
+                            <div id="CIR.b" class="classattr">
+                                <div class="attr variable">
+            <span class="name">b</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.b"></a>
+    
+    
+
+                            </div>
+                            <div id="CIR.sigma" class="classattr">
+                                <div class="attr variable">
+            <span class="name">sigma</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.sigma"></a>
+    
+    
+
+                            </div>
+                            <div id="CIR.r0" class="classattr">
+                                <div class="attr variable">
+            <span class="name">r0</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.r0"></a>
+    
+    
+
+                            </div>
+                            <div id="CIR.feller_satisfied" class="classattr">
+                                <div class="attr variable">
+            <span class="name">feller_satisfied</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.feller_satisfied"></a>
+    
+            <div class="docstring"><p>Whether the Feller condition \( 2ab \ge \sigma^2 \) holds (rate stays positive).</p>
+</div>
+
+
+                            </div>
+                            <div id="CIR.zero_coupon_bond" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">zero_coupon_bond</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">t</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.zero_coupon_bond"></a>
+    
+            <div class="docstring"><p>Analytic CIR bond price \( P(t,T) \).</p>
+</div>
+
+
+                            </div>
+                            <div id="CIR.simulate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">simulate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">times</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#CIR.simulate"></a>
+    
+            <div class="docstring"><p>Exact non-central chi-squared transition simulation of the CIR short rate.</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ShortRateModel">ShortRateModel</a></dt>
+                                <dd id="CIR.discount_bond" class="function"><a href="#ShortRateModel.discount_bond">discount_bond</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
                 <section id="LOG_LINEAR_DISCOUNT">
                     <div class="attr variable">
             <span class="name">LOG_LINEAR_DISCOUNT</span>        =
@@ -344,6 +619,91 @@ products that price off the curve.</p>
     
     
 
+                </section>
+                <section id="CalibrationResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">CalibrationResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#CalibrationResult"></a>
+    
+            <div class="docstring"><p>The fitted model and how well it reproduces the curve.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>model</strong> (ShortRateModel):
+The calibrated model.</li>
+<li><strong>rmse</strong> (float):
+Root-mean-square zero-rate error across the fitted pillars (in rate units).</li>
+<li><strong>max_abs_error</strong> (float):
+Largest absolute zero-rate error across the pillars (in rate units).</li>
+<li><strong>n_pillars</strong> (int):
+Number of curve pillars used in the fit.</li>
+</ul>
+</div>
+
+
+                            <div id="CalibrationResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">CalibrationResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">model</span><span class="p">:</span> <span class="n"><a href="#ShortRateModel">ShortRateModel</a></span>,</span><span class="param">	<span class="n">rmse</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">max_abs_error</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">n_pillars</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CalibrationResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="CalibrationResult.model" class="classattr">
+                                <div class="attr variable">
+            <span class="name">model</span><span class="annotation">: <a href="#ShortRateModel">ShortRateModel</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#CalibrationResult.model"></a>
+    
+    
+
+                            </div>
+                            <div id="CalibrationResult.rmse" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rmse</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CalibrationResult.rmse"></a>
+    
+    
+
+                            </div>
+                            <div id="CalibrationResult.max_abs_error" class="classattr">
+                                <div class="attr variable">
+            <span class="name">max_abs_error</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CalibrationResult.max_abs_error"></a>
+    
+    
+
+                            </div>
+                            <div id="CalibrationResult.n_pillars" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_pillars</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#CalibrationResult.n_pillars"></a>
+    
+    
+
+                            </div>
                 </section>
                 <section id="CurveInterpolation">
                     <div class="attr class">
@@ -698,6 +1058,138 @@ If <code>True</code> (default) return the simple (money-market) forward
 
                             </div>
                 </section>
+                <section id="HullWhite">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">HullWhite</span><wbr>(<span class="base"><a href="#ShortRateModel">quantica.rates.ShortRateModel</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite"></a>
+    
+            <div class="docstring"><p>Hull--White <code>dr = (theta(t) - a r)dt + sigma dW</code>, fitted to an initial discount curve.</p>
+
+<p>The drift <code>theta(t)</code> is implied by the market curve so that the model reprices the initial
+term structure <strong>exactly</strong> for any <code><a href="#HullWhite.a">a</a></code>/<code><a href="#HullWhite.sigma">sigma</a></code>; those two are volatility parameters (to be
+calibrated to caps/swaptions in a later step). Build with <code><a href="#HullWhite.from_curve">from_curve()</a></code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>a</strong> (float):
+Mean-reversion speed (<code>&gt; 0</code>).</li>
+<li><strong>sigma</strong> (float):
+Volatility (<code>&gt;= 0</code>).</li>
+<li><strong>curve</strong> (DiscountCurve):
+The initial discount curve the model reproduces exactly.</li>
+</ul>
+</div>
+
+
+                            <div id="HullWhite.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">HullWhite</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">a</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">curve</span><span class="p">:</span> <span class="n"><a href="#DiscountCurve">DiscountCurve</a></span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="HullWhite.a" class="classattr">
+                                <div class="attr variable">
+            <span class="name">a</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite.a"></a>
+    
+    
+
+                            </div>
+                            <div id="HullWhite.sigma" class="classattr">
+                                <div class="attr variable">
+            <span class="name">sigma</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite.sigma"></a>
+    
+    
+
+                            </div>
+                            <div id="HullWhite.curve" class="classattr">
+                                <div class="attr variable">
+            <span class="name">curve</span><span class="annotation">: <a href="#DiscountCurve">DiscountCurve</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite.curve"></a>
+    
+    
+
+                            </div>
+                            <div id="HullWhite.from_curve" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-classmethod">@classmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">from_curve</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">cls</span>,</span><span class="param">	<span class="n">curve</span><span class="p">:</span> <span class="n"><a href="#DiscountCurve">DiscountCurve</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">a</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n"><a href="#HullWhite">HullWhite</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite.from_curve"></a>
+    
+            <div class="docstring"><p>Build a Hull--White model fitting <code><a href="#HullWhite.curve">curve</a></code> exactly, with volatility <code><a href="#HullWhite.a">a</a></code>/<code><a href="#HullWhite.sigma">sigma</a></code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="HullWhite.zero_coupon_bond" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">zero_coupon_bond</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">t</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite.zero_coupon_bond"></a>
+    
+            <div class="docstring"><p>Analytic Hull--White bond price \( P(t,T) \) consistent with the fitted curve.</p>
+</div>
+
+
+                            </div>
+                            <div id="HullWhite.simulate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">simulate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">times</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#HullWhite.simulate"></a>
+    
+            <div class="docstring"><p>Exact simulation: <code>r_t = x_t + alpha(t)</code> where <code>x</code> is a mean-zero Gaussian OU.</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ShortRateModel">ShortRateModel</a></dt>
+                                <dd id="HullWhite.r0" class="variable"><a href="#ShortRateModel.r0">r0</a></dd>
+                <dd id="HullWhite.discount_bond" class="function"><a href="#ShortRateModel.discount_bond">discount_bond</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
                 <section id="Interpolant">
                     <div class="attr class">
             
@@ -999,6 +1491,83 @@ oscillatory — even negative — forward rates. Included precisely to exhibit t
 
                             </div>
                 </section>
+                <section id="ShortRateModel">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">ShortRateModel</span><wbr>(<span class="base">abc.ABC</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#ShortRateModel"></a>
+    
+            <div class="docstring"><p>Common interface for a one-factor short-rate model.</p>
+
+<p>Concrete models expose the analytic zero-coupon bond price <code><a href="#ShortRateModel.zero_coupon_bond">zero_coupon_bond()</a></code>, the
+present-value discount bond <code><a href="#ShortRateModel.discount_bond">discount_bond()</a></code> (<code>P(0, T)</code> from the initial rate), and
+exact-transition path simulation <code><a href="#ShortRateModel.simulate">simulate()</a></code>.</p>
+</div>
+
+
+                            <div id="ShortRateModel.r0" class="classattr">
+                                <div class="attr variable">
+            <span class="name">r0</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ShortRateModel.r0"></a>
+    
+    
+
+                            </div>
+                            <div id="ShortRateModel.zero_coupon_bond" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-abstractmethod">@abstractmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">zero_coupon_bond</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">t</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ShortRateModel.zero_coupon_bond"></a>
+    
+            <div class="docstring"><p>The bond price \( P(t,T) = A(t,T)e^{-B(t,T)r_t} \) given the short rate at <code>t</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="ShortRateModel.discount_bond" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">discount_bond</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ShortRateModel.discount_bond"></a>
+    
+            <div class="docstring"><p>The present-value discount factor \( P(0, T) \) implied by the model.</p>
+</div>
+
+
+                            </div>
+                            <div id="ShortRateModel.simulate" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-abstractmethod">@abstractmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">simulate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">times</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ShortRateModel.simulate"></a>
+    
+            <div class="docstring"><p>Simulate short-rate paths on <code>times</code> (shape <code>(n_paths, len(times))</code>, exact law).</p>
+</div>
+
+
+                            </div>
+                </section>
                 <section id="Swap">
                     <div class="attr class">
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
@@ -1122,6 +1691,130 @@ Fixed-leg payments per year (default 1, i.e. annual).</li>
 
                             </div>
                 </section>
+                <section id="Vasicek">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">Vasicek</span><wbr>(<span class="base"><a href="#ShortRateModel">quantica.rates.ShortRateModel</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek"></a>
+    
+            <div class="docstring"><p>The Vasicek Gaussian short-rate model <code>dr = a(b - r)dt + sigma dW</code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>a</strong> (float):
+Mean-reversion speed (<code>&gt; 0</code>).</li>
+<li><strong>b</strong> (float):
+Long-run mean level.</li>
+<li><strong>sigma</strong> (float):
+Volatility (<code>&gt;= 0</code>).</li>
+<li><strong>r0</strong> (float):
+Initial short rate.</li>
+</ul>
+</div>
+
+
+                            <div id="Vasicek.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">Vasicek</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">a</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">b</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">r0</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="Vasicek.a" class="classattr">
+                                <div class="attr variable">
+            <span class="name">a</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek.a"></a>
+    
+    
+
+                            </div>
+                            <div id="Vasicek.b" class="classattr">
+                                <div class="attr variable">
+            <span class="name">b</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek.b"></a>
+    
+    
+
+                            </div>
+                            <div id="Vasicek.sigma" class="classattr">
+                                <div class="attr variable">
+            <span class="name">sigma</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek.sigma"></a>
+    
+    
+
+                            </div>
+                            <div id="Vasicek.r0" class="classattr">
+                                <div class="attr variable">
+            <span class="name">r0</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek.r0"></a>
+    
+    
+
+                            </div>
+                            <div id="Vasicek.zero_coupon_bond" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">zero_coupon_bond</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">t</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek.zero_coupon_bond"></a>
+    
+            <div class="docstring"><p>Analytic Vasicek bond price \( P(t,T) \).</p>
+</div>
+
+
+                            </div>
+                            <div id="Vasicek.simulate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">simulate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">times</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Vasicek.simulate"></a>
+    
+            <div class="docstring"><p>Exact Gaussian-transition simulation of the Vasicek short rate.</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ShortRateModel">ShortRateModel</a></dt>
+                                <dd id="Vasicek.discount_bond" class="function"><a href="#ShortRateModel.discount_bond">discount_bond</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
                 <section id="bootstrap">
                     <div class="attr function">
             
@@ -1156,6 +1849,62 @@ iteratively for non-local interpolation schemes).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>instruments</code> is empty or two instruments share a maturity.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="calibrate_cir">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">calibrate_cir</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">curve</span><span class="p">:</span> <span class="n"><a href="#DiscountCurve">DiscountCurve</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#CalibrationResult">CalibrationResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#calibrate_cir"></a>
+    
+            <div class="docstring"><p>Best-fit a <code>~<a href="#CIR">quantica.rates.short_rate.CIR</a></code> model to <code>curve</code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>curve</strong> (DiscountCurve):
+The target discount curve.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>CalibrationResult</strong>: The fitted CIR model and its (non-zero) fit residual.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="calibrate_vasicek">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">calibrate_vasicek</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">curve</span><span class="p">:</span> <span class="n"><a href="#DiscountCurve">DiscountCurve</a></span></span><span class="return-annotation">) -> <span class="n"><a href="#CalibrationResult">CalibrationResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#calibrate_vasicek"></a>
+    
+            <div class="docstring"><p>Best-fit a <code>~<a href="#Vasicek">quantica.rates.short_rate.Vasicek</a></code> model to <code>curve</code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>curve</strong> (DiscountCurve):
+The target discount curve.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>CalibrationResult</strong>: The fitted Vasicek model and its (non-zero) fit residual.</li>
 </ul>
 </div>
 
@@ -1202,6 +1951,43 @@ iteratively for non-local interpolation schemes).</li>
     <a class="headerlink" href="#monotone_cubic_zero"></a>
     
             <div class="docstring"><p>Monotone (PCHIP) cubic on zero rates (smooth <em>and</em> shape-preserving forwards).</p>
+</div>
+
+
+                </section>
+                <section id="monte_carlo_discount">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">monte_carlo_discount</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">model</span><span class="p">:</span> <span class="n"><a href="#ShortRateModel">ShortRateModel</a></span>,</span><span class="param">	<span class="n">maturity</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">n_paths</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#monte_carlo_discount"></a>
+    
+            <div class="docstring"><p>Monte Carlo estimate of \( P(0,T) = \mathbb E[e^{-\int_0^T r\,ds}] \) and its SE.</p>
+
+<p>Simulates the short rate on an <code>n_steps</code> grid (exact transitions) and integrates it by
+the trapezoidal rule along each path — the cross-check for the analytic bond price.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>model</strong> (ShortRateModel):
+The model to simulate.</li>
+<li><strong>maturity</strong> (float):
+Bond maturity <code>T</code> in years.</li>
+<li><strong>n_paths, n_steps</strong> (int):
+Number of paths and time steps on <code>[0, T]</code>.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of float</strong>: <code>(discount_estimate, standard_error)</code>.</li>
+</ul>
 </div>
 
 
