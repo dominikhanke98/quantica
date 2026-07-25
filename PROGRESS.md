@@ -36,8 +36,9 @@ signal → construction → validated backtest.
 Fixed-income / rates roadmap (**Pillar IV — the first non-equity asset class**):
 **yield-curve construction ✓** (discount curve + interpolation schemes + bootstrap from
 deposits/par swaps — PR #9 merged `d8b5564`) → **short-rate models ✓** (Vasicek / CIR /
-Hull–White: analytic bonds, exact-transition MC, curve calibration — PR open) → **rates
-products** (swaps, caps/floors, swaptions — next).
+Hull–White: analytic bonds, exact-transition MC, curve calibration — PR #10 open) → **rates
+products** (swaps, caps/floors, swaptions — next), where the volatility `σ` — only weakly
+identified from the curve (convexity-only) — finally gets pinned down from the vol surface.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -768,7 +769,8 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   analytic-vs-MC table → embedded in README. Honest caveat surfaced: the *curve* barely identifies
   σ (enters only via a small convexity term) — vol needs caps/swaptions (next step). Gate green:
   1012 tests (+17; +2 benchmark), ruff + mypy + interrogate(100%) clean. Delivered on branch
-  `feat/rates-short-rate` (PR, per the established workflow — open, stop before merge).
+  `feat/rates-short-rate` as **PR #10 — open, CI-green (py3.11, py3.12, benchmark, docs all
+  pass), awaiting review** (not yet merged; the merge is left to the author).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -823,7 +825,7 @@ convenient** — recorded here so the pin doesn't age silently.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**~Ten blog posts are drafted or obvious, awaiting number-verification (re-run each source
+**~Eleven blog posts are drafted or obvious, awaiting number-verification (re-run each source
 script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
@@ -843,9 +845,17 @@ script and check every figure against the current code) and publishing:**
 8. Yield-curve interpolation is a modelling decision — identical market inputs (all repriced
    to par) imply forwards diverging ~36 bps, and cubic schemes go negative under stress where
    log-linear stays positive (Hagan–West; monotone *zeros* ≠ positive *forwards*).
-9. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
-   validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
-   rates — with the cross-cutting stat-arb arc inside capital markets).
+9. Hull–White fits the curve exactly, Vasicek/CIR can't — calibrate all three to the same
+   curve; HW reprices to ~1e-16 by construction while the constant-parameter models leave a
+   ~4 bps residual (why HW is used where arbitrage-freeness to the current curve matters), and
+   the curve only weakly identifies σ (convexity-only) — motivating the products/vol step.
+10. Library convention mismatches bite silently — QuantLib's `CoxIngersollRoss(r0, theta, k,
+    sigma)` swaps the speed/mean slots vs the usual `(a, b)` convention, a ~15% bond-price
+    mismatch until aligned (both implementations individually correct); the same "read the
+    reference's conventions" lesson as the day-count and Greek-scaling gaps.
+11. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+    validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
+    rates — with the cross-cutting stat-arb arc inside capital markets).
 
 **Before publishing any figure, re-run its script and reconcile against the current code** —
 the code has moved since some drafts (e.g. the FF-data reports, the Rannacher table, the
