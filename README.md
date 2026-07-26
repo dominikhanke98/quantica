@@ -23,7 +23,7 @@ is hand-typed.
 | **[I — Derivatives pricing](#pillar-i--derivatives-pricing)** | European options priced **four independent ways** (analytic, tree, Monte Carlo, PDE) that converge to the same price; American / Asian / barrier / Heston / Merton extensions and an autocallable structured note, each validated *without* a closed form — by cross-method agreement, exact theorems, and QuantLib benchmarks. |
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
-| **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class: **yield-curve construction** (a discount curve bootstrapped from deposits and par swaps, repriced to par to machine precision, under hand-rolled interpolation schemes whose choice materially changes the implied forwards) plus **one-factor short-rate models** (Vasicek / CIR / Hull–White) with analytic bonds, exact-transition simulation, and curve calibration where Hull–White fits exactly and Vasicek/CIR best-fit. |
+| **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class, end to end: **yield-curve construction** (a discount curve bootstrapped from deposits and par swaps, repriced to par to machine precision, under hand-rolled interpolation schemes whose choice materially changes the implied forwards), **one-factor short-rate models** (Vasicek / CIR / Hull–White) with analytic bonds, exact-transition simulation and curve calibration, and **interest-rate products** — swaps, caps/floors and swaptions priced both with Black-76 and analytically under Hull–White (bond options / Jamshidian), whose volatility calibration finally identifies the σ the curve could not. |
 
 ## Headline results
 
@@ -1440,6 +1440,59 @@ Hull–W. 0.812998 vs 0.812967 ± 0.000139   (−0.2 SE)
 > for every model — each validates the other, no external reference needed. (Honest caveat: the
 > *curve* barely identifies σ — it enters only through a small convexity term — so pinning down
 > volatility really needs caps/swaptions, the next step; the exact-fit *residual* is the point.)
+
+### Interest-rate products — swaps, caps/floors, swaptions
+
+The final rates step prices the products that live on the curve and the models
+([`products.py`](quantica/rates/products.py),
+[`hull_white_options.py`](quantica/rates/hull_white_options.py)), completing the pillar
+**curve → short-rate models → products**:
+
+- **Swaps (curve-only)** — [`par_swap_rate`](quantica/rates/products.py) and
+  [`swap_value`](quantica/rates/products.py) price a vanilla fixed-for-float swap off the discount
+  curve. A swap struck at its par rate values to **zero**, and the par rate of a curve-input
+  maturity reproduces the swap quote the curve was bootstrapped from — the products layer is
+  self-consistent with step 1.
+- **Caps/floors and swaptions, priced two ways** — a strip of [`Caplet`](quantica/rates/products.py)s
+  ([`Cap`](quantica/rates/products.py)) and a European [`Swaption`](quantica/rates/products.py),
+  priced with the market-standard **Black-76** ([`black76`](quantica/rates/products.py), benchmarked
+  against `ql.blackFormula` to machine precision) *and* analytically under **Hull–White** — the
+  caplet as a put on a discount bond, the swaption by the **Jamshidian decomposition** into a
+  portfolio of bond options.
+- **Volatility calibration** — [`calibrate_hull_white_volatility`](quantica/rates/hull_white_options.py)
+  fits Hull–White's σ to option prices.
+
+> **Highlighted insight — the vol surface identifies σ where the curve could not.** Step 2 left a
+> loose end: Hull–White reprices the curve exactly for *any* σ, so the curve carries **no**
+> volatility information. Caps and swaptions do. Two σ's an order of magnitude apart reprice the
+> curve identically yet price a 5y cap several-fold apart, so calibrating to option prices pins σ
+> down — and the *same* instrument priced under Hull–White and under Black-76 reconciles through a
+> single implied vol, with Monte Carlo as an independent referee
+> (`python scripts/rates_products_report.py`):
+
+```
+Hull–White vs Black-76 (a=0.1, σ=0.015):
+Instrument                   | Hull–White | Black-76 @ IV | Implied vol | Monte Carlo         | (MC−HW)/SE
+---------------------------- | ---------: | ------------: | ----------: | ------------------: | --------:
+Caplet 1y×0.5y  K=4%         |   0.002260 |      0.002260 |      36.58% | 0.002267 ± 0.000008 |     +0.93
+Payer swaption 1y→5y K=4.2%  |   0.020692 |      0.020692 |      28.71% | 0.020725 ± 0.000059 |     +0.56
+
+Volatility identification — calibrate σ (a=0.1) to three cap prices:
+true σ = 0.0120  →  recovered σ = 0.0120  (|error| 8e-11, RMSE 1e-10)
+
+                 | max curve reprice gap | 5y cap price
+σ = 0.005        |          —            |   0.018054
+σ = 0.025        |          —            |   0.058017
+both σ together  |         0e+00         | (differ 3.2×)   ← curve blind to σ, cap is not
+```
+
+> Three routes — the analytic Hull–White formula, Black-76 at its own implied vol, and the
+> exact-transition Monte Carlo — agree to within ~1 SE, and `cap − floor = swap` and
+> `payer − receiver = annuity·(S − K)` hold as put-call parities regardless of vol. The
+> Hull–White option prices are validated by this self-consistency rather than benchmarked to
+> QuantLib's engines: QuantLib's term-structure handle uses a different interpolation convention,
+> so its fitted θ(t) — and every bond option on it — carries a curve-convention residual that
+> swamps the option value (logged as a tool-gap). **This completes the rates pillar.**
 
 ## Running the apps
 

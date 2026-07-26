@@ -16,9 +16,11 @@ top matter). Everything the CLAUDE.md brief set out to build now exists, is vali
 and is demonstrable in one click. Beyond that scope, a **statistical-arbitrage track** is now
 **complete end-to-end** (steps 14–16: cointegration → Kalman dynamic hedge ratio → pairs
 strategy with an overfitting-aware backtest) — the signal→construction→validated-backtest arc
-the portfolio pillar was missing. A **fourth pillar — rates / fixed income** is now opened
-too (step 17: yield-curve construction), the first non-equity asset class in the repo. Next:
-optional depth only — see "Next".
+the portfolio pillar was missing. A **fourth pillar — rates / fixed income** is now
+**complete end-to-end** (steps 17–19: yield-curve construction → short-rate models →
+interest-rate products), the first non-equity asset class in the repo — curve → short-rate
+models → swaps/caps/swaptions, with Hull–White vol calibration finally identifying the σ the
+curve could not. Next: optional depth only — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -33,12 +35,14 @@ was missing): **cointegration + spread ✓** (Engle–Granger + Johansen tests, 
 backtest reusing the portfolio validity layer). **Statistical-arbitrage arc complete** —
 signal → construction → validated backtest.
 
-Fixed-income / rates roadmap (**Pillar IV — the first non-equity asset class**):
+Fixed-income / rates roadmap (**Pillar IV — the first non-equity asset class, COMPLETE**):
 **yield-curve construction ✓** (discount curve + interpolation schemes + bootstrap from
 deposits/par swaps — PR #9 merged `d8b5564`) → **short-rate models ✓** (Vasicek / CIR /
-Hull–White: analytic bonds, exact-transition MC, curve calibration — PR #10 open) → **rates
-products** (swaps, caps/floors, swaptions — next), where the volatility `σ` — only weakly
-identified from the curve (convexity-only) — finally gets pinned down from the vol surface.
+Hull–White: analytic bonds, exact-transition MC, curve calibration — PR #10 merged `b99b4d6`) →
+**rates products ✓** (swaps, caps/floors, swaptions — Black-76 + Hull–White via bond-option /
+Jamshidian, HW vol calibration — PR open), where the volatility `σ` — only weakly identified from
+the curve (convexity-only) — is finally pinned down from the vol surface. **Pillar IV closes the
+curve → short-rate models → products arc.**
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -772,6 +776,32 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   `feat/rates-short-rate` as **PR #10 — open, CI-green (py3.11, py3.12, benchmark, docs all
   pass), awaiting review** (not yet merged; the merge is left to the author).
 
+- **Step 19 — Rates pillar step 3: interest-rate products (swaps, caps/floors, swaptions).**
+  New `quantica/rates/products.py` + `hull_white_options.py`, closing the pillar
+  **curve → short-rate models → products**. PR #10 merged first (`b99b4d6`; main synced, branch
+  deleted). **Scope discipline held**: reuses the step-1 curve for discounting/forwards and the
+  step-2 `HullWhite` for the vol-dependent pricing; `scipy` only for the Jamshidian root
+  (`brentq`), the vol calibration (`least_squares`), and Black implied-vol inversion.
+  **Linear:** `par_swap_rate` / `swap_value` price a vanilla swap curve-only — struck at par it
+  values to ~0 (tie-back to the bootstrap), and a curve-input maturity's par rate reproduces its
+  swap quote. **Optionality, two ways:** `Caplet`/`Cap` and `Swaption` priced with market-standard
+  **Black-76** (`black76`) *and* analytically under **Hull–White** — caplet as `(1+Kτ)` puts on
+  the payment-date bond (`hull_white_bond_option`), swaption by the **Jamshidian** decomposition
+  into per-cashflow bond options (payer→puts, receiver→calls). **Vol calibration:**
+  `calibrate_hull_white_volatility` fits σ to option prices — **the headline that closes step 2's
+  loose end**: HW reprices the curve for *any* σ (curve carries no vol info) yet a known σ is
+  recovered from three cap prices to |error|~8e-11, and two σ's an order of magnitude apart price a
+  5y cap 3.2× apart. Validated (`tests/rates/`, +31 incl. +1 benchmark): swap-reprices-to-par
+  (curve tie-back); **HW analytic vs exact-transition MC within SE** for caplet/floorlet/swaption;
+  **HW↔Black-76 consistency through a single implied vol** (caplet ⇒ 36.6%, swaption ⇒ 28.7%);
+  vol-identification (σ pinned by caps, curve blind to σ); `cap−floor=swap` and
+  `payer−receiver=annuity·(S−K)` put-call parities (vol-independent); Jamshidian/schedule
+  validation; **Black-76 vs `ql.blackFormula` to 1e-14** (`-m benchmark`). Report
+  `scripts/rates_products_report.py` (no network): swap par table + HW-vs-Black-vs-MC table +
+  vol-identification table → embedded in README. Gate green: 1043 tests (+31; +1 benchmark),
+  ruff + mypy + interrogate(100%) clean. Delivered on branch `feat/rates-products` as a **PR —
+  open, awaiting review** (not yet merged; the merge is left to the author). **Pillar IV COMPLETE.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
@@ -808,11 +838,23 @@ https://quantica.streamlit.app/.** The originally-planned scope of `quantica` (C
   a non-edge). **Statistical-arbitrage arc COMPLETE — signal → construction → validated
   backtest, end-to-end.**
 
-Remaining optional build items (none started, none blocking): the rates pillar's next steps
-(short-rate models: Vasicek / CIR / Hull–White → products: caps/floors, swaptions); swap the
-American PSOR for Brennan–Schwartz (direct tridiagonal LCP solve); the FRTB expected-shortfall
-capital charge at 97.5% (liquidity-horizon scaling, regulatory ES aggregation); surfacing
-HRP/BL/PCA in the apps' capital-markets tab.
+Remaining optional build items (none started, none blocking): **the rates pillar is now complete
+(curve → short-rate models → products)** — possible further rates depth is a multi-factor / market
+(LMM) model or two-curve OIS discounting; swap the American PSOR for Brennan–Schwartz (direct
+tridiagonal LCP solve); the FRTB expected-shortfall capital charge at 97.5% (liquidity-horizon
+scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the apps' capital-markets tab; a
+thin rates tab in the app (curve/forwards, short-rate fits, a cap/swaption vol-calibration view).
+
+**Tool-gap logged (step 19) — Hull–White options are not benchmarked to QuantLib.** Black-76 is
+benchmarked to `ql.blackFormula` to 1e-14, but QuantLib's `HullWhite` engines build θ(t) off a
+`YieldTermStructure` handle whose interpolation convention differs from ours (QuantLib
+`DiscountCurve` is log-linear; ours monotone-cubic), so the fitted drift — and every bond option
+on it — carries a curve-convention residual (~6e-4 on a `discountBond(1,5)`) that swamps the
+option value. Benchmarking to machine precision would require replicating QuantLib's exact curve
+object, not the pricing math under test. Resolution: benchmark Black-76 (the vol-model-free
+formula) against QuantLib, and validate the HW options by rich self-consistency instead
+(analytic-vs-MC, HW↔Black through the implied vol, Jamshidian, put-call parity). Documented in
+`tests/rates/test_benchmark_quantlib.py`'s module docstring.
 
 **Standing follow-up — unpin ruff (deliberate deferral, step 17).** `ruff` is pinned `<0.16`
 in the dev deps because ruff 0.16 changed `docstring-code-format` output (inline-comment
@@ -825,7 +867,7 @@ convenient** — recorded here so the pin doesn't age silently.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**~Eleven blog posts are drafted or obvious, awaiting number-verification (re-run each source
+**~Twelve blog posts are drafted or obvious, awaiting number-verification (re-run each source
 script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
@@ -853,7 +895,13 @@ script and check every figure against the current code) and publishing:**
     sigma)` swaps the speed/mean slots vs the usual `(a, b)` convention, a ~15% bond-price
     mismatch until aligned (both implementations individually correct); the same "read the
     reference's conventions" lesson as the day-count and Greek-scaling gaps.
-11. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+11. The vol surface identifies what the curve cannot — Hull–White reprices the curve for *any* σ
+    (curve carries zero volatility information), so caps/swaptions are what pin σ: calibrating to
+    three cap prices recovers a known σ to ~1e-10 while two σ's an order of magnitude apart price
+    a 5y cap 3.2× apart; the same instrument reconciles under Hull–White and Black-76 through one
+    implied vol (36.6% caplet / 28.7% swaption), MC as referee — closing the identification loop
+    the curve-only fit left open.
+12. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
     validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
     rates — with the cross-cutting stat-arb arc inside capital markets).
 
