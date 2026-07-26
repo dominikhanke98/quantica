@@ -20,7 +20,9 @@ the portfolio pillar was missing. A **fourth pillar — rates / fixed income** i
 **complete end-to-end** (steps 17–19: yield-curve construction → short-rate models →
 interest-rate products), the first non-equity asset class in the repo — curve → short-rate
 models → swaps/caps/swaptions, with Hull–White vol calibration finally identifying the σ the
-curve could not. Next: optional depth only — see "Next".
+curve could not. A **fifth pillar — time series / econometrics** is now **opened** (step 20:
+GARCH-family volatility modelling + the forecast-evaluation layer), built forecast-evaluation-first
+around the Diebold–Mariano test with the HAC correction. Next: optional depth only — see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -40,9 +42,17 @@ Fixed-income / rates roadmap (**Pillar IV — the first non-equity asset class, 
 deposits/par swaps — PR #9 merged `d8b5564`) → **short-rate models ✓** (Vasicek / CIR /
 Hull–White: analytic bonds, exact-transition MC, curve calibration — PR #10 merged `b99b4d6`) →
 **rates products ✓** (swaps, caps/floors, swaptions — Black-76 + Hull–White via bond-option /
-Jamshidian, HW vol calibration — PR open), where the volatility `σ` — only weakly identified from
-the curve (convexity-only) — is finally pinned down from the vol surface. **Pillar IV closes the
-curve → short-rate models → products arc.**
+Jamshidian, HW vol calibration — PR #11 merged `f430ac4`), where the volatility `σ` — only weakly
+identified from the curve (convexity-only) — is finally pinned down from the vol surface.
+**Pillar IV closes the curve → short-rate models → products arc.**
+
+Time-series / econometrics roadmap (**Pillar V — new, forecast-evaluation-first**): **GARCH
+volatility + forecast evaluation ✓** (GARCH / GJR / EGARCH via `arch`, rolling OOS forecasts, and
+the deliverable evaluation layer — Diebold–Mariano with HAC/Newey–West, QLIKE/MSE, Mincer–Zarnowitz
+— PR open) → **regime-switching** (Markov-switching / threshold models — next) → **multivariate
+volatility & VECM** (DCC / BEKK, cointegrated VAR — later). The headline is *validate-the-validator*:
+the DM test is correctly sized only with the HAC correction; the honest finding is that the
+in-sample-significant leverage term does not beat plain GARCH out-of-sample.
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -799,8 +809,33 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   validation; **Black-76 vs `ql.blackFormula` to 1e-14** (`-m benchmark`). Report
   `scripts/rates_products_report.py` (no network): swap par table + HW-vs-Black-vs-MC table +
   vol-identification table → embedded in README. Gate green: 1043 tests (+31; +1 benchmark),
-  ruff + mypy + interrogate(100%) clean. Delivered on branch `feat/rates-products` as a **PR —
-  open, awaiting review** (not yet merged; the merge is left to the author). **Pillar IV COMPLETE.**
+  ruff + mypy + interrogate(100%) clean. Delivered on branch `feat/rates-products` as **PR #11 —
+  merged `f430ac4`** (main synced, branch deleted). **Pillar IV COMPLETE.**
+
+- **Step 20 — Pillar V opened: GARCH-family volatility + the forecast-evaluation layer.** New
+  `quantica/timeseries/` (`models.py`, `evaluation.py`, `data.py`), a fifth pillar and a
+  deliberate change of emphasis. **Scope discipline held**: the GARCH *estimation* is leaned on
+  (`arch`, an existing dep) — `fit_volatility_model` / `rolling_forecast` are thin, typed wrappers
+  around GARCH(1,1) / GJR / EGARCH with a rolling/expanding OOS one-step forecaster — and the
+  hand-built **deliverable is the forecast-evaluation layer** the libraries don't ship:
+  **`diebold_mariano`** (equal-predictive-accuracy test with a **HAC / Newey–West** long-run
+  variance — the piece most implementations get wrong), proxy-robust **`qlike_loss`** (Patton's
+  QLIKE in ranking-equivalent form, finite for a zero squared-return proxy) and **`mse_loss`**, and
+  **`mincer_zarnowitz`** (efficiency regression, joint `a=0,b=1` Wald with HAC covariance). Real
+  data is the daily S&P 500 series **bundled with `arch`** (5030 obs, 1999–2018 — no network).
+  Validated (`tests/timeseries/`, +16): **headline validate-the-validator — DM has correct size
+  only with HAC** (φ=0.5 equal-accuracy: naive rejects 25% vs nominal 5%, HAC 9%; iid: both ~5%;
+  power retained), via a Monte Carlo over `simulate_loss_differential`; **known-truth** — `arch`
+  recovers simulated GARCH/GJR params, and the true-variance *oracle* beats a constant forecast on
+  QLIKE by DM≈−7; **anchors** — DM statistic vs a hand Newey–West computation (1e-12), MZ vs a
+  direct statsmodels OLS+Wald (1e-12), QLIKE/MSE vs their formulas; leverage models win in-sample
+  (BIC). Report `scripts/timeseries_garch_report.py` (no network): in-sample-fit table, the OOS
+  QLIKE/MSE/DM verdict, and the size/power table → embedded in README, with **the honest finding
+  that the in-sample-significant leverage term does not beat plain GARCH OOS** (GJR-vs-GARCH DM
+  p=0.29). Config: added `ignore-overloaded-functions` to `[tool.interrogate]` (the `@overload`
+  stubs on `simulate_garch` are type-only). Gate green: 1059 tests (+16), ruff + mypy +
+  interrogate(100%) clean. Delivered on branch `feat/timeseries-garch` as a **PR — open, awaiting
+  review** (not yet merged; the merge is left to the author). **Pillar V OPENED.**
 
 ## Next — optional depth only (planned scope is done)
 
@@ -844,6 +879,20 @@ Remaining optional build items (none started, none blocking): **the rates pillar
 tridiagonal LCP solve); the FRTB expected-shortfall capital charge at 97.5% (liquidity-horizon
 scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the apps' capital-markets tab; a
 thin rates tab in the app (curve/forwards, short-rate fits, a cap/swaption vol-calibration view).
+**Pillar V (time series) is now open** — next steps are regime-switching (Markov-switching /
+threshold) and multivariate volatility / VECM (DCC/BEKK, cointegrated VAR).
+
+**Tool-gap logged (step 20) — no reference library for HAC-corrected forecast evaluation.** The
+forecast-evaluation statistics (Diebold–Mariano with a Newey–West long-run variance, QLIKE, the
+Mincer–Zarnowitz joint test) have no single QuantLib-style reference implementation to benchmark
+against — `statsmodels` ships the OLS/Wald and HAC covariance primitives but not the DM test, and
+`arch` ships the models but not the comparison layer. Resolution: anchor each statistic to a
+**hand computation** (DM vs a manual Newey–West sum; MZ vs a direct `statsmodels` OLS+Wald; QLIKE/MSE
+vs their formulas) and validate the *statistical properties* directly by Monte Carlo (correct DM
+size/power). Two secondary notes: (i) `arch` now ships inline type hints, so `arch_model` must be
+called with explicit literal kwargs rather than an unpacked `dict` (mypy rejects the widened dict);
+(ii) the squared-return proxy is very noisy, so the Mincer–Zarnowitz slope is attenuated below 1 on
+real data — a genuine, well-known proxy-error effect, surfaced honestly rather than hidden.
 
 **Tool-gap logged (step 19) — Hull–White options are not benchmarked to QuantLib.** Black-76 is
 benchmarked to `ql.blackFormula` to 1e-14, but QuantLib's `HullWhite` engines build θ(t) off a
@@ -867,7 +916,7 @@ convenient** — recorded here so the pin doesn't age silently.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**~Twelve blog posts are drafted or obvious, awaiting number-verification (re-run each source
+**~Thirteen blog posts are drafted or obvious, awaiting number-verification (re-run each source
 script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
@@ -901,9 +950,15 @@ script and check every figure against the current code) and publishing:**
     a 5y cap 3.2× apart; the same instrument reconciles under Hull–White and Black-76 through one
     implied vol (36.6% caplet / 28.7% swaption), MC as referee — closing the identification loop
     the curve-only fit left open.
-12. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
-    validation-first thesis across all pillars (now four: derivatives, risk, capital markets,
-    rates — with the cross-cutting stat-arb arc inside capital markets).
+12. Validate the forecast-comparison test itself — the Diebold–Mariano test is correctly sized
+    *only* with the HAC/Newey–West correction: on serially-correlated equal-accuracy loss
+    differentials the naive-variance test over-rejects ~5× (25% vs nominal 5%) while HAC restores
+    5%; the same subtlety most implementations miss. Pair it with the honest companion: on real
+    S&P 500 returns the leverage term is decisive in-sample (BIC) yet does not beat plain GARCH
+    out-of-sample by DM (p≈0.29) — in-sample significance ≠ out-of-sample value.
+13. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+    validation-first thesis across all pillars (now five: derivatives, risk, capital markets,
+    rates, time series — with the cross-cutting stat-arb arc inside capital markets).
 
 **Before publishing any figure, re-run its script and reconcile against the current code** —
 the code has moved since some drafts (e.g. the FF-data reports, the Rannacher table, the
