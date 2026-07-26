@@ -24,7 +24,7 @@ is hand-typed.
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
 | **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class, end to end: **yield-curve construction** (a discount curve bootstrapped from deposits and par swaps, repriced to par to machine precision, under hand-rolled interpolation schemes whose choice materially changes the implied forwards), **one-factor short-rate models** (Vasicek / CIR / Hull–White) with analytic bonds, exact-transition simulation and curve calibration, and **interest-rate products** — swaps, caps/floors and swaptions priced both with Black-76 and analytically under Hull–White (bond options / Jamshidian), whose volatility calibration finally identifies the σ the curve could not. |
-| **[V — Time series & econometrics](#pillar-v--time-series--econometrics)** | GARCH-family volatility modelling (GARCH / GJR / EGARCH via `arch`) built **forecast-evaluation-first**: the deliverable is the evaluation layer the libraries don't ship — the **Diebold–Mariano** test with the **HAC/Newey–West** correction, proxy-robust **QLIKE/MSE** losses, and the **Mincer–Zarnowitz** efficiency regression — with the headline that the DM test is correctly sized *only* with HAC, and the honest finding that the leverage term significant in-sample does **not** beat plain GARCH out-of-sample. |
+| **[V — Time series & econometrics](#pillar-v--time-series--econometrics)** | GARCH-family volatility modelling (GARCH / GJR / EGARCH via `arch`) built **forecast-evaluation-first**: the deliverable is the evaluation layer the libraries don't ship — the **Diebold–Mariano** test with the **HAC/Newey–West** correction, proxy-robust **QLIKE/MSE** losses, and the **Mincer–Zarnowitz** efficiency regression — with the headline that the DM test is correctly sized *only* with HAC, and the honest finding that the leverage term significant in-sample does **not** beat plain GARCH out-of-sample. Plus **Markov regime-switching** (hand-written Hamilton filter / Kim smoother / EM) that recovers planted regimes and lights up the 2008 crisis on real S&P 500 returns. |
 
 ## Headline results
 
@@ -1554,8 +1554,48 @@ EGARCH |          -6822.4  |   0.5117  |  2.911  |   +0.71 (L=6)     |  0.475
 > (the naive DM statistic is +1.34 versus the HAC +1.05, because the loss differentials are
 > autocorrelated). The disciplined verdict is the honest one: a feature that clearly improves the
 > *fit* need not improve the *forecast*, and only an out-of-sample test with the right size can
-> tell the difference. **This opens the time-series pillar; regime-switching and multivariate
-> models are the next steps.**
+> tell the difference. **This opens the time-series pillar.**
+
+### Regime-switching — Hamilton filter, Kim smoother, EM
+
+Volatility does not just cluster; it *switches* between qualitatively different regimes — a calm
+state and a crisis state. A **Markov regime-switching** model
+([`regime.py`](quantica/timeseries/regime.py)) makes those hidden states explicit, and here the
+inference machinery is hand-implemented (it is a clean, self-contained algorithm — CLAUDE.md §3):
+
+- **[`hamilton_filter`](quantica/timeseries/regime.py)** — the forward recursion giving the
+  filtered state probabilities `P(sₜ = k | y₁:ₜ)` and the log-likelihood (Hamilton 1989).
+- **[`kim_smoother`](quantica/timeseries/regime.py)** — the backward pass giving the smoothed
+  probabilities `P(sₜ = k | y₁:T)` using the whole sample (Kim 1994).
+- **[`fit_markov_switching`](quantica/timeseries/regime.py)** — **EM** (Baum–Welch) estimation of
+  the regime means, variances, transition matrix and initial distribution, with a closed-form
+  Gaussian M-step and multiple random starts (regime models are riddled with local optima).
+
+> **Highlighted insight — the model recovers regimes we plant, and finds the ones that matter.**
+> The effective challenge for a regime model is a *known-truth* test: simulate from a known 2-state
+> process and confirm the filter+EM recover the parameters **and** classify each observation into
+> the state that generated it. They do — and on real data the crisis regime lights up exactly on
+> cue (`python scripts/timeseries_regime_report.py`):
+
+```
+Known-truth recovery (4,000 obs)     |  true  | recovered      EM log-lik non-decreasing: True
+------------------------------------ | -----: | ---------      Hidden-state classification: 95.3%
+calm / crisis variance               | 1 / 9  | 1.01 / 8.37     Filter vs statsmodels: ~1e-15
+P(stay calm) / P(stay crisis)        |.97/.90 | 0.97 / 0.89
+
+Real S&P 500 (1999–2018), 2-state switching-variance:  calm ~11% vol (66%, ~91-day spells)
+                                                        crisis ~29% vol (34%, ~47-day spells)
+Smoothed crisis probability by year:  2006: 0.00   2008: 0.84   2009: 0.69   2011: 0.45   2017: 0.00
+```
+
+> The EM recovers the planted parameters, classifies 95.3% of points into their true regime, and
+> the log-likelihood is monotone by construction (all asserted); the filtered/smoothed probabilities
+> match statsmodels' `MarkovRegression` to ~1e-15 at identical parameters — the anchor. On real S&P
+> 500 returns a calm (~11% vol) and a crisis (~29% vol) regime emerge, both highly persistent, and
+> the crisis state lights up through **2008** (0.84) and the 2011 sell-off while reading ~0 in the
+> record-calm years. **Honest caveat:** regime models are fragile — sensitive to starting values
+> (hence the multiple starts) and to the imposed regime count; the clean 2008 signal is the
+> well-identified case, not a guarantee. **Multivariate volatility / VECM models are the next step.**
 
 ## Running the apps
 

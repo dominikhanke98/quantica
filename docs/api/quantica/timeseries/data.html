@@ -56,6 +56,9 @@
             <li>
                     <a class="function" href="#simulate_loss_differential">simulate_loss_differential</a>
             </li>
+            <li>
+                    <a class="function" href="#simulate_markov_switching">simulate_markov_switching</a>
+            </li>
     </ul>
 
 
@@ -87,6 +90,9 @@ test's <em>size</em> (mean zero ⇒ should reject at the nominal rate) and <em>p
 should reject), and demonstrate why the HAC variance correction is needed — a positively
 autocorrelated differential breaks the naive variance, exactly the case that arises because
 volatility forecast errors cluster.</li>
+<li><code><a href="#simulate_markov_switching">simulate_markov_switching()</a></code> — a return series from a <strong>known</strong> Gaussian regime-switching
+process, returning the hidden state path so a fitted model can be checked both on parameter
+recovery and on how well its smoothed probabilities classify the regime each point was really in.</li>
 </ul>
 
 <p>Randomness is always an injected, seeded <code>numpy.random.Generator</code> (CLAUDE.md §3).</p>
@@ -212,6 +218,55 @@ Seeded generator (keyword-only).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="simulate_markov_switching">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">simulate_markov_switching</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">means</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variances</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">transition_matrix</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">initial_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#simulate_markov_switching"></a>
+    
+            <div class="docstring"><p>Simulate a Gaussian Markov regime-switching series, returning the hidden states.</p>
+
+<p>A latent state \( s_t \) follows a Markov chain with transition matrix
+<code>P[i, j] = P(s_t = j | s_{t-1} = i)</code>, and each observation is drawn
+\( y_t \sim N(\mu_{s_t}, \sigma^2_{s_t}) \). Returning the true state path is what makes the
+known-truth validation possible: a fitted model must recover the parameters <em>and</em> classify each
+observation into the regime it was actually generated from.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations.</li>
+<li><strong>means, variances</strong> (ndarray, shape (K,)):
+The per-regime means and (positive) variances.</li>
+<li><strong>transition_matrix</strong> (ndarray, shape (K, K)):
+Row-stochastic transition matrix.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>initial_state</strong> (int, optional):
+The state at <code>t = 0</code> (default 0).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, states)</code> — the observed series and the integer hidden-state path, each of
+length <code>n</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>transition_matrix</code> is not square with matching dimensions.</li>
 </ul>
 </div>
 

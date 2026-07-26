@@ -12,6 +12,9 @@ its statistics have the right properties, so the validation needs ground truth o
   should reject), and demonstrate why the HAC variance correction is needed — a positively
   autocorrelated differential breaks the naive variance, exactly the case that arises because
   volatility forecast errors cluster.
+* :func:`simulate_markov_switching` — a return series from a **known** Gaussian regime-switching
+  process, returning the hidden state path so a fitted model can be checked both on parameter
+  recovery and on how well its smoothed probabilities classify the regime each point was really in.
 
 Randomness is always an injected, seeded :class:`numpy.random.Generator` (CLAUDE.md §3).
 """
@@ -23,11 +26,12 @@ from typing import TYPE_CHECKING, Literal, overload
 import numpy as np
 
 if TYPE_CHECKING:
-    from quantica.core.types import FloatArray
+    from quantica.core.types import FloatArray, IntArray
 
 __all__ = [
     "simulate_garch",
     "simulate_loss_differential",
+    "simulate_markov_switching",
 ]
 
 _SQRT_2_OVER_PI = np.sqrt(2.0 / np.pi)  # E|z| for a standard normal, the EGARCH centering
@@ -215,3 +219,61 @@ def simulate_loss_differential(
     for t in range(1, n):
         u[t] = phi * u[t - 1] + e[t]
     return np.asarray(mean + sigma * u, dtype=np.float64)
+
+
+def simulate_markov_switching(
+    n: int,
+    means: FloatArray,
+    variances: FloatArray,
+    transition_matrix: FloatArray,
+    *,
+    rng: np.random.Generator,
+    initial_state: int = 0,
+) -> tuple[FloatArray, IntArray]:
+    r"""Simulate a Gaussian Markov regime-switching series, returning the hidden states.
+
+    A latent state :math:`s_t` follows a Markov chain with transition matrix
+    ``P[i, j] = P(s_t = j | s_{t-1} = i)``, and each observation is drawn
+    :math:`y_t \sim N(\mu_{s_t}, \sigma^2_{s_t})`. Returning the true state path is what makes the
+    known-truth validation possible: a fitted model must recover the parameters *and* classify each
+    observation into the regime it was actually generated from.
+
+    Parameters
+    ----------
+    n : int
+        Number of observations.
+    means, variances : ndarray, shape (K,)
+        The per-regime means and (positive) variances.
+    transition_matrix : ndarray, shape (K, K)
+        Row-stochastic transition matrix.
+    rng : numpy.random.Generator
+        Seeded generator (keyword-only).
+    initial_state : int, optional
+        The state at ``t = 0`` (default 0).
+
+    Returns
+    -------
+    tuple of ndarray
+        ``(returns, states)`` — the observed series and the integer hidden-state path, each of
+        length ``n``.
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is not positive or ``transition_matrix`` is not square with matching dimensions.
+    """
+    means = np.asarray(means, dtype=np.float64)
+    variances = np.asarray(variances, dtype=np.float64)
+    p_matrix = np.asarray(transition_matrix, dtype=np.float64)
+    k = means.size
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if p_matrix.shape != (k, k) or variances.size != k:
+        raise ValueError("means, variances and transition_matrix dimensions must agree")
+
+    states = np.empty(n, dtype=np.intp)
+    states[0] = initial_state
+    for t in range(1, n):
+        states[t] = rng.choice(k, p=p_matrix[states[t - 1]])
+    returns = rng.normal(means[states], np.sqrt(variances[states]))
+    return np.asarray(returns, dtype=np.float64), np.asarray(states, dtype=np.intp)

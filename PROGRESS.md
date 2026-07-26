@@ -20,9 +20,11 @@ the portfolio pillar was missing. A **fourth pillar — rates / fixed income** i
 **complete end-to-end** (steps 17–19: yield-curve construction → short-rate models →
 interest-rate products), the first non-equity asset class in the repo — curve → short-rate
 models → swaps/caps/swaptions, with Hull–White vol calibration finally identifying the σ the
-curve could not. A **fifth pillar — time series / econometrics** is now **opened** (step 20:
-GARCH-family volatility modelling + the forecast-evaluation layer), built forecast-evaluation-first
-around the Diebold–Mariano test with the HAC correction. Next: optional depth only — see "Next".
+curve could not. A **fifth pillar — time series / econometrics** is now **building** (step 20:
+GARCH-family volatility modelling + the forecast-evaluation layer, forecast-evaluation-first around
+the Diebold–Mariano/HAC test; step 21: Markov regime-switching — hand-written Hamilton filter / Kim
+smoother / EM, recovering planted regimes and detecting the 2008 crisis). Next: optional depth only
+— see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -49,10 +51,12 @@ identified from the curve (convexity-only) — is finally pinned down from the v
 Time-series / econometrics roadmap (**Pillar V — new, forecast-evaluation-first**): **GARCH
 volatility + forecast evaluation ✓** (GARCH / GJR / EGARCH via `arch`, rolling OOS forecasts, and
 the deliverable evaluation layer — Diebold–Mariano with HAC/Newey–West, QLIKE/MSE, Mincer–Zarnowitz
-— PR open) → **regime-switching** (Markov-switching / threshold models — next) → **multivariate
-volatility & VECM** (DCC / BEKK, cointegrated VAR — later). The headline is *validate-the-validator*:
-the DM test is correctly sized only with the HAC correction; the honest finding is that the
-in-sample-significant leverage term does not beat plain GARCH out-of-sample.
+— PR #12 merged `7ce1dee`) → **regime-switching ✓** (Gaussian Markov-switching — hand-written
+Hamilton filter / Kim smoother / EM, known-truth state recovery + real 2008-crisis detection —
+PR open) → **multivariate volatility & VECM** (DCC / BEKK, cointegrated VAR — later). The GARCH-step
+headline is *validate-the-validator* (the DM test is correctly sized only with HAC); the
+regime-switching headline is *known-truth state recovery* (the filter+EM recover planted regimes and
+classify the hidden states, anchored to statsmodels' `MarkovRegression` at ~1e-15).
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -834,8 +838,32 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   that the in-sample-significant leverage term does not beat plain GARCH OOS** (GJR-vs-GARCH DM
   p=0.29). Config: added `ignore-overloaded-functions` to `[tool.interrogate]` (the `@overload`
   stubs on `simulate_garch` are type-only). Gate green: 1059 tests (+16), ruff + mypy +
-  interrogate(100%) clean. Delivered on branch `feat/timeseries-garch` as a **PR — open, awaiting
-  review** (not yet merged; the merge is left to the author). **Pillar V OPENED.**
+  interrogate(100%) clean. Delivered on branch `feat/timeseries-garch` as **PR #12 — merged
+  `7ce1dee`** (main synced, branch deleted). **Pillar V OPENED.**
+
+- **Step 21 — Pillar V step 2: Markov regime-switching (Hamilton filter, Kim smoother, EM).** New
+  `quantica/timeseries/regime.py` + a `simulate_markov_switching` in `data.py`. **Scope discipline
+  held**: the inference machinery is **hand-implemented** (it is a clean, self-contained algorithm)
+  — `hamilton_filter` (forward recursion → filtered probs + log-lik), `kim_smoother` (backward pass
+  → smoothed probs), and `fit_markov_switching` (EM / Baum–Welch for the regime means, variances,
+  transition matrix and initial distribution). The Gaussian M-step is **closed form** (weighted
+  means/variances + transition counts), so no inner optimiser is needed at all — cleaner than the
+  brief's scipy suggestion; only numpy linear algebra is leaned on. A **free initial distribution**
+  π₀ (updated to smoothed[0] each M-step, rather than tying it to the current P's stationary dist)
+  makes the EM log-likelihood exactly non-decreasing. Multiple random starts + regimes sorted by
+  variance (calm=0, crisis=K−1) handle local optima and label switching; `MarkovSwitchingResult`
+  exposes filtered/smoothed probs, `most_likely_states`, `expected_durations`, stationary dist.
+  Validated (`tests/timeseries/`, +9): **headline known-truth state recovery** — a planted 2-state
+  process is recovered (variances/transition) with **~95% hidden-state classification**; **anchor**
+  — filter/smoother/log-lik match statsmodels' `MarkovRegression` to ~1e-15 at identical params;
+  **EM sanity** — log-likelihood monotone non-decreasing (asserted); label-switching resolved
+  (start-independent variance order); valid probability distributions; durations = 1/(1−P_kk).
+  Report `scripts/timeseries_regime_report.py` (no network — bundled `arch` S&P 500): known-truth
+  recovery table + **real-data regime ID where the crisis state hits 0.84 in 2008, ~0 in 2006/2017**
+  (calm ~11% vol / crisis ~29% vol, both persistent) → embedded in README, with the honest
+  identification-fragility caveat. Gate green: 1068 tests (+9), ruff + mypy + interrogate(100%)
+  clean. Delivered on branch `feat/timeseries-regime` as a **PR — open, awaiting review** (not yet
+  merged; the merge is left to the author).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -879,8 +907,8 @@ Remaining optional build items (none started, none blocking): **the rates pillar
 tridiagonal LCP solve); the FRTB expected-shortfall capital charge at 97.5% (liquidity-horizon
 scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the apps' capital-markets tab; a
 thin rates tab in the app (curve/forwards, short-rate fits, a cap/swaption vol-calibration view).
-**Pillar V (time series) is now open** — next steps are regime-switching (Markov-switching /
-threshold) and multivariate volatility / VECM (DCC/BEKK, cointegrated VAR).
+**Pillar V (time series) is now building** — GARCH+eval and regime-switching are done; the next
+step is multivariate volatility / VECM (DCC/BEKK, cointegrated VAR).
 
 **Tool-gap logged (step 20) — no reference library for HAC-corrected forecast evaluation.** The
 forecast-evaluation statistics (Diebold–Mariano with a Newey–West long-run variance, QLIKE, the
@@ -893,6 +921,19 @@ size/power). Two secondary notes: (i) `arch` now ships inline type hints, so `ar
 called with explicit literal kwargs rather than an unpacked `dict` (mypy rejects the widened dict);
 (ii) the squared-return proxy is very noisy, so the Mincer–Zarnowitz slope is attenuated below 1 on
 real data — a genuine, well-known proxy-error effect, surfaced honestly rather than hidden.
+
+**Tool-gap logged (step 21) — regime-switching EM has no exact fitted-parameter benchmark.**
+statsmodels' `MarkovRegression` is a clean **fixed-parameter** anchor — given identical
+(means, variances, transition matrix) it produces filtered/smoothed probabilities and a
+log-likelihood matching ours to ~1e-15, so the hand-written Hamilton filter / Kim smoother are
+pinned exactly. But its `.fit()` runs a different optimisation path (EM start → quasi-Newton) and
+regime models are riddled with local optima and label-switching, so comparing the *final fitted*
+parameters is only meaningful to tolerance after aligning regime labels — not a machine-precision
+check. Resolution: anchor the filter/smoother exactly at fixed params (statsmodels), and validate
+the estimator by **known-truth recovery** (planted parameters + hidden states) plus the required EM
+property (monotone log-likelihood), rather than chasing an exact fitted-parameter match. The honest
+corollary — regime identification is fragile (start/regime-count sensitive) — is surfaced in the
+report, not hidden.
 
 **Tool-gap logged (step 19) — Hull–White options are not benchmarked to QuantLib.** Black-76 is
 benchmarked to `ql.blackFormula` to 1e-14, but QuantLib's `HullWhite` engines build θ(t) off a
@@ -916,7 +957,7 @@ convenient** — recorded here so the pin doesn't age silently.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**~Thirteen blog posts are drafted or obvious, awaiting number-verification (re-run each source
+**~Fourteen blog posts are drafted or obvious, awaiting number-verification (re-run each source
 script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
@@ -956,7 +997,12 @@ script and check every figure against the current code) and publishing:**
     5%; the same subtlety most implementations miss. Pair it with the honest companion: on real
     S&P 500 returns the leverage term is decisive in-sample (BIC) yet does not beat plain GARCH
     out-of-sample by DM (p≈0.29) — in-sample significance ≠ out-of-sample value.
-13. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+13. Markov regimes you can trust — the effective-challenge test for a regime model is *known
+    truth*: plant a 2-state process and confirm the hand-written Hamilton filter + EM recover the
+    parameters and classify ~95% of the hidden states (anchored to statsmodels at ~1e-15), then show
+    the crisis regime lighting up at 0.84 through 2008 on real S&P 500 — with the honest caveat that
+    regime identification is start/count-sensitive and can manufacture spurious regimes.
+14. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
     validation-first thesis across all pillars (now five: derivatives, risk, capital markets,
     rates, time series — with the cross-cutting stat-arb arc inside capital markets).
 
