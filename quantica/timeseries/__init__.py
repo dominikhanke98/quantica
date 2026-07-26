@@ -15,9 +15,12 @@ This foundational step ships GARCH-family volatility modelling and its forecast-
   correction (the piece most implementations get wrong), the proxy-robust **QLIKE** and **MSE**
   loss functions (true volatility is latent, so forecasts are scored against a squared-return
   proxy), and the **Mincer--Zarnowitz** forecast-efficiency regression.
-* **Synthetic data** (:mod:`~quantica.timeseries.data`) — known-parameter GARCH/GJR/EGARCH paths
-  and serially-correlated loss differentials, the ground truth for validating the estimation and
-  the evaluation statistics themselves.
+* **Regime-switching** (:mod:`~quantica.timeseries.regime`) — a Gaussian Markov-switching model
+  (calm vs crisis) with the hand-implemented **Hamilton filter**, **Kim smoother** and **EM**
+  estimation, recovering the hidden volatility regimes a market moves between.
+* **Synthetic data** (:mod:`~quantica.timeseries.data`) — known-parameter GARCH/GJR/EGARCH paths,
+  serially-correlated loss differentials and Markov-switching series with their hidden states, the
+  ground truth for validating the estimation and the evaluation statistics themselves.
 
 The headline is *validate-the-validator*: on data with a known truth, the Diebold--Mariano test
 has the correct size and power **only with** the HAC correction — the naive-variance version
@@ -27,7 +30,11 @@ forecasts.
 
 from __future__ import annotations
 
-from quantica.timeseries.data import simulate_garch, simulate_loss_differential
+from quantica.timeseries.data import (
+    simulate_garch,
+    simulate_loss_differential,
+    simulate_markov_switching,
+)
 from quantica.timeseries.evaluation import (
     DieboldMarianoResult,
     MincerZarnowitzResult,
@@ -43,19 +50,32 @@ from quantica.timeseries.models import (
     fit_volatility_model,
     rolling_forecast,
 )
+from quantica.timeseries.regime import (
+    HamiltonFilterResult,
+    MarkovSwitchingResult,
+    fit_markov_switching,
+    hamilton_filter,
+    kim_smoother,
+)
 
 __all__ = [
     "DieboldMarianoResult",
     "ForecastResult",
+    "HamiltonFilterResult",
+    "MarkovSwitchingResult",
     "MincerZarnowitzResult",
     "VolatilityFit",
     "VolatilityModel",
     "diebold_mariano",
+    "fit_markov_switching",
     "fit_volatility_model",
+    "hamilton_filter",
+    "kim_smoother",
     "mincer_zarnowitz",
     "mse_loss",
     "qlike_loss",
     "rolling_forecast",
     "simulate_garch",
     "simulate_loss_differential",
+    "simulate_markov_switching",
 ]
