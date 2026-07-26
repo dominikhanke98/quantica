@@ -24,6 +24,7 @@ is hand-typed.
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
 | **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class, end to end: **yield-curve construction** (a discount curve bootstrapped from deposits and par swaps, repriced to par to machine precision, under hand-rolled interpolation schemes whose choice materially changes the implied forwards), **one-factor short-rate models** (Vasicek / CIR / Hull–White) with analytic bonds, exact-transition simulation and curve calibration, and **interest-rate products** — swaps, caps/floors and swaptions priced both with Black-76 and analytically under Hull–White (bond options / Jamshidian), whose volatility calibration finally identifies the σ the curve could not. |
+| **[V — Time series & econometrics](#pillar-v--time-series--econometrics)** | GARCH-family volatility modelling (GARCH / GJR / EGARCH via `arch`) built **forecast-evaluation-first**: the deliverable is the evaluation layer the libraries don't ship — the **Diebold–Mariano** test with the **HAC/Newey–West** correction, proxy-robust **QLIKE/MSE** losses, and the **Mincer–Zarnowitz** efficiency regression — with the headline that the DM test is correctly sized *only* with HAC, and the honest finding that the leverage term significant in-sample does **not** beat plain GARCH out-of-sample. |
 
 ## Headline results
 
@@ -1493,6 +1494,68 @@ both σ together  |         0e+00         | (differ 3.2×)   ← curve blind to 
 > QuantLib's engines: QuantLib's term-structure handle uses a different interpolation convention,
 > so its fitted θ(t) — and every bond option on it — carries a curve-convention residual that
 > swamps the option value (logged as a tool-gap). **This completes the rates pillar.**
+
+## Pillar V — Time series & econometrics
+
+The newest pillar, and a deliberate change of emphasis. Fitting a GARCH model is a *solved*
+estimation problem — [`arch`](https://arch.readthedocs.io) does it well — so this pillar
+**leans on the library for the fit** (CLAUDE.md §3) and puts the demonstrable work where a
+model-validation team actually earns its keep: **deciding whether one volatility forecast is
+genuinely better than another**, correctly. The [timeseries pillar](quantica/timeseries) ships
+the GARCH family and, as the real deliverable, the forecast-evaluation layer the libraries do not.
+
+- **Volatility models** ([`models.py`](quantica/timeseries/models.py)) — `GARCH(1,1)`,
+  **GJR-GARCH** (a leverage/asymmetry term) and **EGARCH**, fitted via `arch`, with a
+  rolling/expanding-window **out-of-sample** one-step-ahead variance forecaster.
+- **Forecast evaluation** ([`evaluation.py`](quantica/timeseries/evaluation.py)) — the
+  **Diebold–Mariano** test of equal predictive accuracy with a **HAC / Newey–West** long-run
+  variance; the proxy-robust **QLIKE** and **MSE** loss functions (true volatility is latent, so
+  forecasts are scored against a squared-return proxy — Patton 2011); and the **Mincer–Zarnowitz**
+  forecast-efficiency regression (intercept `= 0`, slope `= 1`).
+- **Synthetic data** ([`data.py`](quantica/timeseries/data.py)) — known-parameter GARCH/GJR/EGARCH
+  paths (with the true conditional-variance oracle) and serially-correlated loss differentials,
+  the ground truth for validating the estimation *and the evaluation statistics themselves*.
+
+> **Highlighted insight — validate the forecast-evaluation test itself, and why HAC matters.** A
+> forecast-comparison test is only worth running if it has the right statistical properties. On
+> simulated loss differentials with a *known* truth, the Diebold–Mariano test is correctly sized
+> **only with** the HAC correction: forecast-loss differentials are serially correlated (volatility
+> errors cluster), so the naive-variance version badly over-rejects. This is the whole point of the
+> pillar (`python scripts/timeseries_garch_report.py`, 2,000 replications, T=500):
+
+```
+DM size & power (nominal 5%)     | φ (serial corr.) | naive rej. | HAC rej.
+-------------------------------- | ---------------: | ---------: | -------:
+Size  (two equal forecasts)      |             0.0  |    0.053   |  0.058    ← both fine when iid
+Size  (two equal forecasts)      |             0.5  |    0.252   |  0.093    ← naive over-rejects ~5×
+Power (one genuinely worse)      |             0.5  |    0.715   |  0.471    ← HAC keeps honest power
+```
+
+> With no serial correlation both tests are correctly sized; with the realistic positive
+> autocorrelation the **naive test over-rejects five-fold** while the **HAC correction restores the
+> nominal 5%**. The naive test would routinely declare a lucky forecast "significantly better" —
+> the correction is what makes the verdict trustworthy.
+
+> **Highlighted insight — in-sample significance is not out-of-sample value.** On real daily S&P 500
+> returns (1999–2018), the leverage term is *unmistakable in-sample* — GJR and EGARCH lift the
+> log-likelihood ~110 points over plain GARCH and lower the BIC. Yet out-of-sample, over the last
+> 750 days, they do **not** significantly beat GARCH by the (HAC) Diebold–Mariano test:
+
+```
+Model  | in-sample log-lik | OOS QLIKE | OOS MSE | DM vs GARCH (HAC) | p-value
+------ | ----------------: | --------: | ------: | ----------------: | ------:
+GARCH  |          -6941.5  |   0.4460  |  2.929  |   — (baseline)    |   —
+GJR    |          -6831.8  |   0.4749  |  3.034  |   +1.05 (L=6)     |  0.293
+EGARCH |          -6822.4  |   0.5117  |  2.911  |   +0.71 (L=6)     |  0.475
+```
+
+> Plain GARCH even has the best OOS QLIKE here, and neither leverage model clears DM (p = 0.29,
+> 0.48) — equal accuracy cannot be rejected. The HAC correction matters even on this comparison
+> (the naive DM statistic is +1.34 versus the HAC +1.05, because the loss differentials are
+> autocorrelated). The disciplined verdict is the honest one: a feature that clearly improves the
+> *fit* need not improve the *forecast*, and only an out-of-sample test with the right size can
+> tell the difference. **This opens the time-series pillar; regime-switching and multivariate
+> models are the next steps.**
 
 ## Running the apps
 
