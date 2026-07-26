@@ -186,6 +186,7 @@ exclude_lines = [
 ignore-init-method = true
 ignore-magic = true
 ignore-nested-functions = true
+ignore-overloaded-functions = true  # @overload stubs are type-only; the implementation is documented
 ignore-regex = ["^_.*"]
 fail-under = 100
 exclude = ["scripts", "tests", "docs", "setup.py"]
