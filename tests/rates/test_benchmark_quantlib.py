@@ -14,6 +14,15 @@ exact self-consistency plus a hand computation, and the *interpolation* is bench
 QuantLib's monotone cubic is a different (Hyman-filtered) algorithm, so our PCHIP monotone
 scheme is validated against ``scipy`` instead.
 
+For the **interest-rate products**, the market-standard **Black-76** formula is benchmarked
+here against ``ql.blackFormula`` to machine precision. The **Hull--White** option prices are
+*not* benchmarked against QuantLib's ``HullWhite`` engines (logged as a tool-gap): QuantLib's
+term-structure handle uses its own interpolation convention, so the fitted :math:`\theta(t)`
+drift — and hence every bond option built on it — differs from ours by a curve-convention
+residual that swamps the option value. The Hull--White pricers are instead validated by rich
+self-consistency (analytic vs Monte Carlo, consistency with Black-76 through the implied vol,
+Jamshidian, and put-call parity) in ``test_hull_white_options.py``.
+
 Run with ``pytest -m benchmark`` (needs the ``benchmark`` extra installed).
 """
 
@@ -21,7 +30,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from quantica.rates import CIR, DiscountCurve, Vasicek, linear_zero, log_linear_discount
+from quantica.rates import CIR, DiscountCurve, Vasicek, black76, linear_zero, log_linear_discount
 
 pytestmark = pytest.mark.benchmark
 
@@ -85,3 +94,18 @@ def test_cir_bond_matches_quantlib() -> None:
             ql_model.discountBond(0.0, maturity, r0),
             atol=1e-13,
         )
+
+
+def test_black76_matches_quantlib_black_formula() -> None:
+    """Our (undiscounted) Black-76 matches ``ql.blackFormula`` to machine precision."""
+    ql = pytest.importorskip("QuantLib")
+    forward, expiry = 0.04, 2.0
+    for strike in (0.03, 0.04, 0.05):
+        for vol in (0.15, 0.30):
+            std = vol * np.sqrt(expiry)
+            call = black76(forward, strike, vol, expiry, call=True)
+            put = black76(forward, strike, vol, expiry, call=False)
+            assert np.isclose(
+                call, ql.blackFormula(ql.Option.Call, strike, forward, std), atol=1e-14
+            )
+            assert np.isclose(put, ql.blackFormula(ql.Option.Put, strike, forward, std), atol=1e-14)
