@@ -23,8 +23,11 @@ exact-transition Monte Carlo simulation, and is calibrated to the curve
 (:mod:`~quantica.rates.calibration`), where Hull--White fits it exactly and Vasicek/CIR
 best-fit.
 
-Later step (not yet built): the interest-rate products (swaps, caps/floors, swaptions) that
-price off the curve and the models.
+Completing the pillar, the **interest-rate products** (:mod:`~quantica.rates.products`,
+:mod:`~quantica.rates.hull_white_options`) price off the curve and the models: swaps (curve-only),
+and caps/floors and swaptions priced both with market-standard Black-76 and analytically under
+Hull--White (bond options / Jamshidian), with a Hull--White **volatility calibration** that finally
+identifies :math:`\sigma` where the curve could not.
 """
 
 from __future__ import annotations
@@ -46,6 +49,16 @@ from quantica.rates.curve import (
     monotone_cubic_zero,
     natural_cubic_zero,
 )
+from quantica.rates.hull_white_options import (
+    HullWhiteVolResult,
+    calibrate_hull_white_volatility,
+    hull_white_bond_option,
+    hull_white_cap,
+    hull_white_caplet,
+    hull_white_price,
+    hull_white_price_mc,
+    hull_white_swaption,
+)
 from quantica.rates.instruments import Deposit, RateInstrument, Swap
 from quantica.rates.interpolation import (
     Interpolant,
@@ -53,6 +66,14 @@ from quantica.rates.interpolation import (
     LinearInterpolation,
     MonotoneCubicInterpolation,
     NaturalCubicInterpolation,
+)
+from quantica.rates.products import (
+    Cap,
+    Caplet,
+    Swaption,
+    black76,
+    par_swap_rate,
+    swap_value,
 )
 from quantica.rates.short_rate import (
     CIR,
@@ -68,10 +89,13 @@ __all__ = [
     "MONOTONE_CUBIC_ZERO",
     "NATURAL_CUBIC_ZERO",
     "CalibrationResult",
+    "Cap",
+    "Caplet",
     "CurveInterpolation",
     "Deposit",
     "DiscountCurve",
     "HullWhite",
+    "HullWhiteVolResult",
     "Interpolant",
     "InterpolationScheme",
     "LinearInterpolation",
@@ -80,13 +104,24 @@ __all__ = [
     "RateInstrument",
     "ShortRateModel",
     "Swap",
+    "Swaption",
     "Vasicek",
+    "black76",
     "bootstrap",
     "calibrate_cir",
+    "calibrate_hull_white_volatility",
     "calibrate_vasicek",
+    "hull_white_bond_option",
+    "hull_white_cap",
+    "hull_white_caplet",
+    "hull_white_price",
+    "hull_white_price_mc",
+    "hull_white_swaption",
     "linear_zero",
     "log_linear_discount",
     "monotone_cubic_zero",
     "monte_carlo_discount",
     "natural_cubic_zero",
+    "par_swap_rate",
+    "swap_value",
 ]
