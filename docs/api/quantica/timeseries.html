@@ -96,6 +96,72 @@
 
             </li>
             <li>
+                    <a class="class" href="#HamiltonFilterResult">HamiltonFilterResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#HamiltonFilterResult.__init__">HamiltonFilterResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HamiltonFilterResult.filtered">filtered</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HamiltonFilterResult.predicted">predicted</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#HamiltonFilterResult.loglikelihood">loglikelihood</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#MarkovSwitchingResult">MarkovSwitchingResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#MarkovSwitchingResult.__init__">MarkovSwitchingResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.means">means</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.variances">variances</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.transition_matrix">transition_matrix</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.initial_distribution">initial_distribution</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.stationary_distribution">stationary_distribution</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.filtered_probabilities">filtered_probabilities</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.smoothed_probabilities">smoothed_probabilities</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.loglikelihood">loglikelihood</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.loglikelihood_history">loglikelihood_history</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.n_iter">n_iter</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MarkovSwitchingResult.converged">converged</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#MarkovSwitchingResult.most_likely_states">most_likely_states</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#MarkovSwitchingResult.expected_durations">expected_durations</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#MincerZarnowitzResult">MincerZarnowitzResult</a>
                             <ul class="memberlist">
                         <li>
@@ -156,7 +222,16 @@
                     <a class="function" href="#diebold_mariano">diebold_mariano</a>
             </li>
             <li>
+                    <a class="function" href="#fit_markov_switching">fit_markov_switching</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_volatility_model">fit_volatility_model</a>
+            </li>
+            <li>
+                    <a class="function" href="#hamilton_filter">hamilton_filter</a>
+            </li>
+            <li>
+                    <a class="function" href="#kim_smoother">kim_smoother</a>
             </li>
             <li>
                     <a class="function" href="#mincer_zarnowitz">mincer_zarnowitz</a>
@@ -175,6 +250,9 @@
             </li>
             <li>
                     <a class="function" href="#simulate_loss_differential">simulate_loss_differential</a>
+            </li>
+            <li>
+                    <a class="function" href="#simulate_markov_switching">simulate_markov_switching</a>
             </li>
     </ul>
 
@@ -210,9 +288,12 @@ than another</strong>, correctly.</p>
 correction (the piece most implementations get wrong), the proxy-robust <strong>QLIKE</strong> and <strong>MSE</strong>
 loss functions (true volatility is latent, so forecasts are scored against a squared-return
 proxy), and the <strong>Mincer--Zarnowitz</strong> forecast-efficiency regression.</li>
-<li><strong>Synthetic data</strong> (<code>~<a href="timeseries/data.html">quantica.timeseries.data</a></code>) — known-parameter GARCH/GJR/EGARCH paths
-and serially-correlated loss differentials, the ground truth for validating the estimation and
-the evaluation statistics themselves.</li>
+<li><strong>Regime-switching</strong> (<code>~<a href="timeseries/regime.html">quantica.timeseries.regime</a></code>) — a Gaussian Markov-switching model
+(calm vs crisis) with the hand-implemented <strong>Hamilton filter</strong>, <strong>Kim smoother</strong> and <strong>EM</strong>
+estimation, recovering the hidden volatility regimes a market moves between.</li>
+<li><strong>Synthetic data</strong> (<code>~<a href="timeseries/data.html">quantica.timeseries.data</a></code>) — known-parameter GARCH/GJR/EGARCH paths,
+serially-correlated loss differentials and Markov-switching series with their hidden states, the
+ground truth for validating the estimation and the evaluation statistics themselves.</li>
 </ul>
 
 <p>The headline is <em>validate-the-validator</em>: on data with a known truth, the Diebold--Mariano test
@@ -408,6 +489,285 @@ The realised returns at each forecast target (percent).</li>
     <a class="headerlink" href="#ForecastResult.actual_returns"></a>
     
     
+
+                            </div>
+                </section>
+                <section id="HamiltonFilterResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">HamiltonFilterResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#HamiltonFilterResult"></a>
+    
+            <div class="docstring"><p>The output of the Hamilton forward filter.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>filtered</strong> (ndarray, shape (T, K)):
+Filtered state probabilities \( P(s_t = k \mid y_{1:t}) \).</li>
+<li><strong>predicted</strong> (ndarray, shape (T, K)):
+One-step-ahead predicted probabilities \( P(s_t = k \mid y_{1:t-1}) \).</li>
+<li><strong>loglikelihood</strong> (float):
+The log-likelihood \( \sum_t \log p(y_t \mid y_{1:t-1}) \).</li>
+</ul>
+</div>
+
+
+                            <div id="HamiltonFilterResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">HamiltonFilterResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">filtered</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">predicted</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HamiltonFilterResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="HamiltonFilterResult.filtered" class="classattr">
+                                <div class="attr variable">
+            <span class="name">filtered</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HamiltonFilterResult.filtered"></a>
+    
+    
+
+                            </div>
+                            <div id="HamiltonFilterResult.predicted" class="classattr">
+                                <div class="attr variable">
+            <span class="name">predicted</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HamiltonFilterResult.predicted"></a>
+    
+    
+
+                            </div>
+                            <div id="HamiltonFilterResult.loglikelihood" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#HamiltonFilterResult.loglikelihood"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="MarkovSwitchingResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">MarkovSwitchingResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult"></a>
+    
+            <div class="docstring"><p>A fitted <code>K</code>-state Gaussian Markov-switching model, regimes ordered by variance.</p>
+
+<p>Regimes are sorted by variance ascending, so regime <code>0</code> is the lowest-variance (<em>calm</em>)
+state and regime <code>K-1</code> the
+highest-variance (<em>crisis</em>) state, which removes the label-switching ambiguity.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>means, variances</strong> (ndarray, shape (K,)):
+The fitted regime means and variances (variances sorted ascending).</li>
+<li><strong>transition_matrix</strong> (ndarray, shape (K, K)):
+The fitted row-stochastic transition matrix.</li>
+<li><strong>initial_distribution</strong> (ndarray, shape (K,)):
+The fitted initial (t=0) state distribution.</li>
+<li><strong>stationary_distribution</strong> (ndarray, shape (K,)):
+The ergodic distribution implied by <code><a href="#MarkovSwitchingResult.transition_matrix">transition_matrix</a></code> (the unconditional regime
+frequencies).</li>
+<li><strong>filtered_probabilities, smoothed_probabilities</strong> (ndarray, shape (T, K)):
+The filtered and smoothed state probabilities at the fitted parameters.</li>
+<li><strong>loglikelihood</strong> (float):
+The maximised log-likelihood.</li>
+<li><strong>loglikelihood_history</strong> (ndarray):
+The log-likelihood at each EM iteration of the best start (non-decreasing).</li>
+<li><strong>n_iter</strong> (int):
+EM iterations taken by the best start.</li>
+<li><strong>converged</strong> (bool):
+Whether the best start met the tolerance before the iteration cap.</li>
+</ul>
+</div>
+
+
+                            <div id="MarkovSwitchingResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">MarkovSwitchingResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">means</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variances</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">transition_matrix</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">initial_distribution</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">stationary_distribution</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">filtered_probabilities</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">smoothed_probabilities</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">loglikelihood_history</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_iter</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.means" class="classattr">
+                                <div class="attr variable">
+            <span class="name">means</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.means"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.variances" class="classattr">
+                                <div class="attr variable">
+            <span class="name">variances</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.variances"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.transition_matrix" class="classattr">
+                                <div class="attr variable">
+            <span class="name">transition_matrix</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.transition_matrix"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.initial_distribution" class="classattr">
+                                <div class="attr variable">
+            <span class="name">initial_distribution</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.initial_distribution"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.stationary_distribution" class="classattr">
+                                <div class="attr variable">
+            <span class="name">stationary_distribution</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.stationary_distribution"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.filtered_probabilities" class="classattr">
+                                <div class="attr variable">
+            <span class="name">filtered_probabilities</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.filtered_probabilities"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.smoothed_probabilities" class="classattr">
+                                <div class="attr variable">
+            <span class="name">smoothed_probabilities</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.smoothed_probabilities"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.loglikelihood" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.loglikelihood"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.loglikelihood_history" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood_history</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.loglikelihood_history"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.n_iter" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_iter</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.n_iter"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.converged" class="classattr">
+                                <div class="attr variable">
+            <span class="name">converged</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.converged"></a>
+    
+    
+
+                            </div>
+                            <div id="MarkovSwitchingResult.most_likely_states" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">most_likely_states</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.most_likely_states"></a>
+    
+            <div class="docstring"><p>The most probable regime for each observation (the smoothed-probability argmax).</p>
+</div>
+
+
+                            </div>
+                            <div id="MarkovSwitchingResult.expected_durations" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">expected_durations</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#MarkovSwitchingResult.expected_durations"></a>
+    
+            <div class="docstring"><p>Expected regime durations \( 1 / (1 - P_{kk}) \) (persistence, in observations).</p>
+</div>
+
 
                             </div>
                 </section>
@@ -692,6 +1052,59 @@ Truncation lag for the HAC estimator. Defaults to the automatic rule
 
 
                 </section>
+                <section id="fit_markov_switching">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_markov_switching</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">k_regimes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">switching_mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>,</span><span class="param">	<span class="n">max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span>,</span><span class="param">	<span class="n">tol</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-08</span>,</span><span class="param">	<span class="n">n_starts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span></span><span class="return-annotation">) -> <span class="n"><a href="#MarkovSwitchingResult">MarkovSwitchingResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_markov_switching"></a>
+    
+            <div class="docstring"><p>Fit a <code>K</code>-state Gaussian Markov-switching model by EM (Baum--Welch).</p>
+
+<p>Estimates the regime means, variances, transition matrix and initial distribution by
+expectation-maximisation, running from <code>n_starts</code> random starts and keeping the highest
+log-likelihood (regime models are riddled with local optima). The fitted regimes are ordered by
+variance ascending, so regime 0 is the calm state and the last is the crisis state — resolving
+label switching.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The observed series (e.g. asset returns).</li>
+<li><strong>k_regimes</strong> (int, optional):
+Number of hidden states (default 2, calm vs crisis).</li>
+<li><strong>switching_mean</strong> (bool, optional):
+If <code>True</code> (default), each regime has its own mean; if <code>False</code>, the mean is common
+across regimes and only the variance switches (the canonical equity-volatility model).</li>
+<li><strong>max_iter</strong> (int, optional):
+Maximum EM iterations per start (default 500).</li>
+<li><strong>tol</strong> (float, optional):
+EM stops when the log-likelihood improves by less than <code>tol</code> (default <code>1e-8</code>).</li>
+<li><strong>n_starts</strong> (int, optional):
+Number of random starts (default 10); the best by log-likelihood is returned.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator for the starts (keyword-only).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>MarkovSwitchingResult</strong>: The fitted parameters, filtered/smoothed probabilities and the EM diagnostics.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>k_regimes &lt; 2</code> or <code>n_starts &lt; 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fit_volatility_model">
                     <div class="attr function">
             
@@ -723,6 +1136,78 @@ The specification to fit (default <code>"GARCH"</code>).</li>
 
 <ul>
 <li><strong>ImportError</strong>: If the optional <code>arch</code> dependency is not installed.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="hamilton_filter">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">hamilton_filter</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">means</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variances</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">transition_matrix</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">initial</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#HamiltonFilterResult">HamiltonFilterResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#hamilton_filter"></a>
+    
+            <div class="docstring"><p>Hamilton (1989) forward filter for a Gaussian Markov-switching model.</p>
+
+<p>For each <code>t</code> the filter combines the one-step prediction with the new observation's
+likelihood under each regime, returning the filtered probabilities and accumulating the
+log-likelihood — the object EM maximises and the input to the smoother.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The observed series.</li>
+<li><strong>means, variances</strong> (ndarray, shape (K,)):
+The regime means and (strictly positive) variances.</li>
+<li><strong>transition_matrix</strong> (ndarray, shape (K, K)):
+Row-stochastic transition matrix <code>P[i, j] = P(s_t = j | s_{t-1} = i)</code>.</li>
+<li><strong>initial</strong> (ndarray, shape (K,), optional):
+The initial state distribution at <code>t = 0</code>. Defaults to the chain's stationary
+distribution.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>HamiltonFilterResult</strong>: The filtered and predicted probabilities and the log-likelihood.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="kim_smoother">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">kim_smoother</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">filtered</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">predicted</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">transition_matrix</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#kim_smoother"></a>
+    
+            <div class="docstring"><p>Kim (1994) backward smoother giving \( P(s_t = k \mid y_{1:T}) \).</p>
+
+<p>Refines each filtered distribution using the whole sample by a single backward pass over the
+output of <code><a href="#hamilton_filter">hamilton_filter()</a></code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>filtered, predicted</strong> (ndarray, shape (T, K)):
+The filtered and predicted probabilities from <code><a href="#hamilton_filter">hamilton_filter()</a></code>.</li>
+<li><strong>transition_matrix</strong> (ndarray, shape (K, K)):
+The same row-stochastic transition matrix used in the filter.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T, K)</strong>: The smoothed state probabilities.</li>
 </ul>
 </div>
 
@@ -1016,6 +1501,55 @@ Seeded generator (keyword-only).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="simulate_markov_switching">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">simulate_markov_switching</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">means</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variances</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">transition_matrix</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">initial_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#simulate_markov_switching"></a>
+    
+            <div class="docstring"><p>Simulate a Gaussian Markov regime-switching series, returning the hidden states.</p>
+
+<p>A latent state \( s_t \) follows a Markov chain with transition matrix
+<code>P[i, j] = P(s_t = j | s_{t-1} = i)</code>, and each observation is drawn
+\( y_t \sim N(\mu_{s_t}, \sigma^2_{s_t}) \). Returning the true state path is what makes the
+known-truth validation possible: a fitted model must recover the parameters <em>and</em> classify each
+observation into the regime it was actually generated from.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations.</li>
+<li><strong>means, variances</strong> (ndarray, shape (K,)):
+The per-regime means and (positive) variances.</li>
+<li><strong>transition_matrix</strong> (ndarray, shape (K, K)):
+Row-stochastic transition matrix.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>initial_state</strong> (int, optional):
+The state at <code>t = 0</code> (default 0).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, states)</code> — the observed series and the integer hidden-state path, each of
+length <code>n</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>transition_matrix</code> is not square with matching dimensions.</li>
 </ul>
 </div>
 
