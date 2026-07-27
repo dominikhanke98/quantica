@@ -215,3 +215,26 @@ End **every** working session with:
 3. **Commit coherently** — small, meaningful commits (§6), including the `PROGRESS.md` update, so the next session resumes from a clean, described state.
 
 `PROGRESS.md` is the transient session ledger; this file (`CLAUDE.md`) remains the durable brief. When they disagree, `CLAUDE.md` wins.
+
+---
+
+## 12. `fEGarch` clean-room port (standing rule)
+
+`quantica` is undertaking a **clean-room Python reimplementation of the `fEGarch` R package's model
+family** (a broad EGARCH-type family with long-memory / fractionally-integrated members), as a
+planned sub-project within **Pillar V**. Two non-negotiable rules govern it:
+
+- **Clean-room from specifications only.** Implement **exclusively** from the mathematical
+  specifications — the `fEGarch` reference manual and the cited academic papers — and **NEVER** from
+  `fEGarch`'s source code (do not read, transcribe, translate, or paraphrase it). `fEGarch` is
+  **GPL-3**; `quantica` is **MIT**. A clean-room reimplementation from specs is *required* to keep the
+  license clean — deriving from the GPL source would virally impose GPL terms on the repo. Any
+  behavioural detail not pinned by the manual/papers is resolved by matching the validation fixtures
+  and documenting the inferred convention, **not** by inspecting the source.
+- **Fixture-based validation, no R in CI.** Each ported model is validated against **committed
+  `fEGarch` output fixtures** — reference estimates / conditional-SD paths / log-likelihoods /
+  forecasts generated **once** in R on committed seeded inputs, then checked in. R is never a
+  dependency of `quantica` or its CI; the tests compare the reimplementation to the frozen fixtures
+  within stated tolerances (same discipline as the QuantLib benchmark group).
+
+Full plan, phase sequence, prerequisites, and references: **`docs/fegarch-port-roadmap.md`**.
