@@ -51,6 +51,60 @@
             <h2>API Documentation</h2>
                 <ul class="memberlist">
             <li>
+                    <a class="class" href="#DccCovariance">DccCovariance</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#DccCovariance.name">name</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#DccCovariance.estimate">estimate</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#DccResult">DccResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#DccResult.__init__">DccResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.a">a</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.b">b</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.unconditional_correlation">unconditional_correlation</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.conditional_correlations">conditional_correlations</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.conditional_covariances">conditional_covariances</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.univariate_volatility">univariate_volatility</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.standardized_residuals">standardized_residuals</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.forecast_correlation">forecast_correlation</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.forecast_volatility">forecast_volatility</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#DccResult.loglikelihood">loglikelihood</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#DccResult.forecast_covariance">forecast_covariance</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#DieboldMarianoResult">DieboldMarianoResult</a>
                             <ul class="memberlist">
                         <li>
@@ -189,6 +243,42 @@
 
             </li>
             <li>
+                    <a class="class" href="#VecmResult">VecmResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#VecmResult.__init__">VecmResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.rank">rank</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.alpha">alpha</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.beta">beta</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.gamma">gamma</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.intercept">intercept</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.eigenvalues">eigenvalues</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.k_ar_diff">k_ar_diff</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VecmResult.long_run_matrix">long_run_matrix</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#VecmResult.hedge_ratio">hedge_ratio</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#VolatilityFit">VolatilityFit</a>
                             <ul class="memberlist">
                         <li>
@@ -222,7 +312,13 @@
                     <a class="function" href="#diebold_mariano">diebold_mariano</a>
             </li>
             <li>
+                    <a class="function" href="#fit_dcc">fit_dcc</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_markov_switching">fit_markov_switching</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_vecm">fit_vecm</a>
             </li>
             <li>
                     <a class="function" href="#fit_volatility_model">fit_volatility_model</a>
@@ -246,6 +342,12 @@
                     <a class="function" href="#rolling_forecast">rolling_forecast</a>
             </li>
             <li>
+                    <a class="function" href="#select_cointegration_rank">select_cointegration_rank</a>
+            </li>
+            <li>
+                    <a class="function" href="#simulate_dcc">simulate_dcc</a>
+            </li>
+            <li>
                     <a class="function" href="#simulate_garch">simulate_garch</a>
             </li>
             <li>
@@ -253,6 +355,9 @@
             </li>
             <li>
                     <a class="function" href="#simulate_markov_switching">simulate_markov_switching</a>
+            </li>
+            <li>
+                    <a class="function" href="#simulate_vecm">simulate_vecm</a>
             </li>
     </ul>
 
@@ -291,9 +396,13 @@ proxy), and the <strong>Mincer--Zarnowitz</strong> forecast-efficiency regressio
 <li><strong>Regime-switching</strong> (<code>~<a href="timeseries/regime.html">quantica.timeseries.regime</a></code>) — a Gaussian Markov-switching model
 (calm vs crisis) with the hand-implemented <strong>Hamilton filter</strong>, <strong>Kim smoother</strong> and <strong>EM</strong>
 estimation, recovering the hidden volatility regimes a market moves between.</li>
+<li><strong>Multivariate</strong> — the <strong>VECM</strong> (<code>~<a href="timeseries/vecm.html">quantica.timeseries.vecm</a></code>), the multivariate
+generalisation of pairwise cointegration (Johansen reduced-rank estimation), and <strong>DCC-GARCH</strong>
+(<code>~<a href="timeseries/dcc.html">quantica.timeseries.dcc</a></code>), a time-varying conditional covariance that feeds straight into
+the portfolio and risk pillars as a drop-in covariance estimator.</li>
 <li><strong>Synthetic data</strong> (<code>~<a href="timeseries/data.html">quantica.timeseries.data</a></code>) — known-parameter GARCH/GJR/EGARCH paths,
-serially-correlated loss differentials and Markov-switching series with their hidden states, the
-ground truth for validating the estimation and the evaluation statistics themselves.</li>
+serially-correlated loss differentials, Markov-switching series with their hidden states, and
+known VECM/DCC systems, the ground truth for validating the estimation and the statistics.</li>
 </ul>
 
 <p>The headline is <em>validate-the-validator</em>: on data with a known truth, the Diebold--Mariano test
@@ -306,6 +415,253 @@ forecasts.</p>
                 
                 
             </section>
+                <section id="DccCovariance">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">DccCovariance</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#DccCovariance"></a>
+    
+            <div class="docstring"><p>DCC one-step-ahead covariance as a drop-in <code>~<a href="factor.html#CovarianceEstimator">quantica.factor.CovarianceEstimator</a></code>.</p>
+
+<p>Fits DCC on a training panel and returns its one-step-ahead conditional covariance forecast —
+the cross-pillar tie-back that lets the econometrics pillar's dynamic covariance compete against
+the static estimators (sample, Ledoit--Wolf, factor) inside the factor pillar's out-of-sample
+comparison harness.</p>
+</div>
+
+
+                            <div id="DccCovariance.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span>        =
+<span class="default_value">&#39;dcc&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccCovariance.name"></a>
+    
+    
+
+                            </div>
+                            <div id="DccCovariance.estimate" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">estimate</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">asset_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">factor_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccCovariance.estimate"></a>
+    
+            <div class="docstring"><p>Return DCC's one-step-ahead covariance forecast for the panel.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>asset_returns</strong> (ndarray, shape (T, n)):
+The training return panel.</li>
+<li><strong>factor_returns</strong> (ndarray, optional):
+Unused; accepted for interface compatibility with <code>CovarianceEstimator</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n, n)</strong>: The one-step-ahead conditional covariance (native units).</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="DccResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">DccResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult"></a>
+    
+            <div class="docstring"><p>A fitted DCC-GARCH model producing a time-varying covariance matrix.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>a, b</strong> (float):
+The DCC correlation parameters (<code><a href="#DccResult.a">a</a></code> news impact, <code><a href="#DccResult.b">b</a></code> persistence; <code>a + b &lt; 1</code>).</li>
+<li><strong>unconditional_correlation</strong> (ndarray, shape (n, n)):
+The target correlation \( \bar Q \) (the sample correlation of the standardised resids).</li>
+<li><strong>conditional_correlations</strong> (ndarray, shape (T, n, n)):
+The in-sample conditional correlation path \( R_t \).</li>
+<li><strong>conditional_covariances</strong> (ndarray, shape (T, n, n)):
+The in-sample conditional covariance path \( H_t = D_t R_t D_t \) (native return units).</li>
+<li><strong>univariate_volatility</strong> (ndarray, shape (T, n)):
+Each asset's conditional volatility \( \sigma_{i,t} \) (native units).</li>
+<li><strong>standardized_residuals</strong> (ndarray, shape (T, n)):
+The standardised residuals \( z_{i,t} \) fed to the correlation recursion.</li>
+<li><strong>forecast_correlation</strong> (ndarray, shape (n, n)):
+The one-step-ahead correlation forecast \( R_{T+1} \).</li>
+<li><strong>forecast_volatility</strong> (ndarray, shape (n,)):
+The one-step-ahead volatility forecast \( \sigma_{i,T+1} \) (native units).</li>
+<li><strong>loglikelihood</strong> (float):
+The maximised DCC (correlation-stage) quasi-log-likelihood.</li>
+</ul>
+</div>
+
+
+                            <div id="DccResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">DccResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">a</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">b</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">unconditional_correlation</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">conditional_correlations</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">conditional_covariances</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">univariate_volatility</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">standardized_residuals</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">forecast_correlation</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">forecast_volatility</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.a" class="classattr">
+                                <div class="attr variable">
+            <span class="name">a</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.a"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.b" class="classattr">
+                                <div class="attr variable">
+            <span class="name">b</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.b"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.unconditional_correlation" class="classattr">
+                                <div class="attr variable">
+            <span class="name">unconditional_correlation</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.unconditional_correlation"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.conditional_correlations" class="classattr">
+                                <div class="attr variable">
+            <span class="name">conditional_correlations</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.conditional_correlations"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.conditional_covariances" class="classattr">
+                                <div class="attr variable">
+            <span class="name">conditional_covariances</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.conditional_covariances"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.univariate_volatility" class="classattr">
+                                <div class="attr variable">
+            <span class="name">univariate_volatility</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.univariate_volatility"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.standardized_residuals" class="classattr">
+                                <div class="attr variable">
+            <span class="name">standardized_residuals</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.standardized_residuals"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.forecast_correlation" class="classattr">
+                                <div class="attr variable">
+            <span class="name">forecast_correlation</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.forecast_correlation"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.forecast_volatility" class="classattr">
+                                <div class="attr variable">
+            <span class="name">forecast_volatility</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.forecast_volatility"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.loglikelihood" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.loglikelihood"></a>
+    
+    
+
+                            </div>
+                            <div id="DccResult.forecast_covariance" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">forecast_covariance</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#DccResult.forecast_covariance"></a>
+    
+            <div class="docstring"><p>The one-step-ahead conditional covariance \( H_{T+1} = D_{T+1} R_{T+1} D_{T+1} \).</p>
+
+<p>This is the object the portfolio and risk pillars consume — a forward covariance forecast
+conditioned on everything observed through <code>T</code>.</p>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n, n)</strong>: The one-step covariance forecast in native return units.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
                 <section id="DieboldMarianoResult">
                     <div class="attr class">
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
@@ -879,6 +1235,174 @@ The regression \( R^2 \).</li>
 
                             </div>
                 </section>
+                <section id="VecmResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">VecmResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult"></a>
+    
+            <div class="docstring"><p>A fitted Vector Error Correction Model.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>rank</strong> (int):
+The cointegration rank \( r \) used for the fit.</li>
+<li><strong>alpha</strong> (ndarray, shape (n, r)):
+Adjustment/loading matrix — how fast each series corrects toward the long-run relations.</li>
+<li><strong>beta</strong> (ndarray, shape (n, r)):
+Cointegrating vectors (columns), normalised so the leading <code>r x r</code> block is the identity
+(Phillips normalisation), matching <code>statsmodels</code>.</li>
+<li><strong>gamma</strong> (ndarray, shape (n, n*k)):
+Short-run dynamics: the stacked \( [\Gamma_1, \dots, \Gamma_k] \) coefficient matrices.</li>
+<li><strong>intercept</strong> (ndarray, shape (n,)):
+The fitted constant (zeros when <code>deterministic="n"</code>).</li>
+<li><strong>eigenvalues</strong> (ndarray, shape (n,)):
+The Johansen eigenvalues (descending); the leading <code>r</code> drive the cointegration.</li>
+<li><strong>k_ar_diff</strong> (int):
+Number of lagged differences used.</li>
+</ul>
+</div>
+
+
+                            <div id="VecmResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">VecmResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">rank</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">alpha</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">beta</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">intercept</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">eigenvalues</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">k_ar_diff</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.rank" class="classattr">
+                                <div class="attr variable">
+            <span class="name">rank</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.rank"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.alpha" class="classattr">
+                                <div class="attr variable">
+            <span class="name">alpha</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.alpha"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.beta" class="classattr">
+                                <div class="attr variable">
+            <span class="name">beta</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.beta"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.gamma" class="classattr">
+                                <div class="attr variable">
+            <span class="name">gamma</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.gamma"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.intercept" class="classattr">
+                                <div class="attr variable">
+            <span class="name">intercept</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.intercept"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.eigenvalues" class="classattr">
+                                <div class="attr variable">
+            <span class="name">eigenvalues</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.eigenvalues"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.k_ar_diff" class="classattr">
+                                <div class="attr variable">
+            <span class="name">k_ar_diff</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.k_ar_diff"></a>
+    
+    
+
+                            </div>
+                            <div id="VecmResult.long_run_matrix" class="classattr">
+                                <div class="attr variable">
+            <span class="name">long_run_matrix</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.long_run_matrix"></a>
+    
+            <div class="docstring"><p>The long-run impact matrix \( \Pi = \alpha\beta' \) (normalisation-invariant).</p>
+</div>
+
+
+                            </div>
+                            <div id="VecmResult.hedge_ratio" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">hedge_ratio</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#VecmResult.hedge_ratio"></a>
+    
+            <div class="docstring"><p>For a bivariate rank-1 system, the pairwise hedge ratio \( -\beta_2/\beta_1 \).</p>
+
+<p>With <code><a href="#VecmResult.beta">beta</a></code> Phillips-normalised (<code>beta[0] = 1</code>) this is <code>-beta[1, 0]</code> — the same
+cointegrating hedge ratio the stat-arb pillar estimates for a pair, the reduction anchor.</p>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The hedge ratio of the second series on the first.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If the system is not bivariate with rank 1.</li>
+</ul>
+</div>
+
+
+                            </div>
+                </section>
                 <section id="VolatilityFit">
                     <div class="attr class">
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
@@ -1052,6 +1576,46 @@ Truncation lag for the HAC estimator. Defaults to the automatic rule
 
 
                 </section>
+                <section id="fit_dcc">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_dcc</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">a_init</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span>,</span><span class="param">	<span class="n">b_init</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span></span><span class="return-annotation">) -> <span class="n"><a href="#DccResult">DccResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_dcc"></a>
+    
+            <div class="docstring"><p>Fit a DCC-GARCH model: univariate GARCH per asset, then a dynamic correlation.</p>
+
+<p>Each column is fitted with a GARCH(1,1) (reusing
+<code>~<a href="#fit_volatility_model">quantica.timeseries.fit_volatility_model()</a></code>); the standardised residuals drive the DCC
+correlation recursion whose \( (a, b) \) are estimated by maximising the quasi-likelihood.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T, n)):
+The asset return panel, in native units (scaled internally to percent for the GARCH fits).</li>
+<li><strong>a_init, b_init</strong> (float, optional):
+Starting values for the news-impact and persistence parameters.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>DccResult</strong>: The fitted parameters and the in-sample / one-step-ahead conditional covariances.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>returns</code> is not a 2-D panel with at least two assets.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fit_markov_switching">
                     <div class="attr function">
             
@@ -1100,6 +1664,51 @@ Seeded generator for the starts (keyword-only).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>k_regimes &lt; 2</code> or <code>n_starts &lt; 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_vecm">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_vecm</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">data</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rank</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">k_ar_diff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">deterministic</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;co&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#VecmResult">VecmResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_vecm"></a>
+    
+            <div class="docstring"><p>Fit a VECM by Johansen reduced-rank regression (hand-implemented).</p>
+
+<p>Estimates \( \alpha \), \( \beta \), the short-run \( \Gamma_i \) and an optional constant
+for a system of cointegration <code>rank</code>. The cointegrating vectors are the leading eigenvectors
+of the reduced-rank problem; the loadings and short-run terms follow in closed form.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>data</strong> (ndarray, shape (T, n)):
+The level series (columns are the series).</li>
+<li><strong>rank</strong> (int):
+The cointegration rank \( r \) (<code>0 &lt; r &lt; n</code>); typically from
+<code><a href="#select_cointegration_rank">select_cointegration_rank()</a></code>.</li>
+<li><strong>k_ar_diff</strong> (int, optional):
+Number of lagged differences \( k \) in the VECM (default 1).</li>
+<li><strong>deterministic</strong> ({"co", "n"}, optional):
+<code>"co"</code> includes a constant inside the short-run dynamics (default); <code>"n"</code> excludes it.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>VecmResult</strong>: The fitted matrices and eigenvalues.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>rank</code> is not in <code>1 .. n-1</code> or there are too few observations.</li>
 </ul>
 </div>
 
@@ -1385,6 +1994,89 @@ rolling window.</li>
 
 
                 </section>
+                <section id="select_cointegration_rank">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">select_cointegration_rank</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">data</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">k_ar_diff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">det_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>,</span><span class="param">	<span class="n">significance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span></span><span class="return-annotation">) -> <span class="nb">int</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#select_cointegration_rank"></a>
+    
+            <div class="docstring"><p>Select the cointegration rank by the Johansen trace test (reuses the stat-arb Johansen).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>data</strong> (ndarray, shape (T, n)):
+The level series (columns are the individual \( I(1) \) series).</li>
+<li><strong>k_ar_diff</strong> (int, optional):
+Number of lagged differences in the VECM (default 1).</li>
+<li><strong>det_order</strong> (int, optional):
+Deterministic assumption passed to Johansen: <code>-1</code> none, <code>0</code> constant, <code>1</code> trend
+(default 0).</li>
+<li><strong>significance</strong> ({0.10, 0.05, 0.01}, optional):
+Test level (default 0.05).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>int</strong>: The estimated number of cointegrating relations, <code>0 .. n</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="simulate_dcc">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">simulate_dcc</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">a</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">b</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">unconditional_correlation</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#simulate_dcc"></a>
+    
+            <div class="docstring"><p>Simulate a DCC return panel with unit variances, returning the true correlation path.</p>
+
+<p>Runs the DCC correlation recursion \( Q_t = (1-a-b)\bar Q + a z_{t-1}z_{t-1}' + b Q_{t-1} \)
+with standard-normal innovations and unit conditional variances (so the correlation dynamics are
+isolated from the univariate GARCH). The returned correlation path is the ground truth for
+validating that a DCC fit recovers the <em>time-varying</em> correlation.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>a, b</strong> (float):
+DCC news-impact and persistence parameters (<code>a, b &gt;= 0</code>, <code>a + b &lt; 1</code>).</li>
+<li><strong>unconditional_correlation</strong> (ndarray, shape (k, k)):
+The target correlation \( \bar Q \).</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, correlation_path)</code> — the <code>(n, k)</code> returns and the <code>(n,)</code> true off-diagonal
+correlation \( R_{t,01} \) (for a bivariate system) at each returned time.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>a + b &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="simulate_garch">
                     <div class="attr function">
             
@@ -1550,6 +2242,59 @@ length <code>n</code>.</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>transition_matrix</code> is not square with matching dimensions.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="simulate_vecm">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">simulate_vecm</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">alpha</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">beta</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#simulate_vecm"></a>
+    
+            <div class="docstring"><p>Simulate an \( n \)-series system from a known Vector Error Correction Model.</p>
+
+<p>Generates levels from :math:`\Delta y_t = \alpha\beta' y_{t-1} + \Gamma\,\Delta y_{t-1}</p>
+
+<ul>
+<li>\varepsilon_t` with \( \varepsilon_t \sim N(0, \sigma^2 I) \). The planted cointegrating
+vectors <code>beta</code> and loadings <code>alpha</code> are the ground truth for rank and coefficient recovery.</li>
+</ul>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>alpha</strong> (ndarray, shape (k, r)):
+Adjustment/loading matrix (<code>k</code> series, <code>r</code> cointegrating relations).</li>
+<li><strong>beta</strong> (ndarray, shape (k, r)):
+Cointegrating vectors (columns); each \( \beta'y \) is stationary by construction.</li>
+<li><strong>gamma</strong> (ndarray, shape (k, k), optional):
+Short-run dynamics on the lagged difference (default none — a pure error-correction VECM).</li>
+<li><strong>sigma</strong> (float, optional):
+Innovation standard deviation (default 1).</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 200).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n, k)</strong>: The simulated level series (columns are the individual series).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>alpha</code>/<code>beta</code> shapes disagree.</li>
 </ul>
 </div>
 
