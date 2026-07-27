@@ -82,15 +82,22 @@ in CLAUDE.md §12. **Decided (not open):** implement **clean-room from the mathe
 specifications** (reference manual + cited papers), **never** from `fEGarch`'s GPL-3 source
 (`quantica` is MIT — a clean-room port keeps the license clean); validate each model against
 **committed `fEGarch` output fixtures** generated once in R on seeded inputs (**no R in CI**), within
-stated tolerances. **Three prerequisites (before any code — from the roadmap's "three decisions"):**
-(1) **coauthor attribution / positioning** — agree with the coauthor (Dominik Schulz) how the port is
-framed and credited (it's their published research); (2) **license check** — confirm the GPL-3 ↔ MIT
-boundary and the clean-room-from-specs approach (recorded in CLAUDE.md §12); (3) **benchmarking
-infrastructure** — the R-fixture pipeline (fit `fEGarch` once on fixed inputs, export params /
-conditional variances / forecasts / VaR-ES as committed fixtures; no R in CI) and its tolerance
-policy. **Three load-bearing foundations everything reuses:** the conditional-distribution layer, the
+stated tolerances. **⚠ BLOCKING HUMAN GATE before Phase 0 — do NOT start Phase 0 until this is
+done:** the **coauthor conversation with Dominik Schulz** must happen first. It settles two things a
+future session cannot proceed without: (a) **attribution / framing** — how the port is credited and
+positioned (it's their published research), and (b) **sourcing the exact specification papers** for
+each model's parameterizations (the *only* permitted implementation inputs under the clean-room rule;
+Phase 0's distributions/QMLE conventions must come from these, not from guesswork or the GPL source).
+A future session must confirm this conversation has happened before writing any Phase 0 code.
+**Three prerequisites (before any code — from the roadmap's "three decisions"):** (1) **coauthor
+attribution / positioning + spec-paper sourcing** — the blocking human gate above (Dominik Schulz);
+(2) **license check** — confirm the GPL-3 ↔ MIT boundary and the clean-room-from-specs approach
+(recorded in CLAUDE.md §12); (3) **benchmarking infrastructure** — the R-fixture pipeline (fit
+`fEGarch` once on fixed inputs, export params / conditional variances / forecasts / VaR-ES as
+committed fixtures; no R in CI) and its tolerance policy. **Three load-bearing foundations everything reuses:** the conditional-distribution layer, the
 QMLE engine, and the fractional-differencing `(1−L)^d` operator. **Phase sequence:** **Phase 0 —
-foundations (conditional distributions + QMLE engine) ← NEXT STEP** → Phase 1 short-memory foundation
+foundations (conditional distributions + QMLE engine) ← the next BUILD step, but GATED by the
+coauthor conversation above** → Phase 1 short-memory foundation
 (GARCH / GJR / TGARCH / APARCH) → Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) →
 Phase 3 fractional-differencing engine (the crux, tested in isolation) → Phase 4 long-memory models
 (FIGARCH…, then FIEGARCH / FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean
@@ -918,8 +925,10 @@ ones. Clean-room-from-specs and fixture-based validation are **settled** and not
   Ledoit–Wolf shrinkage OOS — the extra parameters' estimation noise eats the benefit at small n/T
   (the factor-stage-2 estimation-error lesson); the *coherence* (one pillar's output = another's
   input) is the deliverable. Gate green: 1079 tests (+11), ruff + mypy + interrogate(100%) clean.
-  Delivered on branch `feat/timeseries-multivariate` as a **PR — open, awaiting review** (not yet
-  merged; the merge is left to the author). **Pillar V COMPLETE.**
+  Delivered on branch `feat/timeseries-multivariate` as **PR #14 — merged `3bfef2c`** (branch first
+  updated by merging `main` in, to bring in the fEGarch port docs `5c9b614`; CI re-confirmed green;
+  main synced, branch deleted). **Pillar V COMPLETE** (GARCH + forecast evaluation → regime-switching
+  → multivariate).
 
 ## Next — optional depth only (planned scope is done)
 
@@ -964,9 +973,13 @@ tridiagonal LCP solve); the FRTB expected-shortfall capital charge at 97.5% (liq
 scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the apps' capital-markets tab; a
 thin rates tab in the app (curve/forwards, short-rate fits, a cap/swaption vol-calibration view).
 **Pillar V (time series) is now COMPLETE** — GARCH+eval, regime-switching and multivariate
-(VECM + DCC) are all done. Possible further depth (none blocking): BEKK/GO-GARCH multivariate
-volatility, a higher-frequency DCC demonstration where the dynamic covariance actually beats static
-OOS, or wiring DCC into the risk pillar's VaR engines as an explicit covariance source.
+(VECM + DCC) are all done. The **next planned build is the `fEGarch` clean-room port** (Phase 0:
+conditional distributions + QMLE engine) — a sub-project within Pillar V, recorded above and in
+[`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md); **it is gated by a human step (the
+coauthor conversation with Dominik Schulz) — do not start Phase 0 until that is done.** Other
+optional depth (none blocking): BEKK/GO-GARCH multivariate volatility, a higher-frequency DCC
+demonstration where the dynamic covariance actually beats static OOS, or wiring DCC into the risk
+pillar's VaR engines as an explicit covariance source.
 
 **Tool-gap logged (step 20) — no reference library for HAC-corrected forecast evaluation.** The
 forecast-evaluation statistics (Diebold–Mariano with a Newey–West long-run variance, QLIKE, the
