@@ -68,6 +68,32 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
 **FRTB P&L attribution ✓** (IMA-eligibility test reusing the derivatives-risk P&L).
 **The risk pillar's planned model families are complete.**
 
+**`fEGarch` clean-room port (planned sub-project within Pillar V).** A Python reimplementation of the
+`fEGarch` R package's model family (Schulz, Feng et al., Paderborn — v1.0.6, GPL-3): a broad
+EGARCH-type family with **long-memory / fractionally-integrated** members (FIEGARCH / FILog-GARCH /
+FIMLog-GARCH) that no mainstream Python library offers. **Docs/planning only so far — no model code
+yet.** Full roadmap in [`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md); standing rules
+in CLAUDE.md §12. **Decided (not open):** implement **clean-room from the mathematical
+specifications** (reference manual + cited papers), **never** from `fEGarch`'s GPL-3 source
+(`quantica` is MIT — a clean-room port keeps the license clean); validate each model against
+**committed `fEGarch` output fixtures** generated once in R on seeded inputs (**no R in CI**), within
+stated tolerances. **Three prerequisites (before any code — from the roadmap's "three decisions"):**
+(1) **coauthor attribution / positioning** — agree with the coauthor (Dominik Schulz) how the port is
+framed and credited (it's their published research); (2) **license check** — confirm the GPL-3 ↔ MIT
+boundary and the clean-room-from-specs approach (recorded in CLAUDE.md §12); (3) **benchmarking
+infrastructure** — the R-fixture pipeline (fit `fEGarch` once on fixed inputs, export params /
+conditional variances / forecasts / VaR-ES as committed fixtures; no R in CI) and its tolerance
+policy. **Three load-bearing foundations everything reuses:** the conditional-distribution layer, the
+QMLE engine, and the fractional-differencing `(1−L)^d` operator. **Phase sequence:** **Phase 0 —
+foundations (conditional distributions + QMLE engine) ← NEXT STEP** → Phase 1 short-memory foundation
+(GARCH / GJR / TGARCH / APARCH) → Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) →
+Phase 3 fractional-differencing engine (the crux, tested in isolation) → Phase 4 long-memory models
+(FIGARCH…, then FIEGARCH / FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean
+(ARMA / FARIMA mean + GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the
+existing risk pillar's VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial
+scale. Realistic size: ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing
+ones. Clean-room-from-specs and fixture-based validation are **settled** and not for relitigation.
+
 ## Completed
 
 - **Project skeleton** — packaging (`pyproject.toml`), ruff + mypy + pytest
