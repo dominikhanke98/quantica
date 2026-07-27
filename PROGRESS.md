@@ -20,11 +20,13 @@ the portfolio pillar was missing. A **fourth pillar — rates / fixed income** i
 **complete end-to-end** (steps 17–19: yield-curve construction → short-rate models →
 interest-rate products), the first non-equity asset class in the repo — curve → short-rate
 models → swaps/caps/swaptions, with Hull–White vol calibration finally identifying the σ the
-curve could not. A **fifth pillar — time series / econometrics** is now **building** (step 20:
+curve could not. A **fifth pillar — time series / econometrics** is now **complete end-to-end** (step 20:
 GARCH-family volatility modelling + the forecast-evaluation layer, forecast-evaluation-first around
 the Diebold–Mariano/HAC test; step 21: Markov regime-switching — hand-written Hamilton filter / Kim
-smoother / EM, recovering planted regimes and detecting the 2008 crisis). Next: optional depth only
-— see "Next".
+smoother / EM, recovering planted regimes and detecting the 2008 crisis; step 22: multivariate —
+VECM generalising pairwise cointegration and DCC-GARCH producing a time-varying covariance that
+feeds the portfolio/risk pillars, the cross-pillar coherence payoff). Next: optional depth only —
+see "Next".
 
 Capital-markets roadmap: **multi-factor risk model — stage 1 ✓** (exposures +
 decomposition + Σ = BFBᵀ + D) → **stage 2 ✓** (OOS estimator comparison: sample vs
@@ -48,15 +50,18 @@ Jamshidian, HW vol calibration — PR #11 merged `f430ac4`), where the volatilit
 identified from the curve (convexity-only) — is finally pinned down from the vol surface.
 **Pillar IV closes the curve → short-rate models → products arc.**
 
-Time-series / econometrics roadmap (**Pillar V — new, forecast-evaluation-first**): **GARCH
+Time-series / econometrics roadmap (**Pillar V — forecast-evaluation-first, COMPLETE**): **GARCH
 volatility + forecast evaluation ✓** (GARCH / GJR / EGARCH via `arch`, rolling OOS forecasts, and
 the deliverable evaluation layer — Diebold–Mariano with HAC/Newey–West, QLIKE/MSE, Mincer–Zarnowitz
 — PR #12 merged `7ce1dee`) → **regime-switching ✓** (Gaussian Markov-switching — hand-written
 Hamilton filter / Kim smoother / EM, known-truth state recovery + real 2008-crisis detection —
-PR open) → **multivariate volatility & VECM** (DCC / BEKK, cointegrated VAR — later). The GARCH-step
-headline is *validate-the-validator* (the DM test is correctly sized only with HAC); the
-regime-switching headline is *known-truth state recovery* (the filter+EM recover planted regimes and
-classify the hidden states, anchored to statsmodels' `MarkovRegression` at ~1e-15).
+PR #13 merged `b1d2348`) → **multivariate ✓** (VECM via Johansen reduced-rank generalising pairwise
+cointegration; DCC-GARCH time-varying covariance feeding the portfolio/risk pillars — PR open). The
+GARCH-step headline is *validate-the-validator* (the DM test is correctly sized only with HAC); the
+regime-switching headline is *known-truth state recovery* (filter+EM recover planted regimes,
+anchored to statsmodels' `MarkovRegression` at ~1e-15); the multivariate headline is the
+**cross-pillar tie-back** (DCC's conditional covariance is exactly what the portfolio/risk pillars
+consume — one pillar's output is another's validated input). **Pillar V closes the econometrics arc.**
 
 Phase-4 roadmap: **American ✓** → **LSM ✓** → **exotics ✓** → **Heston pricer ✓**
 → **Heston calibration ✓** → **Merton jump-diffusion ✓** → **autocallable note ✓**.
@@ -862,8 +867,33 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
   recovery table + **real-data regime ID where the crisis state hits 0.84 in 2008, ~0 in 2006/2017**
   (calm ~11% vol / crisis ~29% vol, both persistent) → embedded in README, with the honest
   identification-fragility caveat. Gate green: 1068 tests (+9), ruff + mypy + interrogate(100%)
-  clean. Delivered on branch `feat/timeseries-regime` as a **PR — open, awaiting review** (not yet
-  merged; the merge is left to the author).
+  clean. Delivered on branch `feat/timeseries-regime` as **PR #13 — merged `b1d2348`** (main synced,
+  branch deleted).
+
+- **Step 22 — Pillar V step 3: multivariate time series (VECM + DCC-GARCH), econometrics arc closed.**
+  New `quantica/timeseries/vecm.py` + `dcc.py`, and `simulate_vecm`/`simulate_dcc` in `data.py`.
+  **Scope discipline held**: the estimation logic is hand-implemented; statsmodels/numpy are the
+  plumbing/anchor. **VECM** — the multivariate generalisation of the stat-arb pillar's pairwise
+  cointegration: rank via the existing `johansen` (`select_cointegration_rank`), then a hand-written
+  Johansen **reduced-rank regression** (concentrate out lagged diffs → moment matrices → eigenproblem
+  → Phillips-normalised β, α = S01 β (β'S11β)⁻¹, short-run Γ + constant by OLS). **DCC-GARCH** —
+  univariate GARCH per asset (reusing `fit_volatility_model`) → standardised residuals → Engle's
+  dynamic-correlation recursion `Q_t=(1−a−b)Q̄+a z z'+b Q_{t-1}` with (a,b) by quasi-MLE (`scipy`
+  Nelder–Mead), giving a time-varying `H_t=D_t R_t D_t` and a one-step-ahead covariance forecast.
+  **The cross-pillar tie-back**: `DccCovariance` wraps that forecast as a factor-pillar
+  `CovarianceEstimator`, so DCC feeds the *existing* stage-2 OOS comparison harness / min-variance
+  machinery directly. Validated (`tests/timeseries/`, +11): **known-truth VECM recovery** (rank,
+  β, α, Π), **α/β vs statsmodels VECM to 1e-8**, **n=2 reduces to the Engle–Granger hedge ratio**;
+  **known-truth DCC** (a,b + correlation-path tracking, path-corr ~1.0), **positive-definiteness of
+  every H_t asserted**, **CCC reduction** (a=b=0 ⇒ constant correlation), and the **tie-back runs
+  through `compare_estimators`**. Report `scripts/timeseries_multivariate_report.py` (no network —
+  committed FF sample): VECM recovery, DCC correlation, and the DCC-vs-static OOS table → embedded in
+  README. **Honest finding reported straight**: on the monthly FF universe DCC does *not* beat
+  Ledoit–Wolf shrinkage OOS — the extra parameters' estimation noise eats the benefit at small n/T
+  (the factor-stage-2 estimation-error lesson); the *coherence* (one pillar's output = another's
+  input) is the deliverable. Gate green: 1079 tests (+11), ruff + mypy + interrogate(100%) clean.
+  Delivered on branch `feat/timeseries-multivariate` as a **PR — open, awaiting review** (not yet
+  merged; the merge is left to the author). **Pillar V COMPLETE.**
 
 ## Next — optional depth only (planned scope is done)
 
@@ -907,8 +937,10 @@ Remaining optional build items (none started, none blocking): **the rates pillar
 tridiagonal LCP solve); the FRTB expected-shortfall capital charge at 97.5% (liquidity-horizon
 scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the apps' capital-markets tab; a
 thin rates tab in the app (curve/forwards, short-rate fits, a cap/swaption vol-calibration view).
-**Pillar V (time series) is now building** — GARCH+eval and regime-switching are done; the next
-step is multivariate volatility / VECM (DCC/BEKK, cointegrated VAR).
+**Pillar V (time series) is now COMPLETE** — GARCH+eval, regime-switching and multivariate
+(VECM + DCC) are all done. Possible further depth (none blocking): BEKK/GO-GARCH multivariate
+volatility, a higher-frequency DCC demonstration where the dynamic covariance actually beats static
+OOS, or wiring DCC into the risk pillar's VaR engines as an explicit covariance source.
 
 **Tool-gap logged (step 20) — no reference library for HAC-corrected forecast evaluation.** The
 forecast-evaluation statistics (Diebold–Mariano with a Newey–West long-run variance, QLIKE, the
@@ -935,6 +967,20 @@ property (monotone log-likelihood), rather than chasing an exact fitted-paramete
 corollary — regime identification is fragile (start/regime-count sensitive) — is surfaced in the
 report, not hidden.
 
+**Tool-gap logged (step 22) — no reference library for DCC, and the VECM anchor is fixed-config.**
+For **VECM**, statsmodels' `VECM` is a clean anchor: at the same `(rank, k_ar_diff, deterministic)`
+its α/β match our hand-written reduced-rank estimator to ~1e-8 (same estimator, same normalisation),
+so the coefficients are pinned — but the *rank-selection* decision and the deterministic-term
+conventions differ across libraries, so the anchor is per-configuration, not turnkey. For **DCC**,
+there is no standard Python reference implementation to benchmark against (the `arch` package fits
+the univariate GARCH but ships no multivariate DCC), so the estimator is validated by **known-truth
+recovery** (a simulated DCC with a known correlation path), the **CCC reduction** (a=b=0), and
+**positive-definiteness at every step**, rather than against an external DCC. Two honest corollaries,
+surfaced not hidden: (i) the two-stage GARCH pre-filter makes the DCC persistence `b` noisy in finite
+samples (the a/b split is loosely identified; a+b and the correlation path are recovered cleanly);
+(ii) on the monthly FF universe DCC does not beat Ledoit–Wolf shrinkage OOS — the extra parameters'
+estimation noise dominates at small n/T, the same estimation-error lesson as factor stage 2.
+
 **Tool-gap logged (step 19) — Hull–White options are not benchmarked to QuantLib.** Black-76 is
 benchmarked to `ql.blackFormula` to 1e-14, but QuantLib's `HullWhite` engines build θ(t) off a
 `YieldTermStructure` handle whose interpolation convention differs from ours (QuantLib
@@ -957,7 +1003,7 @@ convenient** — recorded here so the pin doesn't age silently.
 ## Presentation backlog (pending — the encore's write-up half)
 
 The *building* is essentially done; the **presentation** half is the remaining work.
-**~Fourteen blog posts are drafted or obvious, awaiting number-verification (re-run each source
+**~Fifteen blog posts are drafted or obvious, awaiting number-verification (re-run each source
 script and check every figure against the current code) and publishing:**
 1. Hosmer–Lemeshow degrees of freedom — why `dof = G−2` over-rejects on externally-supplied
    PDs (validate-the-validator size study).
@@ -1002,7 +1048,14 @@ script and check every figure against the current code) and publishing:**
     parameters and classify ~95% of the hidden states (anchored to statsmodels at ~1e-15), then show
     the crisis regime lighting up at 0.84 through 2008 on real S&P 500 — with the honest caveat that
     regime identification is start/count-sensitive and can manufacture spurious regimes.
-14. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
+14. One pillar's output is another's input — the coherence payoff. VECM generalises the stat-arb
+    pillar's pairwise cointegration (matching statsmodels to 1e-8; reducing to the exact pairwise
+    hedge ratio for n=2), and DCC-GARCH produces the *same* conditional-covariance object the
+    portfolio min-variance and risk VaR machinery consume — so it drops into the factor-stage-2 OOS
+    harness as a drop-in estimator. The honest verdict: DCC doesn't beat Ledoit–Wolf shrinkage on
+    the monthly universe (estimation noise at small n/T), which *is* the estimation-error thesis —
+    the value is the validated coherence across pillars, not a horse-race win.
+15. *(drafted, topic TBD-in-notes)* — plus the flagship narrative post tying the
     validation-first thesis across all pillars (now five: derivatives, risk, capital markets,
     rates, time series — with the cross-cutting stat-arb arc inside capital markets).
 
