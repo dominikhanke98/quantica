@@ -18,9 +18,13 @@ This foundational step ships GARCH-family volatility modelling and its forecast-
 * **Regime-switching** (:mod:`~quantica.timeseries.regime`) — a Gaussian Markov-switching model
   (calm vs crisis) with the hand-implemented **Hamilton filter**, **Kim smoother** and **EM**
   estimation, recovering the hidden volatility regimes a market moves between.
+* **Multivariate** — the **VECM** (:mod:`~quantica.timeseries.vecm`), the multivariate
+  generalisation of pairwise cointegration (Johansen reduced-rank estimation), and **DCC-GARCH**
+  (:mod:`~quantica.timeseries.dcc`), a time-varying conditional covariance that feeds straight into
+  the portfolio and risk pillars as a drop-in covariance estimator.
 * **Synthetic data** (:mod:`~quantica.timeseries.data`) — known-parameter GARCH/GJR/EGARCH paths,
-  serially-correlated loss differentials and Markov-switching series with their hidden states, the
-  ground truth for validating the estimation and the evaluation statistics themselves.
+  serially-correlated loss differentials, Markov-switching series with their hidden states, and
+  known VECM/DCC systems, the ground truth for validating the estimation and the statistics.
 
 The headline is *validate-the-validator*: on data with a known truth, the Diebold--Mariano test
 has the correct size and power **only with** the HAC correction — the naive-variance version
@@ -31,10 +35,13 @@ forecasts.
 from __future__ import annotations
 
 from quantica.timeseries.data import (
+    simulate_dcc,
     simulate_garch,
     simulate_loss_differential,
     simulate_markov_switching,
+    simulate_vecm,
 )
+from quantica.timeseries.dcc import DccCovariance, DccResult, fit_dcc
 from quantica.timeseries.evaluation import (
     DieboldMarianoResult,
     MincerZarnowitzResult,
@@ -57,17 +64,23 @@ from quantica.timeseries.regime import (
     hamilton_filter,
     kim_smoother,
 )
+from quantica.timeseries.vecm import VecmResult, fit_vecm, select_cointegration_rank
 
 __all__ = [
+    "DccCovariance",
+    "DccResult",
     "DieboldMarianoResult",
     "ForecastResult",
     "HamiltonFilterResult",
     "MarkovSwitchingResult",
     "MincerZarnowitzResult",
+    "VecmResult",
     "VolatilityFit",
     "VolatilityModel",
     "diebold_mariano",
+    "fit_dcc",
     "fit_markov_switching",
+    "fit_vecm",
     "fit_volatility_model",
     "hamilton_filter",
     "kim_smoother",
@@ -75,7 +88,10 @@ __all__ = [
     "mse_loss",
     "qlike_loss",
     "rolling_forecast",
+    "select_cointegration_rank",
+    "simulate_dcc",
     "simulate_garch",
     "simulate_loss_differential",
     "simulate_markov_switching",
+    "simulate_vecm",
 ]

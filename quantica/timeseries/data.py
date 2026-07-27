@@ -15,6 +15,12 @@ its statistics have the right properties, so the validation needs ground truth o
 * :func:`simulate_markov_switching` — a return series from a **known** Gaussian regime-switching
   process, returning the hidden state path so a fitted model can be checked both on parameter
   recovery and on how well its smoothed probabilities classify the regime each point was really in.
+* :func:`simulate_vecm` — a system of series from a **known** Vector Error Correction Model
+  (planted cointegrating rank, loadings and short-run dynamics), so rank and coefficient recovery
+  can be checked against ground truth.
+* :func:`simulate_dcc` — a return panel from a **known** DCC process with a time-varying
+  correlation path, returned alongside the true conditional-correlation series so the recovery of
+  the dynamic correlation can be validated.
 
 Randomness is always an injected, seeded :class:`numpy.random.Generator` (CLAUDE.md §3).
 """
@@ -29,9 +35,11 @@ if TYPE_CHECKING:
     from quantica.core.types import FloatArray, IntArray
 
 __all__ = [
+    "simulate_dcc",
     "simulate_garch",
     "simulate_loss_differential",
     "simulate_markov_switching",
+    "simulate_vecm",
 ]
 
 _SQRT_2_OVER_PI = np.sqrt(2.0 / np.pi)  # E|z| for a standard normal, the EGARCH centering
@@ -277,3 +285,131 @@ def simulate_markov_switching(
         states[t] = rng.choice(k, p=p_matrix[states[t - 1]])
     returns = rng.normal(means[states], np.sqrt(variances[states]))
     return np.asarray(returns, dtype=np.float64), np.asarray(states, dtype=np.intp)
+
+
+def simulate_vecm(
+    n: int,
+    alpha: FloatArray,
+    beta: FloatArray,
+    *,
+    gamma: FloatArray | None = None,
+    sigma: float = 1.0,
+    rng: np.random.Generator,
+    n_burn: int = 200,
+) -> FloatArray:
+    r"""Simulate an :math:`n`-series system from a known Vector Error Correction Model.
+
+    Generates levels from :math:`\Delta y_t = \alpha\beta' y_{t-1} + \Gamma\,\Delta y_{t-1}
+    + \varepsilon_t` with :math:`\varepsilon_t \sim N(0, \sigma^2 I)`. The planted cointegrating
+    vectors ``beta`` and loadings ``alpha`` are the ground truth for rank and coefficient recovery.
+
+    Parameters
+    ----------
+    n : int
+        Number of observations to return (after burn-in).
+    alpha : ndarray, shape (k, r)
+        Adjustment/loading matrix (``k`` series, ``r`` cointegrating relations).
+    beta : ndarray, shape (k, r)
+        Cointegrating vectors (columns); each :math:`\beta'y` is stationary by construction.
+    gamma : ndarray, shape (k, k), optional
+        Short-run dynamics on the lagged difference (default none — a pure error-correction VECM).
+    sigma : float, optional
+        Innovation standard deviation (default 1).
+    rng : numpy.random.Generator
+        Seeded generator (keyword-only).
+    n_burn : int, optional
+        Burn-in samples discarded (default 200).
+
+    Returns
+    -------
+    ndarray, shape (n, k)
+        The simulated level series (columns are the individual series).
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is not positive or ``alpha``/``beta`` shapes disagree.
+    """
+    a = np.asarray(alpha, dtype=np.float64)
+    b = np.asarray(beta, dtype=np.float64)
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if a.shape != b.shape:
+        raise ValueError("alpha and beta must have the same shape (k, r)")
+    k = a.shape[0]
+    pi = a @ b.T  # long-run impact matrix Pi = alpha @ beta.T
+    g = np.zeros((k, k), dtype=np.float64) if gamma is None else np.asarray(gamma, dtype=np.float64)
+
+    total = n + n_burn
+    levels = np.zeros((total, k), dtype=np.float64)
+    prev_diff = np.zeros(k, dtype=np.float64)
+    for t in range(1, total):
+        diff = pi @ levels[t - 1] + g @ prev_diff + sigma * rng.standard_normal(k)
+        levels[t] = levels[t - 1] + diff
+        prev_diff = diff
+    return np.asarray(levels[n_burn:], dtype=np.float64)
+
+
+def simulate_dcc(
+    n: int,
+    a: float,
+    b: float,
+    unconditional_correlation: FloatArray,
+    *,
+    rng: np.random.Generator,
+    n_burn: int = 500,
+) -> tuple[FloatArray, FloatArray]:
+    r"""Simulate a DCC return panel with unit variances, returning the true correlation path.
+
+    Runs the DCC correlation recursion :math:`Q_t = (1-a-b)\bar Q + a z_{t-1}z_{t-1}' + b Q_{t-1}`
+    with standard-normal innovations and unit conditional variances (so the correlation dynamics are
+    isolated from the univariate GARCH). The returned correlation path is the ground truth for
+    validating that a DCC fit recovers the *time-varying* correlation.
+
+    Parameters
+    ----------
+    n : int
+        Number of observations to return (after burn-in).
+    a, b : float
+        DCC news-impact and persistence parameters (``a, b >= 0``, ``a + b < 1``).
+    unconditional_correlation : ndarray, shape (k, k)
+        The target correlation :math:`\bar Q`.
+    rng : numpy.random.Generator
+        Seeded generator (keyword-only).
+    n_burn : int, optional
+        Burn-in samples discarded (default 500).
+
+    Returns
+    -------
+    tuple of ndarray
+        ``(returns, correlation_path)`` — the ``(n, k)`` returns and the ``(n,)`` true off-diagonal
+        correlation :math:`R_{t,01}` (for a bivariate system) at each returned time.
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is not positive or ``a + b >= 1``.
+    """
+    qbar = np.asarray(unconditional_correlation, dtype=np.float64)
+    k = qbar.shape[0]
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if a < 0.0 or b < 0.0 or a + b >= 1.0:
+        raise ValueError("require a, b >= 0 and a + b < 1")
+
+    total = n + n_burn
+    returns = np.empty((total, k), dtype=np.float64)
+    correlation = np.empty(total, dtype=np.float64)
+    q_current = qbar.copy()
+    z_prev: FloatArray = np.asarray(rng.standard_normal(k), dtype=np.float64)
+    for t in range(total):
+        q_current = (1.0 - a - b) * qbar + a * np.outer(z_prev, z_prev) + b * q_current
+        inv_sqrt = 1.0 / np.sqrt(np.diag(q_current))
+        r_t = q_current * np.outer(inv_sqrt, inv_sqrt)
+        correlation[t] = r_t[0, 1]
+        z_prev = np.asarray(np.linalg.cholesky(r_t) @ rng.standard_normal(k), dtype=np.float64)
+        returns[t] = z_prev
+    return (
+        np.asarray(returns[n_burn:], dtype=np.float64),
+        np.asarray(correlation[n_burn:], dtype=np.float64),
+    )
