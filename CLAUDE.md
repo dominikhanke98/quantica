@@ -218,23 +218,38 @@ End **every** working session with:
 
 ---
 
-## 12. `fEGarch` clean-room port (standing rule)
+## 12. `fEGarch` clean-room port (binding method — non-negotiable)
 
-`quantica` is undertaking a **clean-room Python reimplementation of the `fEGarch` R package's model
-family** (a broad EGARCH-type family with long-memory / fractionally-integrated members), as a
-planned sub-project within **Pillar V**. Two non-negotiable rules govern it:
+`quantica` is building an **independent clean-room reimplementation of the models described in the
+`fEGarch` reference manual and its cited papers** (a broad EGARCH-type family with long-memory /
+fractionally-integrated members), as a sub-project within **Pillar V**. The coauthor go-ahead is
+obtained and the port proceeds **solo** (the coauthor is not contributing code). The four constraints
+below are **hard and non-negotiable**; they are the binding method for every commit in this
+sub-project, and they exist to keep `quantica` cleanly MIT-licensed and the reimplementation
+genuinely independent.
 
-- **Clean-room from specifications only.** Implement **exclusively** from the mathematical
-  specifications — the `fEGarch` reference manual and the cited academic papers — and **NEVER** from
-  `fEGarch`'s source code (do not read, transcribe, translate, or paraphrase it). `fEGarch` is
-  **GPL-3**; `quantica` is **MIT**. A clean-room reimplementation from specs is *required* to keep the
-  license clean — deriving from the GPL source would virally impose GPL terms on the repo. Any
-  behavioural detail not pinned by the manual/papers is resolved by matching the validation fixtures
-  and documenting the inferred convention, **not** by inspecting the source.
-- **Fixture-based validation, no R in CI.** Each ported model is validated against **committed
-  `fEGarch` output fixtures** — reference estimates / conditional-SD paths / log-likelihoods /
-  forecasts generated **once** in R on committed seeded inputs, then checked in. R is never a
-  dependency of `quantica` or its CI; the tests compare the reimplementation to the frozen fixtures
-  within stated tolerances (same discipline as the QuantLib benchmark group).
+1. **Permitted specification inputs — ONLY these two.** The **`fEGarch` reference manual's
+   mathematical model definitions / equations**, and the **cited underlying papers**. Nothing else.
+   The `fEGarch` **R/C++ source code is NEVER to be read, opened, cloned, referenced, transcribed, or
+   translated — not even to check a single detail.** If a needed behaviour cannot be derived from the
+   published mathematics, **find the paper that specifies it**, or **leave it explicitly flagged** as
+   an open question and resolve it by matching output fixtures (constraint 2) — **never** by
+   consulting the source. This applies to me (Claude) and to any tool call: do not fetch, grep, or
+   open the package's source tree.
+2. **Validation is against OUTPUT fixtures only.** Correctness is checked exclusively against
+   **`fEGarch` output** — fitted parameters, conditional-variance / conditional-SD series, and
+   forecasts — **generated once in R on committed seeded inputs and checked in** as fixtures. Never
+   validate, cross-check, or "sanity-read" by inspecting their code. R is never a dependency of
+   `quantica` or its CI; tests compare to the frozen fixtures within stated tolerances (same
+   discipline as the QuantLib benchmark group).
+3. **Attribution — precise wording.** Credit `fEGarch` and the underlying papers as the
+   **specification source**. Describe the module as an **"independent clean-room reimplementation of
+   the models described in [refs], validated against the `fEGarch` package."** **Never** call it a
+   *port of their code*, never imply the `fEGarch` authors endorse or contributed to it, and never
+   copy their identifiers/comments/structure as if translating source.
+4. **`quantica` stays MIT.** Because the module is **original work implemented from specifications**
+   (constraint 1) and validated against outputs (constraint 2), GPL-3 copyleft **does not attach**.
+   Preserve this: any action that would derive the code from the GPL-3 source is forbidden precisely
+   because it would jeopardise the MIT license.
 
 Full plan, phase sequence, prerequisites, and references: **`docs/fegarch-port-roadmap.md`**.

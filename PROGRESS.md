@@ -82,22 +82,25 @@ in CLAUDE.md §12. **Decided (not open):** implement **clean-room from the mathe
 specifications** (reference manual + cited papers), **never** from `fEGarch`'s GPL-3 source
 (`quantica` is MIT — a clean-room port keeps the license clean); validate each model against
 **committed `fEGarch` output fixtures** generated once in R on seeded inputs (**no R in CI**), within
-stated tolerances. **⚠ BLOCKING HUMAN GATE before Phase 0 — do NOT start Phase 0 until this is
-done:** the **coauthor conversation with Dominik Schulz** must happen first. It settles two things a
-future session cannot proceed without: (a) **attribution / framing** — how the port is credited and
-positioned (it's their published research), and (b) **sourcing the exact specification papers** for
-each model's parameterizations (the *only* permitted implementation inputs under the clean-room rule;
-Phase 0's distributions/QMLE conventions must come from these, not from guesswork or the GPL source).
-A future session must confirm this conversation has happened before writing any Phase 0 code.
-**Three prerequisites (before any code — from the roadmap's "three decisions"):** (1) **coauthor
-attribution / positioning + spec-paper sourcing** — the blocking human gate above (Dominik Schulz);
-(2) **license check** — confirm the GPL-3 ↔ MIT boundary and the clean-room-from-specs approach
-(recorded in CLAUDE.md §12); (3) **benchmarking infrastructure** — the R-fixture pipeline (fit
-`fEGarch` once on fixed inputs, export params / conditional variances / forecasts / VaR-ES as
-committed fixtures; no R in CI) and its tolerance policy. **Three load-bearing foundations everything reuses:** the conditional-distribution layer, the
+stated tolerances. **✅ Coauthor go-ahead OBTAINED (the prior blocking human gate is CLEARED).** The
+port **proceeds solo — the coauthor (Dominik Schulz) is not contributing code.** The **four hard,
+non-negotiable clean-room constraints in CLAUDE.md §12 are now the binding method** for every commit:
+(1) permitted spec inputs are ONLY the `fEGarch` reference-manual equations + the cited papers — the
+R/C++ **source is never read/opened/referenced/translated, not even to check a detail** (if not
+derivable from published math, find the paper or leave it flagged; never consult the source);
+(2) validation is against committed `fEGarch` **output** fixtures only (params / conditional-variance
+series / forecasts), never by reading their code; (3) attribution is "independent clean-room
+reimplementation of the models described in [refs], validated against the `fEGarch` package" — never
+"a port of their code", never implying endorsement; (4) `quantica` stays **MIT** (original work from
+specs → GPL-3 copyleft does not attach). Remaining setup before/with Phase 0 (no longer a human
+gate): **source the exact specification papers** for each model's parameterizations (the only
+permitted inputs), and stand up the **R-fixture benchmarking pipeline** (fit `fEGarch` once on fixed
+inputs, export params / conditional variances / forecasts / VaR-ES as committed fixtures; no R in
+CI) with its tolerance policy. **Three load-bearing foundations everything reuses:** the conditional-distribution layer, the
 QMLE engine, and the fractional-differencing `(1−L)^d` operator. **Phase sequence:** **Phase 0 —
-foundations (conditional distributions + QMLE engine) ← the next BUILD step, but GATED by the
-coauthor conversation above** → Phase 1 short-memory foundation
+foundations (conditional distributions + QMLE engine) ← THE NEXT BUILD STEP (unblocked; guardrails
+recorded, awaiting the explicit Phase 0 build prompt — no Phase 0 code written yet)** → Phase 1
+short-memory foundation
 (GARCH / GJR / TGARCH / APARCH) → Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) →
 Phase 3 fractional-differencing engine (the crux, tested in isolation) → Phase 4 long-memory models
 (FIGARCH…, then FIEGARCH / FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean
@@ -973,13 +976,14 @@ tridiagonal LCP solve); the FRTB expected-shortfall capital charge at 97.5% (liq
 scaling, regulatory ES aggregation); surfacing HRP/BL/PCA in the apps' capital-markets tab; a
 thin rates tab in the app (curve/forwards, short-rate fits, a cap/swaption vol-calibration view).
 **Pillar V (time series) is now COMPLETE** — GARCH+eval, regime-switching and multivariate
-(VECM + DCC) are all done. The **next planned build is the `fEGarch` clean-room port** (Phase 0:
-conditional distributions + QMLE engine) — a sub-project within Pillar V, recorded above and in
-[`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md); **it is gated by a human step (the
-coauthor conversation with Dominik Schulz) — do not start Phase 0 until that is done.** Other
-optional depth (none blocking): BEKK/GO-GARCH multivariate volatility, a higher-frequency DCC
-demonstration where the dynamic covariance actually beats static OOS, or wiring DCC into the risk
-pillar's VaR engines as an explicit covariance source.
+(VECM + DCC) are all done. The **next build is the `fEGarch` clean-room port**, Phase 0 (conditional
+distributions + QMLE engine) — a sub-project within Pillar V, recorded above and in
+[`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md). **The coauthor go-ahead is obtained
+(prior human gate cleared); the port proceeds solo, under the four binding clean-room constraints in
+CLAUDE.md §12.** Guardrails are recorded and Phase 0 is unblocked, but **no Phase 0 code is written
+yet — awaiting the explicit Phase 0 build prompt.** Other optional depth (none blocking): BEKK/GO-GARCH
+multivariate volatility, a higher-frequency DCC demonstration where the dynamic covariance actually
+beats static OOS, or wiring DCC into the risk pillar's VaR engines as an explicit covariance source.
 
 **Tool-gap logged (step 20) — no reference library for HAC-corrected forecast evaluation.** The
 forecast-evaluation statistics (Diebold–Mariano with a Newey–West long-run variance, QLIKE, the
