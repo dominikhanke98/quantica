@@ -73,11 +73,12 @@ integration ✓** (option book revalued through the pricers as the risk P&L sour
 **FRTB P&L attribution ✓** (IMA-eligibility test reusing the derivatives-risk P&L).
 **The risk pillar's planned model families are complete.**
 
-**`fEGarch` clean-room port (planned sub-project within Pillar V).** A Python reimplementation of the
-`fEGarch` R package's model family (Schulz, Feng et al., Paderborn — v1.0.6, GPL-3): a broad
-EGARCH-type family with **long-memory / fractionally-integrated** members (FIEGARCH / FILog-GARCH /
-FIMLog-GARCH) that no mainstream Python library offers. **Docs/planning only so far — no model code
-yet.** Full roadmap in [`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md); standing rules
+**`fEGarch` clean-room port (sub-project within Pillar V — Phase 0 IN PROGRESS).** A Python
+reimplementation of the `fEGarch` R package's model family (Schulz, Feng et al., Paderborn — v1.0.6,
+GPL-3): a broad EGARCH-type family with **long-memory / fractionally-integrated** members
+(FIEGARCH / FILog-GARCH / FIMLog-GARCH) that no mainstream Python library offers. **Phase 0 built:
+`quantica/timeseries/fegarch/` — the conditional-distribution layer + the QMLE engine** (PR open, see
+step below). Full roadmap in [`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md); standing rules
 in CLAUDE.md §12. **Decided (not open):** implement **clean-room from the mathematical
 specifications** (reference manual + cited papers), **never** from `fEGarch`'s GPL-3 source
 (`quantica` is MIT — a clean-room port keeps the license clean); validate each model against
@@ -92,15 +93,18 @@ derivable from published math, find the paper or leave it flagged; never consult
 series / forecasts), never by reading their code; (3) attribution is "independent clean-room
 reimplementation of the models described in [refs], validated against the `fEGarch` package" — never
 "a port of their code", never implying endorsement; (4) `quantica` stays **MIT** (original work from
-specs → GPL-3 copyleft does not attach). Remaining setup before/with Phase 0 (no longer a human
-gate): **source the exact specification papers** for each model's parameterizations (the only
-permitted inputs), and stand up the **R-fixture benchmarking pipeline** (fit `fEGarch` once on fixed
-inputs, export params / conditional variances / forecasts / VaR-ES as committed fixtures; no R in
-CI) with its tolerance policy. **Three load-bearing foundations everything reuses:** the conditional-distribution layer, the
-QMLE engine, and the fractional-differencing `(1−L)^d` operator. **Phase sequence:** **Phase 0 —
-foundations (conditional distributions + QMLE engine) ← THE NEXT BUILD STEP (unblocked; guardrails
-recorded, awaiting the explicit Phase 0 build prompt — no Phase 0 code written yet)** → Phase 1
-short-memory foundation
+specs → GPL-3 copyleft does not attach). **Immediate follow-ups (recorded so they can't be lost):**
+(i) **generate + commit the R output fixtures** (fit `fEGarch` once on fixed inputs, export params /
+conditional variances / forecasts; no R in CI) and fill the clearly-named *skipped* fixture-match
+test stubs (`test_density_matches_fegarch_fixture`, `test_qmle_matches_fegarch_fixture`, …) — nothing
+currently claims fEGarch agreement; (ii) resolve the **two `# RECONCILE` flags** against paper +
+fixture — the exact **ALD** (average-Laplace) density (implemented now as standardized Laplace) and
+the exact **Fernández–Steel normalization constants** (implemented now via the Lambert–Laurent
+mean-0/variance-1 form); (iii) **source the exact specification papers** for each later model's
+parameterization. **Three load-bearing foundations everything reuses:** the conditional-distribution
+layer ✓ (Phase 0), the QMLE engine ✓ (Phase 0), and the fractional-differencing `(1−L)^d` operator
+(Phase 3). **Phase sequence:** **Phase 0 — foundations (conditional distributions + QMLE engine) ✓
+BUILT (fixture-validation pending)** → Phase 1 short-memory foundation
 (GARCH / GJR / TGARCH / APARCH) → Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) →
 Phase 3 fractional-differencing engine (the crux, tested in isolation) → Phase 4 long-memory models
 (FIGARCH…, then FIEGARCH / FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean
@@ -933,6 +937,33 @@ ones. Clean-room-from-specs and fixture-based validation are **settled** and not
   main synced, branch deleted). **Pillar V COMPLETE** (GARCH + forecast evaluation → regime-switching
   → multivariate).
 
+- **Step 23 — fEGarch clean-room port, Phase 0: conditional distributions + QMLE engine.** New
+  `quantica/timeseries/fegarch/` (`distributions.py`, `qmle.py`, `__init__.py`) — the port's home and
+  the two foundations every later model reuses. **Clean-room guardrails held (CLAUDE.md §12):** no
+  `fEGarch` source consulted; implemented purely from the reference-manual equations (in `docs/`) and
+  standard published forms. **Distributions** — the eight fEGarch innovation distributions **each
+  standardized to mean 0 / variance 1** (the QMLE convention): `norm`, `std` (standardized Student-t),
+  `ged` (Nelson-1991 standardized GED; documented that scipy `gennorm`'s β = the GED shape ν, ν=2⇒
+  normal), `ald` (average Laplace), and the four Fernández–Steel skewed variants `snorm`/`sstd`/`sged`/
+  `sald` (density split + Lambert–Laurent mean-0/variance-1 re-standardization), each with
+  `pdf`/`cdf`/`ppf` and a seeded inverse-CDF sampler; registry + `get_distribution`. **QMLE engine** —
+  generic `quasi_max_likelihood(returns, variance_recursion, distribution, …)` maximizing
+  `Σ[−ln σ_t + ln f_z(ε_t/σ_t)]` conditioned on presample values (documented convention:
+  `initial_variance` = sample variance), scipy L-BFGS-B optimization with bounds, **vcov/SE from a
+  numerical Hessian**; `QMLEResult`. Validated (`tests/timeseries/fegarch/`, +54 checkable now,
+  **+11 skipped fEGarch-fixture stubs**): every density integrates to 1 / mean 0 / variance 1
+  (numerical integration); `cdf`↔`ppf` round-trips; seeded sampler moments match + deterministic;
+  **each skew reduces exactly to its symmetric base at ξ=1** (known-truth anchor) and genuinely skews
+  otherwise; QMLE **recovers planted GARCH(1,1) params** + **log-likelihood matches a hand
+  computation** + sane Hessian SEs. **Two `# RECONCILE` flags** (documented defaults behind a stable
+  API): the exact ALD form (standardized Laplace default) and the exact Fernández–Steel normalization
+  constants — to be locked against paper + fixture. **fEGarch-agreement checks deferred as
+  clearly-named skipped stubs** so nothing silently passes as "matches fEGarch". README "fEGarch
+  port — Phase 0" subsection under Pillar V; API reference rebuilt (docstring gate 100%). Gate green:
+  1133 tests (+54; +11 skipped), ruff + mypy + interrogate(100%) clean. Delivered on branch
+  `feat/fegarch-phase0` as a **PR — open, awaiting review** (not yet merged; the merge is left to the
+  author). **Phase 0 code complete; fixture validation is the immediate follow-up.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
@@ -1023,6 +1054,22 @@ surfaced not hidden: (i) the two-stage GARCH pre-filter makes the DCC persistenc
 samples (the a/b split is loosely identified; a+b and the correlation path are recovered cleanly);
 (ii) on the monthly FF universe DCC does not beat Ledoit–Wolf shrinkage OOS — the extra parameters'
 estimation noise dominates at small n/T, the same estimation-error lesson as factor stage 2.
+
+**Tool-gap logged (step 23) — the fEGarch reference is deliberately absent from CI, so Phase-0
+agreement is unverified until fixtures land.** By the clean-room method (CLAUDE.md §12) the only
+permitted validation against `fEGarch` is via committed R *output* fixtures, which do not exist yet —
+so **nothing currently claims agreement with `fEGarch`**. The Phase-0 tests validate what is
+provable from the mathematics alone (standardization to mean-0/variance-1, `cdf`↔`ppf` inversion,
+seeded-sampler moments, the ξ=1 skew→base reduction, known-truth GARCH QMLE recovery, hand-computed
+log-likelihood); the "matches fEGarch" checks are **explicit skipped stubs** (`test_*_matches_fegarch_
+fixture`) so the gap is loud, not silent. Two specific unknowns are `# RECONCILE`-flagged behind a
+stable API: the exact **ALD** (average-Laplace) density — implemented as the standardized Laplace
+default — and the exact **Fernández–Steel normalization** — implemented via the standard
+Lambert–Laurent constants. Secondary notes: `scipy` supplies the GED (`gennorm`), Student-t and
+Laplace bases (plumbing), but the average-Laplace and all four skewed variants are hand-built; and
+QMLE standard errors use a **numerical** Hessian (no analytic gradients), adequate here and to be
+revisited if a later model needs tighter inference. Resolution: stand up the R-fixture pipeline
+(immediate follow-up) and fill the stubs, locking the two RECONCILE items.
 
 **Tool-gap logged (step 19) — Hull–White options are not benchmarked to QuantLib.** Black-76 is
 benchmarked to `ql.blackFormula` to 1e-14, but QuantLib's `HullWhite` engines build θ(t) off a

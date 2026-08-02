@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="pdoc 16.0.0"/>
+    <title>quantica.timeseries.fegarch API documentation</title>
+
+    <style>/*! * Bootstrap Reboot v5.0.0 (https://getbootstrap.com/) * Copyright 2011-2021 The Bootstrap Authors * Copyright 2011-2021 Twitter, Inc. * Licensed under MIT (https://github.com/twbs/bootstrap/blob/main/LICENSE) * Forked from Normalize.css, licensed MIT (https://github.com/necolas/normalize.css/blob/master/LICENSE.md) */*,::after,::before{box-sizing:border-box}@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol","Noto Color Emoji";font-size:1rem;font-weight:400;line-height:1.5;color:#212529;background-color:#fff;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}hr{margin:1rem 0;color:inherit;background-color:currentColor;border:0;opacity:.25}hr:not([size]){height:1px}h1,h2,h3,h4,h5,h6{margin-top:0;margin-bottom:.5rem;font-weight:500;line-height:1.2}h1{font-size:calc(1.375rem + 1.5vw)}@media (min-width:1200px){h1{font-size:2.5rem}}h2{font-size:calc(1.325rem + .9vw)}@media (min-width:1200px){h2{font-size:2rem}}h3{font-size:calc(1.3rem + .6vw)}@media (min-width:1200px){h3{font-size:1.75rem}}h4{font-size:calc(1.275rem + .3vw)}@media (min-width:1200px){h4{font-size:1.5rem}}h5{font-size:1.25rem}h6{font-size:1rem}p{margin-top:0;margin-bottom:1rem}abbr[data-bs-original-title],abbr[title]{-webkit-text-decoration:underline dotted;text-decoration:underline dotted;cursor:help;-webkit-text-decoration-skip-ink:none;text-decoration-skip-ink:none}address{margin-bottom:1rem;font-style:normal;line-height:inherit}ol,ul{padding-left:2rem}dl,ol,ul{margin-top:0;margin-bottom:1rem}ol ol,ol ul,ul ol,ul ul{margin-bottom:0}dt{font-weight:700}dd{margin-bottom:.5rem;margin-left:0}blockquote{margin:0 0 1rem}b,strong{font-weight:bolder}small{font-size:.875em}mark{padding:.2em;background-color:#fcf8e3}sub,sup{position:relative;font-size:.75em;line-height:0;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}a{color:#0d6efd;text-decoration:underline}a:hover{color:#0a58ca}a:not([href]):not([class]),a:not([href]):not([class]):hover{color:inherit;text-decoration:none}code,kbd,pre,samp{font-family:SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:1em;direction:ltr;unicode-bidi:bidi-override}pre{display:block;margin-top:0;margin-bottom:1rem;overflow:auto;font-size:.875em}pre code{font-size:inherit;color:inherit;word-break:normal}code{font-size:.875em;color:#d63384;word-wrap:break-word}a>code{color:inherit}kbd{padding:.2rem .4rem;font-size:.875em;color:#fff;background-color:#212529;border-radius:.2rem}kbd kbd{padding:0;font-size:1em;font-weight:700}figure{margin:0 0 1rem}img,svg{vertical-align:middle}table{caption-side:bottom;border-collapse:collapse}caption{padding-top:.5rem;padding-bottom:.5rem;color:#6c757d;text-align:left}th{text-align:inherit;text-align:-webkit-match-parent}tbody,td,tfoot,th,thead,tr{border-color:inherit;border-style:solid;border-width:0}label{display:inline-block}button{border-radius:0}button:focus:not(:focus-visible){outline:0}button,input,optgroup,select,textarea{margin:0;font-family:inherit;font-size:inherit;line-height:inherit}button,select{text-transform:none}[role=button]{cursor:pointer}select{word-wrap:normal}select:disabled{opacity:1}[list]::-webkit-calendar-picker-indicator{display:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}[type=button]:not(:disabled),[type=reset]:not(:disabled),[type=submit]:not(:disabled),button:not(:disabled){cursor:pointer}::-moz-focus-inner{padding:0;border-style:none}textarea{resize:vertical}fieldset{min-width:0;padding:0;margin:0;border:0}legend{float:left;width:100%;padding:0;margin-bottom:.5rem;font-size:calc(1.275rem + .3vw);line-height:inherit}@media (min-width:1200px){legend{font-size:1.5rem}}legend+*{clear:left}::-webkit-datetime-edit-day-field,::-webkit-datetime-edit-fields-wrapper,::-webkit-datetime-edit-hour-field,::-webkit-datetime-edit-minute,::-webkit-datetime-edit-month-field,::-webkit-datetime-edit-text,::-webkit-datetime-edit-year-field{padding:0}::-webkit-inner-spin-button{height:auto}[type=search]{outline-offset:-2px;-webkit-appearance:textfield}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-color-swatch-wrapper{padding:0}::file-selector-button{font:inherit}::-webkit-file-upload-button{font:inherit;-webkit-appearance:button}output{display:inline-block}iframe{border:0}summary{display:list-item;cursor:pointer}progress{vertical-align:baseline}[hidden]{display:none!important}</style>
+    <style>/*! syntax-highlighting.css */pre{line-height:125%;}span.linenos{color:inherit; background-color:transparent; padding-left:5px; padding-right:20px;}.pdoc-code .hll{background-color:#ffffcc}.pdoc-code{background:#f8f8f8;}.pdoc-code .c{color:#3D7B7B; font-style:italic}.pdoc-code .err{border:1px solid #FF0000}.pdoc-code .k{color:#008000; font-weight:bold}.pdoc-code .o{color:#666666}.pdoc-code .ch{color:#3D7B7B; font-style:italic}.pdoc-code .cm{color:#3D7B7B; font-style:italic}.pdoc-code .cp{color:#9C6500}.pdoc-code .cpf{color:#3D7B7B; font-style:italic}.pdoc-code .c1{color:#3D7B7B; font-style:italic}.pdoc-code .cs{color:#3D7B7B; font-style:italic}.pdoc-code .gd{color:#A00000}.pdoc-code .ge{font-style:italic}.pdoc-code .gr{color:#E40000}.pdoc-code .gh{color:#000080; font-weight:bold}.pdoc-code .gi{color:#008400}.pdoc-code .go{color:#717171}.pdoc-code .gp{color:#000080; font-weight:bold}.pdoc-code .gs{font-weight:bold}.pdoc-code .gu{color:#800080; font-weight:bold}.pdoc-code .gt{color:#0044DD}.pdoc-code .kc{color:#008000; font-weight:bold}.pdoc-code .kd{color:#008000; font-weight:bold}.pdoc-code .kn{color:#008000; font-weight:bold}.pdoc-code .kp{color:#008000}.pdoc-code .kr{color:#008000; font-weight:bold}.pdoc-code .kt{color:#B00040}.pdoc-code .m{color:#666666}.pdoc-code .s{color:#BA2121}.pdoc-code .na{color:#687822}.pdoc-code .nb{color:#008000}.pdoc-code .nc{color:#0000FF; font-weight:bold}.pdoc-code .no{color:#880000}.pdoc-code .nd{color:#AA22FF}.pdoc-code .ni{color:#717171; font-weight:bold}.pdoc-code .ne{color:#CB3F38; font-weight:bold}.pdoc-code .nf{color:#0000FF}.pdoc-code .nl{color:#767600}.pdoc-code .nn{color:#0000FF; font-weight:bold}.pdoc-code .nt{color:#008000; font-weight:bold}.pdoc-code .nv{color:#19177C}.pdoc-code .ow{color:#AA22FF; font-weight:bold}.pdoc-code .w{color:#bbbbbb}.pdoc-code .mb{color:#666666}.pdoc-code .mf{color:#666666}.pdoc-code .mh{color:#666666}.pdoc-code .mi{color:#666666}.pdoc-code .mo{color:#666666}.pdoc-code .sa{color:#BA2121}.pdoc-code .sb{color:#BA2121}.pdoc-code .sc{color:#BA2121}.pdoc-code .dl{color:#BA2121}.pdoc-code .sd{color:#BA2121; font-style:italic}.pdoc-code .s2{color:#BA2121}.pdoc-code .se{color:#AA5D1F; font-weight:bold}.pdoc-code .sh{color:#BA2121}.pdoc-code .si{color:#A45A77; font-weight:bold}.pdoc-code .sx{color:#008000}.pdoc-code .sr{color:#A45A77}.pdoc-code .s1{color:#BA2121}.pdoc-code .ss{color:#19177C}.pdoc-code .bp{color:#008000}.pdoc-code .fm{color:#0000FF}.pdoc-code .vc{color:#19177C}.pdoc-code .vg{color:#19177C}.pdoc-code .vi{color:#19177C}.pdoc-code .vm{color:#19177C}.pdoc-code .il{color:#666666}</style>
+    <style>/*! theme.css */:root{--pdoc-background:#fff;}.pdoc{--text:#212529;--muted:#6c757d;--link:#3660a5;--link-hover:#1659c5;--code:#f8f8f8;--active:#fff598;--accent:#eee;--accent2:#c1c1c1;--nav-hover:rgba(255, 255, 255, 0.5);--name:#0066BB;--def:#008800;--annotation:#007020;}</style>
+    <style>/*! layout.css */html, body{width:100%;height:100%;}html, main{scroll-behavior:smooth;}body{background-color:var(--pdoc-background);}@media (max-width:769px){#navtoggle{cursor:pointer;position:absolute;width:50px;height:40px;top:1rem;right:1rem;border-color:var(--text);color:var(--text);display:flex;opacity:0.8;z-index:999;}#navtoggle:hover{opacity:1;}#togglestate + div{display:none;}#togglestate:checked + div{display:inherit;}main, header{padding:2rem 3vw;}header + main{margin-top:-3rem;}.git-button{display:none !important;}nav input[type="search"]{max-width:77%;}nav input[type="search"]:first-child{margin-top:-6px;}nav input[type="search"]:valid ~ *{display:none !important;}}@media (min-width:770px){:root{--sidebar-width:clamp(12.5rem, 28vw, 22rem);}nav{position:fixed;overflow:auto;height:100vh;width:var(--sidebar-width);}main, header{padding:3rem 2rem 3rem calc(var(--sidebar-width) + 3rem);width:calc(54rem + var(--sidebar-width));max-width:100%;}header + main{margin-top:-4rem;}#navtoggle{display:none;}}#togglestate{position:absolute;height:0;opacity:0;}nav.pdoc{--pad:clamp(0.5rem, 2vw, 1.75rem);--indent:1.5rem;background-color:var(--accent);border-right:1px solid var(--accent2);box-shadow:0 0 20px rgba(50, 50, 50, .2) inset;padding:0 0 0 var(--pad);overflow-wrap:anywhere;scrollbar-width:thin; scrollbar-color:var(--accent2) transparent; z-index:1}nav.pdoc::-webkit-scrollbar{width:.4rem; }nav.pdoc::-webkit-scrollbar-thumb{background-color:var(--accent2); }nav.pdoc > div{padding:var(--pad) 0;}nav.pdoc .module-list-button{display:inline-flex;align-items:center;color:var(--text);border-color:var(--muted);margin-bottom:1rem;}nav.pdoc .module-list-button:hover{border-color:var(--text);}nav.pdoc input[type=search]{display:block;outline-offset:0;width:calc(100% - var(--pad));}nav.pdoc .logo{max-width:calc(100% - var(--pad));max-height:35vh;display:block;margin:0 auto 1rem;transform:translate(calc(-.5 * var(--pad)), 0);}nav.pdoc ul{list-style:none;padding-left:0;}nav.pdoc > div > ul{margin-left:calc(0px - var(--pad));}nav.pdoc li a{padding:.2rem 0 .2rem calc(var(--pad) + var(--indent));}nav.pdoc > div > ul > li > a{padding-left:var(--pad);}nav.pdoc li{transition:all 100ms;}nav.pdoc li:hover{background-color:var(--nav-hover);}nav.pdoc a, nav.pdoc a:hover{color:var(--text);}nav.pdoc a{display:block;}nav.pdoc > h2:first-of-type{margin-top:1.5rem;}nav.pdoc .class:before{content:"class ";color:var(--muted);}nav.pdoc .function:after{content:"()";color:var(--muted);}nav.pdoc footer:before{content:"";display:block;width:calc(100% - var(--pad));border-top:solid var(--accent2) 1px;margin-top:1.5rem;padding-top:.5rem;}nav.pdoc footer{font-size:small;}</style>
+    <style>/*! content.css */.pdoc{color:var(--text);box-sizing:border-box;line-height:1.5;background:none;}.pdoc .pdoc-button{cursor:pointer;display:inline-block;border:solid black 1px;border-radius:2px;font-size:.75rem;padding:calc(0.5em - 1px) 1em;transition:100ms all;}.pdoc .alert{padding:1rem 1rem 1rem calc(1.5rem + 24px);border:1px solid transparent;border-radius:.25rem;background-repeat:no-repeat;background-position:.75rem center;margin-bottom:1rem;}.pdoc .alert > em{display:none;}.pdoc .alert > *:last-child{margin-bottom:0;}.pdoc .alert.note{color:#084298;background-color:#cfe2ff;border-color:#b6d4fe;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23084298%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8%2016A8%208%200%201%200%208%200a8%208%200%200%200%200%2016zm.93-9.412-1%204.705c-.07.34.029.533.304.533.194%200%20.487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703%200-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381%202.29-.287zM8%205.5a1%201%200%201%201%200-2%201%201%200%200%201%200%202z%22/%3E%3C/svg%3E");}.pdoc .alert.tip{color:#0a3622;background-color:#d1e7dd;border-color:#a3cfbb;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%230a3622%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2%206a6%206%200%201%201%2010.174%204.31c-.203.196-.359.4-.453.619l-.762%201.769A.5.5%200%200%201%2010.5%2013a.5.5%200%200%201%200%201%20.5.5%200%200%201%200%201l-.224.447a1%201%200%200%201-.894.553H6.618a1%201%200%200%201-.894-.553L5.5%2015a.5.5%200%200%201%200-1%20.5.5%200%200%201%200-1%20.5.5%200%200%201-.46-.302l-.761-1.77a2%202%200%200%200-.453-.618A5.98%205.98%200%200%201%202%206m6-5a5%205%200%200%200-3.479%208.592c.263.254.514.564.676.941L5.83%2012h4.342l.632-1.467c.162-.377.413-.687.676-.941A5%205%200%200%200%208%201%22/%3E%3C/svg%3E");}.pdoc .alert.important{color:#055160;background-color:#cff4fc;border-color:#9eeaf9;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23055160%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M2%200a2%202%200%200%200-2%202v12a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2V2a2%202%200%200%200-2-2zm6%204c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%204.995A.905.905%200%200%201%208%204m.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E");}.pdoc .alert.warning{color:#664d03;background-color:#fff3cd;border-color:#ffecb5;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23664d03%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M8.982%201.566a1.13%201.13%200%200%200-1.96%200L.165%2013.233c-.457.778.091%201.767.98%201.767h13.713c.889%200%201.438-.99.98-1.767L8.982%201.566zM8%205c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%205.995A.905.905%200%200%201%208%205zm.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2z%22/%3E%3C/svg%3E");}.pdoc .alert.caution{color:#842029;background-color:#f8d7da;border-color:#f5c2c7;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23842029%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M11.46.146A.5.5%200%200%200%2011.107%200H4.893a.5.5%200%200%200-.353.146L.146%204.54A.5.5%200%200%200%200%204.893v6.214a.5.5%200%200%200%20.146.353l4.394%204.394a.5.5%200%200%200%20.353.146h6.214a.5.5%200%200%200%20.353-.146l4.394-4.394a.5.5%200%200%200%20.146-.353V4.893a.5.5%200%200%200-.146-.353zM8%204c.535%200%20.954.462.9.995l-.35%203.507a.552.552%200%200%201-1.1%200L7.1%204.995A.905.905%200%200%201%208%204m.002%206a1%201%200%201%201%200%202%201%201%200%200%201%200-2%22/%3E%3C/svg%3E");}.pdoc .alert.danger{color:#842029;background-color:#f8d7da;border-color:#f5c2c7;background-image:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2224%22%20height%3D%2224%22%20fill%3D%22%23842029%22%20viewBox%3D%220%200%2016%2016%22%3E%3Cpath%20d%3D%22M5.52.359A.5.5%200%200%201%206%200h4a.5.5%200%200%201%20.474.658L8.694%206H12.5a.5.5%200%200%201%20.395.807l-7%209a.5.5%200%200%201-.873-.454L6.823%209.5H3.5a.5.5%200%200%201-.48-.641l2.5-8.5z%22/%3E%3C/svg%3E");}.pdoc .visually-hidden{position:absolute !important;width:1px !important;height:1px !important;padding:0 !important;margin:-1px !important;overflow:hidden !important;clip:rect(0, 0, 0, 0) !important;white-space:nowrap !important;border:0 !important;}.pdoc h1, .pdoc h2, .pdoc h3{font-weight:300;margin:.3em 0;padding:.2em 0;}.pdoc > section:not(.module-info) h1{font-size:1.5rem;font-weight:500;}.pdoc > section:not(.module-info) h2{font-size:1.4rem;font-weight:500;}.pdoc > section:not(.module-info) h3{font-size:1.3rem;font-weight:500;}.pdoc > section:not(.module-info) h4{font-size:1.2rem;}.pdoc > section:not(.module-info) h5{font-size:1.1rem;}.pdoc a{text-decoration:none;color:var(--link);}.pdoc a:hover{color:var(--link-hover);}.pdoc blockquote{margin-left:2rem;}.pdoc pre{border-top:1px solid var(--accent2);border-bottom:1px solid var(--accent2);margin-top:0;margin-bottom:1em;padding:.5rem 0 .5rem .5rem;overflow-x:auto;background-color:var(--code);}.pdoc code{color:var(--text);padding:.2em .4em;margin:0;font-size:85%;background-color:var(--accent);border-radius:6px;}.pdoc a > code{color:inherit;}.pdoc pre > code{display:inline-block;font-size:inherit;background:none;border:none;padding:0;}.pdoc > section:not(.module-info){margin-bottom:1.5rem;}.pdoc .modulename{margin-top:0;font-weight:bold;}.pdoc .modulename a{color:var(--link);transition:100ms all;}.pdoc .git-button{float:right;border:solid var(--link) 1px;}.pdoc .git-button:hover{background-color:var(--link);color:var(--pdoc-background);}.view-source-toggle-state,.view-source-toggle-state ~ .pdoc-code{display:none;}.view-source-toggle-state:checked ~ .pdoc-code{display:block;}.view-source-button{display:inline-block;float:right;font-size:.75rem;line-height:1.5rem;color:var(--muted);padding:0 .4rem 0 1.3rem;cursor:pointer;text-indent:-2px;}.view-source-button > span{visibility:hidden;}.module-info .view-source-button{float:none;display:flex;justify-content:flex-end;margin:-1.2rem .4rem -.2rem 0;}.view-source-button::before{position:absolute;content:"View Source";display:list-item;list-style-type:disclosure-closed;}.view-source-toggle-state:checked ~ .attr .view-source-button::before,.view-source-toggle-state:checked ~ .view-source-button::before{list-style-type:disclosure-open;}.pdoc .docstring{margin-bottom:1.5rem;}.pdoc section:not(.module-info) .docstring{margin-left:clamp(0rem, 5vw - 2rem, 1rem);}.pdoc .docstring .pdoc-code{margin-left:1em;margin-right:1em;}.pdoc h1:target,.pdoc h2:target,.pdoc h3:target,.pdoc h4:target,.pdoc h5:target,.pdoc h6:target,.pdoc .pdoc-code > pre > span:target{background-color:var(--active);box-shadow:-1rem 0 0 0 var(--active);}.pdoc .pdoc-code > pre > span:target{display:block;}.pdoc div:target > .attr,.pdoc section:target > .attr,.pdoc dd:target > a{background-color:var(--active);}.pdoc *{scroll-margin:2rem;}.pdoc .pdoc-code .linenos{user-select:none;}.pdoc .attr:hover{filter:contrast(0.95);}.pdoc section, .pdoc .classattr{position:relative;}.pdoc .headerlink{--width:clamp(1rem, 3vw, 2rem);position:absolute;top:0;left:calc(0rem - var(--width));transition:all 100ms ease-in-out;opacity:0;}.pdoc .headerlink::before{content:"#";display:block;text-align:center;width:var(--width);height:2.3rem;line-height:2.3rem;font-size:1.5rem;}.pdoc .attr:hover ~ .headerlink,.pdoc *:target > .headerlink,.pdoc .headerlink:hover{opacity:1;}.pdoc .attr{display:block;margin:.5rem 0 .5rem;padding:.4rem .4rem .4rem 1rem;background-color:var(--accent);overflow-x:auto;}.pdoc .classattr{margin-left:2rem;}.pdoc .decorator-deprecated{color:#842029;}.pdoc .decorator-deprecated ~ span{filter:grayscale(1) opacity(0.8);}.pdoc .name{color:var(--name);font-weight:bold;}.pdoc .def{color:var(--def);font-weight:bold;}.pdoc .signature{background-color:transparent;}.pdoc .param, .pdoc .return-annotation{white-space:pre;}.pdoc .signature.multiline .param{display:block;}.pdoc .signature.condensed .param{display:inline-block;}.pdoc .annotation{color:var(--annotation);}.pdoc .view-value-toggle-state,.pdoc .view-value-toggle-state ~ .default_value{display:none;}.pdoc .view-value-toggle-state:checked ~ .default_value{display:inherit;}.pdoc .view-value-button{font-size:.5rem;vertical-align:middle;border-style:dashed;margin-top:-0.1rem;}.pdoc .view-value-button:hover{background:white;}.pdoc .view-value-button::before{content:"show";text-align:center;width:2.2em;display:inline-block;}.pdoc .view-value-toggle-state:checked ~ .view-value-button::before{content:"hide";}.pdoc .inherited{margin-left:2rem;}.pdoc .inherited dt{font-weight:700;}.pdoc .inherited dt, .pdoc .inherited dd{display:inline;margin-left:0;margin-bottom:.5rem;}.pdoc .inherited dd:not(:last-child):after{content:", ";}.pdoc .inherited .class:before{content:"class ";}.pdoc .inherited .function a:after{content:"()";}.pdoc .search-result .docstring{overflow:auto;max-height:25vh;}.pdoc .search-result.focused > .attr{background-color:var(--active);}.pdoc .attribution{margin-top:2rem;display:block;opacity:0.5;transition:all 200ms;filter:grayscale(100%);}.pdoc .attribution:hover{opacity:1;filter:grayscale(0%);}.pdoc .attribution img{margin-left:5px;height:27px;vertical-align:bottom;width:50px;transition:all 200ms;}.pdoc table{display:block;width:max-content;max-width:100%;overflow:auto;margin-bottom:1rem;}.pdoc table th{font-weight:600;}.pdoc table th, .pdoc table td{padding:6px 13px;border:1px solid var(--accent2);}</style>
+    <style>/*! custom.css */</style><script>
+    window.MathJax = {
+        tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']]
+        }
+    };
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+    /* Re-invoke MathJax when DOM content changes, for example during search. */
+    document.addEventListener("DOMContentLoaded", () => {
+        new MutationObserver(() => MathJax.typeset()).observe(
+            document.querySelector("main.pdoc").parentNode,
+            {childList: true}
+        );
+    })
+</script>
+<style>
+    mjx-container {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+</style></head>
+<body>
+    <nav class="pdoc">
+        <label id="navtoggle" for="togglestate" class="pdoc-button"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><path stroke-linecap='round' stroke="currentColor" stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/></svg></label>
+        <input id="togglestate" type="checkbox" aria-hidden="true" tabindex="-1">
+        <div>            <a class="pdoc-button module-list-button" href="../timeseries.html">
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-box-arrow-in-left" viewBox="0 0 16 16">
+  <path fill-rule="evenodd" d="M10 3.5a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 1 1 0v2A1.5 1.5 0 0 1 9.5 14h-8A1.5 1.5 0 0 1 0 12.5v-9A1.5 1.5 0 0 1 1.5 2h8A1.5 1.5 0 0 1 11 3.5v2a.5.5 0 0 1-1 0v-2z"/>
+  <path fill-rule="evenodd" d="M4.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L5.707 7.5H14.5a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708l-3-3z"/>
+</svg>                &nbsp;quantica.timeseries</a>
+
+
+
+
+
+            <h2>API Documentation</h2>
+                <ul class="memberlist">
+            <li>
+                    <a class="variable" href="#DISTRIBUTIONS">DISTRIBUTIONS</a>
+            </li>
+            <li>
+                    <a class="class" href="#AverageLaplace">AverageLaplace</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#AverageLaplace.name">name</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AverageLaplace.logpdf">logpdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AverageLaplace.cdf">cdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AverageLaplace.ppf">ppf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AverageLaplace.abs_moment">abs_moment</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#ConditionalDistribution">ConditionalDistribution</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#ConditionalDistribution.name">name</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ConditionalDistribution.param_names">param_names</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ConditionalDistribution.param_bounds">param_bounds</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#ConditionalDistribution.param_start">param_start</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.logpdf">logpdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.pdf">pdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.cdf">cdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.ppf">ppf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.sample">sample</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#FernandezSteelSkew">FernandezSteelSkew</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.__init__">FernandezSteelSkew</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FernandezSteelSkew.name">name</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FernandezSteelSkew.param_names">param_names</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FernandezSteelSkew.param_bounds">param_bounds</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FernandezSteelSkew.param_start">param_start</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.logpdf">logpdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.cdf">cdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.ppf">ppf</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#GeneralizedError">GeneralizedError</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#GeneralizedError.name">name</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GeneralizedError.param_names">param_names</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GeneralizedError.param_bounds">param_bounds</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GeneralizedError.param_start">param_start</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#GeneralizedError.logpdf">logpdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#GeneralizedError.cdf">cdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#GeneralizedError.ppf">ppf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#GeneralizedError.abs_moment">abs_moment</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#Normal">Normal</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#Normal.name">name</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Normal.logpdf">logpdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Normal.cdf">cdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Normal.ppf">ppf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Normal.abs_moment">abs_moment</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#QMLEResult">QMLEResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#QMLEResult.__init__">QMLEResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.params">params</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.param_names">param_names</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.loglikelihood">loglikelihood</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.std_errors">std_errors</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.vcov">vcov</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.conditional_variance">conditional_variance</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.n_var_params">n_var_params</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#QMLEResult.converged">converged</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#StudentT">StudentT</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="variable" href="#StudentT.name">name</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#StudentT.param_names">param_names</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#StudentT.param_bounds">param_bounds</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#StudentT.param_start">param_start</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StudentT.logpdf">logpdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StudentT.cdf">cdf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StudentT.ppf">ppf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StudentT.abs_moment">abs_moment</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#VarianceRecursion">VarianceRecursion</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#VarianceRecursion.__init__">VarianceRecursion</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="function" href="#get_distribution">get_distribution</a>
+            </li>
+            <li>
+                    <a class="function" href="#initial_variance">initial_variance</a>
+            </li>
+            <li>
+                    <a class="function" href="#quasi_max_likelihood">quasi_max_likelihood</a>
+            </li>
+    </ul>
+
+
+
+        <a class="attribution" title="pdoc: Python API documentation generator" href="https://pdoc.dev" target="_blank">
+            built with <span class="visually-hidden">pdoc</span><img
+                alt="pdoc logo"
+                src="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20role%3D%22img%22%20aria-label%3D%22pdoc%20logo%22%20width%3D%22300%22%20height%3D%22160%22%20viewBox%3D%220%200%20150%2080%22%3E%3Ctitle%3Epdoc%3C/title%3E%3Cpath%20d%3D%22M132.316%2048.886c.276-4.679%202.342-6.698%204.409-7.982s4.27-1.165%206.751-1.055c1.586.07%203.044.156%204.222-.482%201.142-.619%202.026-1.932%202.162-3.739.268-3.576-1.929-5.368-5.006-5.551s-7.599.524-10.517%201.606c-4.455%201.652-8.588%206.606-9.552%208.992s-2.342%206.193-1.745%2010.873%202.664%209.221%205.878%2011.79%205.878%203.808%2010.103%204.312%203.444.229%206.062.229%205.006-2.202%204.914-4.909-2.296-5.001-4.501-4.863-3.077.505-5.281.229-7.715-2.064-7.899-9.451z%22%20fill%3D%22%23198754%22/%3E%3Ccircle%20cx%3D%22101.504%22%20cy%3D%2248.943%22%20r%3D%2214.208%22%20fill%3D%22none%22%20stroke%3D%22%23198754%22%20stroke-width%3D%229.354%22/%3E%3Cpath%20d%3D%22M87.81.002c-3.637.065-5.001.454-7.014%201.232s-3.443%201.363-6.3%204.282c-1.723%201.76-3.148%205.019-3.776%207.329-.413%201.521-.316%202.63-.316%202.63l-.195%2034.612c.065%205.774-6.755%208.305-9.612%208.37s-9.678-1.038-9.743-9.408%207.128-9.521%208.362-9.521c1.413-.13%202.526-.021%203.718-.016%202.071.009%204.157-.778%204.092-4.671s-4.157-4.736-4.157-4.736c-6.3-.843-11.43%202.206-11.43%202.206S40.917%2038.15%2041.372%2049.634%2051.568%2068.19%2061.311%2068.125s18.316-7.007%2018.445-17.193l.13-22.772c.046-2.291%202.683-3.644%204.476-4.203.745-.232%201.694-.274%201.694-.274l10.457-.13s4.871-.324%207.729-3.114%204.352-6.294%204.352-6.294.974-3.049.13-4.606-.195-1.233-2.792-3.309-8.573-4.477-8.573-4.477S91.447-.063%2087.81.002zM0%2047.169l.065%2028.417S0%2080.127%204.481%2079.997s5.072-3.866%205.049-4.152l-.113-28.482s1.624-7.656%209.937-7.721%2010.002%206.942%2010.002%208.499-.909%2010.51-9.093%2010.51c-.948%200-2.99-.567-4.145-.272-3.919%201-3.194%204.554-3.194%204.554s.065%205.061%207.404%204.996%2018.575-6.034%2018.575-19.074S26.953%2030.04%2019.549%2029.91%201.234%2035.296%200%2047.169z%22%20fill%3D%22%23198754%22/%3E%3Cg%20transform%3D%22matrix%28.325601%200%200%20.325256%20-10.32669%20-45.802786%29%22%3E%3Ccircle%20cx%3D%22297.554%22%20cy%3D%22172.286%22%20r%3D%2216.5%22%20fill%3D%22%23fff%22/%3E%3Cellipse%20cx%3D%22297.709%22%20cy%3D%22172.642%22%20rx%3D%2211.071%22%20ry%3D%2210.871%22%20fill%3D%22%23105a48%22/%3E%3Ccircle%20cx%3D%22304.104%22%20cy%3D%22167.667%22%20r%3D%224.5%22%20fill%3D%22%23fff%22/%3E%3C/g%3E%3Cpath%20d%3D%22M94.661%2017.032l.893-1.476s.99.714%201.916.925%201.575.114%202.955.114l14.565-.162c1.283-.032%203.085-.762%203.02-3.293s-.373-3.503-.373-3.503l1.283-.487s.52.503.877%201.573.309%201.995.292%202.66-.227%201.541-.227%201.541%201.564-.308%202.359-1.038.823-.779%201.489-1.508.812-.86.812-.86.552-.13.877.26.341.957.065%201.46-1.672%202.206-3.247%203.066-2.76%201.427-3.929%201.768-3.848.73-7.063.714l-10.944-.114s-2.143-.081-3.02-.373-2.241-.973-2.598-1.265z%22%20fill%3D%22%23d36d49%22/%3E%3Cg%20fill%3D%22%23105a48%22%3E%3Cellipse%20cx%3D%2293.052%22%20cy%3D%2243.567%22%20rx%3D%22.869%22%20ry%3D%221.014%22%20transform%3D%22rotate%28341.022%29%22/%3E%3Cellipse%20cx%3D%22104.3%22%20cy%3D%22-16.184%22%20rx%3D%22.865%22%20ry%3D%221.009%22%20transform%3D%22rotate%2814.786%29%22/%3E%3C/g%3E%3C/svg%3E"/>
+        </a>
+</div>
+    </nav>
+    <main class="pdoc">
+            <section class="module-info">
+                    <h1 class="modulename">
+<a href="./../../quantica.html">quantica</a><wbr>.<a href="./../timeseries.html">timeseries</a><wbr>.fegarch    </h1>
+
+                        <div class="docstring"><p>fEGarch clean-room port — an independent reimplementation of the fEGarch model family.</p>
+
+<div class="alert note">
+
+<p><strong>Clean-room, non-negotiable (CLAUDE.md §12).</strong> This package is an <strong>independent clean-room
+reimplementation of the models described in the <code>fEGarch</code> reference manual and its cited
+papers</strong> — implemented purely from the published mathematics, <strong>never</strong> from the <code>fEGarch</code>
+R/C++ source (which is never read, opened, or translated). Correctness is validated against
+<strong>committed <code>fEGarch</code> output fixtures</strong> (a pending step), not by inspecting their code.
+<code>fEGarch</code> and the underlying papers are credited as the <em>specification source</em>; this is not a
+port of their code and implies no endorsement. <code><a href="../../quantica.html">quantica</a></code> stays MIT because the work is
+original, from specifications.</p>
+
+</div>
+
+<p><strong>Phase 0 (this step) — the foundations</strong> every later model reuses:</p>
+
+<ul>
+<li><strong>Conditional distributions</strong> (<code>~<a href="fegarch/distributions.html">quantica.timeseries.fegarch.distributions</a></code>) — the eight
+standardized (mean-0, variance-1) innovation distributions <code>norm</code> / <code>std</code> / <code>ged</code> / <code>ald</code>
+and their Fernández-Steel skewed variants, each with <code>pdf</code> / <code>cdf</code> / <code>ppf</code> / seeded sampler.</li>
+<li><strong>QMLE engine</strong> (<code>~<a href="fegarch/qmle.html">quantica.timeseries.fegarch.qmle</a></code>) — a generic quasi-maximum-likelihood
+estimator that fits any conditional-variance recursion under any of those distributions, with
+documented pre-sample conditioning and Hessian-based standard errors.</li>
+</ul>
+
+<p>The models (short-memory, EGARCH family, the fractional-differencing engine, long-memory,
+dual mean, forecasting/risk) arrive in later phases — see <code>docs/fegarch-port-roadmap.md</code>.</p>
+</div>
+
+                
+                
+                
+            </section>
+                <section id="DISTRIBUTIONS">
+                    <div class="attr variable">
+            <span class="name">DISTRIBUTIONS</span>        =
+<input id="DISTRIBUTIONS-view-value" class="view-value-toggle-state" type="checkbox" aria-hidden="true" tabindex="-1">
+            <label class="view-value-button pdoc-button" for="DISTRIBUTIONS-view-value"></label><span class="default_value">{&#39;norm&#39;: &lt;<a href="#Normal">Normal</a> object&gt;, &#39;std&#39;: &lt;<a href="#StudentT">StudentT</a> object&gt;, &#39;ged&#39;: &lt;<a href="#GeneralizedError">GeneralizedError</a> object&gt;, &#39;ald&#39;: &lt;<a href="#AverageLaplace">AverageLaplace</a> object&gt;, &#39;snorm&#39;: &lt;<a href="#FernandezSteelSkew">FernandezSteelSkew</a> object&gt;, &#39;sstd&#39;: &lt;<a href="#FernandezSteelSkew">FernandezSteelSkew</a> object&gt;, &#39;sged&#39;: &lt;<a href="#FernandezSteelSkew">FernandezSteelSkew</a> object&gt;, &#39;sald&#39;: &lt;<a href="#FernandezSteelSkew">FernandezSteelSkew</a> object&gt;}</span>
+
+        
+    </div>
+    <a class="headerlink" href="#DISTRIBUTIONS"></a>
+    
+    
+
+                </section>
+                <section id="AverageLaplace">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">AverageLaplace</span><wbr>(<span class="base"><a href="#ConditionalDistribution">quantica.timeseries.fegarch.ConditionalDistribution</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace"></a>
+    
+            <div class="docstring"><p>The average-Laplace innovation (<code>ald</code>) — <strong>RECONCILE default: standardized Laplace</strong>.</p>
+
+<p>The exact <em>average Laplace</em> form used by fEGarch is not yet pinned from a citable paper, so this
+implements the standardized symmetric <strong>Laplace</strong> (double-exponential, scale \( 1/\sqrt2 \)
+for unit variance) as a well-defined, documented default. The interface (parameter-free,
+standardized) is designed so swapping in the exact form later leaves the API unchanged.</p>
+
+<p><code># RECONCILE</code>: confirm the exact <code>ald</code> density against the fEGarch reference manual / cited
+paper and the committed fEGarch fixture, then replace the body without changing this signature.</p>
+</div>
+
+
+                            <div id="AverageLaplace.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span>        =
+<span class="default_value">&#39;ald&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.name"></a>
+    
+    
+
+                            </div>
+                            <div id="AverageLaplace.logpdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">logpdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.logpdf"></a>
+    
+            <div class="docstring"><p>Standardized Laplace log density (RECONCILE default).</p>
+</div>
+
+
+                            </div>
+                            <div id="AverageLaplace.cdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">cdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.cdf"></a>
+    
+            <div class="docstring"><p>Standardized Laplace CDF (RECONCILE default).</p>
+</div>
+
+
+                            </div>
+                            <div id="AverageLaplace.ppf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">ppf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.ppf"></a>
+    
+            <div class="docstring"><p>Standardized Laplace quantile function (RECONCILE default).</p>
+</div>
+
+
+                            </div>
+                            <div id="AverageLaplace.abs_moment" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">abs_moment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.abs_moment"></a>
+    
+            <div class="docstring"><p>First absolute moment \( E|z| = 1/\sqrt2 \) (RECONCILE default).</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
+                                <dd id="AverageLaplace.param_names" class="variable"><a href="#ConditionalDistribution.param_names">param_names</a></dd>
+                <dd id="AverageLaplace.param_bounds" class="variable"><a href="#ConditionalDistribution.param_bounds">param_bounds</a></dd>
+                <dd id="AverageLaplace.param_start" class="variable"><a href="#ConditionalDistribution.param_start">param_start</a></dd>
+                <dd id="AverageLaplace.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
+                <dd id="AverageLaplace.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
+                <section id="ConditionalDistribution">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">ConditionalDistribution</span><wbr>(<span class="base">abc.ABC</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution"></a>
+    
+            <div class="docstring"><p>A standardized (mean-0, variance-1) innovation distribution for QMLE.</p>
+
+<p>Every distribution has a fixed tuple of <em>shape</em> parameters (<code><a href="#ConditionalDistribution.param_names">param_names</a></code>), passed to the
+methods as a sequence aligned with those names (empty for the parameter-free normal). Methods
+operate elementwise on <code>z</code>/<code>p</code> arrays.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>name</strong> (str):
+The fEGarch short code (<code>"norm"</code>, <code>"std"</code>, ...).</li>
+<li><strong>param_names</strong> (tuple of str):
+The shape-parameter names, in order.</li>
+<li><strong>param_bounds</strong> (tuple of (float, float)):
+Optimization bounds for each shape parameter, aligned with <code><a href="#ConditionalDistribution.param_names">param_names</a></code>.</li>
+<li><strong>param_start</strong> (tuple of float):
+Sensible starting values for each shape parameter.</li>
+</ul>
+</div>
+
+
+                            <div id="ConditionalDistribution.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span><span class="annotation">: str</span>        =
+<span class="default_value">&#39;&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.name"></a>
+    
+    
+
+                            </div>
+                            <div id="ConditionalDistribution.param_names" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_names</span><span class="annotation">: tuple[str, ...]</span>        =
+<span class="default_value">()</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.param_names"></a>
+    
+    
+
+                            </div>
+                            <div id="ConditionalDistribution.param_bounds" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_bounds</span><span class="annotation">: tuple[tuple[float, float], ...]</span>        =
+<span class="default_value">()</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.param_bounds"></a>
+    
+    
+
+                            </div>
+                            <div id="ConditionalDistribution.param_start" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_start</span><span class="annotation">: tuple[float, ...]</span>        =
+<span class="default_value">()</span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.param_start"></a>
+    
+    
+
+                            </div>
+                            <div id="ConditionalDistribution.logpdf" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-abstractmethod">@abstractmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">logpdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.logpdf"></a>
+    
+            <div class="docstring"><p>Log density of the standardized innovation at <code>z</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="ConditionalDistribution.pdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">pdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.pdf"></a>
+    
+            <div class="docstring"><p>Density of the standardized innovation at <code>z</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="ConditionalDistribution.cdf" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-abstractmethod">@abstractmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">cdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.cdf"></a>
+    
+            <div class="docstring"><p>Cumulative distribution function at <code>z</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="ConditionalDistribution.ppf" class="classattr">
+                                <div class="attr function">
+                    <div class="decorator decorator-abstractmethod">@abstractmethod</div>
+
+        <span class="def">def</span>
+        <span class="name">ppf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.ppf"></a>
+    
+            <div class="docstring"><p>Quantile function (inverse CDF) at probability <code>p</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="ConditionalDistribution.sample" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">sample</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">size</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.sample"></a>
+    
+            <div class="docstring"><p>Draw <code>size</code> seeded samples by inverse-CDF (consistent with <code><a href="#ConditionalDistribution.ppf">ppf()</a></code>).</p>
+</div>
+
+
+                            </div>
+                </section>
+                <section id="FernandezSteelSkew">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">FernandezSteelSkew</span><wbr>(<span class="base"><a href="#ConditionalDistribution">quantica.timeseries.fegarch.ConditionalDistribution</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew"></a>
+    
+            <div class="docstring"><p>Fernández-Steel (1998) skew of a symmetric base, re-standardized to mean 0 / variance 1.</p>
+
+<p>Given a standardized symmetric base density \( f \) and skew \( \xi &gt; 0 \), the
+unstandardized skewed density is
+\( h(x) = \frac{2}{\xi+1/\xi} f(x\,\xi^{-\operatorname{sign} x}) \). Its mean
+\( \mu = M_1(\xi - 1/\xi) \) and variance
+\( \sigma^2 = (1-M_1^2)(\xi^2+\xi^{-2}) + 2M_1^2 - 1 \) (with \( M_1 = E|z_{\text{base}}| \)
+the base's first absolute moment) are removed so the innovation is again mean 0 / variance 1
+(Lambert-Laurent 2001). At \( \xi = 1 \) this reduces exactly to the base.</p>
+
+<p><code># RECONCILE</code>: confirm this is the exact skew parameterization and normalization fEGarch uses
+(vs. an alternative \( \xi \)/skew constant) against the paper and the fEGarch fixture; the
+single <code>xi</code> parameter and the mean-0/variance-1 convention are designed to stay fixed.</p>
+</div>
+
+
+                            <div id="FernandezSteelSkew.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">FernandezSteelSkew</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">base</span><span class="p">:</span> <span class="n"><a href="#Normal">Normal</a></span> <span class="o">|</span> <span class="n"><a href="#StudentT">StudentT</a></span> <span class="o">|</span> <span class="n"><a href="#GeneralizedError">GeneralizedError</a></span> <span class="o">|</span> <span class="n"><a href="#AverageLaplace">AverageLaplace</a></span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="FernandezSteelSkew.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span>        =
+<span class="default_value">&#39;&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.name"></a>
+    
+    
+
+                            </div>
+                            <div id="FernandezSteelSkew.param_names" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_names</span>        =
+<span class="default_value">()</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.param_names"></a>
+    
+    
+
+                            </div>
+                            <div id="FernandezSteelSkew.param_bounds" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_bounds</span>        =
+<span class="default_value">()</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.param_bounds"></a>
+    
+    
+
+                            </div>
+                            <div id="FernandezSteelSkew.param_start" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_start</span>        =
+<span class="default_value">()</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.param_start"></a>
+    
+    
+
+                            </div>
+                            <div id="FernandezSteelSkew.logpdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">logpdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.logpdf"></a>
+    
+            <div class="docstring"><p>Standardized skewed log density.</p>
+</div>
+
+
+                            </div>
+                            <div id="FernandezSteelSkew.cdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">cdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.cdf"></a>
+    
+            <div class="docstring"><p>Standardized skewed CDF.</p>
+</div>
+
+
+                            </div>
+                            <div id="FernandezSteelSkew.ppf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">ppf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.ppf"></a>
+    
+            <div class="docstring"><p>Standardized skewed quantile function.</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
+                                <dd id="FernandezSteelSkew.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
+                <dd id="FernandezSteelSkew.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
+                <section id="GeneralizedError">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">GeneralizedError</span><wbr>(<span class="base"><a href="#ConditionalDistribution">quantica.timeseries.fegarch.ConditionalDistribution</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError"></a>
+    
+            <div class="docstring"><p>The standardized generalized error distribution (<code>ged</code>), shape \( \nu &gt; 0 \).</p>
+
+<p>Nelson's (1991) GED with the unit-variance standardization: \( \nu = 2 \) is the standard
+normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemented via
+<code>scipy.stats.gennorm()</code> (whose shape \( \beta \) equals \( \nu \)) with the scale
+\( \sqrt{\Gamma(1/\nu)/\Gamma(3/\nu)} \) that makes the variance 1.</p>
+</div>
+
+
+                            <div id="GeneralizedError.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span>        =
+<span class="default_value">&#39;ged&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.name"></a>
+    
+    
+
+                            </div>
+                            <div id="GeneralizedError.param_names" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_names</span>        =
+<span class="default_value">(&#39;nu&#39;,)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.param_names"></a>
+    
+    
+
+                            </div>
+                            <div id="GeneralizedError.param_bounds" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_bounds</span>        =
+<span class="default_value">((0.5, 20.0),)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.param_bounds"></a>
+    
+    
+
+                            </div>
+                            <div id="GeneralizedError.param_start" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_start</span>        =
+<span class="default_value">(1.5,)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.param_start"></a>
+    
+    
+
+                            </div>
+                            <div id="GeneralizedError.logpdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">logpdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.logpdf"></a>
+    
+            <div class="docstring"><p>Standardized GED log density.</p>
+</div>
+
+
+                            </div>
+                            <div id="GeneralizedError.cdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">cdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.cdf"></a>
+    
+            <div class="docstring"><p>Standardized GED CDF.</p>
+</div>
+
+
+                            </div>
+                            <div id="GeneralizedError.ppf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">ppf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.ppf"></a>
+    
+            <div class="docstring"><p>Standardized GED quantile function.</p>
+</div>
+
+
+                            </div>
+                            <div id="GeneralizedError.abs_moment" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">abs_moment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.abs_moment"></a>
+    
+            <div class="docstring"><p>First absolute moment \( \Gamma(2/\nu)/\sqrt{\Gamma(1/\nu)\Gamma(3/\nu)} \).</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
+                                <dd id="GeneralizedError.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
+                <dd id="GeneralizedError.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
+                <section id="Normal">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">Normal</span><wbr>(<span class="base"><a href="#ConditionalDistribution">quantica.timeseries.fegarch.ConditionalDistribution</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#Normal"></a>
+    
+            <div class="docstring"><p>The standard normal innovation (<code>norm</code>): mean 0, variance 1, no shape parameters.</p>
+</div>
+
+
+                            <div id="Normal.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span>        =
+<span class="default_value">&#39;norm&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.name"></a>
+    
+    
+
+                            </div>
+                            <div id="Normal.logpdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">logpdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.logpdf"></a>
+    
+            <div class="docstring"><p>Log density \( -\tfrac12\ln(2\pi) - \tfrac12 z^2 \).</p>
+</div>
+
+
+                            </div>
+                            <div id="Normal.cdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">cdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.cdf"></a>
+    
+            <div class="docstring"><p>Standard normal CDF.</p>
+</div>
+
+
+                            </div>
+                            <div id="Normal.ppf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">ppf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.ppf"></a>
+    
+            <div class="docstring"><p>Standard normal quantile function.</p>
+</div>
+
+
+                            </div>
+                            <div id="Normal.abs_moment" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">abs_moment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.abs_moment"></a>
+    
+            <div class="docstring"><p>First absolute moment \( E|z| = \sqrt{2/\pi} \) (needed by the skew wrapper).</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
+                                <dd id="Normal.param_names" class="variable"><a href="#ConditionalDistribution.param_names">param_names</a></dd>
+                <dd id="Normal.param_bounds" class="variable"><a href="#ConditionalDistribution.param_bounds">param_bounds</a></dd>
+                <dd id="Normal.param_start" class="variable"><a href="#ConditionalDistribution.param_start">param_start</a></dd>
+                <dd id="Normal.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
+                <dd id="Normal.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
+                <section id="QMLEResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">QMLEResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult"></a>
+    
+            <div class="docstring"><p>The outcome of a quasi-maximum-likelihood fit.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray):
+The estimated parameters, variance parameters first then distribution shape parameters.</li>
+<li><strong>param_names</strong> (tuple of str):
+Names aligned with <code><a href="#QMLEResult.params">params</a></code>.</li>
+<li><strong>loglikelihood</strong> (float):
+The maximized conditional log-likelihood.</li>
+<li><strong>std_errors</strong> (ndarray):
+Standard errors from the inverse numerical Hessian (<code>nan</code> if it is not positive-definite).</li>
+<li><strong>vcov</strong> (ndarray):
+The variance-covariance matrix (inverse observed information).</li>
+<li><strong>conditional_variance</strong> (ndarray):
+The fitted conditional-variance path at the optimum.</li>
+<li><strong>n_var_params</strong> (int):
+How many leading entries of <code><a href="#QMLEResult.params">params</a></code> are variance parameters (the rest are distribution
+shape parameters).</li>
+<li><strong>converged</strong> (bool):
+Whether the optimizer reported success.</li>
+</ul>
+</div>
+
+
+                            <div id="QMLEResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">QMLEResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">param_names</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">std_errors</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">vcov</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">conditional_variance</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_var_params</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.params" class="classattr">
+                                <div class="attr variable">
+            <span class="name">params</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.params"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.param_names" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_names</span><span class="annotation">: tuple[str, ...]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.param_names"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.loglikelihood" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.loglikelihood"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.std_errors" class="classattr">
+                                <div class="attr variable">
+            <span class="name">std_errors</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.std_errors"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.vcov" class="classattr">
+                                <div class="attr variable">
+            <span class="name">vcov</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.vcov"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.conditional_variance" class="classattr">
+                                <div class="attr variable">
+            <span class="name">conditional_variance</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.conditional_variance"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.n_var_params" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_var_params</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.n_var_params"></a>
+    
+    
+
+                            </div>
+                            <div id="QMLEResult.converged" class="classattr">
+                                <div class="attr variable">
+            <span class="name">converged</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#QMLEResult.converged"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="StudentT">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">StudentT</span><wbr>(<span class="base"><a href="#ConditionalDistribution">quantica.timeseries.fegarch.ConditionalDistribution</a></span>):
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT"></a>
+    
+            <div class="docstring"><p>The standardized Student-\( t \) innovation (<code>std</code>), shape \( \nu &gt; 2 \).</p>
+
+<p>The scale is chosen so the variance is 1: if \( T \sim t_\nu \) then
+\( z = T\sqrt{(\nu-2)/\nu} \). The density is
+:math:<code>\frac{\Gamma(\frac{\nu+1}{2})}{\sqrt{(\nu-2)\pi}\,\Gamma(\frac{\nu}{2})}
+(1 + \frac{z^2}{\nu-2})^{-(\nu+1)/2}</code>.</p>
+</div>
+
+
+                            <div id="StudentT.name" class="classattr">
+                                <div class="attr variable">
+            <span class="name">name</span>        =
+<span class="default_value">&#39;std&#39;</span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.name"></a>
+    
+    
+
+                            </div>
+                            <div id="StudentT.param_names" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_names</span>        =
+<span class="default_value">(&#39;nu&#39;,)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.param_names"></a>
+    
+    
+
+                            </div>
+                            <div id="StudentT.param_bounds" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_bounds</span>        =
+<span class="default_value">((2.05, 100.0),)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.param_bounds"></a>
+    
+    
+
+                            </div>
+                            <div id="StudentT.param_start" class="classattr">
+                                <div class="attr variable">
+            <span class="name">param_start</span>        =
+<span class="default_value">(8.0,)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.param_start"></a>
+    
+    
+
+                            </div>
+                            <div id="StudentT.logpdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">logpdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.logpdf"></a>
+    
+            <div class="docstring"><p>Standardized Student-<code>t</code> log density.</p>
+</div>
+
+
+                            </div>
+                            <div id="StudentT.cdf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">cdf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">z</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.cdf"></a>
+    
+            <div class="docstring"><p>Standardized Student-<code>t</code> CDF (via the scaled ordinary <code>t</code>).</p>
+</div>
+
+
+                            </div>
+                            <div id="StudentT.ppf" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">ppf</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="bp">self</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.ppf"></a>
+    
+            <div class="docstring"><p>Standardized Student-<code>t</code> quantile function.</p>
+</div>
+
+
+                            </div>
+                            <div id="StudentT.abs_moment" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">abs_moment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.abs_moment"></a>
+    
+            <div class="docstring"><p>First absolute moment of the standardized <code>t</code>.</p>
+</div>
+
+
+                            </div>
+                            <div class="inherited">
+                                <h5>Inherited Members</h5>
+                                <dl>
+                                    <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
+                                <dd id="StudentT.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
+                <dd id="StudentT.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+
+            </div>
+                                </dl>
+                            </div>
+                </section>
+                <section id="VarianceRecursion">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">VarianceRecursion</span><wbr>(<span class="base">typing.Protocol</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#VarianceRecursion"></a>
+    
+            <div class="docstring"><p>A conditional-variance model: parameters + data → the conditional-variance path.</p>
+
+<p>The callable receives the variance parameters and the (mean-zero) return series and returns the
+conditional variances \( \sigma_t^2 \) for every observation, <strong>conditioned on its own
+pre-sample initialisation</strong> (see <code><a href="#initial_variance">initial_variance()</a></code>). It must return strictly positive
+values for admissible parameters.</p>
+</div>
+
+
+                            <div id="VarianceRecursion.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">VarianceRecursion</span><span class="signature pdoc-code condensed">(<span class="param"><span class="o">*</span><span class="n">args</span>, </span><span class="param"><span class="o">**</span><span class="n">kwargs</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VarianceRecursion.__init__"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="get_distribution">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">get_distribution</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">name</span><span class="p">:</span> <span class="nb">str</span></span><span class="return-annotation">) -> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#get_distribution"></a>
+    
+            <div class="docstring"><p>Look up a conditional distribution by its fEGarch short code.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>name</strong> (str):
+One of <code>norm</code>, <code>std</code>, <code>ged</code>, <code>ald</code>, <code>snorm</code>, <code>sstd</code>, <code>sged</code>, <code>sald</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ConditionalDistribution</strong>: The (standardized) distribution instance.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>KeyError</strong>: If <code>name</code> is not one of the eight supported codes.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="initial_variance">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">initial_variance</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#initial_variance"></a>
+    
+            <div class="docstring"><p>The default pre-sample conditional variance: the sample variance of the series.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray):
+The (mean-zero) return series.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The sample variance, used to condition the variance recursion's pre-sample state.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="quasi_max_likelihood">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#quasi_max_likelihood"></a>
+    
+            <div class="docstring"><p>Fit a conditional-variance model by quasi-maximum likelihood.</p>
+
+<p>Maximizes \( \sum_t [-\ln\sigma_t + \ln f_z(\varepsilon_t/\sigma_t)] \) over the variance
+parameters and the distribution's shape parameters jointly, conditioned on the recursion's
+pre-sample initialisation.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The (mean-zero) return series.</li>
+<li><strong>variance_recursion</strong> (VarianceRecursion):
+The model mapping variance parameters + returns to the conditional-variance path.</li>
+<li><strong>distribution</strong> (ConditionalDistribution):
+The standardized innovation distribution (its shape parameters are estimated too).</li>
+<li><strong>var_start, var_bounds, var_names</strong> (sequences):
+Starting values, <code>(low, high)</code> bounds, and names for the variance parameters.</li>
+<li><strong>dist_start, dist_bounds</strong> (sequences, optional):
+Starting values and bounds for the distribution's shape parameters; default to the
+distribution's own <code>param_start</code> / <code>param_bounds</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>QMLEResult</strong>: The estimates, log-likelihood, standard errors, and fitted conditional variance.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If the variance metadata lengths disagree.</li>
+</ul>
+</div>
+
+
+                </section>
+    </main>
+</body>
+</html>
