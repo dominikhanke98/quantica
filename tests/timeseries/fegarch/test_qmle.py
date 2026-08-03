@@ -146,8 +146,9 @@ def test_mismatched_variance_metadata_raises() -> None:
 
 
 @pytest.mark.skip(
-    reason="fEGarch output fixtures not yet committed — Phase 1 follow-up (CLAUDE.md §12: validate "
-    "fitted parameters / conditional-variance series against committed fEGarch output)."
+    reason="Phase 1: the fit fixtures (fit_garch11_norm_*, fit_egarch11_norm_*) are committed but "
+    "matching them needs the fEGarch GARCH/EGARCH recursion + presample convention (Phase 1). "
+    "This is the Phase-0 distributions + QMLE-engine PR."
 )
 def test_qmle_matches_fegarch_fixture() -> None:
     """The QMLE fit matches fEGarch's fitted parameters + conditional-variance series to tol."""

@@ -57,7 +57,16 @@
                     <a class="class" href="#AverageLaplace">AverageLaplace</a>
                             <ul class="memberlist">
                         <li>
+                                <a class="function" href="#AverageLaplace.__init__">AverageLaplace</a>
+                        </li>
+                        <li>
                                 <a class="variable" href="#AverageLaplace.name">name</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#AverageLaplace.P">P</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AverageLaplace.absolute_moment">absolute_moment</a>
                         </li>
                         <li>
                                 <a class="function" href="#AverageLaplace.logpdf">logpdf</a>
@@ -342,18 +351,42 @@ dual mean, forecasting/risk) arrive in later phases — see <code>docs/fegarch-p
     </div>
     <a class="headerlink" href="#AverageLaplace"></a>
     
-            <div class="docstring"><p>The average-Laplace innovation (<code>ald</code>) — <strong>RECONCILE default: standardized Laplace</strong>.</p>
+            <div class="docstring"><p>The scaled average-Laplace (Sargan) innovation (<code>ald</code>), standardized to mean 0 / var 1.</p>
 
-<p>The exact <em>average Laplace</em> form used by fEGarch is not yet pinned from a citable paper, so this
-implements the standardized symmetric <strong>Laplace</strong> (double-exponential, scale \( 1/\sqrt2 \)
-for unit variance) as a well-defined, documented default. The interface (parameter-free,
-standardized) is designed so swapping in the exact form later leaves the API unchanged.</p>
+<p>A symmetric density whose tails are exponential but whose shoulder is a degree-<code><a href="#AverageLaplace.P">P</a></code> polynomial,
+giving fatter-than-normal but lighter-than-Laplace tails that approach the normal as <code><a href="#AverageLaplace.P">P</a></code> grows
+(raw kurtosis <code>3 + 3/(P+1)</code>). <code><a href="#AverageLaplace.P">P</a></code> is a <strong>fixed integer construction parameter</strong> (<code>P &gt;= 1</code>)
+— <strong>not</strong> estimated: <code>fEGarch</code> profiles it over a discrete grid rather than optimizing it
+continuously, so it is stored as a shape attribute and <code><a href="#AverageLaplace.param_names">param_names</a></code> stays empty.</p>
 
-<p><code># RECONCILE</code>: confirm the exact <code>ald</code> density against the fEGarch reference manual / cited
-paper and the committed fEGarch fixture, then replace the body without changing this signature.</p>
+<p>With \( \iota = \sqrt{2(P+1)} \), \( B = 2^{-2P}\binom{2P}{P} \), and coefficients
+\( c_0 = c_1 = 1 \), \( c_j = \frac{2(P-j+1)}{j(2P-j+1)} c_{j-1} \) for \( j = 2..P \),
+the standardized density is</p>
+
+<p>$$f(z) = \tfrac{\iota B}{2}\, e^{-\iota|z|} \sum_{j=0}^{P} c_j (\iota|z|)^j,$$</p>
+
+<p>with CDF (for \( z \ge 0 \)) :math:<code>F(z) = \tfrac12 + \tfrac{B}{2}\sum_j c_j\, j!\,
+P(j+1, \iota z)</code> (<code><a href="#AverageLaplace.P">P</a></code> the regularized lower incomplete gamma) and \( F(z) = 1 - F(-z) \)
+otherwise. The absolute moments are \( a(K) = B\,[2(P+1)]^{-K/2}\sum_j c_j\,\Gamma(j+K+1) \),
+giving \( a(0) = a(2) = 1 \) (normalized, unit variance) and \( a(4) = 3 + 3/(P+1) \).</p>
+
+<p>Implemented from the scaled-average-Laplace equations (WP 2026-04 App. C.1, Eqs. 31--33, 37) —
+clean-room from the published mathematics, never the <code>fEGarch</code> source (CLAUDE.md §12).</p>
 </div>
 
 
+                            <div id="AverageLaplace.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">AverageLaplace</span><span class="signature pdoc-code condensed">(<span class="param"><span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.__init__"></a>
+    
+    
+
+                            </div>
                             <div id="AverageLaplace.name" class="classattr">
                                 <div class="attr variable">
             <span class="name">name</span>        =
@@ -366,6 +399,35 @@ paper and the committed fEGarch fixture, then replace the body without changing 
     
 
                             </div>
+                            <div id="AverageLaplace.P" class="classattr">
+                                <div class="attr variable">
+            <span class="name">P</span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.P"></a>
+    
+    
+
+                            </div>
+                            <div id="AverageLaplace.absolute_moment" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">absolute_moment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">k</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.absolute_moment"></a>
+    
+            <div class="docstring"><p>The <code>k</code>-th absolute moment \( a(k) = B[2(P+1)]^{-k/2}\sum_j c_j \Gamma(j+k+1) \).</p>
+
+<p>Gives <code>a(0)=1</code> (normalization), <code>a(2)=1</code> (unit variance) and <code>a(4)=3+3/(P+1)</code> (raw
+kurtosis); <code>a(1)</code> feeds the Fernández--Steel skew standardization.</p>
+</div>
+
+
+                            </div>
                             <div id="AverageLaplace.logpdf" class="classattr">
                                 <div class="attr function">
             
@@ -376,7 +438,7 @@ paper and the committed fEGarch fixture, then replace the body without changing 
     </div>
     <a class="headerlink" href="#AverageLaplace.logpdf"></a>
     
-            <div class="docstring"><p>Standardized Laplace log density (RECONCILE default).</p>
+            <div class="docstring"><p>Scaled average-Laplace log density (polynomial summed in log-space via logsumexp).</p>
 </div>
 
 
@@ -391,7 +453,7 @@ paper and the committed fEGarch fixture, then replace the body without changing 
     </div>
     <a class="headerlink" href="#AverageLaplace.cdf"></a>
     
-            <div class="docstring"><p>Standardized Laplace CDF (RECONCILE default).</p>
+            <div class="docstring"><p>Scaled average-Laplace CDF via the regularized lower incomplete gamma.</p>
 </div>
 
 
@@ -406,7 +468,7 @@ paper and the committed fEGarch fixture, then replace the body without changing 
     </div>
     <a class="headerlink" href="#AverageLaplace.ppf"></a>
     
-            <div class="docstring"><p>Standardized Laplace quantile function (RECONCILE default).</p>
+            <div class="docstring"><p>Quantile function by vectorized bisection (the CDF has no closed-form inverse).</p>
 </div>
 
 
@@ -421,7 +483,7 @@ paper and the committed fEGarch fixture, then replace the body without changing 
     </div>
     <a class="headerlink" href="#AverageLaplace.abs_moment"></a>
     
-            <div class="docstring"><p>First absolute moment \( E|z| = 1/\sqrt2 \) (RECONCILE default).</p>
+            <div class="docstring"><p>First absolute moment \( E|z| = a(1) \) (feeds the skew wrapper).</p>
 </div>
 
 
@@ -615,12 +677,15 @@ unstandardized skewed density is
 \( h(x) = \frac{2}{\xi+1/\xi} f(x\,\xi^{-\operatorname{sign} x}) \). Its mean
 \( \mu = M_1(\xi - 1/\xi) \) and variance
 \( \sigma^2 = (1-M_1^2)(\xi^2+\xi^{-2}) + 2M_1^2 - 1 \) (with \( M_1 = E|z_{\text{base}}| \)
-the base's first absolute moment) are removed so the innovation is again mean 0 / variance 1
-(Lambert-Laurent 2001). At \( \xi = 1 \) this reduces exactly to the base.</p>
+the base's first absolute moment) are removed so the innovation is again mean 0 / variance 1.
+These are the fEGarch standardization constants — WP 2026-04 App. C.1 Eqs. 38--41 with
+\( s = \xi \) (\( C_E = \mu \), \( C_V = \sigma \)); at \( \xi = 1 \), \( C_E = 0 \)
+and \( C_V = 1 \), so it reduces exactly to the base.</p>
 
-<p><code># RECONCILE</code>: confirm this is the exact skew parameterization and normalization fEGarch uses
-(vs. an alternative \( \xi \)/skew constant) against the paper and the fEGarch fixture; the
-single <code>xi</code> parameter and the mean-0/variance-1 convention are designed to stay fixed.</p>
+<p>The <code>xi</code> parameter is fEGarch's <code>skew</code> argument <strong>directly</strong> (no reparameterization):
+confirmed against the fixtures, <code>skew &lt; 1</code> gives a left-skew and <code>skew &gt; 1</code> a right-skew.
+(Fernández &amp; Steel 1998 introduced the density split; the mean-0/variance-1 constants above are
+algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)</p>
 </div>
 
 

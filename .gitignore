@@ -33,3 +33,6 @@ coverage.xml
 # Ignore local Claude Code state, but track shared project skills.
 .claude/*
 !.claude/skills/
+
+# Clean-room reference papers (spec sources only — NEVER commit; see CLAUDE.md §12)
+literature/

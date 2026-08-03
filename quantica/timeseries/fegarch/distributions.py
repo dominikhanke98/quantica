@@ -5,29 +5,24 @@ r"""Conditional innovation distributions for the fEGarch clean-room port (Phase 
     **Clean-room (CLAUDE.md §12).** This is an *independent clean-room reimplementation of the
     models described in the fEGarch reference manual and its cited papers* — implemented purely from
     the published mathematics, never from the fEGarch source. It is validated against committed
-    fEGarch *output* fixtures (a later step), not by inspecting its code.
+    fEGarch *output* fixtures (``tests/fixtures/fegarch/``), not by inspecting its code.
 
 The eight conditional distributions the fEGarch family uses for the standardized innovation
 :math:`z_t = \varepsilon_t / \sigma_t`, each **standardized to mean 0 and variance 1** (the QMLE
 convention, so the conditional variance carries the whole scale):
 
 * symmetric bases — ``norm`` (standard normal), ``std`` (standardized Student-:math:`t`),
-  ``ged`` (generalized error distribution, Nelson-1991 standardization), ``ald`` (average Laplace);
+  ``ged`` (generalized error distribution, Nelson-1991 standardization), ``ald`` (the scaled
+  average-Laplace / Sargan density, WP 2026-04 App. C.1 Eqs. 31--33, 37 — :class:`AverageLaplace`);
 * their **Fernández-Steel (1998) skewed** counterparts — ``snorm``, ``sstd``, ``sged``, ``sald`` —
   a skewness parameter :math:`\xi` splits the density and the result is re-standardized to mean 0 /
-  variance 1 (Lambert-Laurent 2001), so :math:`\xi = 1` recovers the symmetric base exactly.
+  variance 1 (WP 2026-04 App. C.1 Eqs. 38--41), so :math:`\xi = 1` recovers the symmetric base and
+  :math:`\xi` is fEGarch's ``skew`` argument directly (validated against the fixtures).
 
 Each distribution exposes ``logpdf`` / ``pdf`` / ``cdf`` / ``ppf`` and a seeded ``sample`` (drawn by
-inverse-CDF so it is deterministic and consistent with ``ppf``).
-
-Two parameterizations are **flagged for reconciliation** against the papers + fEGarch fixtures once
-those exist (documented defaults are implemented now; the API will not change when the exact
-constant is locked):
-
-* the exact **average-Laplace (``ald``) form** — implemented here as the standardized symmetric
-  Laplace as a documented default (see :class:`AverageLaplace`);
-* the exact **Fernández-Steel normalization / skew parameterization** — implemented here via the
-  standard Lambert-Laurent mean-0/variance-1 constants (see :class:`FernandezSteelSkew`).
+inverse-CDF so it is deterministic and consistent with ``ppf``). The ALD form and the skew
+convention are **locked against the committed fEGarch fixtures**; see ``docs/fegarch-spec-notes.md``
+for the equation-level derivations.
 
 References
 ----------
@@ -35,8 +30,8 @@ Nelson, D. B. (1991). "Conditional Heteroskedasticity in Asset Returns: A New Ap
 *Econometrica* 59(2) — the standardized GED in the GARCH context.
 Fernández, C. & Steel, M. F. J. (1998). "On Bayesian Modeling of Fat Tails and Skewness." *JASA*
 93(441) — the density-splitting skew mechanism.
-Lambert, P. & Laurent, S. (2001). "Modelling financial time series using GARCH-type models with a
-skewed Student distribution for the innovations." — the mean-0/variance-1 standardization used here.
+WP 2026-04 App. C.1 — the scaled-average-Laplace (Sargan) density (Eqs. 31--33, 37) and the
+Fernández-Steel mean-0/variance-1 standardization constants (Eqs. 38--41).
 """
 
 from __future__ import annotations
@@ -239,43 +234,98 @@ class GeneralizedError(ConditionalDistribution):
         return float(np.exp(log_val))
 
 
+_ALD_PPF_BRACKET = 40.0  # standardized-quantile bracket for the numeric inversion
+_ALD_PPF_ITERS = 64  # bisection steps (80 / 2**64 ≈ 4e-18 absolute precision)
+
+
 class AverageLaplace(ConditionalDistribution):
-    r"""The average-Laplace innovation (``ald``) — **RECONCILE default: standardized Laplace**.
+    r"""The scaled average-Laplace (Sargan) innovation (``ald``), standardized to mean 0 / var 1.
 
-    The exact *average Laplace* form used by fEGarch is not yet pinned from a citable paper, so this
-    implements the standardized symmetric **Laplace** (double-exponential, scale :math:`1/\sqrt2`
-    for unit variance) as a well-defined, documented default. The interface (parameter-free,
-    standardized) is designed so swapping in the exact form later leaves the API unchanged.
+    A symmetric density whose tails are exponential but whose shoulder is a degree-``P`` polynomial,
+    giving fatter-than-normal but lighter-than-Laplace tails that approach the normal as ``P`` grows
+    (raw kurtosis ``3 + 3/(P+1)``). ``P`` is a **fixed integer construction parameter** (``P >= 1``)
+    — **not** estimated: `fEGarch` profiles it over a discrete grid rather than optimizing it
+    continuously, so it is stored as a shape attribute and ``param_names`` stays empty.
 
-    ``# RECONCILE``: confirm the exact ``ald`` density against the fEGarch reference manual / cited
-    paper and the committed fEGarch fixture, then replace the body without changing this signature.
+    With :math:`\iota = \sqrt{2(P+1)}`, :math:`B = 2^{-2P}\binom{2P}{P}`, and coefficients
+    :math:`c_0 = c_1 = 1`, :math:`c_j = \frac{2(P-j+1)}{j(2P-j+1)} c_{j-1}` for :math:`j = 2..P`,
+    the standardized density is
+
+    .. math::
+
+        f(z) = \tfrac{\iota B}{2}\, e^{-\iota|z|} \sum_{j=0}^{P} c_j (\iota|z|)^j,
+
+    with CDF (for :math:`z \ge 0`) :math:`F(z) = \tfrac12 + \tfrac{B}{2}\sum_j c_j\, j!\,
+    P(j+1, \iota z)` (`P` the regularized lower incomplete gamma) and :math:`F(z) = 1 - F(-z)`
+    otherwise. The absolute moments are :math:`a(K) = B\,[2(P+1)]^{-K/2}\sum_j c_j\,\Gamma(j+K+1)`,
+    giving :math:`a(0) = a(2) = 1` (normalized, unit variance) and :math:`a(4) = 3 + 3/(P+1)`.
+
+    Implemented from the scaled-average-Laplace equations (WP 2026-04 App. C.1, Eqs. 31--33, 37) —
+    clean-room from the published mathematics, never the `fEGarch` source (CLAUDE.md §12).
     """
 
     name = "ald"
-    _SCALE = 1.0 / np.sqrt(2.0)  # unit-variance Laplace scale
+
+    def __init__(self, p: int = 8) -> None:
+        if p < 1:
+            raise ValueError("P must be an integer >= 1")
+        self.P = int(p)
+        self._iota = float(np.sqrt(2.0 * (self.P + 1)))
+        self._b = float(2.0 ** (-2 * self.P) * special.comb(2 * self.P, self.P))
+        c = np.ones(self.P + 1, dtype=np.float64)
+        for j in range(2, self.P + 1):
+            c[j] = (2.0 * (self.P - j + 1)) / (j * (2 * self.P - j + 1)) * c[j - 1]
+        self._c = c
+        self._j = np.arange(self.P + 1)
+        self._log_c = np.log(c)
+        self._c_jfact = c * special.factorial(self._j)  # c_j · j!, for the CDF
+
+    def absolute_moment(self, k: int) -> float:
+        r"""The ``k``-th absolute moment :math:`a(k) = B[2(P+1)]^{-k/2}\sum_j c_j \Gamma(j+k+1)`.
+
+        Gives ``a(0)=1`` (normalization), ``a(2)=1`` (unit variance) and ``a(4)=3+3/(P+1)`` (raw
+        kurtosis); ``a(1)`` feeds the Fernández--Steel skew standardization.
+        """
+        weights = self._c * special.gamma(self._j + k + 1)
+        return float(self._b * (2.0 * (self.P + 1)) ** (-k / 2.0) * np.sum(weights))
 
     def logpdf(self, z: FloatArray, params: Sequence[float] | None = None) -> FloatArray:
-        """Standardized Laplace log density (RECONCILE default)."""
+        """Scaled average-Laplace log density (polynomial summed in log-space via logsumexp)."""
         self._params(params)
-        z = np.asarray(z, dtype=np.float64)
-        return np.asarray(stats.laplace.logpdf(z, scale=self._SCALE), dtype=np.float64)
+        t = self._iota * np.abs(np.asarray(z, dtype=np.float64))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            log_t = np.log(t)
+            log_terms = self._log_c + self._j * log_t[..., None]
+        log_terms[..., 0] = self._log_c[0]  # j=0 term is log c_0 (avoids 0*(-inf) at z=0)
+        log_poly = special.logsumexp(log_terms, axis=-1)
+        return np.asarray(np.log(self._iota * self._b / 2.0) - t + log_poly, dtype=np.float64)
 
     def cdf(self, z: FloatArray, params: Sequence[float] | None = None) -> FloatArray:
-        """Standardized Laplace CDF (RECONCILE default)."""
+        """Scaled average-Laplace CDF via the regularized lower incomplete gamma."""
         self._params(params)
         z = np.asarray(z, dtype=np.float64)
-        return np.asarray(stats.laplace.cdf(z, scale=self._SCALE), dtype=np.float64)
+        abs_z = np.abs(z)[..., None]
+        series = np.sum(self._c_jfact * special.gammainc(self._j + 1, self._iota * abs_z), axis=-1)
+        upper = 0.5 + 0.5 * self._b * series
+        return np.asarray(np.where(z >= 0.0, upper, 1.0 - upper), dtype=np.float64)
 
     def ppf(self, p: FloatArray, params: Sequence[float] | None = None) -> FloatArray:
-        """Standardized Laplace quantile function (RECONCILE default)."""
+        """Quantile function by vectorized bisection (the CDF has no closed-form inverse)."""
         self._params(params)
         p = np.asarray(p, dtype=np.float64)
-        return np.asarray(stats.laplace.ppf(p, scale=self._SCALE), dtype=np.float64)
+        low = np.full(p.shape, -_ALD_PPF_BRACKET, dtype=np.float64)
+        high = np.full(p.shape, _ALD_PPF_BRACKET, dtype=np.float64)
+        for _ in range(_ALD_PPF_ITERS):
+            mid = 0.5 * (low + high)
+            below = self.cdf(mid) < p
+            low = np.where(below, mid, low)
+            high = np.where(below, high, mid)
+        return np.asarray(0.5 * (low + high), dtype=np.float64)
 
     def abs_moment(self, params: Sequence[float] | None = None) -> float:
-        """First absolute moment :math:`E|z| = 1/\\sqrt2` (RECONCILE default)."""
+        r"""First absolute moment :math:`E|z| = a(1)` (feeds the skew wrapper)."""
         self._params(params)
-        return float(self._SCALE)
+        return self.absolute_moment(1)
 
 
 # --------------------------------------------------------------------------- #
@@ -294,12 +344,15 @@ class FernandezSteelSkew(ConditionalDistribution):
     :math:`h(x) = \frac{2}{\xi+1/\xi} f(x\,\xi^{-\operatorname{sign} x})`. Its mean
     :math:`\mu = M_1(\xi - 1/\xi)` and variance
     :math:`\sigma^2 = (1-M_1^2)(\xi^2+\xi^{-2}) + 2M_1^2 - 1` (with :math:`M_1 = E|z_{\text{base}}|`
-    the base's first absolute moment) are removed so the innovation is again mean 0 / variance 1
-    (Lambert-Laurent 2001). At :math:`\xi = 1` this reduces exactly to the base.
+    the base's first absolute moment) are removed so the innovation is again mean 0 / variance 1.
+    These are the fEGarch standardization constants — WP 2026-04 App. C.1 Eqs. 38--41 with
+    :math:`s = \xi` (:math:`C_E = \mu`, :math:`C_V = \sigma`); at :math:`\xi = 1`, :math:`C_E = 0`
+    and :math:`C_V = 1`, so it reduces exactly to the base.
 
-    ``# RECONCILE``: confirm this is the exact skew parameterization and normalization fEGarch uses
-    (vs. an alternative :math:`\xi`/skew constant) against the paper and the fEGarch fixture; the
-    single ``xi`` parameter and the mean-0/variance-1 convention are designed to stay fixed.
+    The ``xi`` parameter is fEGarch's ``skew`` argument **directly** (no reparameterization):
+    confirmed against the fixtures, ``skew < 1`` gives a left-skew and ``skew > 1`` a right-skew.
+    (Fernández & Steel 1998 introduced the density split; the mean-0/variance-1 constants above are
+    algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)
     """
 
     def __init__(self, base: _SymmetricBase) -> None:
