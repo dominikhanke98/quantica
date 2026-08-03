@@ -5,7 +5,9 @@
 > convention questions to be resolved against the committed `fEGarch` **output fixtures**
 > (`tests/fixtures/fegarch/`). This file is a *permitted* clean-room input: it records published
 > mathematics and our own derivations only — **never** anything read from the `fEGarch` source
-> (CLAUDE.md §12). Each entry that is not yet pinned carries a **RECONCILE** marker.
+> (CLAUDE.md §12). Both Phase-0 items below (the Fernández–Steel skew convention and the
+> average-Laplace form) are **RESOLVED** — locked against the committed fixtures; any future entry
+> that is not yet pinned carries a **RECONCILE** marker.
 
 ---
 
@@ -55,52 +57,80 @@ location–scale transform
 z = (ε − μ) / σ,     i.e.     f_z(z) = σ · p(σz + μ | γ),
 ```
 
-with `μ`, `σ` as above (this is the Lambert & Laurent 2001 standardization of the FS skew). **This
-standardization is the step most likely to differ from `fEGarch` in a subtle way** — e.g. a
-different `M_1` convention, standardizing to a different target, or applying the mean/scale removal
-in a different order. It is the prime suspect if the skewed-distribution fixtures fail to match.
+with `μ`, `σ` as above. These are **fEGarch's standardization constants** — WP 2026-04 App. C.1
+Eqs. 38–41, where `C_E = μ` and `C_V = σ` (with `s = γ`). At `γ = 1`, `C_E = 0` and `C_V = 1`.
 
-### 1.4 Consistency with the current `quantica` implementation
+### 1.4 Consistency with the `quantica` implementation
 
-`quantica.timeseries.fegarch.distributions.FernandezSteelSkew` already implements exactly §1.3:
+`quantica.timeseries.fegarch.distributions.FernandezSteelSkew` implements exactly §1.3:
 `μ = M_1·(ξ − 1/ξ)` and `σ² = (1 − M_1²)(ξ² + ξ⁻²) + 2M_1² − 1`, with `M_1 = E|z_base|` the base's
-first absolute moment, and standardizes `z = (ε − μ)/σ`. Substituting `M_2 = 1` into the paper's
-moment formula reproduces this `σ²` term-for-term (see §1.2), so the *derivation* is confirmed
-against the paper. What remains open is the **argument convention** (§1.5).
+first absolute moment, and standardizes `z = (ε − μ)/σ`. Substituting `M_2 = 1` into the moment
+formula (§1.2) reproduces this `σ²` term-for-term, and these constants **equal App. C.1 Eqs. 39–40**
+(they are algebraically the Lambert–Laurent form). So the standardization is confirmed against the
+specification, not merely a plausible default.
 
-### 1.5 Open convention question — RECONCILE
+### 1.5 Argument convention — RESOLVED (`skew = γ` directly)
 
-**Does `fEGarch`'s `skew` argument equal `γ` directly, or a transform of it?** Some GARCH packages
-pass `γ` itself; others pass a re-parameterized skew (e.g. a `λ ∈ (−1, 1)`, or `log γ`, or an
-inverse convention where `skew < 1` means *right* skew). Our `FernandezSteelSkew` currently treats
-its `xi` parameter as `γ` directly.
+**`fEGarch`'s `skew` argument equals `γ` directly** (no reparameterization). Confirmed against the
+committed fixtures by `test_fernandez_steel_constants_match_fegarch_fixture`:
 
-- **Resolution path:** the committed distribution fixtures
-  (`tests/fixtures/fegarch/distribution_quantiles.csv`, `distribution_moments.csv`) were generated
-  from `fEGarch`'s public samplers `rsnorm_s(n, skew=…)` etc. Matching our analytic quantiles /
-  skewness at a given `xi` against `fEGarch`'s empirical values at the same `skew` value (within
-  Monte-Carlo tolerance) pins the mapping.
-- **Preliminary indication from the fixtures (not yet a formal test):** `fEGarch`'s `skew = 0.8`
-  gives negative empirical skewness (≈ −0.34) and `skew = 1.3` gives positive (≈ +0.39). That
-  orientation — `skew < 1` ⇒ left-skew, `skew > 1` ⇒ right-skew — is consistent with **`skew = γ`
-  directly** under §1.1. Whether the *magnitude* matches exactly (ruling out a magnitude-preserving
-  transform) is confirmed once the skipped `test_fernandez_steel_constants_match_fegarch_fixture`
-  stub is wired to the fixtures. **RECONCILE: confirm `skew = γ` (and the exact standardization)
-  against the fixtures before relying on the skewed variants.**
+- The analytic skewness of `FernandezSteelSkew` at `xi = skew` matches `fEGarch`'s empirical
+  skewness (from `rsnorm_s(n, skew=…)` etc.) within Monte-Carlo tolerance for every skewed label.
+- The orientation matches: `skew < 1` ⇒ left-skew (negative), `skew > 1` ⇒ right-skew (positive)
+  — e.g. `skew = 0.8` ⇒ skewness ≈ −0.34, `skew = 1.3` ⇒ ≈ +0.39.
+- The full 13-point quantile grid of each skewed variant matches the fixtures to ~0.02.
+
+No further reconciliation needed for the skew: the `xi` parameter **is** fEGarch's `skew`.
 
 ---
 
-## 2. Average-Laplace (`ald`) form — RECONCILE (open)
+## 2. Average-Laplace (`ald`) — RESOLVED (scaled average-Laplace / Sargan)
 
-Separate from the skew convention, the exact **average-Laplace** base density is still unpinned. The
-`fEGarch` sampler `rald_s(n, P = …)` takes a parameter `P` (default 8); the committed fixtures show
-that at `P = 8` the distribution is **near-normal** (raw kurtosis ≈ 3.3), so the current
-standardized-**Laplace** default (raw kurtosis 6) in `AverageLaplace` is **not** the right form. The
-name and the `P` parameter suggest an *average of `P`* Laplace-type components (which would approach
-normality as `P` grows, matching the fixture), but the exact density must come from the cited paper —
-**not** the source. **RECONCILE: obtain the ALD density definition from the specification paper, then
-lock it against `distribution_moments.csv` / `distribution_quantiles.csv` (labels `ald_P8`,
-`ald_P2`).**
+**Source.** WP 2026-04 App. C.1, Eqs. 31–33 and 37. The `ald` is the **scaled average-Laplace
+(Sargan)** density, *not* the plain Laplace: a symmetric density with exponential tails but a
+degree-`P` polynomial shoulder, which becomes lighter-tailed (toward normal) as `P` grows. `P` is a
+**fixed integer construction parameter** (`P ≥ 1`), profiled by `fEGarch` over a discrete grid
+(Eq. 59) rather than continuously optimized — so in `quantica` it is a construction argument
+(`AverageLaplace(P)`), **not** an estimated shape parameter (`param_names = ()`).
+
+### 2.1 Standardized density (mean 0, variance 1)
+
+With `ι = √(2(P+1))`, `B = 2^(−2P)·C(2P, P)`, and coefficients
+
+```
+c₀ = c₁ = 1,     c_j = [2(P − j + 1)] / [j(2P − j + 1)] · c_{j−1},   j = 2..P,
+```
+
+the density and CDF are (Eqs. 31–33)
+
+```
+f(z) = (ι·B/2)·exp(−ι|z|)·Σ_{j=0}^{P} c_j (ι|z|)^j,
+
+F(z) = ½ + (B/2)·Σ_{j=0}^{P} c_j·j!·P(j+1, ι z)   for z ≥ 0,   F(z) = 1 − F(−z)   for z < 0,
+```
+
+where `P(a, x)` is the regularized lower incomplete gamma (`scipy.special.gammainc`). The quantile
+has no closed form and is obtained by numeric inversion (bisection). `F(0) = ½`.
+
+### 2.2 Absolute moments and the kurtosis identity (Eq. 37)
+
+```
+a(K) = B · [2(P+1)]^(−K/2) · Σ_{j=0}^{P} c_j · Γ(j + K + 1).
+```
+
+This gives `a(0) = 1` (normalized), `a(2) = 1` (unit variance), `a(1) = E|z|` (feeds the FS skew at
+`K = 1`), and the **raw-kurtosis identity**
+
+```
+a(4) = 3 + 3/(P+1).
+```
+
+### 2.3 Fixture confirmation
+
+`test_ald_form_matches_fegarch_fixture` locks this against the committed fixtures: for `P ∈ {2, 8}`
+the exact `a(4) = 3 + 3/(P+1)` (= 4.0, 3.3̄) matches `fEGarch`'s empirical kurtosis (`ald_P2` ≈ 4.02,
+`ald_P8` ≈ 3.33), decisively **not** the Laplace (kurtosis 6), and the 13-point quantile grid matches
+to ~0.02. This replaces the earlier placeholder standardized-Laplace `AverageLaplace`.
 
 ---
 

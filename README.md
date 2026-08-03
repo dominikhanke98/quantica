@@ -24,7 +24,7 @@ is hand-typed.
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
 | **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class, end to end: **yield-curve construction** (a discount curve bootstrapped from deposits and par swaps, repriced to par to machine precision, under hand-rolled interpolation schemes whose choice materially changes the implied forwards), **one-factor short-rate models** (Vasicek / CIR / Hull–White) with analytic bonds, exact-transition simulation and curve calibration, and **interest-rate products** — swaps, caps/floors and swaptions priced both with Black-76 and analytically under Hull–White (bond options / Jamshidian), whose volatility calibration finally identifies the σ the curve could not. |
-| **[V — Time series & econometrics](#pillar-v--time-series--econometrics)** | GARCH-family volatility modelling (GARCH / GJR / EGARCH via `arch`) built **forecast-evaluation-first**: the deliverable is the evaluation layer the libraries don't ship — the **Diebold–Mariano** test with the **HAC/Newey–West** correction, proxy-robust **QLIKE/MSE** losses, and the **Mincer–Zarnowitz** efficiency regression — with the headline that the DM test is correctly sized *only* with HAC, and the honest finding that the leverage term significant in-sample does **not** beat plain GARCH out-of-sample. Plus **Markov regime-switching** (hand-written Hamilton filter / Kim smoother / EM) that recovers planted regimes and lights up the 2008 crisis on real S&P 500 returns, and a **multivariate** close (VECM generalising pairwise cointegration; DCC-GARCH producing a time-varying covariance that feeds the portfolio/risk pillars as a drop-in estimator). |
+| **[V — Time series & econometrics](#pillar-v--time-series--econometrics)** | GARCH-family volatility modelling (GARCH / GJR / EGARCH via `arch`) built **forecast-evaluation-first**: the deliverable is the evaluation layer the libraries don't ship — the **Diebold–Mariano** test with the **HAC/Newey–West** correction, proxy-robust **QLIKE/MSE** losses, and the **Mincer–Zarnowitz** efficiency regression — with the headline that the DM test is correctly sized *only* with HAC, and the honest finding that the leverage term significant in-sample does **not** beat plain GARCH out-of-sample. Plus **Markov regime-switching** (hand-written Hamilton filter / Kim smoother / EM) that recovers planted regimes and lights up the 2008 crisis on real S&P 500 returns, and a **multivariate** close (VECM generalising pairwise cointegration; DCC-GARCH producing a time-varying covariance that feeds the portfolio/risk pillars as a drop-in estimator). A **clean-room `fEGarch` long-memory-GARCH port** is now under way (Phase 0: the standardized conditional-distribution layer + a generic QMLE engine), reimplemented from published specifications and validated against committed fEGarch output fixtures. |
 
 ## Headline results
 
@@ -1641,6 +1641,43 @@ dcc           |        0.0391        |   1.308
 > factor stage 2. DCC earns its keep on higher-frequency, larger systems; the coherence — one
 > pillar's output being another's validated input — is the deliverable. **This closes the Pillar V
 > econometrics arc: GARCH + forecast evaluation → regime-switching → multivariate (VECM, DCC).**
+
+### fEGarch port — Phase 0 (clean-room foundations)
+
+A sub-project within Pillar V: an **independent clean-room reimplementation of the models described
+in the [`fEGarch`](https://cran.r-project.org/package=fEGarch) R package's reference manual and its
+cited papers** — a broad EGARCH-type family with long-memory / fractionally-integrated members
+(FIEGARCH, FILog-GARCH, …) that no mainstream Python library offers. **Clean-room means clean-room**
+(see [`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md)): the code is implemented purely
+from the published mathematics, **never** from the `fEGarch` source, and each model is validated
+against **committed `fEGarch` output fixtures** (generated once in R, never run in CI). `fEGarch` and
+the underlying papers are credited as the specification source; `quantica` stays MIT because the work
+is original.
+
+**Phase 0 ships the two foundations** every later model reuses
+([`quantica/timeseries/fegarch/`](quantica/timeseries/fegarch)):
+
+- **The conditional-distribution layer** ([`distributions.py`](quantica/timeseries/fegarch/distributions.py))
+  — the eight fEGarch innovation distributions `norm` / `std` / `ged` / `ald` and their
+  Fernández–Steel skewed variants `snorm` / `sstd` / `sged` / `sald`, each **standardized to mean 0,
+  variance 1** (the QMLE convention), with `pdf` / `cdf` / `ppf` and a seeded inverse-CDF sampler.
+- **The QMLE engine** ([`qmle.py`](quantica/timeseries/fegarch/qmle.py)) — a generic
+  quasi-maximum-likelihood estimator that fits any conditional-variance recursion under any of those
+  distributions, with documented pre-sample conditioning and Hessian-based standard errors.
+
+Validated two ways. *Analytic* (fixture-free): every density integrates to 1 with mean 0 and variance
+1; `cdf`/`ppf` round-trip; the seeded sampler's moments match analytically; each skew **reduces
+exactly to its symmetric base at ξ = 1**; the average-Laplace moment identities (`a(0)=a(2)=1`,
+`a(4)=3+3/(P+1)`) hold; and QMLE **recovers planted GARCH(1,1) parameters** with a log-likelihood that
+matches a hand computation. *Against fEGarch* — the committed R **output fixtures**
+([`tests/fixtures/fegarch/`](tests/fixtures/fegarch), fEGarch 1.0.6 / R 4.6.1, generated by running
+fEGarch's public functions, **never** reading its source): all eight distributions match fEGarch's
+sampler output within Monte-Carlo tolerance. That reconciliation **locked the two open
+parameterizations** — fEGarch's `ald` is the **scaled average-Laplace (Sargan)** density (not a
+plain Laplace; kurtosis `3 + 3/(P+1)`, confirmed at P ∈ {2, 8}), and the **Fernández–Steel** `skew`
+argument is `ξ` **directly** (`skew < 1` left-skew, `> 1` right-skew). Only the Phase-1 QMLE-fit
+fixture check stays skipped (it needs the fEGarch GARCH recursion). **Next: the short-memory models
+(Phase 1).**
 
 ## Running the apps
 
