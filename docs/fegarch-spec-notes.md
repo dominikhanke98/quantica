@@ -134,5 +134,51 @@ to ~0.02. This replaces the earlier placeholder standardized-Laplace `AverageLap
 
 ---
 
-*Add further specification derivations here as later phases (SM models, the fractional-differencing
-operator, LM models, dual mean) are implemented — always from the papers/manual, never the source.*
+## 3. GARCH(1,1) recursion + QMLE conditioning — RESOLVED (Phase 1)
+
+**Source.** Bollerslev (1986) for the recursion; WP 2026-04 App. C.3 for the QMLE conditioning.
+
+### 3.1 The model
+
+Constant mean (fEGarch default, orders `P=Q=D=0`) and the plain GARCH(1,1) variance:
+
+```
+ε_t = r_t − μ,     σ²_t = ω + α·ε²_{t−1} + β·σ²_{t−1},
+```
+
+with `ω > 0`, `α ≥ 0`, `β ≥ 0`, `α + β < 1` (stationarity). The QMLE log-likelihood is the shared
+engine's `Σ_t [−ln σ_t + ln f_z((r_t − μ)/σ_t)]`, maximized jointly over `(μ, ω, α, β)` and any
+distribution shape parameters. fEGarch reports `mu`, `omega`, `phi1` (= `α`), `beta1` (= `β`), the
+log-likelihood, and per-observation AIC/BIC = `(2k − 2ℓ)/n`, `(k·ln n − 2ℓ)/n`.
+
+### 3.2 Pre-sample conditioning — confirmed by the fixture
+
+The recursion needs `σ²_0`, `ε²_0`. Reconstructing the committed fixture's conditional-SD series
+(`fit_garch11_norm_sigma.csv`) from fEGarch's reported parameters under each candidate:
+
+| Pre-sample convention | max abs σ deviation | verdict |
+| --- | --- | --- |
+| `σ²_0 = ε²_0 = Var(r)` (unbiased, `ddof=1`) | **1.0e-17** | **match** (machine precision) |
+| `σ²_0 = ε²_0 = mean(ε²)` (biased) | 2.3e-6 (~1.8e-4 rel) | no |
+| `σ²_0 = ε²_0 = mean(ε²)` over first 50 | 2.2e-3 (~0.17 rel) | no |
+| `σ²_0 = ω/(1−α−β)`, `ε²_0 = 0` | 8.3e-4 (~0.066 rel) | no |
+| `σ²_0 = ε²_0 = ω/(1−α−β)` | 3.1e-4 (~0.025 rel) | no |
+
+So fEGarch seeds with the **unbiased sample variance of the returns** (`Var(r)`, `ddof=1`),
+mean-invariant since `Var(r−μ) = Var(r)`. fEGarch's `presample=50` argument does **not** change this
+output (the full-sample unbiased variance reproduces the series exactly). Only `σ²_1` depends on the
+seed directly; `t ≥ 2` use observed residuals, so an exact `σ²_1` fixes the whole series.
+
+### 3.3 Fixture confirmation
+
+Fitting `fit_garch(synthetic_returns, "norm")` reproduces fEGarch's fit: parameters to ≤ 3.4e-5
+relative, log-likelihood to 6.7e-9, AIC/BIC to 1e-7, and the full conditional-SD series to a max
+relative deviation of 7.6e-6 — machine-order (these are *exact* fit fixtures, unlike the
+Monte-Carlo distribution fixtures of §1–2). The fit is done on internally rescaled returns (the MLE
+is scale-equivariant) for numerical conditioning of the small-magnitude `ω`.
+
+---
+
+*Add further specification derivations here as later phases (the remaining SM models GJR/TGARCH/
+APARCH, the EGARCH family, the fractional-differencing operator, LM models, dual mean) are
+implemented — always from the papers/manual, never the source.*

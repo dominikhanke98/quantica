@@ -113,16 +113,20 @@ atol ~3e-3). **Three load-bearing foundations everything reuses:** the condition
 layer ✓ (Phase 0), the QMLE engine ✓ (Phase 0), and the fractional-differencing `(1−L)^d` operator
 (Phase 3). **Phase sequence:** **Phase 0 — foundations (conditional distributions + QMLE engine) ✓
 COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GARCH / GJR / TGARCH /
-APARCH through the unified QMLE interface, validated against fEGarch fits) ← NEXT BUILD STEP** →
+APARCH through the unified QMLE interface, validated against fEGarch fits) ← IN PROGRESS: GARCH(1,1)
+✓ built + fixture-validated (PR #16); GJR / TGARCH / APARCH remaining (pending their fEGarch fit
+fixtures)** →
 Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) → Phase 3 fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
-and fixture-based validation are **settled** and not for relitigation. **Phase-1 entry point:** the
-one remaining `@pytest.mark.skip` — `test_qmle_matches_fegarch_fixture` — is the Phase-1 hook; the fit
-fixtures are already committed (`fit_garch11_norm_*`, `fit_egarch11_norm_*`).
+and fixture-based validation are **settled** and not for relitigation. **Phase-1 status:** the
+GARCH(1,1)/norm fit is wired live (`test_garch11_norm_matches_fegarch_fixture` in
+`tests/timeseries/fegarch/test_garch.py`) and reproduces the `fit_garch11_norm_*` fixtures to
+machine order; the EGARCH(1,1) fit-match (`test_egarch11_matches_fegarch_fixture`,
+`fit_egarch11_norm_*`) stays skipped for Phase 2.
 
 ## Completed
 
@@ -1020,6 +1024,31 @@ fixtures are already committed (`fit_garch11_norm_*`, `fit_egarch11_norm_*`).
   Gate green on merged `main`: **1156 passed / 1 skipped** (the lone skip —
   `test_qmle_matches_fegarch_fixture` — is the Phase-1 hook), ruff + mypy + interrogate(100%) clean.
   **Phase 0 COMPLETE; Phase 1 (short-memory models) is the next build step.**
+
+- **Step 26 — fEGarch Phase 1, part 1: GARCH(1,1) (branch `feat/fegarch-phase1`, PR #16, awaiting
+  review — not merged).** Clean-room from the equations only (Bollerslev 1986 recursion; WP 2026-04
+  App. C.3 conditioning; **no fEGarch source read**). New `quantica/timeseries/fegarch/garch.py`:
+  `garch_recursion` (the σ²ₜ = ω + α·ε²ₜ₋₁ + β·σ²ₜ₋₁ variance path, a QMLE `VarianceRecursion`),
+  `fit_garch` (constant-mean QMLE under any of the eight distributions, fit on internally rescaled
+  returns — the MLE is scale-equivariant — for numerical conditioning of the small ω), `GarchFit`
+  result, and `garch_sim` (seeded simulation with burn-in through the Phase-0 distribution layer).
+  The engine was **extended, not rebuilt** — a backward-compatible `mean: bool = False` flag on
+  `quasi_max_likelihood` puts a constant μ first among the variance params and standardizes
+  `(rₜ−μ)/σₜ`. **Pre-sample convention nailed empirically against the σ-fixture:** `σ²₀ = ε²₀ =
+  Var(r)` (unbiased, `ddof=1`) reproduces fEGarch's conditional-SD series to **~1e-17**; the biased
+  `mean(ε²)` (~1e-4 rel) and unconditional `ω/(1−α−β)` (~1e-2 rel) do not; `presample=50` does not
+  change the output. **Headline fixture match** (`test_garch11_norm_matches_fegarch_fixture`, live):
+  `fit_garch(synthetic_returns, "norm")` reproduces fEGarch's fit — **params ≤3.4e-5 relative**
+  (mu 8.2e-6, omega 3.4e-5, alpha 1.7e-5, beta 2.3e-6), **loglik 6.7e-9**, **AIC/BIC to 1e-7**, and
+  the **full conditional-SD series to max 7.6e-6 relative** (these are exact fit fixtures — machine
+  order, unlike the MC distribution fixtures). Plus known-truth recovery (planted α,β within a few
+  SE), simulation invariants across all eight distributions, and an `arch` cross-check (persistence
+  within 0.02, skipped where the local `numba`/`llvmlite` backend is app-control-blocked; CI runs
+  it). The generic `test_qmle_matches_fegarch_fixture` skip is retired — the fit-match is now split
+  per model in `test_garch.py`; `test_egarch11_matches_fegarch_fixture` stays skipped for Phase 2.
+  `docs/fegarch-spec-notes.md` §3 records the recursion + the pre-sample reconciliation table.
+  **GJR-GARCH / TGARCH / APARCH are the remaining Phase-1 models** (pending their fEGarch fit
+  fixtures). Gate green (see the session note below for pass/skip counts).
 
 ## Next — optional depth only (planned scope is done)
 
