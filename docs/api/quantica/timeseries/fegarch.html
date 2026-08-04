@@ -147,6 +147,42 @@
 
             </li>
             <li>
+                    <a class="class" href="#GarchFit">GarchFit</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#GarchFit.__init__">GarchFit</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.cond_dist">cond_dist</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.params">params</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.std_errors">std_errors</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.loglikelihood">loglikelihood</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.aic">aic</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.bic">bic</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.conditional_volatility">conditional_volatility</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.n_obs">n_obs</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.converged">converged</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#GeneralizedError">GeneralizedError</a>
                             <ul class="memberlist">
                         <li>
@@ -270,6 +306,15 @@
 
             </li>
             <li>
+                    <a class="function" href="#fit_garch">fit_garch</a>
+            </li>
+            <li>
+                    <a class="function" href="#garch_recursion">garch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#garch_sim">garch_sim</a>
+            </li>
+            <li>
                     <a class="function" href="#get_distribution">get_distribution</a>
             </li>
             <li>
@@ -302,26 +347,36 @@
 reimplementation of the models described in the <code>fEGarch</code> reference manual and its cited
 papers</strong> — implemented purely from the published mathematics, <strong>never</strong> from the <code>fEGarch</code>
 R/C++ source (which is never read, opened, or translated). Correctness is validated against
-<strong>committed <code>fEGarch</code> output fixtures</strong> (a pending step), not by inspecting their code.
-<code>fEGarch</code> and the underlying papers are credited as the <em>specification source</em>; this is not a
-port of their code and implies no endorsement. <code><a href="../../quantica.html">quantica</a></code> stays MIT because the work is
+<strong>committed <code>fEGarch</code> output fixtures</strong> (<code>tests/fixtures/fegarch/</code>), not by inspecting their
+code. <code>fEGarch</code> and the underlying papers are credited as the <em>specification source</em>; this is
+not a port of their code and implies no endorsement. <code><a href="../../quantica.html">quantica</a></code> stays MIT because the work is
 original, from specifications.</p>
 
 </div>
 
-<p><strong>Phase 0 (this step) — the foundations</strong> every later model reuses:</p>
+<p><strong>Phase 0 — the foundations</strong> every model reuses:</p>
 
 <ul>
 <li><strong>Conditional distributions</strong> (<code>~<a href="fegarch/distributions.html">quantica.timeseries.fegarch.distributions</a></code>) — the eight
 standardized (mean-0, variance-1) innovation distributions <code>norm</code> / <code>std</code> / <code>ged</code> / <code>ald</code>
 and their Fernández-Steel skewed variants, each with <code>pdf</code> / <code>cdf</code> / <code>ppf</code> / seeded sampler.</li>
 <li><strong>QMLE engine</strong> (<code>~<a href="fegarch/qmle.html">quantica.timeseries.fegarch.qmle</a></code>) — a generic quasi-maximum-likelihood
-estimator that fits any conditional-variance recursion under any of those distributions, with
-documented pre-sample conditioning and Hessian-based standard errors.</li>
+estimator that fits any conditional-variance recursion under any of those distributions, with a
+constant-mean option, documented pre-sample conditioning and Hessian-based standard errors.</li>
 </ul>
 
-<p>The models (short-memory, EGARCH family, the fractional-differencing engine, long-memory,
-dual mean, forecasting/risk) arrive in later phases — see <code>docs/fegarch-port-roadmap.md</code>.</p>
+<p><strong>Phase 1 — short-memory models</strong> (in progress):</p>
+
+<ul>
+<li><strong>GARCH(1,1)</strong> (<code>~<a href="fegarch/garch.html">quantica.timeseries.fegarch.garch</a></code>) — the Bollerslev (1986) recursion as a
+variance recursion on the Phase-0 engine (<code>~<a href="#fit_garch">quantica.timeseries.fegarch.fit_garch()</a></code>,
+<code>~<a href="#garch_sim">quantica.timeseries.fegarch.garch_sim()</a></code>), reproducing fEGarch's fit (parameters,
+log-likelihood and conditional-SD series) on the committed fixture. GJR-GARCH / TGARCH / APARCH
+are the remaining Phase-1 models.</li>
+</ul>
+
+<p>The EGARCH family, the fractional-differencing engine, the long-memory models, the dual mean and the
+forecasting/risk tie-back arrive in later phases — see <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -803,6 +858,155 @@ algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)</p>
 
             </div>
                                 </dl>
+                            </div>
+                </section>
+                <section id="GarchFit">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">GarchFit</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit"></a>
+    
+            <div class="docstring"><p>A fitted GARCH(1,1) model (parameters in the original return units).</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>cond_dist</strong> (str):
+The conditional-distribution code (<code>"norm"</code>, <code>"std"</code>, ...).</li>
+<li><strong>params</strong> (dict of str to float):
+Estimated parameters <code>mu, omega, alpha, beta</code> plus any distribution shape parameters.</li>
+<li><strong>std_errors</strong> (dict of str to float):
+Standard errors (inverse numerical Hessian), aligned with <code><a href="#GarchFit.params">params</a></code>.</li>
+<li><strong>loglikelihood</strong> (float):
+Maximized log-likelihood on the original returns.</li>
+<li><strong>aic, bic</strong> (float):
+Information criteria <strong>per observation</strong> (<code>(2k - 2*loglik)/n</code> and <code>(k*ln(n) -
+2*loglik)/n</code>), matching fEGarch's reporting convention.</li>
+<li><strong>conditional_volatility</strong> (ndarray):
+The fitted conditional standard-deviation series \( \sigma_t \).</li>
+<li><strong>n_obs</strong> (int):
+Number of observations.</li>
+<li><strong>converged</strong> (bool):
+Whether the optimizer reported success.</li>
+</ul>
+</div>
+
+
+                            <div id="GarchFit.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">GarchFit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">std_errors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">aic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">bic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">conditional_volatility</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.cond_dist" class="classattr">
+                                <div class="attr variable">
+            <span class="name">cond_dist</span><span class="annotation">: str</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.cond_dist"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.params" class="classattr">
+                                <div class="attr variable">
+            <span class="name">params</span><span class="annotation">: dict[str, float]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.params"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.std_errors" class="classattr">
+                                <div class="attr variable">
+            <span class="name">std_errors</span><span class="annotation">: dict[str, float]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.std_errors"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.loglikelihood" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.loglikelihood"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.aic" class="classattr">
+                                <div class="attr variable">
+            <span class="name">aic</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.aic"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.bic" class="classattr">
+                                <div class="attr variable">
+            <span class="name">bic</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.bic"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.conditional_volatility" class="classattr">
+                                <div class="attr variable">
+            <span class="name">conditional_volatility</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.conditional_volatility"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.n_obs" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_obs</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.n_obs"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.converged" class="classattr">
+                                <div class="attr variable">
+            <span class="name">converged</span><span class="annotation">: bool</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.converged"></a>
+    
+    
+
                             </div>
                 </section>
                 <section id="GeneralizedError">
@@ -1351,6 +1555,115 @@ values for admissible parameters.</p>
 
                             </div>
                 </section>
+                <section id="fit_garch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_garch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_garch"></a>
+    
+            <div class="docstring"><p>Fit GARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: The estimates (original units), log-likelihood, per-observation AIC/BIC, and the
+conditional-volatility series.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="garch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">garch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#garch_recursion"></a>
+    
+            <div class="docstring"><p>The GARCH(1,1) conditional-variance path \( \sigma_t^2 \) (a QMLE <code><a href="#VarianceRecursion">VarianceRecursion</a></code>).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (4,)):
+<code>(mu, omega, alpha, beta)</code>.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances, seeded with :math:<code>\sigma_0^2 = \varepsilon_0^2 =
+\operatorname{Var}(r)</code> (unbiased sample variance).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="garch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">garch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">beta</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#garch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a GARCH(1,1) process under a chosen conditional distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega, alpha, beta</strong> (float):
+GARCH parameters; requires <code>alpha + beta &lt; 1</code> for stationarity.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code for the standardized innovations (default <code>"norm"</code>).</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution (e.g. <code>(nu,)</code> for <code>std</code>).</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded so the recursion forgets its start (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code> — the simulated returns and their conditional
+standard deviations.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>alpha + beta &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="get_distribution">
                     <div class="attr function">
             
@@ -1417,7 +1730,7 @@ The (mean-zero) return series.</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
+        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
 
         
     </div>
@@ -1427,22 +1740,29 @@ The (mean-zero) return series.</li>
 
 <p>Maximizes \( \sum_t [-\ln\sigma_t + \ln f_z(\varepsilon_t/\sigma_t)] \) over the variance
 parameters and the distribution's shape parameters jointly, conditioned on the recursion's
-pre-sample initialisation.</p>
+pre-sample initialisation. With <code>mean=True</code> a constant mean \( \mu \) is the <strong>first</strong>
+variance parameter and the standardized residual is \( (y-\mu)/\sigma \) (the recursion is
+passed the raw <code>y</code> and forms \( \varepsilon = y - \mu \) itself); with <code>mean=False</code>
+(default) the series is treated as mean-zero and \( z = y/\sigma \).</p>
 
 <h6 id="parameters">Parameters</h6>
 
 <ul>
 <li><strong>returns</strong> (ndarray, shape (T,)):
-The (mean-zero) return series.</li>
+The return series (mean-zero unless <code>mean=True</code>).</li>
 <li><strong>variance_recursion</strong> (VarianceRecursion):
 The model mapping variance parameters + returns to the conditional-variance path.</li>
 <li><strong>distribution</strong> (ConditionalDistribution):
 The standardized innovation distribution (its shape parameters are estimated too).</li>
 <li><strong>var_start, var_bounds, var_names</strong> (sequences):
-Starting values, <code>(low, high)</code> bounds, and names for the variance parameters.</li>
+Starting values, <code>(low, high)</code> bounds, and names for the variance parameters (the first
+entry is the constant mean \( \mu \) when <code>mean=True</code>).</li>
 <li><strong>dist_start, dist_bounds</strong> (sequences, optional):
 Starting values and bounds for the distribution's shape parameters; default to the
 distribution's own <code>param_start</code> / <code>param_bounds</code>.</li>
+<li><strong>mean</strong> (bool, optional):
+Treat the first variance parameter as a constant mean \( \mu \) used in the standardized
+residual (default <code>False</code>, i.e. mean-zero).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
