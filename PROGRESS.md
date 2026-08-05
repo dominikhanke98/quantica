@@ -114,7 +114,7 @@ layer ✓ (Phase 0), the QMLE engine ✓ (Phase 0), and the fractional-differenc
 (Phase 3). **Phase sequence:** **Phase 0 — foundations (conditional distributions + QMLE engine) ✓
 COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GARCH / GJR / TGARCH /
 APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE: GARCH(1,1) via
-PR #16; GJR / TGARCH / APARCH via PR #17 (all four fixture-validated)** →
+PR #16; GJR / TGARCH / APARCH via the same PR #16 (all four fixture-validated)** →
 Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) → Phase 3 fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
@@ -123,7 +123,7 @@ VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial sca
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
 and fixture-based validation are **settled** and not for relitigation. **Phase-1 status: COMPLETE.**
 All four short-memory models are wired live against committed fixtures — GARCH(1,1) (PR #16) and
-GJR/TGARCH/APARCH (PR #17), the last three reconciled as a single APARCH power recursion at
+GJR/TGARCH/APARCH (also PR #16), the last three reconciled as a single APARCH power recursion at
 `δ ∈ {2, 1, free}`. The EGARCH(1,1) fit-match (`test_egarch11_matches_fegarch_fixture`,
 `fit_egarch11_norm_*`) stays skipped for Phase 2.
 
@@ -1049,7 +1049,7 @@ GJR/TGARCH/APARCH (PR #17), the last three reconciled as a single APARCH power r
   **GJR-GARCH / TGARCH / APARCH are the remaining Phase-1 models** (pending their fEGarch fit
   fixtures). Gate green (see the session note below for pass/skip counts).
 
-- **Step 27 — fEGarch Phase 1, part 2: GJR/TGARCH/APARCH (branch `feat/fegarch-phase1`, PR #17,
+- **Step 27 — fEGarch Phase 1, part 2: GJR/TGARCH/APARCH (branch `feat/fegarch-phase1`, PR #16,
   awaiting review — not merged).** First generated the fit fixtures by running `fEGarch`'s public
   `gjrgarch`/`tgarch`/`aparch` (data-first, confirmed via `args()` — no source read; committed as
   `fit_{gjrgarch,tgarch,aparch}11_norm_*`), then reimplemented clean-room from the original papers
