@@ -25,8 +25,14 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
 * **GARCH(1,1)** (:mod:`~quantica.timeseries.fegarch.garch`) — the Bollerslev (1986) recursion as a
   variance recursion on the Phase-0 engine (:func:`~quantica.timeseries.fegarch.fit_garch`,
   :func:`~quantica.timeseries.fegarch.garch_sim`), reproducing fEGarch's fit (parameters,
-  log-likelihood and conditional-SD series) on the committed fixture. GJR-GARCH / TGARCH / APARCH
-  are the remaining Phase-1 models.
+  log-likelihood and conditional-SD series) on the committed fixture.
+* **GJR-GARCH / TGARCH / APARCH** (:mod:`~quantica.timeseries.fegarch.asymmetric`) — the asymmetric
+  short-memory models, reconciled against the fixtures as a **single APARCH power recursion**
+  (Ding-Granger-Engle 1993) at power :math:`\delta = 2` (GJR; Glosten-Jagannathan-Runkle 1993),
+  :math:`\delta = 1` (TGARCH; Zakoian 1994) and a free estimated :math:`\delta` (APARCH), via
+  :func:`~quantica.timeseries.fegarch.fit_gjr`, :func:`~quantica.timeseries.fegarch.fit_tgarch`,
+  :func:`~quantica.timeseries.fegarch.fit_aparch` and their simulators. This completes the Phase-1
+  short-memory family (GARCH / GJR / TGARCH / APARCH).
 
 The EGARCH family, the fractional-differencing engine, the long-memory models, the dual mean and the
 forecasting/risk tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
@@ -34,6 +40,17 @@ forecasting/risk tie-back arrive in later phases — see ``docs/fegarch-port-roa
 
 from __future__ import annotations
 
+from quantica.timeseries.fegarch.asymmetric import (
+    aparch_recursion,
+    aparch_sim,
+    fit_aparch,
+    fit_gjr,
+    fit_tgarch,
+    gjr_recursion,
+    gjr_sim,
+    tgarch_recursion,
+    tgarch_sim,
+)
 from quantica.timeseries.fegarch.distributions import (
     DISTRIBUTIONS,
     AverageLaplace,
@@ -63,10 +80,19 @@ __all__ = [
     "QMLEResult",
     "StudentT",
     "VarianceRecursion",
+    "aparch_recursion",
+    "aparch_sim",
+    "fit_aparch",
     "fit_garch",
+    "fit_gjr",
+    "fit_tgarch",
     "garch_recursion",
     "garch_sim",
     "get_distribution",
+    "gjr_recursion",
+    "gjr_sim",
     "initial_variance",
     "quasi_max_likelihood",
+    "tgarch_recursion",
+    "tgarch_sim",
 ]
