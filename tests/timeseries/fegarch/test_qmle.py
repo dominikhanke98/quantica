@@ -140,16 +140,6 @@ def test_mismatched_variance_metadata_raises() -> None:
         )
 
 
-# --------------------------------------------------------------------------- #
-# Deferred: agreement with fEGarch's QMLE (needs committed R output fixtures)
-# --------------------------------------------------------------------------- #
-
-
-@pytest.mark.skip(
-    reason="Phase 1: the fit fixtures (fit_garch11_norm_*, fit_egarch11_norm_*) are committed but "
-    "matching them needs the fEGarch GARCH/EGARCH recursion + presample convention (Phase 1). "
-    "This is the Phase-0 distributions + QMLE-engine PR."
-)
-def test_qmle_matches_fegarch_fixture() -> None:
-    """The QMLE fit matches fEGarch's fitted parameters + conditional-variance series to tol."""
-    raise AssertionError("fixture not available yet")  # pragma: no cover
+# The fEGarch model-fit agreement (formerly the single deferred `test_qmle_matches_fegarch_fixture`)
+# is now split per model in `test_garch.py`: `test_garch11_norm_matches_fegarch_fixture` is wired
+# live (Phase 1); `test_egarch11_matches_fegarch_fixture` stays skipped (Phase 2).
