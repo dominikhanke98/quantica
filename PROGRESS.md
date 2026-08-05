@@ -113,19 +113,18 @@ atol ~3e-3). **Three load-bearing foundations everything reuses:** the condition
 layer ✓ (Phase 0), the QMLE engine ✓ (Phase 0), and the fractional-differencing `(1−L)^d` operator
 (Phase 3). **Phase sequence:** **Phase 0 — foundations (conditional distributions + QMLE engine) ✓
 COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GARCH / GJR / TGARCH /
-APARCH through the unified QMLE interface, validated against fEGarch fits) ← IN PROGRESS: GARCH(1,1)
-✓ built + fixture-validated (PR #16); GJR / TGARCH / APARCH remaining (pending their fEGarch fit
-fixtures)** →
+APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE: GARCH(1,1) via
+PR #16; GJR / TGARCH / APARCH via PR #17 (all four fixture-validated)** →
 Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) → Phase 3 fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
-and fixture-based validation are **settled** and not for relitigation. **Phase-1 status:** the
-GARCH(1,1)/norm fit is wired live (`test_garch11_norm_matches_fegarch_fixture` in
-`tests/timeseries/fegarch/test_garch.py`) and reproduces the `fit_garch11_norm_*` fixtures to
-machine order; the EGARCH(1,1) fit-match (`test_egarch11_matches_fegarch_fixture`,
+and fixture-based validation are **settled** and not for relitigation. **Phase-1 status: COMPLETE.**
+All four short-memory models are wired live against committed fixtures — GARCH(1,1) (PR #16) and
+GJR/TGARCH/APARCH (PR #17), the last three reconciled as a single APARCH power recursion at
+`δ ∈ {2, 1, free}`. The EGARCH(1,1) fit-match (`test_egarch11_matches_fegarch_fixture`,
 `fit_egarch11_norm_*`) stays skipped for Phase 2.
 
 ## Completed
@@ -1049,6 +1048,29 @@ machine order; the EGARCH(1,1) fit-match (`test_egarch11_matches_fegarch_fixture
   `docs/fegarch-spec-notes.md` §3 records the recursion + the pre-sample reconciliation table.
   **GJR-GARCH / TGARCH / APARCH are the remaining Phase-1 models** (pending their fEGarch fit
   fixtures). Gate green (see the session note below for pass/skip counts).
+
+- **Step 27 — fEGarch Phase 1, part 2: GJR/TGARCH/APARCH (branch `feat/fegarch-phase1`, PR #17,
+  awaiting review — not merged).** First generated the fit fixtures by running `fEGarch`'s public
+  `gjrgarch`/`tgarch`/`aparch` (data-first, confirmed via `args()` — no source read; committed as
+  `fit_{gjrgarch,tgarch,aparch}11_norm_*`), then reimplemented clean-room from the original papers
+  (Glosten-Jagannathan-Runkle 1993; Zakoïan 1994; Ding-Granger-Engle 1993). **Key reconciliation
+  finding:** all three are the **single APARCH power recursion** `σ^δ = ω + φ₁(|ε|−γ₁ε)^δ + β₁σ^δ`
+  at `δ = 2` (GJR — the `(|ε|−γε)²` kernel, *not* the Glosten indicator, which fails the fixture at
+  `~1e-2`), `δ = 1` (TGARCH, a `σ`-recursion — its `ω~2.3e-4` vs GJR's `~3e-6` is the `σ`-vs-`σ²`
+  unit fingerprint), and a **free estimated `δ≈2.41`** (APARCH, `fix_delta=NA`). New
+  `quantica/timeseries/fegarch/asymmetric.py`: `gjr_recursion`/`tgarch_recursion`/`aparch_recursion`
+  (all returning the variance the engine expects), `fit_gjr`/`fit_tgarch`/`fit_aparch` (constant-mean
+  QMLE on the Phase-0 engine, scale-equivariant fit with `ω ~ scale^δ`, reusing `GarchFit`), and
+  `gjr_sim`/`tgarch_sim`/`aparch_sim`. **Pre-sample (reconciled):** `σ₀^δ = Var(r,ddof=1)^{δ/2}`,
+  `kernel₀ = E|ε|^δ = (1/n)Σ|ε|^δ`. Recursion **form is machine-exact** for all three (seeded from
+  the fixture `σ₀`, `σ_{1:}` matches to `≤1e-15`). **Realized fixture-match:** GJR & TGARCH to
+  GARCH-level (params `≤~2e-4` rel, loglik `≤3e-6`, σ `≤1.2e-5` rel); APARCH `δ` to `1.4e-3` rel and
+  β₁/γ₁ tight, but ω/loglik/σ looser (loglik `~6e-3`, σ rel `~7e-3`) — a **flagged pre-sample
+  residual** (the δ-abs-moment doesn't reproduce fEGarch's unpublished σ₀ state at free δ; documented
+  honestly in `docs/fegarch-spec-notes.md` §4). Reduction anchors exact (γ₁=0 → GARCH; δ=2 → GJR).
+  Known-truth recovery + sim invariants + a skip-safe `arch` GJR cross-check (conditional-vol corr
+  >0.999, both detect leverage). **Phase 1 COMPLETE** (all four SM models). Gate green (see session
+  note for counts).
 
 ## Next — optional depth only (planned scope is done)
 

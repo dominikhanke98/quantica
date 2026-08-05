@@ -179,6 +179,86 @@ is scale-equivariant) for numerical conditioning of the small-magnitude `ω`.
 
 ---
 
-*Add further specification derivations here as later phases (the remaining SM models GJR/TGARCH/
-APARCH, the EGARCH family, the fractional-differencing operator, LM models, dual mean) are
-implemented — always from the papers/manual, never the source.*
+## 4. Asymmetric SM models GJR-GARCH / TGARCH / APARCH — RESOLVED (Phase 1)
+
+**Sources.** Glosten, Jagannathan & Runkle (1993) for GJR; Zakoïan (1994) for TGARCH; Ding, Granger &
+Engle (1993) for APARCH; WP 2026-04 App. C.3 for the QMLE conditioning.
+
+### 4.1 One recursion, three models
+
+Reconciling the committed fixtures (`fit_{gjrgarch,tgarch,aparch}11_norm_*`) against candidate
+recursions shows that `fEGarch`'s `gjrgarch`, `tgarch` and `aparch` are the **single APARCH power
+recursion** (Ding-Granger-Engle 1993) evaluated at three powers `δ`:
+
+```
+σ_t^δ = ω + φ₁·(|ε_{t-1}| − γ₁·ε_{t-1})^δ + β₁·σ_{t-1}^δ,     ε_t = r_t − μ,
+```
+
+with `ω, φ₁, β₁ ≥ 0`, `|γ₁| < 1`, `δ > 0`, and the same asymmetry kernel `(|ε| − γ₁ε)` throughout:
+
+| model | power `δ` | recursion on | intercept `ω` scale (fixture) |
+| --- | --- | --- | --- |
+| **GJR-GARCH** | `δ = 2` | variance `σ²` | `~3.0e-6` (`σ²`-units) |
+| **TGARCH** | `δ = 1` | std. dev. `σ` | `~2.3e-4` (`σ`-units) |
+| **APARCH** | `δ` free (fitted `~2.41`) | `σ^δ` | `~4.8e-7` (`σ^δ`-units) |
+
+The **two-order-of-magnitude `ω` gap between GJR and TGARCH is the fixture fingerprint of the
+`σ²`-vs-`σ` recursion** — the intercept lives in different units. This was decisive: GJR's Glosten
+*indicator* form `σ² = ω + (φ₁ + γ₁·𝟙[ε<0])·ε² + β₁·σ²` does **not** reproduce the GJR fixture (max
+σ deviation `~1e-2`, both sign conventions), whereas the APARCH-at-`δ=2` kernel
+`σ² = ω + φ₁(|ε| − γ₁ε)² + β₁σ²` matches it to machine precision. So `fEGarch`'s `gjrgarch` uses the
+APARCH `δ=2` parameterization (equivalently: slope `φ₁(1−γ₁)²` on good news, `φ₁(1+γ₁)²` on bad
+news), not the textbook indicator.
+
+`δ` for APARCH is a **free continuously-estimated QMLE parameter** (`fEGarch`'s default
+`fix_delta = NA`, fitted `≈ 2.41`), bounded `δ ∈ (0, 4]` — contrast the ALD's discrete profiled `P`
+(§2), which is a fixed construction argument.
+
+### 4.2 Recursion form is machine-exact; the pre-sample carries the residual
+
+Seeding each recursion with the **fixture's own `σ_0`** and stepping forward with the reported
+parameters reproduces the whole tail `σ_{1:}` to `≤ 1e-15` for all three — so the kernel form is
+exactly `fEGarch`'s. The only open quantity is the pre-sample `σ_0`. The recursion needs `σ_0^δ` and
+a pre-sample news-impact `kernel_0`; the reconciled convention is
+
+```
+σ_0^δ = Var(r)^{δ/2}   (unbiased, ddof=1),      kernel_0 = (1/n)·Σ_t |ε_t|^δ   (δ-th absolute moment),
+```
+
+i.e. the `σ^δ` state from the unbiased sample variance and the news-impact from the **expected
+symmetric news impact** `E|ε|^δ` (the leverage term `−γ₁ε` has zero pre-sample mean by symmetry).
+Only the combination `φ₁·kernel_0 + β₁·σ_0^δ` is identifiable from `σ_0`, so `kernel_0` cannot be
+separated further from a single fixture. Realized σ-series deviations under this convention:
+
+| model | σ max abs dev | σ max rel dev | note |
+| --- | --- | --- | --- |
+| GJR (`δ=2`) | `~3e-9` | `~3e-7` | `E|ε|² = mean(ε²)` |
+| TGARCH (`δ=1`) | `~1e-8` | `~1e-6` | `E|ε|` (the 1st absolute moment, ≪ `sd`) |
+| APARCH (`δ≈2.41`) | `~9e-5` | `~7e-3` | see below |
+
+**APARCH pre-sample is a flagged residual.** At the fitted `δ ≈ 2.41` the `δ`-th absolute moment
+`E|ε|^δ` does not reproduce `fEGarch`'s (unpublished) pre-sample state — the implied `kernel_0` sits
+closer to `(mean ε²)^{δ/2}` than to `E|ε|^δ`, and no single closed-form moment matches all three
+models to machine precision (TGARCH wants `E|ε|`, APARCH wants `(mean ε²)^{δ/2}`; they coincide only
+at `δ=2`). This is an **open reconcile item** resolvable only with more fixtures or the (forbidden)
+source; it affects **only `σ_0`** (decaying thereafter), the recursion form is exact, and it is
+surfaced honestly in the APARCH fixture-match tolerances (loglik dev `~6e-3`, σ rel `~7e-3`). We use
+the principled `E|ε|^δ` because it is theoretically the expected symmetric news impact and is
+near-exact for GJR/TGARCH.
+
+### 4.3 Fixture confirmation + reduction anchors
+
+`fit_gjr` / `fit_tgarch` match `fEGarch` to GARCH-level tolerance (parameters `≤ ~2e-4` relative,
+log-likelihood `≤ ~3e-6`, σ-series `≤ 1.2e-5` relative); `fit_aparch` matches `δ` to `1.4e-3`
+relative and the well-identified `β₁`/`γ₁` tightly, with the larger `ω`/loglik/σ residuals above from
+the pre-sample. Reduction anchors hold structurally: `γ₁ = 0` collapses GJR to the plain GARCH news
+impact `ε²`, and `δ = 2` makes `aparch_recursion` identical to `gjr_recursion` (max dev `0`). Fits are
+done on internally rescaled returns (the MLE is scale-equivariant; `ω` scales as `scale^δ`).
+
+This completes the Phase-1 short-memory family (GARCH / GJR / TGARCH / APARCH).
+
+---
+
+*Add further specification derivations here as later phases (the EGARCH family, the
+fractional-differencing operator, LM models, dual mean) are implemented — always from the
+papers/manual, never the source.*
