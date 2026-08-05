@@ -164,6 +164,33 @@ fit_and_dump(garch_fit, "garch11_norm", "garch", "norm")
 egarch_fit <- fEGarch(egarch_spec(orders = c(1, 1), cond_dist = "norm"), returns, parallel = FALSE)
 fit_and_dump(egarch_fit, "egarch11_norm", "egarch", "norm")
 
+# --- Phase-1 short-memory models: GJR-GARCH, TGARCH, APARCH -------------------
+# The v1.0.6 public signatures (confirmed via args(), NOT source) are data-first and
+# identical to garch(): fn(rt, orders, cond_dist, ..., parallel) — so they are called
+# exactly like garch above (aparch additionally has fix_delta = c(NA, 1, 2), i.e. delta
+# is estimated by default, which we keep). Each fit is wrapped in tryCatch so a failure
+# prints the model, the error and exists(<fn>) and NEVER writes a partial fixture.
+tryCatch({
+  gjr_fit <- gjrgarch(returns, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
+  cat("  gjrgarch pars:", paste(names(pars(gjr_fit)), collapse = ", "), "\n")
+  fit_and_dump(gjr_fit, "gjrgarch11_norm", "gjrgarch", "norm")
+}, error = function(e) cat("  ERROR gjrgarch:", conditionMessage(e),
+                          "| exists('gjrgarch') =", exists("gjrgarch"), "\n"))
+
+tryCatch({
+  tgarch_fit <- tgarch(returns, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
+  cat("  tgarch pars:", paste(names(pars(tgarch_fit)), collapse = ", "), "\n")
+  fit_and_dump(tgarch_fit, "tgarch11_norm", "tgarch", "norm")
+}, error = function(e) cat("  ERROR tgarch:", conditionMessage(e),
+                          "| exists('tgarch') =", exists("tgarch"), "\n"))
+
+tryCatch({
+  aparch_fit <- aparch(returns, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
+  cat("  aparch pars:", paste(names(pars(aparch_fit)), collapse = ", "), "\n")
+  fit_and_dump(aparch_fit, "aparch11_norm", "aparch", "norm")
+}, error = function(e) cat("  ERROR aparch:", conditionMessage(e),
+                          "| exists('aparch') =", exists("aparch"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -200,12 +227,16 @@ manifest <- list(
                     trunc = "none", mean_included = TRUE, parallel = FALSE),
     fits = list(
       garch11_norm = list(params = "fit_garch11_norm_params.json", sigma = "fit_garch11_norm_sigma.csv"),
+      gjrgarch11_norm = list(params = "fit_gjrgarch11_norm_params.json", sigma = "fit_gjrgarch11_norm_sigma.csv"),
+      tgarch11_norm = list(params = "fit_tgarch11_norm_params.json", sigma = "fit_tgarch11_norm_sigma.csv"),
+      aparch11_norm = list(params = "fit_aparch11_norm_params.json", sigma = "fit_aparch11_norm_sigma.csv"),
       egarch11_norm = list(params = "fit_egarch11_norm_params.json", sigma = "fit_egarch11_norm_sigma.csv"))),
   pending_fixtures = paste(
-    "Later phases need more fixtures: GJR/TGARCH/APARCH and the EGARCH family under all 8",
-    "distributions (Phase 1-2); the fractional-differencing / FIGARCH-FIEGARCH long-memory",
-    "fits (Phase 3-4); dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES",
-    "(Phase 6). Extend this script and re-run when those models are implemented."))
+    "Later phases need more fixtures: the rest of the EGARCH family (Log-GARCH/MEGARCH/",
+    "MLog-GARCH) and all short-memory models under the other 7 conditional distributions",
+    "(Phase 2); the fractional-differencing / FIGARCH-FIEGARCH long-memory fits (Phase 3-4);",
+    "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this",
+    "script and re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")
