@@ -113,6 +113,9 @@
                         <li>
                                 <a class="function" href="#ConditionalDistribution.sample">sample</a>
                         </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.abs_moment">abs_moment</a>
+                        </li>
                 </ul>
 
             </li>
@@ -621,6 +624,25 @@ Sensible starting values for each shape parameter.</li>
 
 
                             </div>
+                            <div id="ConditionalDistribution.abs_moment" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">abs_moment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.abs_moment"></a>
+    
+            <div class="docstring"><p>First absolute moment \( E|z| \) of the standardized innovation.</p>
+
+<p>Needed by the EGARCH-family \( g(\eta) \) centering (and the Fernández-Steel skew).
+The symmetric bases override this; the skewed variants do <strong>not</strong> expose it yet (that is the
+documented Phase-2 follow-up), so the base implementation raises.</p>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="FernandezSteelSkew">
                     <div class="attr class">
@@ -762,6 +784,7 @@ algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)</p>
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="FernandezSteelSkew.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="FernandezSteelSkew.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="FernandezSteelSkew.abs_moment" class="function"><a href="#ConditionalDistribution.abs_moment">abs_moment</a></dd>
 
             </div>
                                 </dl>

@@ -114,6 +114,15 @@ class ConditionalDistribution(ABC):
         """Draw ``size`` seeded samples by inverse-CDF (consistent with :meth:`ppf`)."""
         return self.ppf(rng.uniform(size=size), params)
 
+    def abs_moment(self, params: Sequence[float] | None = None) -> float:
+        r"""First absolute moment :math:`E|z|` of the standardized innovation.
+
+        Needed by the EGARCH-family :math:`g(\eta)` centering (and the Fernández-Steel skew).
+        The symmetric bases override this; the skewed variants do **not** expose it yet (that is the
+        documented Phase-2 follow-up), so the base implementation raises.
+        """
+        raise NotImplementedError(f"{self.name} does not expose abs_moment (E|z|)")
+
 
 # --------------------------------------------------------------------------- #
 # Symmetric bases

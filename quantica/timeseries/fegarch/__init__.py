@@ -20,7 +20,7 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   estimator that fits any conditional-variance recursion under any of those distributions, with a
   constant-mean option, documented pre-sample conditioning and Hessian-based standard errors.
 
-**Phase 1 — short-memory models** (in progress):
+**Phase 1 — short-memory models** (complete):
 
 * **GARCH(1,1)** (:mod:`~quantica.timeseries.fegarch.garch`) — the Bollerslev (1986) recursion as a
   variance recursion on the Phase-0 engine (:func:`~quantica.timeseries.fegarch.fit_garch`,
@@ -34,8 +34,18 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.fit_aparch` and their simulators. This completes the Phase-1
   short-memory family (GARCH / GJR / TGARCH / APARCH).
 
-The EGARCH family, the fractional-differencing engine, the long-memory models, the dual mean and the
-forecasting/risk tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
+**Phase 2 — EGARCH family** (in progress):
+
+* **EGARCH(1,1)** (:mod:`~quantica.timeseries.fegarch.egarch`) — the first EGF model (Nelson 1991),
+  the **Type-I** log-variance recursion :math:`\ln\sigma_t^2 = \omega + g(\eta_{t-1}) +
+  \phi_1\ln\sigma_{t-1}^2` with the transformation :math:`g(\eta) = \kappa\eta + \gamma(|\eta| -
+  \operatorname{E}|\eta|)` (:math:`\kappa` asymmetry, :math:`\gamma` magnitude), on the Phase-0
+  engine (:func:`~quantica.timeseries.fegarch.fit_egarch`,
+  :func:`~quantica.timeseries.fegarch.egarch_sim`), reproducing fEGarch's ``norm`` fit on the
+  committed fixture. Log-GARCH / MEGARCH / MLog-GARCH are the remaining Phase-2 models.
+
+The fractional-differencing engine, the long-memory models, the dual mean and the forecasting/risk
+tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -61,6 +71,7 @@ from quantica.timeseries.fegarch.distributions import (
     StudentT,
     get_distribution,
 )
+from quantica.timeseries.fegarch.egarch import egarch_recursion, egarch_sim, fit_egarch
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
 from quantica.timeseries.fegarch.qmle import (
     QMLEResult,
@@ -82,7 +93,10 @@ __all__ = [
     "VarianceRecursion",
     "aparch_recursion",
     "aparch_sim",
+    "egarch_recursion",
+    "egarch_sim",
     "fit_aparch",
+    "fit_egarch",
     "fit_garch",
     "fit_gjr",
     "fit_tgarch",
