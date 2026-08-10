@@ -113,19 +113,28 @@ atol ~3e-3). **Three load-bearing foundations everything reuses:** the condition
 layer ✓ (Phase 0), the QMLE engine ✓ (Phase 0), and the fractional-differencing `(1−L)^d` operator
 (Phase 3). **Phase sequence:** **Phase 0 — foundations (conditional distributions + QMLE engine) ✓
 COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GARCH / GJR / TGARCH /
-APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE: GARCH(1,1) via
-PR #16; GJR / TGARCH / APARCH via the same PR #16 (all four fixture-validated)** →
-Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH) → Phase 3 fractional-differencing
+APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE + MERGED
+(PR #16 → `main` `6710a5e`; all four fixture-validated at σ-rel ~1e-4–1e-5)** →
+**Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
+← NEXT BUILD STEP** → Phase 3 fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
-and fixture-based validation are **settled** and not for relitigation. **Phase-1 status: COMPLETE.**
-All four short-memory models are wired live against committed fixtures — GARCH(1,1) (PR #16) and
-GJR/TGARCH/APARCH (also PR #16), the last three reconciled as a single APARCH power recursion at
-`δ ∈ {2, 1, free}`. The EGARCH(1,1) fit-match (`test_egarch11_matches_fegarch_fixture`,
-`fit_egarch11_norm_*`) stays skipped for Phase 2.
+and fixture-based validation are **settled** and not for relitigation. **Phase-1 status: COMPLETE +
+MERGED** (PR #16 → `main` `6710a5e`). All four short-memory models are wired live against committed
+fixtures. **Key findings (settled):** (1) fEGarch's GJR uses the `(|ε|−γ₁ε)²` kernel, **not** the
+Glosten indicator (which misses the fixture by ~1e-2); (2) the three asymmetric models are a **single
+APARCH-power recursion** `σ^δ = ω + φ₁(|ε|−γ₁ε)^δ + β₁σ^δ` at `δ = 2` (GJR), `δ = 1` (TGARCH,
+a σ-recursion — its `ω~2.3e-4` vs GJR's `~3e-6` is the σ-vs-σ² unit fingerprint) and free `δ≈2.41`
+(APARCH); (3) the pre-sample news-impact seed is **reconciled-per-power** — variance-power
+`Var(r)^{δ/2}` for the σ²/σ^δ recursions, first-absolute-moment `mean|ε|` for the TGARCH σ-recursion,
+coinciding at `δ=2` and forking otherwise (TGARCH vs APARCH give opposite verdicts; documented in
+`docs/fegarch-spec-notes.md` §4). **Phase-2 entry point:** the one remaining skip —
+`test_egarch11_matches_fegarch_fixture` in `tests/timeseries/fegarch/test_garch.py` — is the Phase-2
+hook; its fixtures (`fit_egarch11_norm_*`) are already committed. It needs the EGARCH **log-variance**
+recursion (Type-I/Type-II EGF split), which is Phase 2's first build step.
 
 ## Completed
 
