@@ -71,12 +71,8 @@ def test_garch_recursion_reproduces_fixture_sigma_at_reported_params() -> None:
     assert np.max(np.abs(sigma - sigma_fix)) < 1e-6
 
 
-def test_egarch11_matches_fegarch_fixture() -> None:
-    """EGARCH(1,1) fit-match is Phase 2 (the log-variance recursion is not implemented yet)."""
-    pytest.skip(
-        "Phase 2: the fit fixture fit_egarch11_norm_* is committed, but matching it needs the "
-        "EGARCH log-variance recursion (Phase 2 — this PR is Phase 1: GARCH(1,1))."
-    )
+# The EGARCH(1,1) fit-match (formerly the deferred `test_egarch11_matches_fegarch_fixture` skip) is
+# now wired live in `test_egarch.py` (Phase 2): `test_egarch11_norm_matches_fegarch_fixture`.
 
 
 # --------------------------------------------------------------------------- #
