@@ -191,6 +191,19 @@ tryCatch({
 }, error = function(e) cat("  ERROR aparch:", conditionMessage(e),
                           "| exists('aparch') =", exists("aparch"), "\n"))
 
+# --- Phase-2 EGARCH-family (Type-II): Log-GARCH ------------------------------
+# Log-GARCH is a Type-II EGF model, so it is spec-first (loggarch_spec() + fEGarch()),
+# like egarch above — confirmed via ls()/args() (there is no data-first loggarch()
+# function; no source read). Wrapped in tryCatch so a failure prints the model, the
+# error and exists(loggarch_spec) and NEVER writes a partial fixture.
+tryCatch({
+  loggarch_fit <- fEGarch(loggarch_spec(orders = c(1, 1), cond_dist = "norm"), returns,
+                          parallel = FALSE)
+  cat("  loggarch pars:", paste(names(pars(loggarch_fit)), collapse = ", "), "\n")
+  fit_and_dump(loggarch_fit, "loggarch11_norm", "loggarch", "norm")
+}, error = function(e) cat("  ERROR loggarch:", conditionMessage(e),
+                          "| exists('loggarch_spec') =", exists("loggarch_spec"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -230,10 +243,11 @@ manifest <- list(
       gjrgarch11_norm = list(params = "fit_gjrgarch11_norm_params.json", sigma = "fit_gjrgarch11_norm_sigma.csv"),
       tgarch11_norm = list(params = "fit_tgarch11_norm_params.json", sigma = "fit_tgarch11_norm_sigma.csv"),
       aparch11_norm = list(params = "fit_aparch11_norm_params.json", sigma = "fit_aparch11_norm_sigma.csv"),
-      egarch11_norm = list(params = "fit_egarch11_norm_params.json", sigma = "fit_egarch11_norm_sigma.csv"))),
+      egarch11_norm = list(params = "fit_egarch11_norm_params.json", sigma = "fit_egarch11_norm_sigma.csv"),
+      loggarch11_norm = list(params = "fit_loggarch11_norm_params.json", sigma = "fit_loggarch11_norm_sigma.csv"))),
   pending_fixtures = paste(
-    "Later phases need more fixtures: the rest of the EGARCH family (Log-GARCH/MEGARCH/",
-    "MLog-GARCH) and all short-memory models under the other 7 conditional distributions",
+    "Later phases need more fixtures: the rest of the EGARCH family (MEGARCH/MLog-GARCH) and",
+    "all short-memory + EGARCH-family models under the other 7 conditional distributions",
     "(Phase 2); the fractional-differencing / FIGARCH-FIEGARCH long-memory fits (Phase 3-4);",
     "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this",
     "script and re-run when those models are implemented."))
