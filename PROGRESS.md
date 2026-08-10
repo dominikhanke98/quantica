@@ -116,7 +116,7 @@ COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GA
 APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE + MERGED
 (PR #16 → `main` `6710a5e`; all four fixture-validated at σ-rel ~1e-4–1e-5)** →
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
-← IN PROGRESS: EGARCH(1,1) ✓ built + fixture-validated (Phase-2 PR, open for review); Log-GARCH /
+← IN PROGRESS: EGARCH(1,1) ✓ built + fixture-validated (PR #17, open for review); Log-GARCH /
 MEGARCH / MLog-GARCH remaining** → Phase 3 fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
@@ -1103,7 +1103,7 @@ matching the whole σ-series to ~4e-17. **Phase-2 remaining:** Log-GARCH (Type-I
   removed), source not consulted; it reproduces fEGarch's output rather than being a proven internal
   identity. `γ₁=0 → GARCH` reduction is now machine-exact (both seed `Var₁`).
 
-- **Step 29 — fEGarch Phase 2, part 1: EGARCH(1,1) (branch `feat/fegarch-phase2`, Phase-2 PR, open —
+- **Step 29 — fEGarch Phase 2, part 1: EGARCH(1,1) (branch `feat/fegarch-phase2`, PR #17, open —
   not merged).** Two-stage build: Stage 1 extracted the spec from the papers only (WP171 §2.1 +
   App. C.3, WP175, WP173, Nelson 1991; read via `pypdf` since `pymupdf`'s DLL is app-control-blocked
   — a local tooling install, not a repo dep) and reported it for review; Stage 2 built to the
