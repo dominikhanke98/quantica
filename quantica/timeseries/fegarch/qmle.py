@@ -156,26 +156,34 @@ def quasi_max_likelihood(
     var_names: Sequence[str],
     dist_start: Sequence[float] | None = None,
     dist_bounds: Sequence[tuple[float, float]] | None = None,
+    mean: bool = False,
 ) -> QMLEResult:
     r"""Fit a conditional-variance model by quasi-maximum likelihood.
 
     Maximizes :math:`\sum_t [-\ln\sigma_t + \ln f_z(\varepsilon_t/\sigma_t)]` over the variance
     parameters and the distribution's shape parameters jointly, conditioned on the recursion's
-    pre-sample initialisation.
+    pre-sample initialisation. With ``mean=True`` a constant mean :math:`\mu` is the **first**
+    variance parameter and the standardized residual is :math:`(y-\mu)/\sigma` (the recursion is
+    passed the raw ``y`` and forms :math:`\varepsilon = y - \mu` itself); with ``mean=False``
+    (default) the series is treated as mean-zero and :math:`z = y/\sigma`.
 
     Parameters
     ----------
     returns : ndarray, shape (T,)
-        The (mean-zero) return series.
+        The return series (mean-zero unless ``mean=True``).
     variance_recursion : VarianceRecursion
         The model mapping variance parameters + returns to the conditional-variance path.
     distribution : ConditionalDistribution
         The standardized innovation distribution (its shape parameters are estimated too).
     var_start, var_bounds, var_names : sequences
-        Starting values, ``(low, high)`` bounds, and names for the variance parameters.
+        Starting values, ``(low, high)`` bounds, and names for the variance parameters (the first
+        entry is the constant mean :math:`\mu` when ``mean=True``).
     dist_start, dist_bounds : sequences, optional
         Starting values and bounds for the distribution's shape parameters; default to the
         distribution's own ``param_start`` / ``param_bounds``.
+    mean : bool, optional
+        Treat the first variance parameter as a constant mean :math:`\mu` used in the standardized
+        residual (default ``False``, i.e. mean-zero).
 
     Returns
     -------
@@ -204,7 +212,8 @@ def quasi_max_likelihood(
         if not np.all(np.isfinite(sigma2)) or np.any(sigma2 <= 0.0):
             return 1e10
         sigma = np.sqrt(sigma2)
-        z = y / sigma
+        residuals = y - var_params[0] if mean else y
+        z = residuals / sigma
         loglik = np.sum(-np.log(sigma) + distribution.logpdf(z, dist_params))
         return float(-loglik) if np.isfinite(loglik) else 1e10
 

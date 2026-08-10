@@ -1,0 +1,25 @@
+{
+  "model": "aparch",
+  "cond_dist": "norm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00044715072559678768,
+    "omega": 4.8013348698224428e-07,
+    "phi1": 0.071085124789711684,
+    "beta1": 0.89611946773789464,
+    "gamma1": 0.11383084775029577,
+    "delta": 2.4121764430028119
+  },
+  "loglikelihood": 7603.3576500709496,
+  "aic": -6.0778861200567595,
+  "bic": -6.0639084096307041,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
