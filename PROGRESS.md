@@ -1063,14 +1063,29 @@ GJR/TGARCH/APARCH (also PR #16), the last three reconciled as a single APARCH po
   QMLE on the Phase-0 engine, scale-equivariant fit with `ω ~ scale^δ`, reusing `GarchFit`), and
   `gjr_sim`/`tgarch_sim`/`aparch_sim`. **Pre-sample (reconciled):** `σ₀^δ = Var(r,ddof=1)^{δ/2}`,
   `kernel₀ = E|ε|^δ = (1/n)Σ|ε|^δ`. Recursion **form is machine-exact** for all three (seeded from
-  the fixture `σ₀`, `σ_{1:}` matches to `≤1e-15`). **Realized fixture-match:** GJR & TGARCH to
-  GARCH-level (params `≤~2e-4` rel, loglik `≤3e-6`, σ `≤1.2e-5` rel); APARCH `δ` to `1.4e-3` rel and
-  β₁/γ₁ tight, but ω/loglik/σ looser (loglik `~6e-3`, σ rel `~7e-3`) — a **flagged pre-sample
-  residual** (the δ-abs-moment doesn't reproduce fEGarch's unpublished σ₀ state at free δ; documented
-  honestly in `docs/fegarch-spec-notes.md` §4). Reduction anchors exact (γ₁=0 → GARCH; δ=2 → GJR).
-  Known-truth recovery + sim invariants + a skip-safe `arch` GJR cross-check (conditional-vol corr
-  >0.999, both detect leverage). **Phase 1 COMPLETE** (all four SM models). Gate green (see session
-  note for counts).
+  the fixture `σ₀`, `σ_{1:}` matches to `≤1e-15`). **Initial pre-sample:** `σ₀^δ = Var(r,ddof=1)^{δ/2}`,
+  `kernel₀ = E|ε|^δ` — tight for GJR/TGARCH, but left APARCH's σ-series at `~7e-3` (a pre-sample-only
+  residual; resolved in Step 28). Reduction anchors exact (γ₁=0 → GARCH; δ=2 → GJR). Known-truth
+  recovery + sim invariants + a skip-safe `arch` GJR cross-check (conditional-vol corr >0.999, both
+  detect leverage). **Phase 1 COMPLETE** (all four SM models). Gate green (see session note for
+  counts).
+
+- **Step 28 — close the APARCH σ₀ pre-sample gap (branch `feat/fegarch-phase1`, PR #16).** A
+  read-only diagnostic (candidate-seed sweep across all four committed fixtures, no source read)
+  proved the pre-sample seeding convention is **reconciled per recursion**: fEGarch seeds the
+  news-impact `kernel₀` with the **variance-power** `Var(r,ddof=1)^{δ/2}` for the σ²/σ^δ recursions
+  (GARCH/GJR/APARCH) and with the **first absolute sample moment** `mean|ε|` for TGARCH's `δ=1`
+  σ-recursion — the two forms coincide at `δ=2` and **fork otherwise** (TGARCH and APARCH give
+  opposite verdicts; each single form nails 3 of 4). Implemented as an explicit per-recursion seed
+  choice (`_SEED_VARIANCE_POWER` / `_SEED_ABS_MOMENT`) in `asymmetric.py`. **Result:** APARCH σ-series
+  `7.3e-3 → 9.8e-5` rel, loglik `6.4e-3 → 1.3e-5`, ω-rel `1.6e-2 → 1.4e-3` — now the **same tier** as
+  GJR/TGARCH; GARCH/TGARCH unchanged; GJR moved `5.6e-8 → 2.0e-7` (the expected `ddof` effect from
+  using the clean unbiased `Var₁`, far below tolerance). Corroborating evidence the pre-sample is
+  genuinely per-model: a `ddof` split at `δ=2` (GARCH exact only with unbiased `Var₁`, GJR exact only
+  with biased `Var₀`, `~2e-7`). **Epistemic status:** reconciliation against output to fixture
+  tolerance — convention documented (`docs/fegarch-spec-notes.md` §4, "open reconcile item" language
+  removed), source not consulted; it reproduces fEGarch's output rather than being a proven internal
+  identity. `γ₁=0 → GARCH` reduction is now machine-exact (both seed `Var₁`).
 
 ## Next — optional depth only (planned scope is done)
 

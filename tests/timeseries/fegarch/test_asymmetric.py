@@ -4,10 +4,10 @@ GJR-GARCH, TGARCH and APARCH are reconciled against the committed fEGarch fit fi
 per model is the **fEGarch-fit match**: fitting the model to the committed synthetic returns
 reproduces fEGarch's parameters, log-likelihood, information criteria and conditional-SD series to
 tolerance. The reconciliation showed all three are the single APARCH power recursion at
-``delta in {2, 1, free}`` (GJR/TGARCH/APARCH); the recursion form is machine-exact and the residual
-is a pre-sample effect (largest for the free-delta APARCH, whose realized deviations are documented
-here honestly). Reduction anchors confirm the model nesting, and known-truth simulations confirm
-QMLE recovery.
+``delta in {2, 1, free}`` (GJR/TGARCH/APARCH); the recursion form is machine-exact, and the
+pre-sample news-impact is seeded per recursion (variance-power for the sigma^2/sigma^delta
+recursions, first absolute moment for the sigma-recursion), so all four models match at the same
+tier. Reduction anchors confirm the nesting; known-truth simulations confirm QMLE recovery.
 """
 
 from __future__ import annotations
@@ -84,29 +84,27 @@ def test_tgarch_matches_fegarch_fixture() -> None:
 def test_aparch_matches_fegarch_fixture() -> None:
     """fit_aparch reproduces fEGarch's APARCH(1,1)/norm fit, incl. the free power ``delta``.
 
-    APARCH carries a documented pre-sample residual (the delta-th absolute moment does not exactly
-    reproduce fEGarch's unpublished pre-sample state at the fitted ``delta ~ 2.41``); the tolerances
-    below are the realized deviations. The recursion form itself is machine-exact (see
-    ``test_recursion_form_is_exact_seeded_from_fixture``), and ``delta`` and the well-identified
-    parameters still match tightly.
+    With the reconciled per-recursion pre-sample (the news-impact kernel seeded by the
+    variance-power ``Var(r)^(delta/2)`` for the ``sigma^delta`` recursion), APARCH matches at the
+    same tier as GJR and TGARCH: parameters to <=~1.4e-3 relative and the SD series to ~1e-4.
     """
     returns, meta, sigma_fix = _load("aparch11_norm")
     fx = meta["params"]
     fit = fit_aparch(returns, cond_dist="norm")
-    assert abs(fit.params["mu"] - fx["mu"]) < 1e-5
+    assert abs(fit.params["mu"] - fx["mu"]) < 1e-6
     assert (
-        abs(fit.params["delta"] - fx["delta"]) / fx["delta"] < 3e-3
+        abs(fit.params["delta"] - fx["delta"]) / fx["delta"] < 1e-3
     )  # free power, well identified
     assert abs(fit.params["beta1"] - fx["beta1"]) / fx["beta1"] < 1e-3
     assert abs(fit.params["gamma1"] - fx["gamma1"]) / abs(fx["gamma1"]) < 1e-3
-    assert abs(fit.params["phi1"] - fx["phi1"]) / fx["phi1"] < 3e-3
-    assert abs(fit.params["omega"] - fx["omega"]) / fx["omega"] < 3e-2  # weakly identified
-    assert abs(fit.loglikelihood - meta["loglikelihood"]) < 2e-2
-    assert abs(fit.aic - meta["aic"]) < 1e-4
-    assert abs(fit.bic - meta["bic"]) < 1e-4
+    assert abs(fit.params["phi1"] - fx["phi1"]) / fx["phi1"] < 1e-3
+    assert abs(fit.params["omega"] - fx["omega"]) / fx["omega"] < 3e-3  # weakly identified
+    assert abs(fit.loglikelihood - meta["loglikelihood"]) < 1e-4
+    assert abs(fit.aic - meta["aic"]) < 1e-6
+    assert abs(fit.bic - meta["bic"]) < 1e-6
     deviation = np.abs(fit.conditional_volatility - sigma_fix)
-    assert deviation.max() < 2e-4
-    assert np.max(deviation / sigma_fix) < 1e-2
+    assert deviation.max() < 1e-5
+    assert np.max(deviation / sigma_fix) < 2e-4
     assert all(np.isfinite(v) and v > 0.0 for v in fit.std_errors.values())
 
 
@@ -160,8 +158,9 @@ def test_reduction_anchors() -> None:
 
     gjr_sym = gjr_recursion(np.array([0.0, 3e-6, 0.08, 0.9, 0.0]), returns)
     garch = garch_recursion(np.array([0.0, 3e-6, 0.08, 0.9]), returns)
-    # Same recursion at gamma=0; pre-sample kernels differ only by ddof (mean|eps|^2 vs Var), tiny.
-    assert np.max(np.abs(gjr_sym - garch)) < 1e-5
+    # gamma1=0: identical recursion, and both seed the pre-sample at the same Var(r, ddof=1)
+    # (GJR uses the variance-power kernel seed), so this collapse is machine-exact.
+    assert np.max(np.abs(gjr_sym - garch)) < 1e-15
 
     # delta = 2: APARCH == GJR for identical (mu, omega, phi1, beta1, gamma1).
     gjr = gjr_recursion(np.array([0.0, 3e-6, 0.08, 0.9, 0.05]), returns)

@@ -214,48 +214,68 @@ news), not the textbook indicator.
 `fix_delta = NA`, fitted `≈ 2.41`), bounded `δ ∈ (0, 4]` — contrast the ALD's discrete profiled `P`
 (§2), which is a fixed construction argument.
 
-### 4.2 Recursion form is machine-exact; the pre-sample carries the residual
+### 4.2 Recursion form is machine-exact; pre-sample seeded per recursion — RESOLVED (reconciled)
 
 Seeding each recursion with the **fixture's own `σ_0`** and stepping forward with the reported
-parameters reproduces the whole tail `σ_{1:}` to `≤ 1e-15` for all three — so the kernel form is
-exactly `fEGarch`'s. The only open quantity is the pre-sample `σ_0`. The recursion needs `σ_0^δ` and
-a pre-sample news-impact `kernel_0`; the reconciled convention is
+parameters reproduces the whole tail `σ_{1:}` to `≤ 1e-15` for all three — so the kernel **form** is
+exactly `fEGarch`'s. Only `σ_0` depends on the pre-sample. The recursion needs a `σ^δ` **state** seed
+and a pre-sample **news-impact** `kernel_0`; only the combination `φ₁·kernel_0 + β₁·σ_0^δ` is
+identifiable from a single fixture. The reconciled convention (proved by a candidate sweep across all
+four fixtures):
 
 ```
-σ_0^δ = Var(r)^{δ/2}   (unbiased, ddof=1),      kernel_0 = (1/n)·Σ_t |ε_t|^δ   (δ-th absolute moment),
+σ_0^δ  = Var(r)^{δ/2}            (unbiased, ddof=1)                — all recursions
+kernel_0 = Var(r)^{δ/2}         (the variance-power)              — σ² / σ^δ recursions: GARCH, GJR, APARCH
+kernel_0 = (1/n)·Σ_t |ε_t|      (the first absolute sample moment) — σ-recursion: TGARCH (δ = 1)
 ```
 
-i.e. the `σ^δ` state from the unbiased sample variance and the news-impact from the **expected
-symmetric news impact** `E|ε|^δ` (the leverage term `−γ₁ε` has zero pre-sample mean by symmetry).
-Only the combination `φ₁·kernel_0 + β₁·σ_0^δ` is identifiable from `σ_0`, so `kernel_0` cannot be
-separated further from a single fixture. Realized σ-series deviations under this convention:
+Both `kernel_0` forms are `fEGarch`'s estimate of the expected news impact `E|ε|^δ`; the
+**variance-power** `(Var r)^{δ/2}` and the **first absolute moment** `E|ε|` **coincide at `δ = 2`**
+(GARCH, GJR) and **fork for `δ ≠ 2`**. The fork is real, not a modelling choice: the two models that
+can distinguish the forms give **opposite verdicts** —
 
-| model | σ max abs dev | σ max rel dev | note |
-| --- | --- | --- | --- |
-| GJR (`δ=2`) | `~3e-9` | `~3e-7` | `E|ε|² = mean(ε²)` |
-| TGARCH (`δ=1`) | `~1e-8` | `~1e-6` | `E|ε|` (the 1st absolute moment, ≪ `sd`) |
-| APARCH (`δ≈2.41`) | `~9e-5` | `~7e-3` | see below |
+| model | δ | needed `kernel_0` | variance-power `Var^{δ/2}` | abs-moment `E|ε|^δ` |
+| --- | --- | --- | --- | --- |
+| GARCH | 2 | `Var₁` (exact) | ✓ `1.7e-18` | `≈` (mean ε² = `Var₀`) |
+| GJR | 2 | `≈ Var` | ✓ `~2e-7` | ✓ `~3e-9` |
+| **TGARCH** | **1** | `E|ε| = 9.63e-3` | ✗ `sd = 1.26e-2` → **`2.4e-4`** | ✓ `mean|ε|` → **`1.5e-8`** |
+| **APARCH** | **2.41** | `≈ Var^{δ/2} = 2.62e-5` | ✓ → **`1.5e-7`** | ✗ `mean|ε|^δ = 3.27e-5` → **`9e-5`** |
 
-**APARCH pre-sample is a flagged residual.** At the fitted `δ ≈ 2.41` the `δ`-th absolute moment
-`E|ε|^δ` does not reproduce `fEGarch`'s (unpublished) pre-sample state — the implied `kernel_0` sits
-closer to `(mean ε²)^{δ/2}` than to `E|ε|^δ`, and no single closed-form moment matches all three
-models to machine precision (TGARCH wants `E|ε|`, APARCH wants `(mean ε²)^{δ/2}`; they coincide only
-at `δ=2`). This is an **open reconcile item** resolvable only with more fixtures or the (forbidden)
-source; it affects **only `σ_0`** (decaying thereafter), the recursion form is exact, and it is
-surfaced honestly in the APARCH fixture-match tolerances (loglik dev `~6e-3`, σ rel `~7e-3`). We use
-the principled `E|ε|^δ` because it is theoretically the expected symmetric news impact and is
-near-exact for GJR/TGARCH.
+(deviations are realized `σ_0` errors). Each single form nails **three of four**; TGARCH demands the
+abs-moment, APARCH the variance-power. We therefore seed **per recursion**: the σ²/σ^δ recursions use
+the variance-power, the TGARCH σ-recursion uses the first absolute moment. This is legible in
+`asymmetric.py` (`_SEED_VARIANCE_POWER` vs `_SEED_ABS_MOMENT`), not a hidden branch.
+
+**Epistemic status (honest).** This is an **empirical reconciliation against the committed output**,
+not a proven internal identity: the `fEGarch` source is never consulted (CLAUDE.md §12). It is the
+convention that *reproduces `fEGarch`'s output* to fixture tolerance, and it is the simplest such
+convention consistent with all four fixtures. A **corroborating** sign that the pre-sample is
+genuinely per-model (not one universal formula) is a `ddof` split even at `δ = 2`: GARCH is exact
+only with the **unbiased** `Var₁` kernel seed (`1.7e-18`), whereas GJR is exact only with the
+**biased** `Var₀ = mean(ε²)` (`1.7e-18`) — a `~2e-7` difference, comfortably below tolerance, so the
+code uses the clean unbiased `Var₁` throughout.
 
 ### 4.3 Fixture confirmation + reduction anchors
 
-`fit_gjr` / `fit_tgarch` match `fEGarch` to GARCH-level tolerance (parameters `≤ ~2e-4` relative,
-log-likelihood `≤ ~3e-6`, σ-series `≤ 1.2e-5` relative); `fit_aparch` matches `δ` to `1.4e-3`
-relative and the well-identified `β₁`/`γ₁` tightly, with the larger `ω`/loglik/σ residuals above from
-the pre-sample. Reduction anchors hold structurally: `γ₁ = 0` collapses GJR to the plain GARCH news
-impact `ε²`, and `δ = 2` makes `aparch_recursion` identical to `gjr_recursion` (max dev `0`). Fits are
-done on internally rescaled returns (the MLE is scale-equivariant; `ω` scales as `scale^δ`).
+Under the per-recursion seed all four match at the **same tier**: parameters `≤ ~1.4e-3` relative
+(the weakly-identified `ω` is the loosest), log-likelihood `≤ ~2e-5`, information criteria `≤ 1e-6`,
+and the conditional-SD series to `≤ ~1e-4` relative:
 
-This completes the Phase-1 short-memory family (GARCH / GJR / TGARCH / APARCH).
+| model | params (worst) | loglik dev | σ max rel dev |
+| --- | --- | --- | --- |
+| GARCH | `ω 3.4e-5` | `6.7e-9` | `7.6e-6` |
+| GJR | `μ 5.6e-5` | `1.9e-5` | `1.6e-5` |
+| TGARCH | `μ 1.8e-4` | `2.7e-6` | `1.2e-5` |
+| APARCH | `ω 1.4e-3`, `δ 1.5e-4` | `1.3e-5` | `9.8e-5` |
+
+Reduction anchors hold: `γ₁ = 0` collapses GJR to the plain GARCH news impact `ε²` — and because GJR
+now seeds the pre-sample at the same `Var₁` as `garch_recursion`, this collapse is **machine-exact**
+(`< 1e-15`), not merely tolerance-close; `δ = 2` makes `aparch_recursion` identical to
+`gjr_recursion` (max dev `0`). Fits are on internally rescaled returns (the MLE is scale-equivariant;
+`ω` scales as `scale^δ`).
+
+This completes the Phase-1 short-memory family (GARCH / GJR / TGARCH / APARCH), all fixture-validated
+at the same tolerance tier.
 
 ---
 

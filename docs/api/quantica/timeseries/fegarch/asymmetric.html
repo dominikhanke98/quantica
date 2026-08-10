@@ -136,22 +136,27 @@ expects); the likelihood, optimizer and Hessian standard errors come from the sh
 (<code>~<a href="../fegarch.html#quasi_max_likelihood">quantica.timeseries.fegarch.quasi_max_likelihood()</a></code>), and all eight conditional distributions
 route through it. The fits are done on internally rescaled returns (the MLE is scale-equivariant).</p>
 
-<p><strong>Pre-sample conditioning (reconciled against the fixtures).</strong> The recursion is seeded with</p>
+<p><strong>Pre-sample conditioning (reconciled per recursion against the fixtures).</strong> The
+\( \sigma^\delta \) <strong>state</strong> is always seeded from the <strong>unbiased</strong> sample variance,
+\( \sigma_0^\delta = \operatorname{Var}(r)^{\delta/2} \) (<code>ddof=1</code>). The pre-sample
+<strong>news-impact</strong> <code>kernel_0</code> is fEGarch's estimate of \( \operatorname{E}|\varepsilon|^\delta \),
+which the fixtures show it computes two different ways depending on the recursion:</p>
 
-<p>$$\sigma_0^\delta = \operatorname{Var}(r)^{\delta/2}, \qquad
-\text{kernel}_0 = \frac1n\sum_t |\varepsilon_t|^\delta,$$</p>
+<p>$$\text{kernel}_0 =
+\begin{cases}
+  \operatorname{Var}(r)^{\delta/2} &amp; \sigma^2 / \sigma^\delta\text{ recursions (GJR, APARCH)},\
+  \tfrac1n\sum_t |\varepsilon_t| &amp; \sigma\text{-recursion (TGARCH,}\ \delta = 1).
+\end{cases}$$</p>
 
-<p>i.e. the \( \sigma^\delta \) state from the <strong>unbiased</strong> sample variance (<code>ddof=1</code>) and the
-pre-sample news-impact from the <strong>\( \delta \)-th absolute sample moment</strong>
-\( \operatorname{E}|\varepsilon|^\delta \) (the expected symmetric news impact — the leverage term
-\( -\gamma_1\varepsilon \) has zero pre-sample mean by symmetry). Reconstructing each fixture's
-conditional-SD series from its reported parameters under this convention matches GJR to <code>~3e-9</code>
-and TGARCH to <code>~1e-8</code>; the recursion <strong>form</strong> is machine-exact for all three (verified by seeding
-from the fixture's own \( \sigma_0 \)). APARCH carries a larger pre-sample residual (<code>~9e-5</code>
-absolute at \( \sigma_0 \), decaying) because the \( \delta \)-th absolute moment at the fitted
-\( \delta \approx 2.41 \) does not exactly reproduce fEGarch's (unpublished) pre-sample state;
-this is flagged in <code>docs/fegarch-spec-notes.md</code> and affects only \( \sigma_0 \), not the
-recursion.</p>
+<p>The two forms — the <strong>variance-power</strong> and the <strong>first absolute sample moment</strong> — coincide at
+\( \delta = 2 \) and fork otherwise. This is an <strong>empirical reconciliation against the committed
+output</strong>, not a proven internal identity: the fEGarch source is never consulted (CLAUDE.md §12), and
+neither single form fits all four models (each nails three of four; TGARCH at \( \delta = 1 \) and
+APARCH at \( \delta \approx 2.41 \) give opposite verdicts). Under this per-recursion convention
+every fixture's conditional-SD series is reproduced to \( \lesssim 10^{-5} \) relative; the
+recursion <strong>form</strong> is separately machine-exact (verified by seeding from the fixture's own
+\( \sigma_0 \)). Full derivation, the fork numbers and the corroborating <code>ddof</code> evidence are in
+<code>docs/fegarch-spec-notes.md</code> §4.</p>
 </div>
 
                 

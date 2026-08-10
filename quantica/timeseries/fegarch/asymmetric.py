@@ -39,24 +39,29 @@ expects); the likelihood, optimizer and Hessian standard errors come from the sh
 (:func:`~quantica.timeseries.fegarch.quasi_max_likelihood`), and all eight conditional distributions
 route through it. The fits are done on internally rescaled returns (the MLE is scale-equivariant).
 
-**Pre-sample conditioning (reconciled against the fixtures).** The recursion is seeded with
+**Pre-sample conditioning (reconciled per recursion against the fixtures).** The
+:math:`\sigma^\delta` **state** is always seeded from the **unbiased** sample variance,
+:math:`\sigma_0^\delta = \operatorname{Var}(r)^{\delta/2}` (``ddof=1``). The pre-sample
+**news-impact** ``kernel_0`` is fEGarch's estimate of :math:`\operatorname{E}|\varepsilon|^\delta`,
+which the fixtures show it computes two different ways depending on the recursion:
 
 .. math::
 
-    \sigma_0^\delta = \operatorname{Var}(r)^{\delta/2}, \qquad
-    \text{kernel}_0 = \frac1n\sum_t |\varepsilon_t|^\delta,
+    \text{kernel}_0 =
+    \begin{cases}
+      \operatorname{Var}(r)^{\delta/2} & \sigma^2 / \sigma^\delta\text{ recursions (GJR, APARCH)},\\
+      \tfrac1n\sum_t |\varepsilon_t| & \sigma\text{-recursion (TGARCH,}\ \delta = 1).
+    \end{cases}
 
-i.e. the :math:`\sigma^\delta` state from the **unbiased** sample variance (``ddof=1``) and the
-pre-sample news-impact from the **:math:`\delta`-th absolute sample moment**
-:math:`\operatorname{E}|\varepsilon|^\delta` (the expected symmetric news impact — the leverage term
-:math:`-\gamma_1\varepsilon` has zero pre-sample mean by symmetry). Reconstructing each fixture's
-conditional-SD series from its reported parameters under this convention matches GJR to ``~3e-9``
-and TGARCH to ``~1e-8``; the recursion **form** is machine-exact for all three (verified by seeding
-from the fixture's own :math:`\sigma_0`). APARCH carries a larger pre-sample residual (``~9e-5``
-absolute at :math:`\sigma_0`, decaying) because the :math:`\delta`-th absolute moment at the fitted
-:math:`\delta \approx 2.41` does not exactly reproduce fEGarch's (unpublished) pre-sample state;
-this is flagged in ``docs/fegarch-spec-notes.md`` and affects only :math:`\sigma_0`, not the
-recursion.
+The two forms — the **variance-power** and the **first absolute sample moment** — coincide at
+:math:`\delta = 2` and fork otherwise. This is an **empirical reconciliation against the committed
+output**, not a proven internal identity: the fEGarch source is never consulted (CLAUDE.md §12), and
+neither single form fits all four models (each nails three of four; TGARCH at :math:`\delta = 1` and
+APARCH at :math:`\delta \approx 2.41` give opposite verdicts). Under this per-recursion convention
+every fixture's conditional-SD series is reproduced to :math:`\lesssim 10^{-5}` relative; the
+recursion **form** is separately machine-exact (verified by seeding from the fixture's own
+:math:`\sigma_0`). Full derivation, the fork numbers and the corroborating ``ddof`` evidence are in
+``docs/fegarch-spec-notes.md`` §4.
 """
 
 from __future__ import annotations
@@ -88,6 +93,13 @@ __all__ = [
 _GJR_TGARCH_NAMES = ("mu", "omega", "phi1", "beta1", "gamma1")
 _APARCH_NAMES = ("mu", "omega", "phi1", "beta1", "gamma1", "delta")
 
+# Pre-sample news-impact seed, reconciled per recursion against the fixtures (spec-notes §4).
+# fEGarch's estimate of E[|eps|^delta] takes two forms that coincide at delta=2 and fork otherwise:
+# the variance-power (Var r)^(delta/2) for the sigma^2 / sigma^delta recursions, and the first
+# absolute sample moment mean|eps| for the sigma-recursion.
+_SEED_VARIANCE_POWER = "variance_power"  # GJR (delta=2) and APARCH (free delta)
+_SEED_ABS_MOMENT = "abs_moment"  # TGARCH (delta=1, the sigma-recursion)
+
 
 def _aparch_family_variance(
     mu: float,
@@ -97,21 +109,35 @@ def _aparch_family_variance(
     gamma1: float,
     delta: float,
     returns: FloatArray,
+    *,
+    kernel_seed: str,
 ) -> FloatArray:
     r"""The APARCH-power recursion, returned as the conditional variance :math:`\sigma_t^2`.
 
     Implements :math:`\sigma_t^\delta = \omega + \phi_1(|\varepsilon_{t-1}| -
-    \gamma_1\varepsilon_{t-1})^\delta + \beta_1\sigma_{t-1}^\delta` with the reconciled pre-sample
-    (:math:`\sigma_0^\delta = \operatorname{Var}(r)^{\delta/2}`, news-impact
-    :math:`\tfrac1n\sum|\varepsilon_t|^\delta`), then converts back to :math:`\sigma_t^2` for the
-    QMLE engine. Since :math:`|\gamma_1| < 1` the kernel base :math:`|\varepsilon|(1 -
-    \gamma_1\operatorname{sign}\varepsilon)` is non-negative, so the fractional power is real.
+    \gamma_1\varepsilon_{t-1})^\delta + \beta_1\sigma_{t-1}^\delta`, then converts back to
+    :math:`\sigma_t^2` for the QMLE engine. Since :math:`|\gamma_1| < 1` the kernel base
+    :math:`|\varepsilon|(1 - \gamma_1\operatorname{sign}\varepsilon)` is non-negative, so the
+    fractional power is real.
+
+    Pre-sample conditioning (reconciled per recursion, spec-notes §4). The :math:`\sigma^\delta`
+    state is always seeded from the **unbiased** sample variance,
+    :math:`\sigma_0^\delta = \operatorname{Var}(r)^{\delta/2}`. The pre-sample news-impact
+    ``kernel_0`` is fEGarch's estimate of :math:`\operatorname{E}|\varepsilon|^\delta`, which forks
+    by ``kernel_seed``: the **variance-power** :math:`\operatorname{Var}(r)^{\delta/2}` for the
+    :math:`\sigma^2` / :math:`\sigma^\delta` recursions (GJR, APARCH), or the **first absolute
+    moment** :math:`\tfrac1n\sum|\varepsilon_t|` for the :math:`\sigma`-recursion (TGARCH). The two
+    forms coincide at :math:`\delta = 2` and diverge otherwise.
     """
     y = np.asarray(returns, dtype=np.float64)
     resid = y - mu
     n = y.size
-    sig_delta_0 = float(np.var(y, ddof=1)) ** (delta / 2.0)
-    kernel_0 = float(np.mean(np.abs(resid) ** delta))
+    var1 = float(np.var(y, ddof=1))  # unbiased sample variance (ddof=1)
+    sig_delta_0 = var1 ** (delta / 2.0)  # sigma^delta state seed (all recursions)
+    if kernel_seed == _SEED_VARIANCE_POWER:
+        kernel_0 = var1 ** (delta / 2.0)  # sigma^2 / sigma^delta recursions: (Var r)^(delta/2)
+    else:  # _SEED_ABS_MOMENT
+        kernel_0 = float(np.mean(np.abs(resid) ** delta))  # sigma-recursion: first absolute moment
     sig_delta = np.empty(n, dtype=np.float64)
     sig_delta[0] = omega + phi1 * kernel_0 + beta1 * sig_delta_0
     for t in range(1, n):
@@ -136,7 +162,9 @@ def gjr_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
         The conditional variances :math:`\sigma_t^2`.
     """
     mu, omega, phi1, beta1, gamma1 = (float(p) for p in params)
-    return _aparch_family_variance(mu, omega, phi1, beta1, gamma1, 2.0, returns)
+    return _aparch_family_variance(
+        mu, omega, phi1, beta1, gamma1, 2.0, returns, kernel_seed=_SEED_VARIANCE_POWER
+    )
 
 
 def tgarch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
@@ -155,7 +183,9 @@ def tgarch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
         The conditional variances :math:`\sigma_t^2`.
     """
     mu, omega, phi1, beta1, gamma1 = (float(p) for p in params)
-    return _aparch_family_variance(mu, omega, phi1, beta1, gamma1, 1.0, returns)
+    return _aparch_family_variance(
+        mu, omega, phi1, beta1, gamma1, 1.0, returns, kernel_seed=_SEED_ABS_MOMENT
+    )
 
 
 def aparch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
@@ -174,7 +204,9 @@ def aparch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
         The conditional variances :math:`\sigma_t^2`.
     """
     mu, omega, phi1, beta1, gamma1, delta = (float(p) for p in params)
-    return _aparch_family_variance(mu, omega, phi1, beta1, gamma1, delta, returns)
+    return _aparch_family_variance(
+        mu, omega, phi1, beta1, gamma1, delta, returns, kernel_seed=_SEED_VARIANCE_POWER
+    )
 
 
 def _fit_aparch_family(
