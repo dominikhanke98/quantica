@@ -116,7 +116,8 @@ COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GA
 APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE + MERGED
 (PR #16 → `main` `6710a5e`; all four fixture-validated at σ-rel ~1e-4–1e-5)** →
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
-← NEXT BUILD STEP** → Phase 3 fractional-differencing
+← IN PROGRESS: EGARCH(1,1) ✓ built + fixture-validated (Phase-2 PR, open for review); Log-GARCH /
+MEGARCH / MLog-GARCH remaining** → Phase 3 fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
@@ -131,10 +132,16 @@ a σ-recursion — its `ω~2.3e-4` vs GJR's `~3e-6` is the σ-vs-σ² unit finge
 (APARCH); (3) the pre-sample news-impact seed is **reconciled-per-power** — variance-power
 `Var(r)^{δ/2}` for the σ²/σ^δ recursions, first-absolute-moment `mean|ε|` for the TGARCH σ-recursion,
 coinciding at `δ=2` and forking otherwise (TGARCH vs APARCH give opposite verdicts; documented in
-`docs/fegarch-spec-notes.md` §4). **Phase-2 entry point:** the one remaining skip —
-`test_egarch11_matches_fegarch_fixture` in `tests/timeseries/fegarch/test_garch.py` — is the Phase-2
-hook; its fixtures (`fit_egarch11_norm_*`) are already committed. It needs the EGARCH **log-variance**
-recursion (Type-I/Type-II EGF split), which is Phase 2's first build step.
+`docs/fegarch-spec-notes.md` §4). **Phase-2 status:** EGARCH(1,1) is built and wired live
+(`test_egarch11_norm_matches_fegarch_fixture` in `tests/timeseries/fegarch/test_egarch.py`,
+reproducing `fit_egarch11_norm_*`); the egarch skip in `test_garch.py` is retired. **Key EGARCH
+findings (settled):** it is the **Type-I** EGF log-variance model `ln σ²_t = ω + g(η_{t-1}) +
+ϕ₁ ln σ²_{t-1}` with `g(η) = κη + γ(|η|−E|η|)` — **κ on the asymmetry term, γ on magnitude**
+(WP171/WP173 orientation, confirmed by the fixture's κ=−0.0235 / γ=+0.1573 signs; **not** the WP175
+letter-swap); fEGarch reports `omega_sig = ωσ = E[ln σ²]` (the recursion intercept is
+`ω = ωσ(1−ϕ₁)`); presample `ln σ²[0] = ω + ϕ₁·ln(Var(r,ddof=1))` with zero news-impact history,
+matching the whole σ-series to ~4e-17. **Phase-2 remaining:** Log-GARCH (Type-II, the
+`ξ = ln η² − E[ln η²]` branch), MEGARCH / MLog-GARCH (Type-I, generalized `g_asy`/`g_mag`).
 
 ## Completed
 
@@ -1095,6 +1102,26 @@ recursion (Type-I/Type-II EGF split), which is Phase 2's first build step.
   tolerance — convention documented (`docs/fegarch-spec-notes.md` §4, "open reconcile item" language
   removed), source not consulted; it reproduces fEGarch's output rather than being a proven internal
   identity. `γ₁=0 → GARCH` reduction is now machine-exact (both seed `Var₁`).
+
+- **Step 29 — fEGarch Phase 2, part 1: EGARCH(1,1) (branch `feat/fegarch-phase2`, Phase-2 PR, open —
+  not merged).** Two-stage build: Stage 1 extracted the spec from the papers only (WP171 §2.1 +
+  App. C.3, WP175, WP173, Nelson 1991; read via `pypdf` since `pymupdf`'s DLL is app-control-blocked
+  — a local tooling install, not a repo dep) and reported it for review; Stage 2 built to the
+  confirmed spec. New `quantica/timeseries/fegarch/egarch.py`: `egarch_recursion` (the Type-I
+  log-variance path `ln σ²_t = ω + g(η_{t-1}) + ϕ₁ ln σ²_{t-1}`, returning the variance the engine
+  expects), `fit_egarch` (constant-mean QMLE on the reused Phase-0 engine, reusing `GarchFit`), and
+  `egarch_sim`. `g(η) = κη + γ(|η|−E|η|)` with **κ=asymmetry, γ=magnitude** (WP171/WP173 orientation;
+  the fixture's κ<0/γ>0 signs confirm it — **not** WP175's letter-swap). Fits `ωσ` (=`omega_sig`,
+  `E[ln σ²]`) directly and derives `ω = ωσ(1−ϕ₁)` internally. **Presample `ln σ²[0] = ω +
+  ϕ₁·ln(Var(r,ddof=1))`** with zero news-impact history — reconstructs the whole σ-series to **~4e-17**
+  (ddof=0 → ~2e-6). **E|η| seam:** sourced from the distribution layer's `abs_moment` (added to the
+  `ConditionalDistribution` base, raising by default; norm → √(2/π)), passed in as a captured value,
+  never hard-coded. **Realized fixture-match:** params ≤ **2.3e-5** rel, loglik **9e-8**, AIC/BIC
+  **7e-11**, σ-series **1.8e-5** rel. Checks: κ=0 ⇒ symmetric `g` (machine-exact), known-truth
+  recovery within a few SE, and the predicted **additive-`ωσ` scale behaviour** (`ωσ` shifts by
+  `ln(c²)` under `r→cr`, μ scales, ϕ₁/κ/γ invariant — confirmed). **Deferred (documented):**
+  skewed-EGARCH needs `abs_moment` on the FS-skew wrapper; jointly-estimated shape (std/ged) needs
+  E|η| recomputed per-iteration. Docs: spec-notes §5, PROGRESS. Gate green (see session note).
 
 ## Next — optional depth only (planned scope is done)
 
