@@ -204,6 +204,28 @@ tryCatch({
 }, error = function(e) cat("  ERROR loggarch:", conditionMessage(e),
                           "| exists('loggarch_spec') =", exists("loggarch_spec"), "\n"))
 
+# --- Phase-2 EGARCH-family (Type-I): MEGARCH, MLog-GARCH ----------------------
+# Both are Type-I EGF models with different modulus/power settings (WP171 Eqs. 7-9);
+# they are spec-first (megarch_spec()/mloggarch_spec() + fEGarch()), like egarch —
+# confirmed via ls()/args() (no data-first functions; no source read). Each wrapped in
+# tryCatch so a failure prints the model, the error and exists(<spec>) and NEVER writes
+# a partial fixture.
+tryCatch({
+  megarch_fit <- fEGarch(megarch_spec(orders = c(1, 1), cond_dist = "norm"), returns,
+                         parallel = FALSE)
+  cat("  megarch pars:", paste(names(pars(megarch_fit)), collapse = ", "), "\n")
+  fit_and_dump(megarch_fit, "megarch11_norm", "megarch", "norm")
+}, error = function(e) cat("  ERROR megarch:", conditionMessage(e),
+                          "| exists('megarch_spec') =", exists("megarch_spec"), "\n"))
+
+tryCatch({
+  mloggarch_fit <- fEGarch(mloggarch_spec(orders = c(1, 1), cond_dist = "norm"), returns,
+                           parallel = FALSE)
+  cat("  mloggarch pars:", paste(names(pars(mloggarch_fit)), collapse = ", "), "\n")
+  fit_and_dump(mloggarch_fit, "mloggarch11_norm", "mloggarch", "norm")
+}, error = function(e) cat("  ERROR mloggarch:", conditionMessage(e),
+                          "| exists('mloggarch_spec') =", exists("mloggarch_spec"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -244,13 +266,15 @@ manifest <- list(
       tgarch11_norm = list(params = "fit_tgarch11_norm_params.json", sigma = "fit_tgarch11_norm_sigma.csv"),
       aparch11_norm = list(params = "fit_aparch11_norm_params.json", sigma = "fit_aparch11_norm_sigma.csv"),
       egarch11_norm = list(params = "fit_egarch11_norm_params.json", sigma = "fit_egarch11_norm_sigma.csv"),
-      loggarch11_norm = list(params = "fit_loggarch11_norm_params.json", sigma = "fit_loggarch11_norm_sigma.csv"))),
+      loggarch11_norm = list(params = "fit_loggarch11_norm_params.json", sigma = "fit_loggarch11_norm_sigma.csv"),
+      megarch11_norm = list(params = "fit_megarch11_norm_params.json", sigma = "fit_megarch11_norm_sigma.csv"),
+      mloggarch11_norm = list(params = "fit_mloggarch11_norm_params.json", sigma = "fit_mloggarch11_norm_sigma.csv"))),
   pending_fixtures = paste(
-    "Later phases need more fixtures: the rest of the EGARCH family (MEGARCH/MLog-GARCH) and",
-    "all short-memory + EGARCH-family models under the other 7 conditional distributions",
-    "(Phase 2); the fractional-differencing / FIGARCH-FIEGARCH long-memory fits (Phase 3-4);",
-    "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this",
-    "script and re-run when those models are implemented."))
+    "Phase-2 EGARCH-family (1,1)/norm fits are complete. Later phases need more fixtures:",
+    "all short-memory + EGARCH-family models under the other 7 conditional distributions;",
+    "the fractional-differencing / FIGARCH-FIEGARCH long-memory fits (Phase 3-4); dual-mean",
+    "(ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and",
+    "re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")
