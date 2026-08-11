@@ -116,8 +116,8 @@ COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GA
 APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE + MERGED
 (PR #16 → `main` `6710a5e`; all four fixture-validated at σ-rel ~1e-4–1e-5)** →
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
-← IN PROGRESS: EGARCH(1,1) ✓ built + fixture-validated (PR #17, open for review); Log-GARCH /
-MEGARCH / MLog-GARCH remaining** → Phase 3 fractional-differencing
+← IN PROGRESS: EGARCH(1,1) (Type-I) ✓ + Log-GARCH(1,1) (Type-II) ✓ built + fixture-validated
+(PR #17, open for review); MEGARCH / MLog-GARCH remaining** → Phase 3 fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
@@ -140,8 +140,15 @@ findings (settled):** it is the **Type-I** EGF log-variance model `ln σ²_t = �
 (WP171/WP173 orientation, confirmed by the fixture's κ=−0.0235 / γ=+0.1573 signs; **not** the WP175
 letter-swap); fEGarch reports `omega_sig = ωσ = E[ln σ²]` (the recursion intercept is
 `ω = ωσ(1−ϕ₁)`); presample `ln σ²[0] = ω + ϕ₁·ln(Var(r,ddof=1))` with zero news-impact history,
-matching the whole σ-series to ~4e-17. **Phase-2 remaining:** Log-GARCH (Type-II, the
-`ξ = ln η² − E[ln η²]` branch), MEGARCH / MLog-GARCH (Type-I, generalized `g_asy`/`g_mag`).
+matching the whole σ-series to ~4e-17. **Log-GARCH(1,1) (Type-II)** is also built and wired live
+(`test_loggarch11_norm_matches_fegarch_fixture`): an ARMA on `ln σ²` in the log-square innovation
+`ξ = ln η² − E[ln η²]`, `ln σ²_t = ω + ϕ₁ ln σ²_{t-1} + (ψ₁+ϕ₁)ξ_{t-1}` — **no asymmetry** (Type-II);
+the news-impact loading is the **combined `(ψ₁+ϕ₁)`**, and `ψ` runs to lag `q` (not `q−1`) so (1,1)
+has a free `ψ₁` where EGARCH had none. New `mean_log_sq` distribution moment (norm = `−γ_E−ln2`).
+Near-common-root ridge (`ϕ₁≈−ψ₁`) makes L-BFGS-B stall → engine gained a minimal `method`/`options`
+arg (default unchanged), Log-GARCH uses Nelder-Mead; fEGarch's fixture is a *local* (not global)
+optimum, so individual `ϕ₁`/`ψ₁` are weakly identified while σ/loglik/`(ψ₁+ϕ₁)` are pinned.
+**Phase-2 remaining:** MEGARCH / MLog-GARCH (Type-I, generalized `g_asy`/`g_mag`).
 
 ## Completed
 
@@ -1122,6 +1129,28 @@ matching the whole σ-series to ~4e-17. **Phase-2 remaining:** Log-GARCH (Type-I
   `ln(c²)` under `r→cr`, μ scales, ϕ₁/κ/γ invariant — confirmed). **Deferred (documented):**
   skewed-EGARCH needs `abs_moment` on the FS-skew wrapper; jointly-estimated shape (std/ged) needs
   E|η| recomputed per-iteration. Docs: spec-notes §5, PROGRESS. Gate green (see session note).
+
+- **Step 30 — fEGarch Phase 2, part 2: Log-GARCH(1,1) Type-II (branch `feat/fegarch-phase2`, PR #17
+  alongside EGARCH — not merged).** Two-stage build (spec extraction → review → build). Generated the
+  `fit_loggarch11_norm_*` fixture first (spec-first `loggarch_spec()` + `fEGarch()`, confirmed via
+  `args()`; pars `{mu, omega_sig, phi1, psi1}` — the Type-II structure, no κ/γ). New
+  `quantica/timeseries/fegarch/loggarch.py`: `loggarch_recursion` (the ARMA `ln σ²_t = ω +
+  ϕ₁ ln σ²_{t-1} + (ψ₁+ϕ₁)ξ_{t-1}`, `ξ = ln η² − E[ln η²]`, returning the variance), `fit_loggarch`,
+  `loggarch_sim`. **Key spec points (settled):** the news-impact loading is the **combined
+  `(ψ₁+ϕ₁)`**; Type-II's `ψ` runs to lag `q` (not `q−1`), so (1,1) has a free `ψ₁`; no asymmetry
+  (structurally symmetric). **New `mean_log_sq` distribution moment** (E[ln η²]; base raises,
+  norm = `−γ_E−ln2 = −1.2703628`), fed via the same closure seam as EGARCH's E|η|; std/ged/skewed
+  deferred (loggarch under non-norm raises). Presample `ln σ²[0] = ω + ϕ₁·ln(Var(r,ddof=1))`,
+  ξ-history 0 → whole σ-series to ~9e-16. **Near-common-root ridge** (`ϕ₁=0.989 ≈ −ψ₁=0.954`): L-BFGS-B
+  stalls, so the **engine gained a minimal backward-compatible `method`/`options` arg** (default
+  L-BFGS-B unchanged) and Log-GARCH uses Nelder-Mead from a Log-GARCH-typical start (`ϕ₁=0.95,
+  ψ₁=−0.9`) to land in fEGarch's basin. **fEGarch's fixture is a *local* (not global) optimum** — a
+  different start finds a marginally higher-loglik point — so `ϕ₁`/`ψ₁` individually are weakly
+  identified while σ/loglik/`(ψ₁+ϕ₁)` are pinned; **tolerances are structured by identification**
+  (pinned quantities tight ~1e-5 EGARCH-tier, individual coeffs looser 5e-3, documented). **Realized
+  match** (fEGarch-basin start): σ 5.8e-6 rel, loglik 2.3e-9, AIC/BIC 1.9e-12, `(ψ₁+ϕ₁)` 8.6e-7 rel,
+  `ϕ₁`/`ψ₁` ~1e-7. Additive-`ωσ` scale behaviour confirmed. Docs: spec-notes §6, PROGRESS. Gate green
+  (see session note).
 
 ## Next — optional depth only (planned scope is done)
 
