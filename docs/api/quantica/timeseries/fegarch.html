@@ -116,6 +116,9 @@
                         <li>
                                 <a class="function" href="#ConditionalDistribution.abs_moment">abs_moment</a>
                         </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a>
+                        </li>
                 </ul>
 
             </li>
@@ -233,6 +236,9 @@
                         <li>
                                 <a class="function" href="#Normal.abs_moment">abs_moment</a>
                         </li>
+                        <li>
+                                <a class="function" href="#Normal.mean_log_sq">mean_log_sq</a>
+                        </li>
                 </ul>
 
             </li>
@@ -333,6 +339,9 @@
                     <a class="function" href="#fit_gjr">fit_gjr</a>
             </li>
             <li>
+                    <a class="function" href="#fit_loggarch">fit_loggarch</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_tgarch">fit_tgarch</a>
             </li>
             <li>
@@ -352,6 +361,12 @@
             </li>
             <li>
                     <a class="function" href="#initial_variance">initial_variance</a>
+            </li>
+            <li>
+                    <a class="function" href="#loggarch_recursion">loggarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#loggarch_sim">loggarch_sim</a>
             </li>
             <li>
                     <a class="function" href="#quasi_max_likelihood">quasi_max_likelihood</a>
@@ -428,8 +443,14 @@ the <strong>Type-I</strong> log-variance recursion :math:<code>\ln\sigma_t^2 = \
 \phi_1\ln\sigma_{t-1}^2</code> with the transformation :math:<code>g(\eta) = \kappa\eta + \gamma(|\eta| -
 \operatorname{E}|\eta|)</code> (\( \kappa \) asymmetry, \( \gamma \) magnitude), on the Phase-0
 engine (<code>~<a href="#fit_egarch">quantica.timeseries.fegarch.fit_egarch()</a></code>,
-<code>~<a href="#egarch_sim">quantica.timeseries.fegarch.egarch_sim()</a></code>), reproducing fEGarch's <code>norm</code> fit on the
-committed fixture. Log-GARCH / MEGARCH / MLog-GARCH are the remaining Phase-2 models.</li>
+<code>~<a href="#egarch_sim">quantica.timeseries.fegarch.egarch_sim()</a></code>), reproducing fEGarch's <code>norm</code> fit.</li>
+<li><strong>Log-GARCH(1,1)</strong> (<code>~<a href="fegarch/loggarch.html">quantica.timeseries.fegarch.loggarch</a></code>) — the <strong>Type-II</strong> EGF model
+(Geweke 1986), an ARMA on the log-variance in the log-square innovation
+\( \xi = \ln\eta^2 - \operatorname{E}[\ln\eta^2] \), i.e. :math:<code>\ln\sigma_t^2 = \omega +
+\phi_1\ln\sigma_{t-1}^2 + (\psi_1 + \phi_1)\xi_{t-1}</code> (no asymmetry term), via
+<code>~<a href="#fit_loggarch">quantica.timeseries.fegarch.fit_loggarch()</a></code> /
+<code>~<a href="#loggarch_sim">quantica.timeseries.fegarch.loggarch_sim()</a></code>. MEGARCH / MLog-GARCH are the remaining Phase-2
+models.</li>
 </ul>
 
 <p>The fractional-differencing engine, the long-memory models, the dual mean and the forecasting/risk
@@ -609,6 +630,7 @@ kurtosis); <code>a(1)</code> feeds the Fernández--Steel skew standardization.</
                 <dd id="AverageLaplace.param_start" class="variable"><a href="#ConditionalDistribution.param_start">param_start</a></dd>
                 <dd id="AverageLaplace.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="AverageLaplace.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="AverageLaplace.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>
@@ -790,6 +812,26 @@ documented Phase-2 follow-up), so the base implementation raises.</p>
 
 
                             </div>
+                            <div id="ConditionalDistribution.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] \) of the standardized innovation.</p>
+
+<p>The Type-II EGF (Log-GARCH) centers its news impact on \( \xi = \ln z^2 - E[\ln z^2] \),
+so — unlike EGARCH's \( E|z| \) — it needs this <em>log</em>-moment. Only <code>norm</code> overrides it
+here (closed form); <code>std</code> / <code>ged</code> / <code>ald</code> and the skewed variants are the documented
+Phase-2 follow-up (only the normal Log-GARCH is validated), so the base raises.</p>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="FernandezSteelSkew">
                     <div class="attr class">
@@ -932,6 +974,7 @@ algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)</p>
                                 <dd id="FernandezSteelSkew.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="FernandezSteelSkew.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="FernandezSteelSkew.abs_moment" class="function"><a href="#ConditionalDistribution.abs_moment">abs_moment</a></dd>
+                <dd id="FernandezSteelSkew.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>
@@ -1219,6 +1262,7 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="GeneralizedError.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="GeneralizedError.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="GeneralizedError.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>
@@ -1306,6 +1350,24 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
     <a class="headerlink" href="#Normal.abs_moment"></a>
     
             <div class="docstring"><p>First absolute moment \( E|z| = \sqrt{2/\pi} \) (needed by the skew wrapper).</p>
+</div>
+
+
+                            </div>
+                            <div id="Normal.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] = \psi(\tfrac12) + \ln 2 = -\gamma_E - \ln 2 \).</p>
+
+<p>For \( z \sim N(0,1) \), \( z^2 \sim \chi^2_1 \), so :math:<code>E[\ln z^2] = \psi(1/2) +
+\ln 2 = -\gamma_{\mathrm{Euler}} - \ln 2 \approx -1.2703628</code>.</p>
 </div>
 
 
@@ -1595,6 +1657,7 @@ Whether the optimizer reported success.</li>
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="StudentT.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="StudentT.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="StudentT.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>
@@ -1920,6 +1983,38 @@ per-observation AIC/BIC, and the conditional-volatility series.</li>
 
 
                 </section>
+                <section id="fit_loggarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_loggarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_loggarch"></a>
+    
+            <div class="docstring"><p>Fit Log-GARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>). Only <code>"norm"</code> is
+validated in this phase (see the module note on the distribution seam).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, psi1</code> (+ shape parameters), log-likelihood,
+per-observation AIC/BIC, and the conditional-volatility series (original return units).</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fit_tgarch">
                     <div class="attr function">
             
@@ -2167,11 +2262,98 @@ The (mean-zero) return series.</li>
 
 
                 </section>
+                <section id="loggarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">loggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_sq</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#loggarch_recursion"></a>
+    
+            <div class="docstring"><p>Log-GARCH(1,1) conditional variance \( \sigma_t^2 \) (a QMLE <code><a href="#VarianceRecursion">VarianceRecursion</a></code>).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (4,)):
+<code>(mu, omega_sig, phi1, psi1)</code> — <code>omega_sig</code> is
+\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \) (the recursion intercept
+\( \omega = \omega_\sigma(1 - \phi_1) \) and the loading \( (\psi_1 + \phi_1) \) are
+formed internally).</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>mean_log_sq</strong> (float):
+\( \operatorname{E}[\ln\eta^2] \), the log-square moment of the standardized innovation,
+from the conditional distribution's <code>mean_log_sq()</code> (keyword-only).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \), seeded with
+\( \ln\sigma_0^2 = \omega + \phi_1\ln\operatorname{Var}(r) \) (<code>ddof=1</code>) and a zero
+pre-sample \( \xi \) history.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="loggarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">loggarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega_sig</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">psi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#loggarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a Log-GARCH(1,1) process under a chosen conditional distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega_sig</strong> (float):
+\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \), the unconditional log-variance.</li>
+<li><strong>phi1, psi1</strong> (float):
+Log-GARCH parameters; requires <code>|phi1| &lt; 1</code> for stationarity of the log-variance. The
+news-impact loading is the combined \( (\psi_1 + \phi_1) \).</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code for the standardized innovations (default <code>"norm"</code>).</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution (e.g. <code>(nu,)</code> for <code>std</code>).</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded so the recursion forgets its start (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code> — the simulated returns and conditional SDs.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi1| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="quasi_max_likelihood">
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
+        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;L-BFGS-B&#39;</span>,</span><span class="param">	<span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
 
         
     </div>
@@ -2204,6 +2386,11 @@ distribution's own <code>param_start</code> / <code>param_bounds</code>.</li>
 <li><strong>mean</strong> (bool, optional):
 Treat the first variance parameter as a constant mean \( \mu \) used in the standardized
 residual (default <code>False</code>, i.e. mean-zero).</li>
+<li><strong>method</strong> (str, optional):
+<code>scipy.optimize.minimize()</code> method (default <code>"L-BFGS-B"</code>). Stiff surfaces — e.g. the
+near-common-root Log-GARCH ridge — use a derivative-free method such as <code>"Nelder-Mead"</code>.</li>
+<li><strong>options</strong> (dict, optional):
+Extra <code>options</code> for <code>scipy.optimize.minimize()</code> (e.g. tighter simplex tolerances).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>

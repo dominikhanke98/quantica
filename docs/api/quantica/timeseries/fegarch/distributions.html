@@ -116,6 +116,9 @@
                         <li>
                                 <a class="function" href="#ConditionalDistribution.abs_moment">abs_moment</a>
                         </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a>
+                        </li>
                 </ul>
 
             </li>
@@ -196,6 +199,9 @@
                         </li>
                         <li>
                                 <a class="function" href="#Normal.abs_moment">abs_moment</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#Normal.mean_log_sq">mean_log_sq</a>
                         </li>
                 </ul>
 
@@ -462,6 +468,7 @@ kurtosis); <code>a(1)</code> feeds the Fernández--Steel skew standardization.</
                 <dd id="AverageLaplace.param_start" class="variable"><a href="#ConditionalDistribution.param_start">param_start</a></dd>
                 <dd id="AverageLaplace.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="AverageLaplace.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="AverageLaplace.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>
@@ -643,6 +650,26 @@ documented Phase-2 follow-up), so the base implementation raises.</p>
 
 
                             </div>
+                            <div id="ConditionalDistribution.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] \) of the standardized innovation.</p>
+
+<p>The Type-II EGF (Log-GARCH) centers its news impact on \( \xi = \ln z^2 - E[\ln z^2] \),
+so — unlike EGARCH's \( E|z| \) — it needs this <em>log</em>-moment. Only <code>norm</code> overrides it
+here (closed form); <code>std</code> / <code>ged</code> / <code>ald</code> and the skewed variants are the documented
+Phase-2 follow-up (only the normal Log-GARCH is validated), so the base raises.</p>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="FernandezSteelSkew">
                     <div class="attr class">
@@ -785,6 +812,7 @@ algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)</p>
                                 <dd id="FernandezSteelSkew.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="FernandezSteelSkew.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="FernandezSteelSkew.abs_moment" class="function"><a href="#ConditionalDistribution.abs_moment">abs_moment</a></dd>
+                <dd id="FernandezSteelSkew.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>
@@ -923,6 +951,7 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="GeneralizedError.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="GeneralizedError.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="GeneralizedError.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>
@@ -1010,6 +1039,24 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
     <a class="headerlink" href="#Normal.abs_moment"></a>
     
             <div class="docstring"><p>First absolute moment \( E|z| = \sqrt{2/\pi} \) (needed by the skew wrapper).</p>
+</div>
+
+
+                            </div>
+                            <div id="Normal.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] = \psi(\tfrac12) + \ln 2 = -\gamma_E - \ln 2 \).</p>
+
+<p>For \( z \sim N(0,1) \), \( z^2 \sim \chi^2_1 \), so :math:<code>E[\ln z^2] = \psi(1/2) +
+\ln 2 = -\gamma_{\mathrm{Euler}} - \ln 2 \approx -1.2703628</code>.</p>
 </div>
 
 
@@ -1161,6 +1208,7 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="StudentT.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="StudentT.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="StudentT.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
 
             </div>
                                 </dl>

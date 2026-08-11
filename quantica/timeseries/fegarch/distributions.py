@@ -123,6 +123,16 @@ class ConditionalDistribution(ABC):
         """
         raise NotImplementedError(f"{self.name} does not expose abs_moment (E|z|)")
 
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` of the standardized innovation.
+
+        The Type-II EGF (Log-GARCH) centers its news impact on :math:`\xi = \ln z^2 - E[\ln z^2]`,
+        so — unlike EGARCH's :math:`E|z|` — it needs this *log*-moment. Only ``norm`` overrides it
+        here (closed form); ``std`` / ``ged`` / ``ald`` and the skewed variants are the documented
+        Phase-2 follow-up (only the normal Log-GARCH is validated), so the base raises.
+        """
+        raise NotImplementedError(f"{self.name} does not expose mean_log_sq (E[ln z^2])")
+
 
 # --------------------------------------------------------------------------- #
 # Symmetric bases
@@ -154,6 +164,15 @@ class Normal(ConditionalDistribution):
         """First absolute moment :math:`E|z| = \\sqrt{2/\\pi}` (needed by the skew wrapper)."""
         self._params(params)
         return float(np.sqrt(2.0 / np.pi))
+
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2] = \psi(\tfrac12) + \ln 2 = -\gamma_E - \ln 2`.
+
+        For :math:`z \sim N(0,1)`, :math:`z^2 \sim \chi^2_1`, so :math:`E[\ln z^2] = \psi(1/2) +
+        \ln 2 = -\gamma_{\mathrm{Euler}} - \ln 2 \approx -1.2703628`.
+        """
+        self._params(params)
+        return float(special.digamma(0.5) + np.log(2.0))
 
 
 class StudentT(ConditionalDistribution):
