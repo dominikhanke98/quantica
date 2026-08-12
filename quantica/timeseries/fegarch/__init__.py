@@ -89,6 +89,7 @@ from quantica.timeseries.fegarch.egarch import (
     mloggarch_recursion,
     mloggarch_sim,
 )
+from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
 from quantica.timeseries.fegarch.loggarch import fit_loggarch, loggarch_recursion, loggarch_sim
 from quantica.timeseries.fegarch.qmle import (
@@ -121,6 +122,8 @@ __all__ = [
     "fit_megarch",
     "fit_mloggarch",
     "fit_tgarch",
+    "fracdiff",
+    "fracdiff_coeffs",
     "garch_recursion",
     "garch_sim",
     "get_distribution",
