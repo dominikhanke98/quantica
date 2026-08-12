@@ -118,8 +118,9 @@ APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ C
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
 ✓ COMPLETE + MERGED for (1,1)/norm (PR #17 → `main` `2178ecb`): all four EGF models fixture-validated
 at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
-**Phase 3 fractional-differencing engine `(1−L)^d` (the crux, tested in isolation) ← NEXT BUILD
-STEP** → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
+**Phase 3 fractional-differencing engine `(1−L)^d` (the crux, tested in isolation) ✓ built +
+validated analytically/cross-method (PR #18, open for review; no fixture — internal filter)** →
+**Phase 4 long-memory models ← NEXT BUILD STEP** (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
@@ -1193,6 +1194,23 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   (`|η|` magnitude ≈ EGARCH's), MLog-GARCH γ=0.2844 (log-modulus, ~1.8× — asserted `>0.22`, decisively
   not `|η|`'s ~0.16). Additive-`ωσ` scale behaviour confirmed. The generalized Type-I seam is what
   Phase 4's FI variants extend. Docs: spec-notes §7, PROGRESS. Gate green (see session note).
+
+- **Step 32 — fEGarch Phase 3: fractional-differencing engine `(1−L)^d` (branch `feat/fegarch-phase3`,
+  PR #18, open — not merged).** Infrastructure for every Phase-4 long-memory model; an **internal
+  filter, not a fitted model, so NO output fixture** — validation is analytic + cross-method (the
+  numerical-validation skill), not fixture-matching. Clean-room from the binomial expansion + WP171
+  App. C.3 (no fEGarch source). New `quantica/timeseries/fegarch/fracdiff.py`: `fracdiff_coeffs(d,
+  length)` (the `b_0=1`, `b_i=b_{i-1}(i−1−d)/i = (−1)^i C(d,i)` coefficients via cumulative product)
+  and `fracdiff(x, d, *, trunc, presample, method)` (the causal truncated filter, `direct` `O(nL)`
+  and `fft` `O(n log n)` paths). **fEGarch truncation/presample policy (App. C.3, load-bearing —
+  Phase 4 inherits it):** default `trunc = n−1`, pre-sample of the filtered quantity `= 0` for
+  `t≤0`; stated explicitly in spec-notes §8. **Validation (all seeded, reproducible via
+  `scripts/fracdiff_convergence.py`):** coefficients vs analytic `(−1)^i C(d,i)` ~1e-16; `d=0`
+  identity / `d=1` first-difference exact; FFT-vs-direct cross-method ~1e-15; truncation error
+  `‖y_L−y_full‖` decays monotonically with `L` (tail `|b_L|~L^{-d-1}`, exact at `L=n−1`); and
+  `(1−L)^{-d}` white noise shows the hyperbolic long-memory ACF `ρ(k)~k^{2d-1}` (fitted slope loosely
+  around `2d−1`, mid-lag ACF ~100× a white-noise control). Docs: spec-notes §8, PROGRESS. Gate green.
+  **Phase 4 (long-memory FI models) is next** — compose these recursions with `(1−L)^d`.
 
 ## Next — optional depth only (planned scope is done)
 

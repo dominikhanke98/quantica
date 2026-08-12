@@ -1676,8 +1676,68 @@ sampler output within Monte-Carlo tolerance. That reconciliation **locked the tw
 parameterizations** — fEGarch's `ald` is the **scaled average-Laplace (Sargan)** density (not a
 plain Laplace; kurtosis `3 + 3/(P+1)`, confirmed at P ∈ {2, 8}), and the **Fernández–Steel** `skew`
 argument is `ξ` **directly** (`skew < 1` left-skew, `> 1` right-skew). Only the Phase-1 QMLE-fit
-fixture check stays skipped (it needs the fEGarch GARCH recursion). **Next: the short-memory models
-(Phase 1).**
+fixture check stays skipped (it needs the fEGarch GARCH recursion).
+
+Since then the port has advanced through the model family (full detail in
+[`docs/fegarch-spec-notes.md`](docs/fegarch-spec-notes.md) and `PROGRESS.md`): **Phase 1** — the
+short-memory models GARCH / GJR / TGARCH / APARCH (the three asymmetric ones reconciled as a single
+APARCH-power recursion), fixture-validated; **Phase 2** — the EGARCH family EGARCH / MEGARCH /
+MLog-GARCH (one generalized Type-I `g`-transformation engine) + Log-GARCH (Type-II), fixture-validated
+at σ-rel ~1e-5; and **Phase 3** — the fractional-differencing engine below.
+
+#### Phase 3 — the fractional-differencing operator `(1−L)^d`
+
+The long-memory engine every Phase-4 fractionally-integrated model will compose with. It is an
+**internal filter, not a fitted model, so it has no fEGarch output fixture** — validation is
+*analytic + cross-method* (the numerical-validation discipline), not fixture-matching. The operator
+is the truncated binomial `(1−L)^d = Σ b_i L^i` (`b_0 = 1`, `b_i = b_{i-1}(i−1−d)/i`), applied as a
+causal convolution with **fEGarch's App. C.3 truncation/pre-sample policy** (`trunc = n−1`,
+pre-sample of the filtered quantity `= 0`) — load-bearing because every Phase-4 model inherits it.
+Two filter paths (direct `O(nL)` and FFT `O(n log n)`, per Nielsen–Noël 2021) are provided. The
+validation table below is produced reproducibly (seeded) by
+[`scripts/fracdiff_convergence.py`](scripts/fracdiff_convergence.py):
+
+```
+### Coefficient accuracy (vs analytic (-1)^i C(d,i))
+
+| d | b_0 | max abs error | recursion b_i/b_{i-1} - (i-1-d)/i |
+|---|---|---|---|
+| 0.2 | 1.0 | 9.39e-17 | 1.11e-16 |
+| 0.3 | 1.0 | 1.02e-16 | 1.11e-16 |
+| 0.45 | 1.0 | 5.55e-17 | 1.11e-16 |
+
+### FFT-vs-direct cross-method agreement (random series, n=4000)
+
+| d | max abs difference |
+|---|---|
+| 0.0 | 1.12e-15 |
+| 0.25 | 1.33e-15 |
+| 0.45 | 1.33e-15 |
+| 1.0 | 1.78e-15 |
+
+### Truncation-error convergence (d=0.35, n=4000)
+
+| L | max|y_L - y_full| | |b_L| | L^(-d-1) ref |
+|---|---|---|---|
+| 10 | 1.10e-01 | 1.16e-02 | 4.47e-02 |
+| 50 | 2.43e-02 | 1.29e-03 | 5.09e-03 |
+| 250 | 5.42e-03 | 1.47e-04 | 5.79e-04 |
+| 1000 | 1.42e-03 | 2.25e-05 | 8.91e-05 |
+| 3999 | 0.00e+00 | 3.47e-06 | 1.37e-05 |
+
+### Long-memory ACF decay of (1-L)^(-d) white noise (n=200000)
+
+| d | fitted log-log slope | 2d-1 (theory) | rho(1000) [long-memory persists] |
+|---|---|---|---|
+| 0.3 | -0.743 | -0.400 | 0.015 |
+| 0.4 | -0.262 | -0.200 | 0.135 |
+```
+
+Coefficients hit the analytic binomial to machine precision; `d=0` is the identity and `d=1` the
+first difference exactly; the FFT and direct paths agree to FFT round-off; the truncation error
+decays with `L` (tracking the coefficient tail `|b_L| ~ L^{-d-1}`); and fractionally integrating white
+noise yields the hyperbolic long-memory ACF (`ρ(k) ~ k^{2d-1}`), decisively unlike geometric decay.
+**Next: the long-memory FI models (Phase 4) — compose these recursions with `(1−L)^d`.**
 
 ## Running the apps
 

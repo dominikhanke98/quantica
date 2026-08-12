@@ -496,5 +496,68 @@ FIMEGARCH, FIMLog-GARCH) will extend** — the same `g_asy`/`g_mag` transformati
 
 ---
 
-*Add further specification derivations here as later phases (the fractional-differencing operator,
-LM models, dual mean) are implemented — always from the papers/manual, never the source.*
+## 8. Fractional-differencing operator `(1−L)^d` — RESOLVED (Phase 3)
+
+**Sources.** The binomial expansion of `(1−L)^d` (Hosking 1981; Bollerslev-Mikkelsen 1996, WP 2026-04
+§2.1 Eq. 6); WP 2026-04 App. C.3 for the truncation / pre-sample policy, which cites Nielsen-Noël
+(2021) for the FFT. fEGarch source never consulted. This is an **internal filter, not a fitted
+model**, so it has **no output fixture** — validation is analytic + cross-method (§8.4), not
+fixture-matching.
+
+### 8.1 The operator and its coefficients
+
+```
+(1−L)^d = Σ_{i=0}^∞ b_i L^i,     b_0 = 1,     b_i = b_{i-1}·(i−1−d)/i = (−1)^i·C(d,i),
+```
+
+for any real `d` (`d > 0` fractional **differencing**, `d < 0` fractional **integration**). Applied
+to a series `(x_t)`, the filtered value is the causal convolution `y_t = Σ_{i=0}^{L} b_i x_{t-i}`.
+The coefficients are computed by the exact `O(L)` cumulative-product recursion; the recursion is the
+`(−1)^i C(d,i)` binomial to machine precision. Limits: `d=0` → all `b_i=0` (`i≥1`), the identity;
+`d=1` → `b=[1,−1,0,…]`, the ordinary first difference. Asymptotically `b_i ~ i^{-d-1}/Γ(-d)`.
+
+### 8.2 fEGarch truncation / pre-sample policy (App. C.3) — ⚠ Phase 4 inherits this
+
+The infinite series is truncated; **WP 2026-04 App. C.3** fixes the convention (verbatim: *"the
+default for long-memory EGF models is L = n−1 with pre-sample values g(η_t) = ξ_t = 0 for
+t = …,−1, 0, so that the infinite-length coefficient series are always practically truncated as far
+back as needed so that the first observation time point is included"*):
+
+- **Default truncation length `L = n − 1`** (the full within-sample history; values are capped at
+  `n−1`, since under the pre-sample-0 convention there are no more lags to use).
+- **Pre-sample of the filtered quantity = 0** for `t ≤ 0`.
+
+This is **load-bearing even without a fixture**: every fractionally-integrated Phase-4 model
+(FIEGARCH / FIMEGARCH / FIMLog-GARCH via the generalized Type-I seam §7; FIGARCH / FIAPARCH / FITGARCH
+/ FIGJR via the SM recursions; FILog-GARCH via Type-II) composes its recursion with this operator
+under **exactly this convention** — a wrong truncation policy here would propagate to all of them.
+The `quantica` API exposes `trunc` (default `None` → `n−1`) and `presample` (default `0.0`) matching
+this.
+
+### 8.3 Two filter paths (the FFT is the performance path)
+
+The filter is a causal convolution of `x` with the coefficient vector `b`, provided two ways: a
+**direct** convolution (`O(nL)`) and an **FFT** convolution (`O(n log n)`) — the latter per the
+Nielsen-Noël (2021) FFT approach App. C.3 cites, and the path the long-memory models will use for
+efficiency. They agree to FFT round-off (~1e-15).
+
+### 8.4 Validation (analytic + cross-method, in place of a fixture)
+
+Reproducible seeded artifact: `scripts/fracdiff_convergence.py` (the phase's validation table).
+Realized:
+- **Coefficient accuracy** vs analytic `(−1)^i C(d,i)`: `~1e-16` (machine precision) for
+  `d ∈ {0.2, 0.3, 0.45}`.
+- **`d=0` identity / `d=1` first difference**: exact to `~1e-15`.
+- **FFT-vs-direct cross-method**: agree to `~1e-15` (tolerance 1e-10 with platform margin) — the
+  numerical-validation skill's cross-method check at fixed `(d, L)`.
+- **Truncation error `‖y_L − y_full‖_∞`**: decays monotonically with `L` (`~1e-1` at `L=10` →
+  `~1e-3` at `L=1000` → `0` at `L=n−1`), tracking the coefficient tail `|b_L| ~ L^{-d-1}`.
+- **Long-memory ACF**: fractionally integrating white noise by `(1−L)^{-d}` gives a hyperbolic ACF
+  `ρ(k) ~ k^{2d-1}` (fitted log-log slope negative, loosely around `2d−1` — finite-sample biased, so
+  asserted in a wide band), with mid-lag autocorrelation ~100× a white-noise control — decisively
+  long memory, not geometric.
+
+---
+
+*Add further specification derivations here as later phases (the long-memory FI models, the dual
+mean) are implemented — always from the papers/manual, never the source.*
