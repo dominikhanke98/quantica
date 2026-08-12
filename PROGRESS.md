@@ -116,10 +116,10 @@ COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GA
 APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE + MERGED
 (PR #16 → `main` `6710a5e`; all four fixture-validated at σ-rel ~1e-4–1e-5)** →
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
-✓ COMPLETE for (1,1)/norm: all four EGF models built + fixture-validated (PR #17, open for review) —
-EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** → Phase 3
-fractional-differencing
-engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
+✓ COMPLETE + MERGED for (1,1)/norm (PR #17 → `main` `2178ecb`): all four EGF models fixture-validated
+at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
+**Phase 3 fractional-differencing engine `(1−L)^d` (the crux, tested in isolation) ← NEXT BUILD
+STEP** → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
@@ -156,7 +156,19 @@ EGARCH `(0,1,0,1)` / MEGARCH `(1,0,0,1)` / MLog-GARCH `(1,0,1,0)`; the modulus-l
 asymmetry centering 0 for symmetric. **EGARCH regression guard bit-for-bit** (the `(0,1,0,1)` instance
 `np.array_equal`s the old recursion; EGARCH fixture test unchanged). Both well-identified (EGARCH-tier
 tight); the **γ tell** confirms wiring: MEGARCH γ≈0.158 (`|η|` magnitude), MLog-GARCH γ≈0.284
-(log-modulus). **Phase 2 COMPLETE** for (1,1)/norm — all four EGF models.
+(log-modulus). **Phase 2 status: COMPLETE + MERGED** (PR #17 → `main` `2178ecb`) — all four EGF
+models for (1,1)/norm, fixture-validated at σ-rel ~1e-5. **New distribution moments** `mean_log_sq`
+(E[ln η²]) and `mean_log_modulus` (E[ln(|η|+1)]) were added via the same closure seam as `abs_moment`;
+Log-GARCH's near-common-root ridge is handled by matching fEGarch's *local-optimum* basin with
+Nelder-Mead (a minimal `method`/`options` engine arg, default unchanged). **Deferred scope (settled,
+documented):** only `norm` is validated — the other 7 conditional distributions need the new moments
+(`abs_moment`/`mean_log_sq`/`mean_log_modulus`) added to the FS-skew wrapper, plus per-iteration
+recomputation of the centering moments for jointly-estimated shape (`std`/`ged`), since the closure
+currently captures them once at the start values. **Phase 3 (fractional differencing `(1−L)^d`) is
+the next build step** — the load-bearing operator tested in isolation. **Phase 4 (long-memory models)
+then follows:** FIEGARCH / FIMEGARCH / FIMLog-GARCH extend the **generalized Type-I seam** (the same
+`g_asy`/`g_mag` transformation composed with `(1−L)^d`); FIGARCH / FIAPARCH / FITGARCH / FIGJR extend
+the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root ridge.
 
 ## Completed
 
