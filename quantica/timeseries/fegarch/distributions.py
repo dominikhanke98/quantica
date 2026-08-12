@@ -40,7 +40,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
 import numpy as np
-from scipy import special, stats
+from scipy import integrate, special, stats
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -133,6 +133,17 @@ class ConditionalDistribution(ABC):
         """
         raise NotImplementedError(f"{self.name} does not expose mean_log_sq (E[ln z^2])")
 
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` of the standardized innovation.
+
+        The modulus Type-I EGF models (MLog-GARCH) center their magnitude term on this moment of the
+        John-Draper (1980) modulus-log transform, rather than EGARCH/MEGARCH's :math:`E|z|`. Only
+        ``norm`` overrides it here (numerically, by quadrature — no elementary closed form);
+        ``std`` / ``ged`` / ``ald`` and the skewed variants are the documented follow-up, so the
+        base raises.
+        """
+        raise NotImplementedError(f"{self.name} does not expose mean_log_modulus (E[ln(|z|+1)])")
+
 
 # --------------------------------------------------------------------------- #
 # Symmetric bases
@@ -173,6 +184,16 @@ class Normal(ConditionalDistribution):
         """
         self._params(params)
         return float(special.digamma(0.5) + np.log(2.0))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)] \approx 0.5348223` by quadrature.
+
+        For :math:`z \sim N(0,1)` this Gaussian integral has no elementary closed form, so it is
+        evaluated numerically: :math:`E[\ln(|z|+1)] = 2\int_0^\infty \ln(z+1)\,\phi(z)\,dz`.
+        """
+        self._params(params)
+        value, _ = integrate.quad(lambda z: 2.0 * np.log(z + 1.0) * stats.norm.pdf(z), 0.0, np.inf)
+        return float(value)
 
 
 class StudentT(ConditionalDistribution):

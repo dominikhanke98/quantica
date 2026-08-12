@@ -1,53 +1,72 @@
-r"""EGARCH(1,1) — the first EGARCH-family (EGF) model, on the Phase-0 QMLE engine (Phase 2).
+r"""Type-I EGARCH-family (EGF) models — EGARCH / MEGARCH / MLog-GARCH (Phase 2).
 
 .. note::
 
     **Clean-room (CLAUDE.md §12).** Independent reimplementation from the published mathematics
-    (Nelson 1991 for EGARCH; WP 2026-04 §2.1 + App. C.3 for the EGF spec and QMLE conditioning;
-    the EGF papers Ayensu et al. 2026 / Peitz et al. 2026), **never** the `fEGarch` source.
-    Validated against committed `fEGarch` *output* fixtures.
+    (Nelson 1991 for EGARCH; WP 2026-04 §2.1 Eqs. 7-9 + App. C.3 for the generalized EGF spec and
+    QMLE conditioning; the EGF papers Ayensu et al. 2026 / Peitz et al. 2026, and John-Draper 1980
+    for the modulus-log transform), **never** the `fEGarch` source. Validated against committed
+    `fEGarch` *output* fixtures.
 
-EGARCH is the **Type-I** EGF model (an explicit asymmetry term). Its log-variance recursion, in the
-package's representation (WP 2026-04 Eq. 5) for orders ``(1, 1)``, is
+The **Type-I** EGF models share one log-variance recursion (WP 2026-04 Eq. 5), for orders ``(1, 1)``
 
 .. math::
 
     r_t = \mu + \sigma_t\,\eta_t,\qquad
     \ln\sigma_t^2 = \omega + g(\eta_{t-1}) + \phi_1\,\ln\sigma_{t-1}^2,
 
-with the **magnitude/asymmetry transformation** (Nelson 1991; WP 2026-04 Eq. 3)
+and differ only in the **news-impact transformation** :math:`g` (WP 2026-04 Eq. 7)
 
 .. math::
 
-    g(\eta) = \kappa\,\eta + \gamma\,\big(|\eta| - \operatorname{E}|\eta|\big),
+    g(\eta) = \kappa\,\{g_{\mathrm{asy}}(\eta) - \operatorname{E}[g_{\mathrm{asy}}]\}
+            + \gamma\,\{g_{\mathrm{mag}}(\eta) - \operatorname{E}[g_{\mathrm{mag}}]\},
 
-where :math:`\kappa` weights the **asymmetry** term (on :math:`\eta`) and :math:`\gamma` the
-**magnitude** term (on :math:`|\eta| - \operatorname{E}|\eta|`) — the WP 2026-04 / WP173
-orientation, confirmed by the fixture (:math:`\kappa < 0` leverage, :math:`\gamma > 0` magnitude).
-(Note WP175 swaps the :math:`\kappa`/:math:`\gamma` letters; `fEGarch` uses the orientation here.)
-The :math:`\operatorname{E}(\eta) = 0` term drops out because :math:`\eta` is standardized, so only
-the :math:`\operatorname{E}|\eta|` centering survives — making :math:`\operatorname{E}[g] = 0`.
+where :math:`\kappa` weights the **asymmetry** term and :math:`\gamma` the **magnitude** term (the
+WP 2026-04 / WP173 orientation; the fixtures confirm :math:`\kappa < 0` leverage, :math:`\gamma > 0`
+magnitude — WP175 swaps the letters). :math:`g_{\mathrm{asy}}` and :math:`g_{\mathrm{mag}}` are the
+generalized forms (WP 2026-04 Eqs. 8-9), parameterized by **fixed construction constants**
+:math:`(M_{\mathrm{asy}}, p_{\mathrm{asy}}, M_{\mathrm{mag}}, p_{\mathrm{mag}})` (chosen per model,
+not fitted):
 
-**Reported intercept.** `fEGarch` reports :math:`\omega_\sigma = \operatorname{E}[\ln\sigma_t^2]`
-(the *unconditional mean* of the log-variance, named ``omega_sig``), not the recursion intercept.
-They are linked by :math:`\omega = \omega_\sigma\,\phi(1) = \omega_\sigma\,(1 - \phi_1)`, applied
-internally. The parameter vector is ``(mu, omega_sig, phi1, kappa, gamma)`` (+ any distribution
-shape parameters); for orders ``(1, 1)`` there is no ``psi`` term (``q - 1 = 0``).
+.. math::
 
-**Pre-sample conditioning (confirmed against the fixture, machine precision).** Per WP 2026-04
-App. C.3, the pre-sample news-impact history is zero (:math:`g(\eta_t) = 0` for :math:`t \le 0`) and
-the pre-sample log-variance is the log of the **unbiased** sample variance:
-:math:`\ln\sigma_0^2 = \omega + \phi_1\ln\operatorname{Var}(r)` with ``ddof=1``. Reconstructing the
-fixture's :math:`\sigma`-series from its reported parameters under this convention matches to
-``~4e-17`` (``ddof=0`` gives ``~2e-6``); the whole series, not just :math:`\sigma_0`, is reproduced.
+    g_{\mathrm{asy}}(\eta) &= \operatorname{sgn}(\eta)\cdot
+        \begin{cases}\ln(|\eta| + M) & p = 0\\ [(|\eta| + M)^p - M]/p & p > 0\end{cases}, \\
+    g_{\mathrm{mag}}(\eta) &=
+        \begin{cases}\ln(|\eta| + M) & p = 0\\ [(|\eta| + M)^p - M]/p & p > 0\end{cases}.
 
-**Distribution seam.** :math:`\operatorname{E}|\eta|` is sourced from the Phase-0 distribution
-layer's :meth:`abs_moment` (``norm`` → :math:`\sqrt{2/\pi}`), passed into the recursion as a
-captured value — never hard-coded. Only the normal is wired and validated here; jointly-shaped
-distributions (``std`` / ``ged``) and the skewed variants are the documented Phase-2 follow-up (see
-``docs/fegarch-spec-notes.md``): the FS-skew wrapper does not yet expose ``abs_moment`` for the
-standardized skewed variable, and a jointly-estimated shape needs :math:`\operatorname{E}|\eta|`
-recomputed at the current shape rather than captured once.
+The three models are constant-sets of this one recursion:
+
+============  ================  ================  ======================  ==================
+model         :math:`(M,p)_a`   :math:`(M,p)_m`   :math:`g_{\mathrm{asy}}`  :math:`g_{\mathrm{mag}}`
+============  ================  ================  ======================  ==================
+EGARCH        ``(0, 1)``        ``(0, 1)``        :math:`\eta`            :math:`|\eta|`
+MEGARCH       ``(1, 0)``        ``(0, 1)``        :math:`\zeta(\eta)`     :math:`|\eta|`
+MLog-GARCH    ``(1, 0)``        ``(1, 0)``        :math:`\zeta(\eta)`     :math:`\ln(|\eta|+1)`
+============  ================  ================  ======================  ==================
+
+with the modulus-log transform :math:`\zeta(\eta) = \operatorname{sgn}(\eta)\ln(|\eta|+1)`
+(John-Draper 1980). EGARCH is thus recovered exactly by the ``(0,1,0,1)`` constant-set.
+
+**Centering.** :math:`\operatorname{E}[g(\eta)] = 0` (keeping :math:`\omega_\sigma =
+\operatorname{E}[\ln\sigma^2]`) needs each term centered. The **asymmetry** centering
+:math:`\operatorname{E}[g_{\mathrm{asy}}]` is **0 for symmetric** innovations
+(:math:`g_{\mathrm{asy}}` is odd, the density even) — nonzero only under the FS-skew wrapper
+(deferred). The **magnitude** centering is :math:`\operatorname{E}|\eta|` (``abs_moment``) for
+EGARCH/MEGARCH (:math:`g_{\mathrm{mag}} = |\eta|`), and :math:`\operatorname{E}[\ln(|\eta|+1)]`
+(``mean_log_modulus``, a new distribution
+moment) for MLog-GARCH. Both are sourced from the distribution layer and passed into the recursion —
+never hard-coded. Only the normal is wired/validated; ``std`` / ``ged`` and the skewed variants are
+the documented follow-up.
+
+**Reported intercept & pre-sample.** `fEGarch` reports :math:`\omega_\sigma =
+\operatorname{E}[\ln\sigma_t^2]` (``omega_sig``); the recursion intercept :math:`\omega =
+\omega_\sigma(1 - \phi_1)` is applied internally, and the parameter vector is
+``(mu, omega_sig, phi1, kappa, gamma)`` for all three (no ``psi`` at order ``(1, 1)``). Per
+App. C.3, the pre-sample news-impact history is zero and :math:`\ln\sigma_0^2 = \omega + \phi_1\ln
+\operatorname{Var}(r)` (``ddof=1``) — reconstructing each fixture's :math:`\sigma`-series matches to
+``~5e-17``. This generalized Type-I seam is what Phase-4's fractionally-integrated variants extend.
 """
 
 from __future__ import annotations
@@ -67,34 +86,76 @@ __all__ = [
     "egarch_recursion",
     "egarch_sim",
     "fit_egarch",
+    "fit_megarch",
+    "fit_mloggarch",
+    "megarch_recursion",
+    "megarch_sim",
+    "mloggarch_recursion",
+    "mloggarch_sim",
 ]
 
 _VAR_NAMES = ("mu", "omega_sig", "phi1", "kappa", "gamma")
 
+# Construction constants (M_asy, p_asy, M_mag, p_mag) — fixed per model, not fitted.
+_EGARCH_CONSTANTS = (0.0, 1.0, 0.0, 1.0)
+_MEGARCH_CONSTANTS = (1.0, 0.0, 0.0, 1.0)
+_MLOGGARCH_CONSTANTS = (1.0, 0.0, 1.0, 0.0)
 
-def egarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: float) -> FloatArray:
-    r"""EGARCH(1,1) conditional variance :math:`\sigma_t^2` (a QMLE ``VarianceRecursion``).
+
+def _modulus_core(a: float, modulus: float, power: float) -> float:
+    """The shared modulus/power core of WP 2026-04 Eqs. (8)-(9) on ``a = |eta|`` (non-negative).
+
+    ``power == 1`` returns ``a`` directly (the ``[(a+M)^1 - M]/1 = a`` linear branch, kept exact so
+    the EGARCH/MEGARCH ``p = 1`` instances reproduce ``|eta|`` bit-for-bit); ``power == 0`` is the
+    log-modulus ``ln(a + M)``; otherwise the general power form ``[(a + M)^power - M]/power``.
+    """
+    if power == 1.0:
+        return a
+    if power == 0.0:
+        return float(np.log(a + modulus))
+    return float(((a + modulus) ** power - modulus) / power)
+
+
+def _g_asy(eta: float, modulus: float, power: float) -> float:
+    r"""Asymmetry transform :math:`g_{\mathrm{asy}}(\eta) = \operatorname{sgn}(\eta)\cdot` core."""
+    return float(np.copysign(_modulus_core(abs(eta), modulus, power), eta))
+
+
+def _g_mag(eta: float, modulus: float, power: float) -> float:
+    r"""Magnitude transform :math:`g_{\mathrm{mag}}(\eta) = \text{core}(|\eta|)` (no sign)."""
+    return _modulus_core(abs(eta), modulus, power)
+
+
+def _type1_variance(
+    params: FloatArray,
+    returns: FloatArray,
+    *,
+    constants: tuple[float, float, float, float],
+    mean_asy: float,
+    mean_mag: float,
+) -> FloatArray:
+    r"""The shared Type-I EGF conditional variance :math:`\sigma_t^2` for a given constant-set.
 
     Parameters
     ----------
     params : ndarray, shape (5,)
-        ``(mu, omega_sig, phi1, kappa, gamma)`` — ``omega_sig`` is
-        :math:`\omega_\sigma = \operatorname{E}[\ln\sigma_t^2]` (the recursion intercept
-        :math:`\omega = \omega_\sigma(1 - \phi_1)` is applied internally).
+        ``(mu, omega_sig, phi1, kappa, gamma)``.
     returns : ndarray, shape (T,)
         The return series.
-    abs_moment : float
-        :math:`\operatorname{E}|\eta|`, the first absolute moment of the standardized innovation,
-        from the conditional distribution's :meth:`abs_moment` (keyword-only).
+    constants : tuple of float
+        ``(M_asy, p_asy, M_mag, p_mag)`` — the model's fixed construction constants.
+    mean_asy, mean_mag : float
+        Centering moments :math:`\operatorname{E}[g_{\mathrm{asy}}]` (0 for symmetric) and
+        :math:`\operatorname{E}[g_{\mathrm{mag}}]`, from the conditional distribution.
 
     Returns
     -------
     ndarray, shape (T,)
-        The conditional variances :math:`\sigma_t^2`, seeded with
-        :math:`\ln\sigma_0^2 = \omega + \phi_1\ln\operatorname{Var}(r)` (``ddof=1``) and a zero
-        pre-sample news impact.
+        The conditional variances, seeded with :math:`\ln\sigma_0^2 = \omega +
+        \phi_1\ln\operatorname{Var}(r)` (``ddof=1``) and a zero pre-sample news impact.
     """
     mu, omega_sig, phi1, kappa, gamma = (float(p) for p in params)
+    m_asy, p_asy, m_mag, p_mag = constants
     y = np.asarray(returns, dtype=np.float64)
     resid = y - mu
     n = y.size
@@ -103,39 +164,112 @@ def egarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: flo
     log_var[0] = omega + phi1 * np.log(np.var(y, ddof=1))  # g pre-sample = 0
     for t in range(1, n):
         eta = resid[t - 1] / np.exp(log_var[t - 1] / 2.0)
-        g = kappa * eta + gamma * (abs(eta) - abs_moment)
+        g = kappa * (_g_asy(eta, m_asy, p_asy) - mean_asy) + gamma * (
+            _g_mag(eta, m_mag, p_mag) - mean_mag
+        )
         log_var[t] = omega + g + phi1 * log_var[t - 1]
     return np.exp(log_var)
 
 
-def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
-    """Fit EGARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.
+def egarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: float) -> FloatArray:
+    r"""EGARCH(1,1) conditional variance (the ``(0,1,0,1)`` Type-I instance).
 
     Parameters
     ----------
+    params : ndarray, shape (5,)
+        ``(mu, omega_sig, phi1, kappa, gamma)`` — ``omega_sig`` is
+        :math:`\omega_\sigma = \operatorname{E}[\ln\sigma_t^2]`.
     returns : ndarray, shape (T,)
         The return series.
-    cond_dist : str, optional
-        One of the eight fEGarch distribution codes (default ``"norm"``). Only ``"norm"`` is
-        validated in this phase (see the module note on the distribution seam).
+    abs_moment : float
+        :math:`\operatorname{E}|\eta|`, the magnitude centering, from :meth:`abs_moment` (keyword).
 
     Returns
     -------
-    GarchFit
-        Estimates ``mu, omega_sig, phi1, kappa, gamma`` (+ shape parameters), log-likelihood,
-        per-observation AIC/BIC, and the conditional-volatility series (original return units).
+    ndarray, shape (T,)
+        The conditional variances :math:`\sigma_t^2`.
     """
+    return _type1_variance(
+        params, returns, constants=_EGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
+    )
+
+
+def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: float) -> FloatArray:
+    r"""MEGARCH(1,1) conditional variance (the ``(1,0,0,1)`` Type-I instance).
+
+    Modulus-log asymmetry :math:`\zeta(\eta)` with the EGARCH magnitude :math:`|\eta|`.
+
+    Parameters
+    ----------
+    params : ndarray, shape (5,)
+        ``(mu, omega_sig, phi1, kappa, gamma)``.
+    returns : ndarray, shape (T,)
+        The return series.
+    abs_moment : float
+        :math:`\operatorname{E}|\eta|`, the magnitude centering, from :meth:`abs_moment` (keyword).
+
+    Returns
+    -------
+    ndarray, shape (T,)
+        The conditional variances :math:`\sigma_t^2`.
+    """
+    return _type1_variance(
+        params, returns, constants=_MEGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
+    )
+
+
+def mloggarch_recursion(
+    params: FloatArray, returns: FloatArray, *, mean_log_modulus: float
+) -> FloatArray:
+    r"""MLog-GARCH(1,1) conditional variance (the ``(1,0,1,0)`` Type-I instance).
+
+    Modulus-log in **both** terms: asymmetry :math:`\zeta(\eta)`, magnitude :math:`\ln(|\eta|+1)`.
+
+    Parameters
+    ----------
+    params : ndarray, shape (5,)
+        ``(mu, omega_sig, phi1, kappa, gamma)``.
+    returns : ndarray, shape (T,)
+        The return series.
+    mean_log_modulus : float
+        :math:`\operatorname{E}[\ln(|\eta|+1)]`, the magnitude centering, from
+        :meth:`mean_log_modulus` (keyword-only).
+
+    Returns
+    -------
+    ndarray, shape (T,)
+        The conditional variances :math:`\sigma_t^2`.
+    """
+    return _type1_variance(
+        params, returns, constants=_MLOGGARCH_CONSTANTS, mean_asy=0.0, mean_mag=mean_log_modulus
+    )
+
+
+def _fit_type1(
+    returns: FloatArray,
+    cond_dist: str,
+    *,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+) -> GarchFit:
+    """Shared Type-I EGF QMLE fit for a given constant-set (norm-only validated)."""
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
     scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
     scaled = y / scale
     distribution = get_distribution(cond_dist)
 
-    # E|eta| from the distribution layer (norm -> sqrt(2/pi)); captured, not hard-coded.
-    abs_moment = distribution.abs_moment(distribution.param_start)
+    # Centering moments from the distribution layer; captured, not hard-coded.
+    mean_asy = 0.0  # symmetric bases; nonzero only under the FS-skew wrapper (deferred)
+    if log_modulus_magnitude:
+        mean_mag = distribution.mean_log_modulus(distribution.param_start)
+    else:
+        mean_mag = distribution.abs_moment(distribution.param_start)
 
     def recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
-        return egarch_recursion(params, returns, abs_moment=abs_moment)
+        return _type1_variance(
+            params, returns, constants=constants, mean_asy=mean_asy, mean_mag=mean_mag
+        )
 
     var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), 0.9, 0.0, 0.1)
     var_bounds = ((-10.0, 10.0), (-50.0, 50.0), (-0.9999, 0.9999), (-5.0, 5.0), (-5.0, 5.0))
@@ -177,6 +311,111 @@ def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
         n_obs=n,
         converged=result.converged,
+    )
+
+
+def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+    """Fit EGARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (T,)
+        The return series.
+    cond_dist : str, optional
+        One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+
+    Returns
+    -------
+    GarchFit
+        Estimates ``mu, omega_sig, phi1, kappa, gamma``, log-likelihood, per-observation AIC/BIC,
+        and the conditional-volatility series (original return units).
+    """
+    return _fit_type1(returns, cond_dist, constants=_EGARCH_CONSTANTS, log_modulus_magnitude=False)
+
+
+def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+    """Fit MEGARCH(1,1) (modulus-log asymmetry, EGARCH magnitude) by QMLE.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (T,)
+        The return series.
+    cond_dist : str, optional
+        One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+
+    Returns
+    -------
+    GarchFit
+        Estimates ``mu, omega_sig, phi1, kappa, gamma`` (+ log-likelihood, AIC/BIC, conditional SD).
+    """
+    return _fit_type1(returns, cond_dist, constants=_MEGARCH_CONSTANTS, log_modulus_magnitude=False)
+
+
+def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+    """Fit MLog-GARCH(1,1) (modulus-log asymmetry and magnitude) by QMLE.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (T,)
+        The return series.
+    cond_dist : str, optional
+        One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+
+    Returns
+    -------
+    GarchFit
+        Estimates ``mu, omega_sig, phi1, kappa, gamma`` (+ log-likelihood, AIC/BIC, conditional SD).
+    """
+    return _fit_type1(
+        returns, cond_dist, constants=_MLOGGARCH_CONSTANTS, log_modulus_magnitude=True
+    )
+
+
+def _sim_type1(
+    n: int,
+    *,
+    mu: float,
+    omega_sig: float,
+    phi1: float,
+    kappa: float,
+    gamma: float,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+    cond_dist: str,
+    dist_params: tuple[float, ...],
+    rng: np.random.Generator,
+    n_burn: int,
+    model: str,
+) -> tuple[FloatArray, FloatArray]:
+    """Shared Type-I EGF simulator; returns ``(returns, sigma)`` after burn-in."""
+    if n <= 0:
+        raise ValueError("n must be positive")
+    if not abs(phi1) < 1.0:
+        raise ValueError(f"require |phi1| < 1 for a stationary {model}(1,1)")
+
+    distribution = get_distribution(cond_dist)
+    mean_asy = 0.0
+    if log_modulus_magnitude:
+        mean_mag = distribution.mean_log_modulus(dist_params)
+    else:
+        mean_mag = distribution.abs_moment(dist_params)
+    m_asy, p_asy, m_mag, p_mag = constants
+    omega = omega_sig * (1.0 - phi1)
+    total = n + n_burn
+    eta = distribution.sample(total, rng, dist_params)
+    log_var = np.empty(total, dtype=np.float64)
+    log_var[0] = omega_sig  # start at the unconditional mean E[ln sigma^2]
+    for t in range(1, total):
+        e = eta[t - 1]
+        g = kappa * (_g_asy(e, m_asy, p_asy) - mean_asy) + gamma * (
+            _g_mag(e, m_mag, p_mag) - mean_mag
+        )
+        log_var[t] = omega + g + phi1 * log_var[t - 1]
+    sigma = np.exp(log_var / 2.0)
+    returns = mu + sigma * eta
+    return (
+        np.asarray(returns[n_burn:], dtype=np.float64),
+        np.asarray(sigma[n_burn:], dtype=np.float64),
     )
 
 
@@ -224,24 +463,137 @@ def egarch_sim(
     ValueError
         If ``n`` is not positive or ``|phi1| >= 1``.
     """
-    if n <= 0:
-        raise ValueError("n must be positive")
-    if not abs(phi1) < 1.0:
-        raise ValueError("require |phi1| < 1 for a stationary EGARCH(1,1)")
+    return _sim_type1(
+        n,
+        mu=mu,
+        omega_sig=omega_sig,
+        phi1=phi1,
+        kappa=kappa,
+        gamma=gamma,
+        constants=_EGARCH_CONSTANTS,
+        log_modulus_magnitude=False,
+        cond_dist=cond_dist,
+        dist_params=dist_params,
+        rng=rng,
+        n_burn=n_burn,
+        model="EGARCH",
+    )
 
-    distribution = get_distribution(cond_dist)
-    abs_moment = distribution.abs_moment(dist_params)
-    omega = omega_sig * (1.0 - phi1)
-    total = n + n_burn
-    eta = distribution.sample(total, rng, dist_params)
-    log_var = np.empty(total, dtype=np.float64)
-    log_var[0] = omega_sig  # start at the unconditional mean E[ln sigma^2]
-    for t in range(1, total):
-        g = kappa * eta[t - 1] + gamma * (abs(eta[t - 1]) - abs_moment)
-        log_var[t] = omega + g + phi1 * log_var[t - 1]
-    sigma = np.exp(log_var / 2.0)
-    returns = mu + sigma * eta
-    return (
-        np.asarray(returns[n_burn:], dtype=np.float64),
-        np.asarray(sigma[n_burn:], dtype=np.float64),
+
+def megarch_sim(
+    n: int,
+    *,
+    mu: float = 0.0,
+    omega_sig: float,
+    phi1: float,
+    kappa: float,
+    gamma: float,
+    cond_dist: str = "norm",
+    dist_params: tuple[float, ...] = (),
+    rng: np.random.Generator,
+    n_burn: int = 500,
+) -> tuple[FloatArray, FloatArray]:
+    r"""Simulate a MEGARCH(1,1) process (modulus-log asymmetry, EGARCH magnitude).
+
+    Parameters
+    ----------
+    n : int
+        Number of observations to return (after burn-in).
+    mu : float, optional
+        Constant mean (default 0).
+    omega_sig, phi1, kappa, gamma : float
+        MEGARCH parameters; requires ``|phi1| < 1`` for stationarity.
+    cond_dist : str, optional
+        Conditional-distribution code (default ``"norm"``).
+    dist_params : tuple of float, optional
+        Shape parameters for the distribution.
+    rng : numpy.random.Generator
+        Seeded generator (keyword-only).
+    n_burn : int, optional
+        Burn-in samples discarded (default 500).
+
+    Returns
+    -------
+    tuple of ndarray
+        ``(returns, sigma)`` of shape ``(n,)``.
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is not positive or ``|phi1| >= 1``.
+    """
+    return _sim_type1(
+        n,
+        mu=mu,
+        omega_sig=omega_sig,
+        phi1=phi1,
+        kappa=kappa,
+        gamma=gamma,
+        constants=_MEGARCH_CONSTANTS,
+        log_modulus_magnitude=False,
+        cond_dist=cond_dist,
+        dist_params=dist_params,
+        rng=rng,
+        n_burn=n_burn,
+        model="MEGARCH",
+    )
+
+
+def mloggarch_sim(
+    n: int,
+    *,
+    mu: float = 0.0,
+    omega_sig: float,
+    phi1: float,
+    kappa: float,
+    gamma: float,
+    cond_dist: str = "norm",
+    dist_params: tuple[float, ...] = (),
+    rng: np.random.Generator,
+    n_burn: int = 500,
+) -> tuple[FloatArray, FloatArray]:
+    r"""Simulate an MLog-GARCH(1,1) process (modulus-log asymmetry and magnitude).
+
+    Parameters
+    ----------
+    n : int
+        Number of observations to return (after burn-in).
+    mu : float, optional
+        Constant mean (default 0).
+    omega_sig, phi1, kappa, gamma : float
+        MLog-GARCH parameters; requires ``|phi1| < 1`` for stationarity.
+    cond_dist : str, optional
+        Conditional-distribution code (default ``"norm"``). Non-norm needs ``mean_log_modulus``
+        (deferred), so only ``norm`` is available.
+    dist_params : tuple of float, optional
+        Shape parameters for the distribution.
+    rng : numpy.random.Generator
+        Seeded generator (keyword-only).
+    n_burn : int, optional
+        Burn-in samples discarded (default 500).
+
+    Returns
+    -------
+    tuple of ndarray
+        ``(returns, sigma)`` of shape ``(n,)``.
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is not positive or ``|phi1| >= 1``.
+    """
+    return _sim_type1(
+        n,
+        mu=mu,
+        omega_sig=omega_sig,
+        phi1=phi1,
+        kappa=kappa,
+        gamma=gamma,
+        constants=_MLOGGARCH_CONSTANTS,
+        log_modulus_magnitude=True,
+        cond_dist=cond_dist,
+        dist_params=dist_params,
+        rng=rng,
+        n_burn=n_burn,
+        model="MLog-GARCH",
     )

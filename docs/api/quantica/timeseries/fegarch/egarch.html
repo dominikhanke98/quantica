@@ -59,6 +59,24 @@
             <li>
                     <a class="function" href="#fit_egarch">fit_egarch</a>
             </li>
+            <li>
+                    <a class="function" href="#fit_megarch">fit_megarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_mloggarch">fit_mloggarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#megarch_recursion">megarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#megarch_sim">megarch_sim</a>
+            </li>
+            <li>
+                    <a class="function" href="#mloggarch_recursion">mloggarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#mloggarch_sim">mloggarch_sim</a>
+            </li>
     </ul>
 
 
@@ -75,54 +93,71 @@
                     <h1 class="modulename">
 <a href="./../../../quantica.html">quantica</a><wbr>.<a href="./../../timeseries.html">timeseries</a><wbr>.<a href="./../fegarch.html">fegarch</a><wbr>.egarch    </h1>
 
-                        <div class="docstring"><p>EGARCH(1,1) — the first EGARCH-family (EGF) model, on the Phase-0 QMLE engine (Phase 2).</p>
+                        <div class="docstring"><p>Type-I EGARCH-family (EGF) models — EGARCH / MEGARCH / MLog-GARCH (Phase 2).</p>
 
 <div class="alert note">
 
 <p><strong>Clean-room (CLAUDE.md §12).</strong> Independent reimplementation from the published mathematics
-(Nelson 1991 for EGARCH; WP 2026-04 §2.1 + App. C.3 for the EGF spec and QMLE conditioning;
-the EGF papers Ayensu et al. 2026 / Peitz et al. 2026), <strong>never</strong> the <code>fEGarch</code> source.
-Validated against committed <code>fEGarch</code> <em>output</em> fixtures.</p>
+(Nelson 1991 for EGARCH; WP 2026-04 §2.1 Eqs. 7-9 + App. C.3 for the generalized EGF spec and
+QMLE conditioning; the EGF papers Ayensu et al. 2026 / Peitz et al. 2026, and John-Draper 1980
+for the modulus-log transform), <strong>never</strong> the <code>fEGarch</code> source. Validated against committed
+<code>fEGarch</code> <em>output</em> fixtures.</p>
 
 </div>
 
-<p>EGARCH is the <strong>Type-I</strong> EGF model (an explicit asymmetry term). Its log-variance recursion, in the
-package's representation (WP 2026-04 Eq. 5) for orders <code>(1, 1)</code>, is</p>
+<p>The <strong>Type-I</strong> EGF models share one log-variance recursion (WP 2026-04 Eq. 5), for orders <code>(1, 1)</code></p>
 
 <p>$$r_t = \mu + \sigma_t\,\eta_t,\qquad
 \ln\sigma_t^2 = \omega + g(\eta_{t-1}) + \phi_1\,\ln\sigma_{t-1}^2,$$</p>
 
-<p>with the <strong>magnitude/asymmetry transformation</strong> (Nelson 1991; WP 2026-04 Eq. 3)</p>
+<p>and differ only in the <strong>news-impact transformation</strong> \( g \) (WP 2026-04 Eq. 7)</p>
 
-<p>$$g(\eta) = \kappa\,\eta + \gamma\,\big(|\eta| - \operatorname{E}|\eta|\big),$$</p>
+<p>$$g(\eta) = \kappa\,{g_{\mathrm{asy}}(\eta) - \operatorname{E}[g_{\mathrm{asy}}]}
+        + \gamma\,{g_{\mathrm{mag}}(\eta) - \operatorname{E}[g_{\mathrm{mag}}]},$$</p>
 
-<p>where \( \kappa \) weights the <strong>asymmetry</strong> term (on \( \eta \)) and \( \gamma \) the
-<strong>magnitude</strong> term (on \( |\eta| - \operatorname{E}|\eta| \)) — the WP 2026-04 / WP173
-orientation, confirmed by the fixture (\( \kappa &lt; 0 \) leverage, \( \gamma &gt; 0 \) magnitude).
-(Note WP175 swaps the \( \kappa \)/\( \gamma \) letters; <code>fEGarch</code> uses the orientation here.)
-The \( \operatorname{E}(\eta) = 0 \) term drops out because \( \eta \) is standardized, so only
-the \( \operatorname{E}|\eta| \) centering survives — making \( \operatorname{E}[g] = 0 \).</p>
+<p>where \( \kappa \) weights the <strong>asymmetry</strong> term and \( \gamma \) the <strong>magnitude</strong> term (the
+WP 2026-04 / WP173 orientation; the fixtures confirm \( \kappa &lt; 0 \) leverage, \( \gamma &gt; 0 \)
+magnitude — WP175 swaps the letters). \( g_{\mathrm{asy}} \) and \( g_{\mathrm{mag}} \) are the
+generalized forms (WP 2026-04 Eqs. 8-9), parameterized by <strong>fixed construction constants</strong>
+\( (M_{\mathrm{asy}}, p_{\mathrm{asy}}, M_{\mathrm{mag}}, p_{\mathrm{mag}}) \) (chosen per model,
+not fitted):</p>
 
-<p><strong>Reported intercept.</strong> <code>fEGarch</code> reports \( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \)
-(the <em>unconditional mean</em> of the log-variance, named <code>omega_sig</code>), not the recursion intercept.
-They are linked by \( \omega = \omega_\sigma\,\phi(1) = \omega_\sigma\,(1 - \phi_1) \), applied
-internally. The parameter vector is <code>(mu, omega_sig, phi1, kappa, gamma)</code> (+ any distribution
-shape parameters); for orders <code>(1, 1)</code> there is no <code>psi</code> term (<code>q - 1 = 0</code>).</p>
+<p>$$g_{\mathrm{asy}}(\eta) &amp;= \operatorname{sgn}(\eta)\cdot
+    \begin{cases}\ln(|\eta| + M) &amp; p = 0\ [(|\eta| + M)^p - M]/p &amp; p &gt; 0\end{cases}, \
+g_{\mathrm{mag}}(\eta) &amp;=
+    \begin{cases}\ln(|\eta| + M) &amp; p = 0\ [(|\eta| + M)^p - M]/p &amp; p &gt; 0\end{cases}.$$</p>
 
-<p><strong>Pre-sample conditioning (confirmed against the fixture, machine precision).</strong> Per WP 2026-04
-App. C.3, the pre-sample news-impact history is zero (\( g(\eta_t) = 0 \) for \( t \le 0 \)) and
-the pre-sample log-variance is the log of the <strong>unbiased</strong> sample variance:
-\( \ln\sigma_0^2 = \omega + \phi_1\ln\operatorname{Var}(r) \) with <code>ddof=1</code>. Reconstructing the
-fixture's \( \sigma \)-series from its reported parameters under this convention matches to
-<code>~4e-17</code> (<code>ddof=0</code> gives <code>~2e-6</code>); the whole series, not just \( \sigma_0 \), is reproduced.</p>
+<p>The three models are constant-sets of this one recursion:</p>
 
-<p><strong>Distribution seam.</strong> \( \operatorname{E}|\eta| \) is sourced from the Phase-0 distribution
-layer's <code>abs_moment()</code> (<code>norm</code> → \( \sqrt{2/\pi} \)), passed into the recursion as a
-captured value — never hard-coded. Only the normal is wired and validated here; jointly-shaped
-distributions (<code>std</code> / <code>ged</code>) and the skewed variants are the documented Phase-2 follow-up (see
-<code>docs/fegarch-spec-notes.md</code>): the FS-skew wrapper does not yet expose <code>abs_moment</code> for the
-standardized skewed variable, and a jointly-estimated shape needs \( \operatorname{E}|\eta| \)
-recomputed at the current shape rather than captured once.</p>
+<p>============  ================  ================  ======================  ==================
+model         \( (M,p)_a \)   \( (M,p)_m \)   \( g_{\mathrm{asy}} \)  \( g_{\mathrm{mag}} \)
+============  ================  ================  ======================  ==================
+EGARCH        <code>(0, 1)</code>        <code>(0, 1)</code>        \( \eta \)            \( |\eta| \)
+MEGARCH       <code>(1, 0)</code>        <code>(0, 1)</code>        \( \zeta(\eta) \)     \( |\eta| \)
+MLog-GARCH    <code>(1, 0)</code>        <code>(1, 0)</code>        \( \zeta(\eta) \)     \( \ln(|\eta|+1) \)
+============  ================  ================  ======================  ==================</p>
+
+<p>with the modulus-log transform \( \zeta(\eta) = \operatorname{sgn}(\eta)\ln(|\eta|+1) \)
+(John-Draper 1980). EGARCH is thus recovered exactly by the <code>(0,1,0,1)</code> constant-set.</p>
+
+<p><strong>Centering.</strong> \( \operatorname{E}[g(\eta)] = 0 \) (keeping :math:<code>\omega_\sigma =
+\operatorname{E}[\ln\sigma^2]</code>) needs each term centered. The <strong>asymmetry</strong> centering
+\( \operatorname{E}[g_{\mathrm{asy}}] \) is <strong>0 for symmetric</strong> innovations
+(\( g_{\mathrm{asy}} \) is odd, the density even) — nonzero only under the FS-skew wrapper
+(deferred). The <strong>magnitude</strong> centering is \( \operatorname{E}|\eta| \) (<code>abs_moment</code>) for
+EGARCH/MEGARCH (\( g_{\mathrm{mag}} = |\eta| \)), and \( \operatorname{E}[\ln(|\eta|+1)] \)
+(<code>mean_log_modulus</code>, a new distribution
+moment) for MLog-GARCH. Both are sourced from the distribution layer and passed into the recursion —
+never hard-coded. Only the normal is wired/validated; <code>std</code> / <code>ged</code> and the skewed variants are
+the documented follow-up.</p>
+
+<p><strong>Reported intercept &amp; pre-sample.</strong> <code>fEGarch</code> reports :math:<code>\omega_\sigma =
+\operatorname{E}[\ln\sigma_t^2]</code> (<code>omega_sig</code>); the recursion intercept :math:<code>\omega =
+\omega_\sigma(1 - \phi_1)</code> is applied internally, and the parameter vector is
+<code>(mu, omega_sig, phi1, kappa, gamma)</code> for all three (no <code>psi</code> at order <code>(1, 1)</code>). Per
+App. C.3, the pre-sample news-impact history is zero and :math:<code>\ln\sigma_0^2 = \omega + \phi_1\ln
+\operatorname{Var}(r)</code> (<code>ddof=1</code>) — reconstructing each fixture's \( \sigma \)-series matches to
+<code>~5e-17</code>. This generalized Type-I seam is what Phase-4's fractionally-integrated variants extend.</p>
 </div>
 
                 
@@ -139,28 +174,24 @@ recomputed at the current shape rather than captured once.</p>
     </div>
     <a class="headerlink" href="#egarch_recursion"></a>
     
-            <div class="docstring"><p>EGARCH(1,1) conditional variance \( \sigma_t^2 \) (a QMLE <code>VarianceRecursion</code>).</p>
+            <div class="docstring"><p>EGARCH(1,1) conditional variance (the <code>(0,1,0,1)</code> Type-I instance).</p>
 
 <h6 id="parameters">Parameters</h6>
 
 <ul>
 <li><strong>params</strong> (ndarray, shape (5,)):
 <code>(mu, omega_sig, phi1, kappa, gamma)</code> — <code>omega_sig</code> is
-\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \) (the recursion intercept
-\( \omega = \omega_\sigma(1 - \phi_1) \) is applied internally).</li>
+\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \).</li>
 <li><strong>returns</strong> (ndarray, shape (T,)):
 The return series.</li>
 <li><strong>abs_moment</strong> (float):
-\( \operatorname{E}|\eta| \), the first absolute moment of the standardized innovation,
-from the conditional distribution's <code>abs_moment()</code> (keyword-only).</li>
+\( \operatorname{E}|\eta| \), the magnitude centering, from <code>abs_moment()</code> (keyword).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
 
 <ul>
-<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \), seeded with
-\( \ln\sigma_0^2 = \omega + \phi_1\ln\operatorname{Var}(r) \) (<code>ddof=1</code>) and a zero
-pre-sample news impact.</li>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \).</li>
 </ul>
 </div>
 
@@ -232,15 +263,236 @@ Burn-in samples discarded so the recursion forgets its start (default 500).</li>
 <li><strong>returns</strong> (ndarray, shape (T,)):
 The return series.</li>
 <li><strong>cond_dist</strong> (str, optional):
-One of the eight fEGarch distribution codes (default <code>"norm"</code>). Only <code>"norm"</code> is
-validated in this phase (see the module note on the distribution seam).</li>
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
 
 <ul>
-<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma</code> (+ shape parameters), log-likelihood,
-per-observation AIC/BIC, and the conditional-volatility series (original return units).</li>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma</code>, log-likelihood, per-observation AIC/BIC,
+and the conditional-volatility series (original return units).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_megarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_megarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="../fegarch.html#GarchFit">quantica.timeseries.fegarch.GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_megarch"></a>
+    
+            <div class="docstring"><p>Fit MEGARCH(1,1) (modulus-log asymmetry, EGARCH magnitude) by QMLE.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma</code> (+ log-likelihood, AIC/BIC, conditional SD).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_mloggarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_mloggarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="../fegarch.html#GarchFit">quantica.timeseries.fegarch.GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_mloggarch"></a>
+    
+            <div class="docstring"><p>Fit MLog-GARCH(1,1) (modulus-log asymmetry and magnitude) by QMLE.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma</code> (+ log-likelihood, AIC/BIC, conditional SD).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="megarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">megarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#megarch_recursion"></a>
+    
+            <div class="docstring"><p>MEGARCH(1,1) conditional variance (the <code>(1,0,0,1)</code> Type-I instance).</p>
+
+<p>Modulus-log asymmetry \( \zeta(\eta) \) with the EGARCH magnitude \( |\eta| \).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (5,)):
+<code>(mu, omega_sig, phi1, kappa, gamma)</code>.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>abs_moment</strong> (float):
+\( \operatorname{E}|\eta| \), the magnitude centering, from <code>abs_moment()</code> (keyword).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="megarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">megarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega_sig</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#megarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a MEGARCH(1,1) process (modulus-log asymmetry, EGARCH magnitude).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega_sig, phi1, kappa, gamma</strong> (float):
+MEGARCH parameters; requires <code>|phi1| &lt; 1</code> for stationarity.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>).</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi1| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="mloggarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#mloggarch_recursion"></a>
+    
+            <div class="docstring"><p>MLog-GARCH(1,1) conditional variance (the <code>(1,0,1,0)</code> Type-I instance).</p>
+
+<p>Modulus-log in <strong>both</strong> terms: asymmetry \( \zeta(\eta) \), magnitude \( \ln(|\eta|+1) \).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (5,)):
+<code>(mu, omega_sig, phi1, kappa, gamma)</code>.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>mean_log_modulus</strong> (float):
+\( \operatorname{E}[\ln(|\eta|+1)] \), the magnitude centering, from
+<code>mean_log_modulus()</code> (keyword-only).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="mloggarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mloggarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega_sig</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#mloggarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate an MLog-GARCH(1,1) process (modulus-log asymmetry and magnitude).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega_sig, phi1, kappa, gamma</strong> (float):
+MLog-GARCH parameters; requires <code>|phi1| &lt; 1</code> for stationarity.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>). Non-norm needs <code>mean_log_modulus</code>
+(deferred), so only <code>norm</code> is available.</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi1| &gt;= 1</code>.</li>
 </ul>
 </div>
 

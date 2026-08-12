@@ -34,21 +34,22 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.fit_aparch` and their simulators. This completes the Phase-1
   short-memory family (GARCH / GJR / TGARCH / APARCH).
 
-**Phase 2 — EGARCH family** (in progress):
+**Phase 2 — EGARCH family** (complete for orders ``(1,1)`` / ``norm``):
 
-* **EGARCH(1,1)** (:mod:`~quantica.timeseries.fegarch.egarch`) — the first EGF model (Nelson 1991),
-  the **Type-I** log-variance recursion :math:`\ln\sigma_t^2 = \omega + g(\eta_{t-1}) +
-  \phi_1\ln\sigma_{t-1}^2` with the transformation :math:`g(\eta) = \kappa\eta + \gamma(|\eta| -
-  \operatorname{E}|\eta|)` (:math:`\kappa` asymmetry, :math:`\gamma` magnitude), on the Phase-0
-  engine (:func:`~quantica.timeseries.fegarch.fit_egarch`,
-  :func:`~quantica.timeseries.fegarch.egarch_sim`), reproducing fEGarch's ``norm`` fit.
+* **EGARCH / MEGARCH / MLog-GARCH** (:mod:`~quantica.timeseries.fegarch.egarch`) — the **Type-I**
+  EGF models, one generalized log-variance recursion :math:`\ln\sigma_t^2 = \omega + g(\eta_{t-1}) +
+  \phi_1\ln\sigma_{t-1}^2` whose transformation :math:`g(\eta) = \kappa\{g_{\mathrm{asy}} -
+  \operatorname{E}\} + \gamma\{g_{\mathrm{mag}} - \operatorname{E}\}` is parameterized by fixed
+  construction constants (WP 2026-04 Eqs. 7-9): EGARCH ``(0,1,0,1)`` (Nelson 1991), MEGARCH and
+  MLog-GARCH the modulus-log variants (Peitz et al. 2026), via
+  :func:`~quantica.timeseries.fegarch.fit_egarch` / :func:`~quantica.timeseries.fegarch.fit_megarch`
+  / :func:`~quantica.timeseries.fegarch.fit_mloggarch` and their simulators.
 * **Log-GARCH(1,1)** (:mod:`~quantica.timeseries.fegarch.loggarch`) — the **Type-II** EGF model
   (Geweke 1986), an ARMA on the log-variance in the log-square innovation
   :math:`\xi = \ln\eta^2 - \operatorname{E}[\ln\eta^2]`, i.e. :math:`\ln\sigma_t^2 = \omega +
   \phi_1\ln\sigma_{t-1}^2 + (\psi_1 + \phi_1)\xi_{t-1}` (no asymmetry term), via
   :func:`~quantica.timeseries.fegarch.fit_loggarch` /
-  :func:`~quantica.timeseries.fegarch.loggarch_sim`. MEGARCH / MLog-GARCH are the remaining Phase-2
-  models.
+  :func:`~quantica.timeseries.fegarch.loggarch_sim`. This completes the four Phase-2 EGF models.
 
 The fractional-differencing engine, the long-memory models, the dual mean and the forecasting/risk
 tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
@@ -77,7 +78,17 @@ from quantica.timeseries.fegarch.distributions import (
     StudentT,
     get_distribution,
 )
-from quantica.timeseries.fegarch.egarch import egarch_recursion, egarch_sim, fit_egarch
+from quantica.timeseries.fegarch.egarch import (
+    egarch_recursion,
+    egarch_sim,
+    fit_egarch,
+    fit_megarch,
+    fit_mloggarch,
+    megarch_recursion,
+    megarch_sim,
+    mloggarch_recursion,
+    mloggarch_sim,
+)
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
 from quantica.timeseries.fegarch.loggarch import fit_loggarch, loggarch_recursion, loggarch_sim
 from quantica.timeseries.fegarch.qmle import (
@@ -107,6 +118,8 @@ __all__ = [
     "fit_garch",
     "fit_gjr",
     "fit_loggarch",
+    "fit_megarch",
+    "fit_mloggarch",
     "fit_tgarch",
     "garch_recursion",
     "garch_sim",
@@ -116,6 +129,10 @@ __all__ = [
     "initial_variance",
     "loggarch_recursion",
     "loggarch_sim",
+    "megarch_recursion",
+    "megarch_sim",
+    "mloggarch_recursion",
+    "mloggarch_sim",
     "quasi_max_likelihood",
     "tgarch_recursion",
     "tgarch_sim",
