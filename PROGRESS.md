@@ -116,8 +116,9 @@ COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GA
 APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE + MERGED
 (PR #16 → `main` `6710a5e`; all four fixture-validated at σ-rel ~1e-4–1e-5)** →
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
-← IN PROGRESS: EGARCH(1,1) (Type-I) ✓ + Log-GARCH(1,1) (Type-II) ✓ built + fixture-validated
-(PR #17, open for review); MEGARCH / MLog-GARCH remaining** → Phase 3 fractional-differencing
+✓ COMPLETE for (1,1)/norm: all four EGF models built + fixture-validated (PR #17, open for review) —
+EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** → Phase 3
+fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
@@ -148,7 +149,14 @@ has a free `ψ₁` where EGARCH had none. New `mean_log_sq` distribution moment 
 Near-common-root ridge (`ϕ₁≈−ψ₁`) makes L-BFGS-B stall → engine gained a minimal `method`/`options`
 arg (default unchanged), Log-GARCH uses Nelder-Mead; fEGarch's fixture is a *local* (not global)
 optimum, so individual `ϕ₁`/`ψ₁` are weakly identified while σ/loglik/`(ψ₁+ϕ₁)` are pinned.
-**Phase-2 remaining:** MEGARCH / MLog-GARCH (Type-I, generalized `g_asy`/`g_mag`).
+**MEGARCH(1,1) + MLog-GARCH(1,1) (Type-I)** complete the family via a **generalized Type-I refactor**:
+EGARCH's `g` is now the `(M_asy,p_asy,M_mag,p_mag)` constant-set form (WP171 Eqs. 7–9), instances
+EGARCH `(0,1,0,1)` / MEGARCH `(1,0,0,1)` / MLog-GARCH `(1,0,1,0)`; the modulus-log `ζ(η)=sgn(η)ln(|η|+1)`
+(John–Draper 1980); new `mean_log_modulus` moment (E[ln(|η|+1)], norm≈0.5348223, numerical);
+asymmetry centering 0 for symmetric. **EGARCH regression guard bit-for-bit** (the `(0,1,0,1)` instance
+`np.array_equal`s the old recursion; EGARCH fixture test unchanged). Both well-identified (EGARCH-tier
+tight); the **γ tell** confirms wiring: MEGARCH γ≈0.158 (`|η|` magnitude), MLog-GARCH γ≈0.284
+(log-modulus). **Phase 2 COMPLETE** for (1,1)/norm — all four EGF models.
 
 ## Completed
 
@@ -1151,6 +1159,28 @@ optimum, so individual `ϕ₁`/`ψ₁` are weakly identified while σ/loglik/`(�
   match** (fEGarch-basin start): σ 5.8e-6 rel, loglik 2.3e-9, AIC/BIC 1.9e-12, `(ψ₁+ϕ₁)` 8.6e-7 rel,
   `ϕ₁`/`ψ₁` ~1e-7. Additive-`ωσ` scale behaviour confirmed. Docs: spec-notes §6, PROGRESS. Gate green
   (see session note).
+
+- **Step 31 — fEGarch Phase 2, part 3: MEGARCH + MLog-GARCH via a generalized Type-I refactor
+  (branch `feat/fegarch-phase2`, PR #17 — not merged). Phase 2 COMPLETE.** Two-stage build (spec
+  extraction → review → build). Generated the `fit_{megarch,mloggarch}11_norm_*` fixtures first
+  (spec-first `megarch_spec()`/`mloggarch_spec()` + `fEGarch()`, confirmed via `args()`; both report
+  `{mu, omega_sig, phi1, kappa, gamma}` — EGARCH's Type-I structure). **Refactored `egarch.py` into a
+  generalized Type-I engine:** `g(η) = κ{g_asy−E} + γ{g_mag−E}` with `g_asy`/`g_mag` the WP171
+  Eqs. 7–9 forms parameterized by fixed constants `(M_asy,p_asy,M_mag,p_mag)` (not fitted). Instances:
+  EGARCH `(0,1,0,1)` (`g_asy=η`, `g_mag=|η|`), MEGARCH `(1,0,0,1)` (`g_asy=ζ`, `g_mag=|η|`),
+  MLog-GARCH `(1,0,1,0)` (`g_asy=ζ`, `g_mag=ln(|η|+1)`), where `ζ(η)=sgn(η)ln(|η|+1)` (John–Draper
+  1980). `fit_egarch`/`fit_megarch`/`fit_mloggarch` + sims are thin wrappers over `_type1_variance`.
+  **New `mean_log_modulus` distribution moment** (E[ln(|η|+1)]; base raises, norm numerical by
+  quadrature ≈ 0.5348223), same closure seam; asymmetry centering **0 for symmetric** (skewed
+  deferred). MEGARCH reuses `abs_moment` (no new moment); MLog-GARCH under non-norm raises.
+  **EGARCH regression guard: bit-for-bit** — the `p=1` branch returns `|η|` exactly, so the
+  `(0,1,0,1)` instance `np.array_equal`s the old hand-written recursion (asserted in a test) and the
+  EGARCH fixture test is unchanged. **Both well-identified** (not a ridge): all params match tight
+  (EGARCH-tier) — MEGARCH params ≤9e-5 rel / loglik 3.3e-8 / σ 1.6e-5 rel; MLog-GARCH ≤2.3e-5 rel /
+  loglik 2.5e-8 / σ 1.3e-5 rel. **γ-magnitude tell** (parameterization guard): MEGARCH γ=0.1577
+  (`|η|` magnitude ≈ EGARCH's), MLog-GARCH γ=0.2844 (log-modulus, ~1.8× — asserted `>0.22`, decisively
+  not `|η|`'s ~0.16). Additive-`ωσ` scale behaviour confirmed. The generalized Type-I seam is what
+  Phase 4's FI variants extend. Docs: spec-notes §7, PROGRESS. Gate green (see session note).
 
 ## Next — optional depth only (planned scope is done)
 

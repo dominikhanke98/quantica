@@ -424,6 +424,77 @@ EGARCH. This completes the Type-II branch; MEGARCH / MLog-GARCH (Type-I) remain.
 
 ---
 
-*Add further specification derivations here as later phases (MEGARCH / MLog-GARCH, the
-fractional-differencing operator, LM models, dual mean) are implemented — always from the
-papers/manual, never the source.*
+## 7. Generalized Type-I EGF (MEGARCH + MLog-GARCH) — RESOLVED (Phase 2)
+
+**Sources.** WP 2026-04 §2.1 Eqs. (7)–(9); WP173 §2.2.1–2.2.3 Eqs. (21), (25) (Peitz et al. —
+MEGARCH/MLog-GARCH); the modulus-log transform is John & Draper (1980). fEGarch source never
+consulted.
+
+### 7.1 One recursion, three constant-sets
+
+MEGARCH and MLog-GARCH are the same **Type-I** log-variance recursion as EGARCH
+(`ln σ²_t = ω + g(η_{t-1}) + ϕ₁ ln σ²_{t-1}`, §5), differing only in the news-impact transformation
+(WP 2026-04 Eqs. 7–9):
+
+```
+g(η)      = κ·{g_asy(η) − E[g_asy]} + γ·{g_mag(η) − E[g_mag]},
+g_asy(η)  = sgn(η)·{ ln(|η|+M) if p=0 ;  [(|η|+M)^p − M]/p if p>0 },
+g_mag(η)  =         { ln(|η|+M) if p=0 ;  [(|η|+M)^p − M]/p if p>0 },
+```
+
+with **fixed construction constants** `(M_asy, p_asy)`, `(M_mag, p_mag)` (chosen per model, **not**
+fitted). The three models are constant-sets, using the modulus-log transform
+`ζ(η) = sgn(η)·ln(|η|+1)` (John–Draper 1980):
+
+| model | `(M,p)_asy` | `(M,p)_mag` | `g_asy` | `g_mag` | fitted γ |
+| --- | --- | --- | --- | --- | --- |
+| **EGARCH** | `(0,1)` | `(0,1)` | `η` | `|η|` | 0.157 |
+| **MEGARCH** | `(1,0)` | `(0,1)` | `ζ(η)` | `|η|` | 0.158 |
+| **MLog-GARCH** | `(1,0)` | `(1,0)` | `ζ(η)` | `ln(|η|+1)` | **0.284** |
+
+The parameter vector is `{mu, omega_sig, phi1, kappa, gamma}` for all three (WP173 Eqs. 25/21 state
+`g_me = κ{ζ−E ζ}+γ{|η|−E|η|}`, `g_ml = κ{ζ−E ζ}+γ{|ζ|−E|ζ|}`, with `|ζ(η)| = ln(|η|+1)`).
+
+### 7.2 Centering — one new distribution moment; zero asymmetry centering for symmetric
+
+`E[g(η)] = 0` (keeping `ωσ = E[ln σ²]`) needs each term centered:
+- **Asymmetry** `E[g_asy] = E[sgn(η)·ln(|η|+1)] = 0` for **symmetric** innovations (`g_asy` odd,
+  density even) — implemented as `0` on the symmetric bases; nonzero only under the FS-skew wrapper
+  (deferred). Confirmed: reconstructing with `E_asy = 0` matches to ~6e-17.
+- **Magnitude** `E[g_mag]`: `E|η|` (`abs_moment`) for EGARCH/MEGARCH; **`E[ln(|η|+1)]`** for
+  MLog-GARCH — a **new distribution moment** `mean_log_modulus`, numerical for the normal (no
+  elementary closed form): `E[ln(|η|+1)] = 0.5348222957` (vs `E|η| = 0.7978845608`). Same closure
+  seam as `abs_moment` / `mean_log_sq`; `std`/`ged`/skewed deferred. (MEGARCH needs **no** new moment
+  — it reuses `abs_moment`; MLog-GARCH's magnitude is the only place `mean_log_modulus` is required.)
+
+### 7.3 Refactor + EGARCH regression guard (bit-for-bit)
+
+EGARCH, MEGARCH and MLog-GARCH are built as one generalized Type-I recursion parameterized by the
+`(M_asy, p_asy, M_mag, p_mag)` constant-set (`_type1_variance` in `egarch.py`); `fit_egarch` /
+`fit_megarch` / `fit_mloggarch` are thin wrappers. The `p = 1` branch returns `|η|` directly (the
+`[(|η|+0)^1 − 0]/1 = |η|` linear form, kept exact), so the **EGARCH `(0,1,0,1)` instance reproduces
+the old hand-written recursion bit-for-bit** — verified by `np.array_equal` and by the unchanged
+EGARCH fixture test (a hard regression guard: the refactor did not shift the validated path even at
+1e-16).
+
+### 7.4 Fixture confirmation — the γ-magnitude tell
+
+Both reconstruct their σ-series from the fixture params to machine precision (MEGARCH ~6e-17,
+MLog-GARCH ~4e-17). Being **well-identified** (not a near-common-root ridge like Log-GARCH), all
+parameters match tight (EGARCH tier): parameters ≤ ~9e-5 relative, log-likelihood ≤ ~3e-8, σ-series
+≤ ~1.6e-5 relative. The **γ magnitude is the parameterization tell**: MEGARCH's `γ ≈ 0.158` (it
+keeps EGARCH's `|η|` magnitude) vs MLog-GARCH's **`γ ≈ 0.284`** (~1.8× larger, because `ln(|η|+1)` is
+a compressed regressor). A mis-wired MLog-GARCH magnitude (using `|η|`) would return `γ ≈ 0.16` — the
+fixture catches it, the same role the `ω`-units played for GJR/TGARCH. Pre-sample and scale
+behaviour are identical to EGARCH (§5): App. C.3 conditioning (`ddof=1`), additive `ωσ` under
+rescaling.
+
+**This generalized Type-I seam is what Phase 4's fractionally-integrated variants (FIEGARCH,
+FIMEGARCH, FIMLog-GARCH) will extend** — the same `g_asy`/`g_mag` transformation composed with the
+`(1−B)^d` fractional-differencing operator. This completes the four Phase-2 EGF models
+(EGARCH / Log-GARCH / MEGARCH / MLog-GARCH), all `(1,1)`/`norm` fixture-validated.
+
+---
+
+*Add further specification derivations here as later phases (the fractional-differencing operator,
+LM models, dual mean) are implemented — always from the papers/manual, never the source.*
