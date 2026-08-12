@@ -157,6 +157,8 @@ def quasi_max_likelihood(
     dist_start: Sequence[float] | None = None,
     dist_bounds: Sequence[tuple[float, float]] | None = None,
     mean: bool = False,
+    method: str = "L-BFGS-B",
+    options: dict[str, object] | None = None,
 ) -> QMLEResult:
     r"""Fit a conditional-variance model by quasi-maximum likelihood.
 
@@ -184,6 +186,11 @@ def quasi_max_likelihood(
     mean : bool, optional
         Treat the first variance parameter as a constant mean :math:`\mu` used in the standardized
         residual (default ``False``, i.e. mean-zero).
+    method : str, optional
+        :func:`scipy.optimize.minimize` method (default ``"L-BFGS-B"``). Stiff surfaces — e.g. the
+        near-common-root Log-GARCH ridge — use a derivative-free method such as ``"Nelder-Mead"``.
+    options : dict, optional
+        Extra ``options`` for :func:`scipy.optimize.minimize` (e.g. tighter simplex tolerances).
 
     Returns
     -------
@@ -217,7 +224,7 @@ def quasi_max_likelihood(
         loglik = np.sum(-np.log(sigma) + distribution.logpdf(z, dist_params))
         return float(-loglik) if np.isfinite(loglik) else 1e10
 
-    optimum = minimize(negative_loglik, start, method="L-BFGS-B", bounds=bounds)
+    optimum = minimize(negative_loglik, start, method=method, bounds=bounds, options=options)
     theta = np.asarray(optimum.x, dtype=np.float64)
 
     hessian = _numerical_hessian(negative_loglik, theta, _HESSIAN_STEP)

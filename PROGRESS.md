@@ -116,7 +116,9 @@ COMPLETE (merged, fixture-validated)** → **Phase 1 short-memory foundation (GA
 APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ COMPLETE + MERGED
 (PR #16 → `main` `6710a5e`; all four fixture-validated at σ-rel ~1e-4–1e-5)** →
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
-← NEXT BUILD STEP** → Phase 3 fractional-differencing
+✓ COMPLETE for (1,1)/norm: all four EGF models built + fixture-validated (PR #17, open for review) —
+EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** → Phase 3
+fractional-differencing
 engine (the crux, tested in isolation) → Phase 4 long-memory models (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
@@ -131,10 +133,30 @@ a σ-recursion — its `ω~2.3e-4` vs GJR's `~3e-6` is the σ-vs-σ² unit finge
 (APARCH); (3) the pre-sample news-impact seed is **reconciled-per-power** — variance-power
 `Var(r)^{δ/2}` for the σ²/σ^δ recursions, first-absolute-moment `mean|ε|` for the TGARCH σ-recursion,
 coinciding at `δ=2` and forking otherwise (TGARCH vs APARCH give opposite verdicts; documented in
-`docs/fegarch-spec-notes.md` §4). **Phase-2 entry point:** the one remaining skip —
-`test_egarch11_matches_fegarch_fixture` in `tests/timeseries/fegarch/test_garch.py` — is the Phase-2
-hook; its fixtures (`fit_egarch11_norm_*`) are already committed. It needs the EGARCH **log-variance**
-recursion (Type-I/Type-II EGF split), which is Phase 2's first build step.
+`docs/fegarch-spec-notes.md` §4). **Phase-2 status:** EGARCH(1,1) is built and wired live
+(`test_egarch11_norm_matches_fegarch_fixture` in `tests/timeseries/fegarch/test_egarch.py`,
+reproducing `fit_egarch11_norm_*`); the egarch skip in `test_garch.py` is retired. **Key EGARCH
+findings (settled):** it is the **Type-I** EGF log-variance model `ln σ²_t = ω + g(η_{t-1}) +
+ϕ₁ ln σ²_{t-1}` with `g(η) = κη + γ(|η|−E|η|)` — **κ on the asymmetry term, γ on magnitude**
+(WP171/WP173 orientation, confirmed by the fixture's κ=−0.0235 / γ=+0.1573 signs; **not** the WP175
+letter-swap); fEGarch reports `omega_sig = ωσ = E[ln σ²]` (the recursion intercept is
+`ω = ωσ(1−ϕ₁)`); presample `ln σ²[0] = ω + ϕ₁·ln(Var(r,ddof=1))` with zero news-impact history,
+matching the whole σ-series to ~4e-17. **Log-GARCH(1,1) (Type-II)** is also built and wired live
+(`test_loggarch11_norm_matches_fegarch_fixture`): an ARMA on `ln σ²` in the log-square innovation
+`ξ = ln η² − E[ln η²]`, `ln σ²_t = ω + ϕ₁ ln σ²_{t-1} + (ψ₁+ϕ₁)ξ_{t-1}` — **no asymmetry** (Type-II);
+the news-impact loading is the **combined `(ψ₁+ϕ₁)`**, and `ψ` runs to lag `q` (not `q−1`) so (1,1)
+has a free `ψ₁` where EGARCH had none. New `mean_log_sq` distribution moment (norm = `−γ_E−ln2`).
+Near-common-root ridge (`ϕ₁≈−ψ₁`) makes L-BFGS-B stall → engine gained a minimal `method`/`options`
+arg (default unchanged), Log-GARCH uses Nelder-Mead; fEGarch's fixture is a *local* (not global)
+optimum, so individual `ϕ₁`/`ψ₁` are weakly identified while σ/loglik/`(ψ₁+ϕ₁)` are pinned.
+**MEGARCH(1,1) + MLog-GARCH(1,1) (Type-I)** complete the family via a **generalized Type-I refactor**:
+EGARCH's `g` is now the `(M_asy,p_asy,M_mag,p_mag)` constant-set form (WP171 Eqs. 7–9), instances
+EGARCH `(0,1,0,1)` / MEGARCH `(1,0,0,1)` / MLog-GARCH `(1,0,1,0)`; the modulus-log `ζ(η)=sgn(η)ln(|η|+1)`
+(John–Draper 1980); new `mean_log_modulus` moment (E[ln(|η|+1)], norm≈0.5348223, numerical);
+asymmetry centering 0 for symmetric. **EGARCH regression guard bit-for-bit** (the `(0,1,0,1)` instance
+`np.array_equal`s the old recursion; EGARCH fixture test unchanged). Both well-identified (EGARCH-tier
+tight); the **γ tell** confirms wiring: MEGARCH γ≈0.158 (`|η|` magnitude), MLog-GARCH γ≈0.284
+(log-modulus). **Phase 2 COMPLETE** for (1,1)/norm — all four EGF models.
 
 ## Completed
 
@@ -1095,6 +1117,70 @@ recursion (Type-I/Type-II EGF split), which is Phase 2's first build step.
   tolerance — convention documented (`docs/fegarch-spec-notes.md` §4, "open reconcile item" language
   removed), source not consulted; it reproduces fEGarch's output rather than being a proven internal
   identity. `γ₁=0 → GARCH` reduction is now machine-exact (both seed `Var₁`).
+
+- **Step 29 — fEGarch Phase 2, part 1: EGARCH(1,1) (branch `feat/fegarch-phase2`, PR #17, open —
+  not merged).** Two-stage build: Stage 1 extracted the spec from the papers only (WP171 §2.1 +
+  App. C.3, WP175, WP173, Nelson 1991; read via `pypdf` since `pymupdf`'s DLL is app-control-blocked
+  — a local tooling install, not a repo dep) and reported it for review; Stage 2 built to the
+  confirmed spec. New `quantica/timeseries/fegarch/egarch.py`: `egarch_recursion` (the Type-I
+  log-variance path `ln σ²_t = ω + g(η_{t-1}) + ϕ₁ ln σ²_{t-1}`, returning the variance the engine
+  expects), `fit_egarch` (constant-mean QMLE on the reused Phase-0 engine, reusing `GarchFit`), and
+  `egarch_sim`. `g(η) = κη + γ(|η|−E|η|)` with **κ=asymmetry, γ=magnitude** (WP171/WP173 orientation;
+  the fixture's κ<0/γ>0 signs confirm it — **not** WP175's letter-swap). Fits `ωσ` (=`omega_sig`,
+  `E[ln σ²]`) directly and derives `ω = ωσ(1−ϕ₁)` internally. **Presample `ln σ²[0] = ω +
+  ϕ₁·ln(Var(r,ddof=1))`** with zero news-impact history — reconstructs the whole σ-series to **~4e-17**
+  (ddof=0 → ~2e-6). **E|η| seam:** sourced from the distribution layer's `abs_moment` (added to the
+  `ConditionalDistribution` base, raising by default; norm → √(2/π)), passed in as a captured value,
+  never hard-coded. **Realized fixture-match:** params ≤ **2.3e-5** rel, loglik **9e-8**, AIC/BIC
+  **7e-11**, σ-series **1.8e-5** rel. Checks: κ=0 ⇒ symmetric `g` (machine-exact), known-truth
+  recovery within a few SE, and the predicted **additive-`ωσ` scale behaviour** (`ωσ` shifts by
+  `ln(c²)` under `r→cr`, μ scales, ϕ₁/κ/γ invariant — confirmed). **Deferred (documented):**
+  skewed-EGARCH needs `abs_moment` on the FS-skew wrapper; jointly-estimated shape (std/ged) needs
+  E|η| recomputed per-iteration. Docs: spec-notes §5, PROGRESS. Gate green (see session note).
+
+- **Step 30 — fEGarch Phase 2, part 2: Log-GARCH(1,1) Type-II (branch `feat/fegarch-phase2`, PR #17
+  alongside EGARCH — not merged).** Two-stage build (spec extraction → review → build). Generated the
+  `fit_loggarch11_norm_*` fixture first (spec-first `loggarch_spec()` + `fEGarch()`, confirmed via
+  `args()`; pars `{mu, omega_sig, phi1, psi1}` — the Type-II structure, no κ/γ). New
+  `quantica/timeseries/fegarch/loggarch.py`: `loggarch_recursion` (the ARMA `ln σ²_t = ω +
+  ϕ₁ ln σ²_{t-1} + (ψ₁+ϕ₁)ξ_{t-1}`, `ξ = ln η² − E[ln η²]`, returning the variance), `fit_loggarch`,
+  `loggarch_sim`. **Key spec points (settled):** the news-impact loading is the **combined
+  `(ψ₁+ϕ₁)`**; Type-II's `ψ` runs to lag `q` (not `q−1`), so (1,1) has a free `ψ₁`; no asymmetry
+  (structurally symmetric). **New `mean_log_sq` distribution moment** (E[ln η²]; base raises,
+  norm = `−γ_E−ln2 = −1.2703628`), fed via the same closure seam as EGARCH's E|η|; std/ged/skewed
+  deferred (loggarch under non-norm raises). Presample `ln σ²[0] = ω + ϕ₁·ln(Var(r,ddof=1))`,
+  ξ-history 0 → whole σ-series to ~9e-16. **Near-common-root ridge** (`ϕ₁=0.989 ≈ −ψ₁=0.954`): L-BFGS-B
+  stalls, so the **engine gained a minimal backward-compatible `method`/`options` arg** (default
+  L-BFGS-B unchanged) and Log-GARCH uses Nelder-Mead from a Log-GARCH-typical start (`ϕ₁=0.95,
+  ψ₁=−0.9`) to land in fEGarch's basin. **fEGarch's fixture is a *local* (not global) optimum** — a
+  different start finds a marginally higher-loglik point — so `ϕ₁`/`ψ₁` individually are weakly
+  identified while σ/loglik/`(ψ₁+ϕ₁)` are pinned; **tolerances are structured by identification**
+  (pinned quantities tight ~1e-5 EGARCH-tier, individual coeffs looser 5e-3, documented). **Realized
+  match** (fEGarch-basin start): σ 5.8e-6 rel, loglik 2.3e-9, AIC/BIC 1.9e-12, `(ψ₁+ϕ₁)` 8.6e-7 rel,
+  `ϕ₁`/`ψ₁` ~1e-7. Additive-`ωσ` scale behaviour confirmed. Docs: spec-notes §6, PROGRESS. Gate green
+  (see session note).
+
+- **Step 31 — fEGarch Phase 2, part 3: MEGARCH + MLog-GARCH via a generalized Type-I refactor
+  (branch `feat/fegarch-phase2`, PR #17 — not merged). Phase 2 COMPLETE.** Two-stage build (spec
+  extraction → review → build). Generated the `fit_{megarch,mloggarch}11_norm_*` fixtures first
+  (spec-first `megarch_spec()`/`mloggarch_spec()` + `fEGarch()`, confirmed via `args()`; both report
+  `{mu, omega_sig, phi1, kappa, gamma}` — EGARCH's Type-I structure). **Refactored `egarch.py` into a
+  generalized Type-I engine:** `g(η) = κ{g_asy−E} + γ{g_mag−E}` with `g_asy`/`g_mag` the WP171
+  Eqs. 7–9 forms parameterized by fixed constants `(M_asy,p_asy,M_mag,p_mag)` (not fitted). Instances:
+  EGARCH `(0,1,0,1)` (`g_asy=η`, `g_mag=|η|`), MEGARCH `(1,0,0,1)` (`g_asy=ζ`, `g_mag=|η|`),
+  MLog-GARCH `(1,0,1,0)` (`g_asy=ζ`, `g_mag=ln(|η|+1)`), where `ζ(η)=sgn(η)ln(|η|+1)` (John–Draper
+  1980). `fit_egarch`/`fit_megarch`/`fit_mloggarch` + sims are thin wrappers over `_type1_variance`.
+  **New `mean_log_modulus` distribution moment** (E[ln(|η|+1)]; base raises, norm numerical by
+  quadrature ≈ 0.5348223), same closure seam; asymmetry centering **0 for symmetric** (skewed
+  deferred). MEGARCH reuses `abs_moment` (no new moment); MLog-GARCH under non-norm raises.
+  **EGARCH regression guard: bit-for-bit** — the `p=1` branch returns `|η|` exactly, so the
+  `(0,1,0,1)` instance `np.array_equal`s the old hand-written recursion (asserted in a test) and the
+  EGARCH fixture test is unchanged. **Both well-identified** (not a ridge): all params match tight
+  (EGARCH-tier) — MEGARCH params ≤9e-5 rel / loglik 3.3e-8 / σ 1.6e-5 rel; MLog-GARCH ≤2.3e-5 rel /
+  loglik 2.5e-8 / σ 1.3e-5 rel. **γ-magnitude tell** (parameterization guard): MEGARCH γ=0.1577
+  (`|η|` magnitude ≈ EGARCH's), MLog-GARCH γ=0.2844 (log-modulus, ~1.8× — asserted `>0.22`, decisively
+  not `|η|`'s ~0.16). Additive-`ωσ` scale behaviour confirmed. The generalized Type-I seam is what
+  Phase 4's FI variants extend. Docs: spec-notes §7, PROGRESS. Gate green (see session note).
 
 ## Next — optional depth only (planned scope is done)
 
