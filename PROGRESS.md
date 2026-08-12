@@ -118,9 +118,9 @@ APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ C
 **Phase 2 EGARCH family (EGARCH / Log-GARCH / MEGARCH / MLog-GARCH — the Type-I/Type-II EGF split)
 ✓ COMPLETE + MERGED for (1,1)/norm (PR #17 → `main` `2178ecb`): all four EGF models fixture-validated
 at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
-**Phase 3 fractional-differencing engine `(1−L)^d` (the crux, tested in isolation) ✓ built +
-validated analytically/cross-method (PR #18, open for review; no fixture — internal filter)** →
-**Phase 4 long-memory models ← NEXT BUILD STEP** (FIGARCH…, then FIEGARCH /
+**Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
+validated analytically/cross-method (no fixture — internal filter)** →
+**Phase 4 long-memory models ← NEXT (and final) MODEL-BUILDING STEP** (FIGARCH…, then FIEGARCH /
 FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
@@ -1196,7 +1196,7 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   Phase 4's FI variants extend. Docs: spec-notes §7, PROGRESS. Gate green (see session note).
 
 - **Step 32 — fEGarch Phase 3: fractional-differencing engine `(1−L)^d` (branch `feat/fegarch-phase3`,
-  PR #18, open — not merged).** Infrastructure for every Phase-4 long-memory model; an **internal
+  PR #18 → `main` `24cde7a`, MERGED).** Infrastructure for every Phase-4 long-memory model; an **internal
   filter, not a fitted model, so NO output fixture** — validation is analytic + cross-method (the
   numerical-validation skill), not fixture-matching. Clean-room from the binomial expansion + WP171
   App. C.3 (no fEGarch source). New `quantica/timeseries/fegarch/fracdiff.py`: `fracdiff_coeffs(d,
@@ -1210,7 +1210,11 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   `‖y_L−y_full‖` decays monotonically with `L` (tail `|b_L|~L^{-d-1}`, exact at `L=n−1`); and
   `(1−L)^{-d}` white noise shows the hyperbolic long-memory ACF `ρ(k)~k^{2d-1}` (fitted slope loosely
   around `2d−1`, mid-lag ACF ~100× a white-noise control). Docs: spec-notes §8, PROGRESS. Gate green.
-  **Phase 4 (long-memory FI models) is next** — compose these recursions with `(1−L)^d`.
+  **Phase 4 (long-memory FI models) is the next and final model-building step** — compose the model
+  recursions with `(1−L)^d` under the App. C.3 convention: **FIGARCH / FIAPARCH / FITGARCH / FIGJR**
+  extend the short-memory recursions (Phase 1); **FIEGARCH / FIMEGARCH / FIMLog-GARCH** extend the
+  generalized Type-I `g`-transformation seam (Phase 2 §7); **FILog-GARCH** is Type-II and inherits
+  Log-GARCH's near-common-root ridge.
 
 ## Next — optional depth only (planned scope is done)
 
