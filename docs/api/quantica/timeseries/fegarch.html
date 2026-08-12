@@ -47,6 +47,10 @@
 
 
 
+            <h2>Submodules</h2>
+            <ul>
+                    <li><a href="fegarch/fracdiff.html">fracdiff</a></li>
+            </ul>
 
             <h2>API Documentation</h2>
                 <ul class="memberlist">
@@ -355,6 +359,12 @@
             </li>
             <li>
                     <a class="function" href="#fit_tgarch">fit_tgarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fracdiff">fracdiff</a>
+            </li>
+            <li>
+                    <a class="function" href="#fracdiff_coeffs">fracdiff_coeffs</a>
             </li>
             <li>
                     <a class="function" href="#garch_recursion">garch_recursion</a>
@@ -2164,6 +2174,94 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>).</li>
 <ul>
 <li><strong>GarchFit</strong>: Estimates <code>mu, omega, phi1, beta1, gamma1</code> (+ shape parameters), log-likelihood,
 per-observation AIC/BIC, and the conditional-volatility series.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fracdiff">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fracdiff</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">x</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">trunc</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">presample</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;fft&#39;</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fracdiff"></a>
+    
+            <div class="docstring"><p>Apply \( (1-L)^d \) to <code>x</code> under the fEGarch truncation / pre-sample convention.</p>
+
+<p>Computes the causal, truncated filter \( y_t = \sum_{i=0}^{\min(L,\,t-1)} b_i\,x_{t-i} \) with
+pre-sample values \( x_t =  \) <code>presample</code> for \( t \le 0 \) (WP 2026-04 App. C.3: the
+pre-sample of the filtered quantity is <code>0</code>).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>x</strong> (ndarray, shape (n,)):
+The series to filter.</li>
+<li><strong>d</strong> (float):
+The fractional order (<code>&gt; 0</code> differencing, <code>&lt; 0</code> integration).</li>
+<li><strong>trunc</strong> (int, optional):
+Truncation length \( L \) of the coefficient series. Default (<code>None</code>) is the App. C.3
+long-memory default \( L = n - 1 \); values are capped at <code>n - 1</code> (no more lags than the
+available history under the pre-sample-0 convention).</li>
+<li><strong>presample</strong> (float, optional):
+The constant pre-sample value of <code>x</code> for \( t \le 0 \) (default <code>0.0</code>, the App. C.3
+convention). A non-zero value shifts the warm-up of the filter.</li>
+<li><strong>method</strong> (str, optional):
+<code>"fft"</code> (default, <code>O(n log n)</code>) or <code>"direct"</code> (<code>O(nL)</code>); agree to FFT round-off.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n,)</strong>: The fractionally-differenced series.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>trunc</code> is negative or <code>method</code> is unknown.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fracdiff_coeffs">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fracdiff_coeffs</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">length</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fracdiff_coeffs"></a>
+    
+            <div class="docstring"><p>Binomial coefficients \( b_i(d) \) of \( (1-L)^d \), for <code>i = 0 .. length-1</code>.</p>
+
+<p>Uses the exact recursion \( b_0 = 1 \), \( b_i = b_{i-1}(i-1-d)/i \) (equivalently
+\( b_i = (-1)^i \binom{d}{i} \)), evaluated as a cumulative product.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>d</strong> (float):
+The fractional order (any real; <code>&gt; 0</code> differencing, <code>&lt; 0</code> integration).</li>
+<li><strong>length</strong> (int):
+Number of coefficients to return (<code>&gt;= 1</code>); <code>b_0 .. b_{length-1}</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (length,)</strong>: The coefficients, with <code>b[0] == 1</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>length &lt; 1</code>.</li>
 </ul>
 </div>
 
