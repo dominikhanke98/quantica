@@ -140,13 +140,15 @@ returns <- SIM$mu + eps
 write_series_csv(returns, file.path(OUTDIR, "synthetic_returns.csv"), "return")
 cat(sprintf("  synthetic series: n=%d mean=%.2e sd=%.4f\n", SIM_N, mean(returns), sd(returns)))
 
-fit_and_dump <- function(fit, name, model, cond_dist) {
+fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none") {
+  # `trunc` records the truncation policy metadata: "none" for the short-memory models (default),
+  # and the long-memory default L = n-1 (WP171 App. C.3) for the fractionally-integrated ones.
   p <- pars(fit)
   ic <- inf_criteria(fit)
   params <- as.list(as.numeric(p)); names(params) <- names(p)
   meta <- list(
     model = model, cond_dist = cond_dist, orders = c(1L, 1L),
-    presample = 50L, trunc = "none", mean_included = TRUE,
+    presample = 50L, trunc = trunc, mean_included = TRUE,
     n_obs = length(returns), input = "synthetic_returns.csv",
     parallel = FALSE, seed = SIM_SEED,
     params = params,
@@ -226,6 +228,21 @@ tryCatch({
 }, error = function(e) cat("  ERROR mloggarch:", conditionMessage(e),
                           "| exists('mloggarch_spec') =", exists("mloggarch_spec"), "\n"))
 
+# --- Phase-4 long-memory: FIEGARCH -------------------------------------------
+# FIEGARCH is the fractionally-integrated (long-memory) EGARCH: spec-first via the dedicated
+# fiegarch_spec() wrapper + fEGarch() — confirmed via ls()/args() (there is NO long_memo flag on
+# egarch_spec; the "fi" wrapper enables the fractional d; no source read). The fractional order d is
+# an estimated parameter, and the fit uses the App. C.3 long-memory truncation default L = n-1.
+# Wrapped in tryCatch so a failure prints the model, the error and exists(fiegarch_spec) and NEVER
+# writes a partial fixture.
+tryCatch({
+  fiegarch_fit <- fEGarch(fiegarch_spec(orders = c(1, 1), cond_dist = "norm"), returns,
+                          parallel = FALSE)
+  cat("  fiegarch pars:", paste(names(pars(fiegarch_fit)), collapse = ", "), "\n")
+  fit_and_dump(fiegarch_fit, "fiegarch11_norm", "fiegarch", "norm", trunc = "n-1")
+}, error = function(e) cat("  ERROR fiegarch:", conditionMessage(e),
+                          "| exists('fiegarch_spec') =", exists("fiegarch_spec"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -268,12 +285,15 @@ manifest <- list(
       egarch11_norm = list(params = "fit_egarch11_norm_params.json", sigma = "fit_egarch11_norm_sigma.csv"),
       loggarch11_norm = list(params = "fit_loggarch11_norm_params.json", sigma = "fit_loggarch11_norm_sigma.csv"),
       megarch11_norm = list(params = "fit_megarch11_norm_params.json", sigma = "fit_megarch11_norm_sigma.csv"),
-      mloggarch11_norm = list(params = "fit_mloggarch11_norm_params.json", sigma = "fit_mloggarch11_norm_sigma.csv"))),
+      mloggarch11_norm = list(params = "fit_mloggarch11_norm_params.json", sigma = "fit_mloggarch11_norm_sigma.csv"),
+      fiegarch11_norm = list(params = "fit_fiegarch11_norm_params.json", sigma = "fit_fiegarch11_norm_sigma.csv",
+                             note = "first Phase-4 long-memory fixture (fractionally-integrated EGARCH; fractional order d estimated, App. C.3 trunc L=n-1)"))),
   pending_fixtures = paste(
-    "Phase-2 EGARCH-family (1,1)/norm fits are complete. Later phases need more fixtures:",
-    "all short-memory + EGARCH-family models under the other 7 conditional distributions;",
-    "the fractional-differencing / FIGARCH-FIEGARCH long-memory fits (Phase 3-4); dual-mean",
-    "(ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and",
+    "Phase-2 EGARCH-family (1,1)/norm fits are complete; FIEGARCH is the first Phase-4 long-memory",
+    "fit. Later phases need more fixtures: all short-memory + EGARCH-family models under the other 7",
+    "conditional distributions; the remaining long-memory fits (FIGARCH/FIAPARCH/FILog-GARCH/",
+    "FIMEGARCH/FIMLog-GARCH, Phase 4); dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES",
+    "(Phase 6). Extend this script and",
     "re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
