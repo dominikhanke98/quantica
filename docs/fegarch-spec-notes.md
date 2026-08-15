@@ -624,5 +624,60 @@ through σ); simulation is `O(n log n)` (innovations given ⇒ g precomputed, on
 
 ---
 
+## 10. FIMEGARCH(1,d,1) + FIMLog-GARCH(1,d,1) — long-memory Type-I analogues — RESOLVED (Phase 4)
+
+**Sources.** As FIEGARCH (§9): WP 2026-04 §2.1 Eqs. 4–6 + App. C.3 Eq. 50, plus the Type-I
+constant-sets of §7 (Eqs. 7–9). fEGarch source never consulted; validated against the committed
+fixtures `fit_fimegarch11_norm_*` and `fit_fimloggarch11_norm_*` (R spec functions `fimegarch_spec` /
+`fimloggarch_spec` confirmed via `ls("package:fEGarch")` + `args()`, both spec-first
+`function(orders=c(1,1), cond_dist=...)` identical to `fiegarch_spec`).
+
+### 10.1 The clean analogue — same θ(B), swap the constant-set
+
+These two are the fractionally-integrated **MEGARCH** and **MLog-GARCH**: the *exact* long-memory
+analogue of the §7 relationship. They reuse **all** of FIEGARCH's machinery — the same
+`theta_coefficients(φ₁, d, L)` composition `θ(B) = (1−φ₁B)⁻¹(1−B)^{−d}` (§9.1) and the same MA(∞)
+pre-sample (intercept `ωσ` directly, `σ_0 = exp(ωσ/2)`, §9.2) — and differ **only** in the Type-I
+`g`-transformation constant-set (and hence the magnitude-centering moment):
+
+| model | constant-set `(M_asy,p_asy,M_mag,p_mag)` | asymmetry | magnitude | centering |
+|---|---|---|---|---|
+| FIEGARCH | `(0,1,0,1)` | `η` | `\|η\|` | `E\|η\|` (`abs_moment`) |
+| **FIMEGARCH** | `(1,0,0,1)` | `sgn(η)ln(\|η\|+1)` | `\|η\|` | `E\|η\|` (`abs_moment`) |
+| **FIMLog-GARCH** | `(1,0,1,0)` | `sgn(η)ln(\|η\|+1)` | `ln(\|η\|+1)` | `E[ln(\|η\|+1)]` (`mean_log_modulus`) |
+
+Implementation is therefore **thin wrappers**, not reimplementations: `fiegarch.py` factors a private
+`_fiegarch_variance(…, constants, mean_asy, mean_mag)` / `_fit_fiegarch(…, constants,
+log_modulus_magnitude)` / `_sim_fiegarch(…)` — exactly mirroring `egarch.py`'s `_type1_variance` /
+`_fit_type1` / `_sim_type1` seam — and the six public functions (`fimegarch_recursion` / `fit_fimegarch`
+/ `fimegarch_sim` and the `fimloggarch_*` trio) are one-liners over it. The FIEGARCH public path is
+unchanged (its 11 tests still pass bit-identically).
+
+### 10.2 The gate that replaced spec-extraction
+
+Because the composition was a known analogue, the build was gated on a **read-only reconstruction**
+(before any model code): reconstruct each fixture's σ-series from its committed params using the
+existing `theta_coefficients` + `type1_news_impact` at the model's constant-set. Both reconstructed to
+**machine precision** — FIMEGARCH `1.28e-16`, FIMLog-GARCH `1.25e-16`, both with `σ_0 = exp(ωσ/2)` —
+confirming the clean-analogue assumption (had either missed `~1e-15`, it would have signalled some
+constant-set × θ(B) interaction requiring full spec extraction).
+
+### 10.3 The γ-tell + fixture confirmation
+
+The **γ-magnitude tell** carries over from §7.4 under fractional persistence: FIMEGARCH keeps the
+`|η|` magnitude so `γ = 0.172` (≈ FIEGARCH/MEGARCH's ~0.17), while FIMLog-GARCH's compressed
+`ln(|η|+1)` magnitude gives `γ = 0.321` — a **1.87×** ratio, the same log-modulus signature as the
+short-memory pair. Both fitted `d ≈ 0.74` (upper regime), `φ₁ ≈ 0.39`, as FIEGARCH. `fit_fimegarch` /
+`fit_fimloggarch` match their fixtures at **FIEGARCH tier**: all six params to relative `≤ 2e-4`,
+log-likelihood to `≤ 2.4e-7`, AIC/BIC to `≤ 2e-10`, σ-series to `≤ 8.4e-7` (relative `≤ 8.2e-5`); the
+recursion at reported params reproduces σ to `~1e-16`. Additional checks (per model): the
+`σ_0 = exp(ωσ/2)` presample tell; the **d→0 reduction** to short-memory MEGARCH / MLog-GARCH (the FI
+MA-form and the AR-form are one stationary process with different pre-sample seeds, converging
+exponentially — agreement `< 1e-9` after `t = 100`, realized `~1e-11`); exact recursion-level
+scale-equivariance; and known-truth recovery of all six params incl. `d`. FIMLog-GARCH under non-norm
+is **deferred** (its `mean_log_modulus` centering is implemented only for the normal, as in §7).
+
+---
+
 *Add further specification derivations here as later phases (the remaining long-memory FI models, the
 dual mean) are implemented — always from the papers/manual, never the source.*

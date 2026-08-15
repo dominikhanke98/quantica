@@ -57,7 +57,25 @@
                     <a class="function" href="#fiegarch_sim">fiegarch_sim</a>
             </li>
             <li>
+                    <a class="function" href="#fimegarch_recursion">fimegarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#fimegarch_sim">fimegarch_sim</a>
+            </li>
+            <li>
+                    <a class="function" href="#fimloggarch_recursion">fimloggarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#fimloggarch_sim">fimloggarch_sim</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_fiegarch">fit_fiegarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_fimegarch">fit_fimegarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_fimloggarch">fit_fimloggarch</a>
             </li>
             <li>
                     <a class="function" href="#theta_coefficients">theta_coefficients</a>
@@ -78,7 +96,7 @@
                     <h1 class="modulename">
 <a href="./../../../quantica.html">quantica</a><wbr>.<a href="./../../timeseries.html">timeseries</a><wbr>.<a href="./../fegarch.html">fegarch</a><wbr>.fiegarch    </h1>
 
-                        <div class="docstring"><p>FIEGARCH(1,d,1) — the fractionally-integrated (long-memory) EGARCH (Phase 4).</p>
+                        <div class="docstring"><p>Fractionally-integrated (long-memory) Type-I EGF family: FIEGARCH / FIMEGARCH / FIMLog-GARCH.</p>
 
 <div class="alert note">
 
@@ -93,8 +111,15 @@ Eqs. 4-6 + App. C.3 Eq. 50 for the long-memory recursion, truncation and QMLE co
 Type-I news-impact <code>~<a href="../fegarch.html#type1_news_impact">quantica.timeseries.fegarch.type1_news_impact()</a></code> (at the EGARCH
 <code>~<a href="../fegarch.html#EGARCH_CONSTANTS">quantica.timeseries.fegarch.EGARCH_CONSTANTS</a></code> constant-set) and the Phase-3
 <code>~<a href="../fegarch.html#fracdiff_coeffs">quantica.timeseries.fegarch.fracdiff_coeffs()</a></code> operator, adding only the <code>theta(B)</code>
-composition and the truncated-MA(∞) recursion. It splices the fractional operator into EGARCH's
-coefficient polynomial (WP 2026-04 Eq. 6):</p>
+composition and the truncated-MA(∞) recursion. <strong>FIMEGARCH and FIMLog-GARCH are its exact
+long-memory analogues</strong> — the <em>same</em> <code>theta(B)</code> machinery and MA(∞) pre-sample, differing only in
+the Type-I
+constant-set (and hence the magnitude-centering moment), precisely as MEGARCH / MLog-GARCH differed
+from EGARCH in Phase 2: FIMEGARCH uses <code>~<a href="../fegarch.html#MEGARCH_CONSTANTS">quantica.timeseries.fegarch.MEGARCH_CONSTANTS</a></code>
+(modulus-log asymmetry, \( |\eta| \) magnitude ⇒ <code>abs_moment</code> centering) and FIMLog-GARCH uses
+<code>~<a href="../fegarch.html#MLOGGARCH_CONSTANTS">quantica.timeseries.fegarch.MLOGGARCH_CONSTANTS</a></code> (modulus-log in both terms ⇒
+<code>mean_log_modulus</code> centering). It splices the fractional operator into EGARCH's coefficient
+polynomial (WP 2026-04 Eq. 6):</p>
 
 <p>$$\theta(B) = \phi^{-1}(B)\,(1 - B)^{-d}\,\psi(B) = \sum_i \theta_i B^i,\qquad \theta_0 = 1,$$</p>
 
@@ -218,6 +243,176 @@ Burn-in samples discarded (default 500).</li>
 
 
                 </section>
+                <section id="fimegarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fimegarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fimegarch_recursion"></a>
+    
+            <div class="docstring"><p>FIMEGARCH(1,d,1) conditional variance — FIEGARCH with the MEGARCH constant-set.</p>
+
+<p>The modulus-log asymmetry \( \operatorname{sgn}(\eta)\ln(|\eta|+1) \) with the EGARCH
+\( |\eta| \) magnitude (<code>~<a href="../fegarch.html#MEGARCH_CONSTANTS">quantica.timeseries.fegarch.MEGARCH_CONSTANTS</a></code>), spliced into
+the same long-memory \( \theta(B) \) recursion.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (6,)):
+<code>(mu, omega_sig, phi1, kappa, gamma, d)</code>.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>abs_moment</strong> (float):
+\( \operatorname{E}|\eta| \), the magnitude centering, from <code>abs_moment()</code> (keyword).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \) (same MA(∞) pre-sample as FIEGARCH).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fimegarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fimegarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega_sig</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fimegarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a FIMEGARCH(1,d,1) process (modulus-log asymmetry, EGARCH magnitude).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega_sig</strong> (float):
+\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \), the MA(∞) intercept.</li>
+<li><strong>phi1, kappa, gamma, d</strong> (float):
+FIMEGARCH parameters; requires <code>|phi1| &lt; 1</code> and <code>0 &lt;= d &lt; 1</code>.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>).</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive, <code>|phi1| &gt;= 1</code>, or <code>d</code> is outside <code>[0, 1)</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fimloggarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fimloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fimloggarch_recursion"></a>
+    
+            <div class="docstring"><p>FIMLog-GARCH(1,d,1) conditional variance — FIEGARCH with the MLog-GARCH constant-set.</p>
+
+<p>The modulus-log transform \( \operatorname{sgn}(\eta)\ln(|\eta|+1) \) in <strong>both</strong> the
+asymmetry and the magnitude (<code>~<a href="../fegarch.html#MLOGGARCH_CONSTANTS">quantica.timeseries.fegarch.MLOGGARCH_CONSTANTS</a></code>), spliced
+into the same long-memory \( \theta(B) \) recursion.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (6,)):
+<code>(mu, omega_sig, phi1, kappa, gamma, d)</code>.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>mean_log_modulus</strong> (float):
+\( \operatorname{E}[\ln(|\eta|+1)] \), the magnitude centering, from
+<code>mean_log_modulus()</code> (keyword-only).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \) (same MA(∞) pre-sample as FIEGARCH).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fimloggarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fimloggarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega_sig</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fimloggarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a FIMLog-GARCH(1,d,1) process (modulus-log asymmetry and magnitude).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega_sig</strong> (float):
+\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \), the MA(∞) intercept.</li>
+<li><strong>phi1, kappa, gamma, d</strong> (float):
+FIMLog-GARCH parameters; requires <code>|phi1| &lt; 1</code> and <code>0 &lt;= d &lt; 1</code>.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>). Non-norm needs <code>mean_log_modulus</code>,
+currently implemented only for the normal (deferred).</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive, <code>|phi1| &gt;= 1</code>, or <code>d</code> is outside <code>[0, 1)</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fit_fiegarch">
                     <div class="attr function">
             
@@ -244,6 +439,69 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>, the on
 <ul>
 <li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma, d</code>, log-likelihood, per-observation AIC/BIC,
 and the conditional-volatility series (original return units).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_fimegarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_fimegarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="../fegarch.html#GarchFit">quantica.timeseries.fegarch.GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_fimegarch"></a>
+    
+            <div class="docstring"><p>Fit FIMEGARCH(1,d,1) (modulus-log asymmetry, EGARCH magnitude) by long-memory QMLE.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma, d</code> (+ log-likelihood, AIC/BIC, conditional
+SD).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_fimloggarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_fimloggarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="../fegarch.html#GarchFit">quantica.timeseries.fegarch.GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_fimloggarch"></a>
+    
+            <div class="docstring"><p>Fit FIMLog-GARCH(1,d,1) (modulus-log asymmetry and magnitude) by long-memory QMLE.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>, the only validated one). Non-norm needs
+<code>mean_log_modulus</code>, which is currently implemented only for the normal (deferred).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma, d</code> (+ log-likelihood, AIC/BIC, conditional
+SD).</li>
 </ul>
 </div>
 

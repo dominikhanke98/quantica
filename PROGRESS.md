@@ -120,9 +120,9 @@ APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ C
 at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
-**Phase 4 long-memory models ← IN PROGRESS (the final MODEL-BUILDING STEP): FIEGARCH(1,d,1) DONE
-(Step 33, PR #19)**, remaining FIMEGARCH / FIMLog-GARCH / FIGARCH / FIAPARCH / FITGARCH / FIGJR /
-FILog-GARCH → Phase 5 dual mean (ARMA / FARIMA mean +
+**Phase 4 long-memory models ← IN PROGRESS (the final MODEL-BUILDING STEP): the Type-I FI family
+FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34, PR #19)**, remaining FIGARCH / FIAPARCH
+/ FITGARCH / FIGJR / FILog-GARCH → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1241,6 +1241,31 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   **Next Phase-4 models** reuse this pattern: FIMEGARCH / FIMLog-GARCH swap the Type-I constant-set;
   FIGARCH / FIAPARCH / FITGARCH / FIGJR compose `(1−L)^d` with the SM recursions; FILog-GARCH is
   Type-II.
+
+- **Step 34 — fEGarch Phase 4, FIMEGARCH + FIMLog-GARCH(1,d,1) (branch `feat/fegarch-phase4`, PR #19,
+  NOT merged).** The next two Phase-4 long-memory models — the fractionally-integrated MEGARCH and
+  MLog-GARCH, built as **thin wrappers** over FIEGARCH's machinery (the *exact* long-memory analogue
+  of the Phase-2 §7 EGARCH→MEGARCH/MLog-GARCH relationship). Clean-room from WP171 §2.1 + App. C.3 +
+  the §7 constant-sets (no fEGarch source); validated against new committed fixtures
+  `fit_fimegarch11_norm_*` / `fit_fimloggarch11_norm_*` (R spec fns `fimegarch_spec` /
+  `fimloggarch_spec` confirmed via `ls`/`args`). **Compressed flow (no separate spec-extraction
+  stage):** the build was gated on a **read-only reconstruction** — both fixtures reconstructed from
+  their committed params using the existing `theta_coefficients` + `type1_news_impact` at the model's
+  constant-set to **machine precision** (FIMEGARCH `1.28e-16`, FIMLog-GARCH `1.25e-16`), confirming
+  the clean analogue before any model code. **Reuse seam:** `fiegarch.py` refactored to a private
+  `_fiegarch_variance`/`_fit_fiegarch`/`_sim_fiegarch` (constants + `log_modulus_magnitude` params,
+  mirroring `egarch.py`'s `_type1_*` seam); the six new public fns are one-liners; FIEGARCH's public
+  path + 11 tests unchanged (bit-identical). Constant-sets: FIMEGARCH = `MEGARCH_CONSTANTS` (|η|
+  magnitude, `abs_moment`), FIMLog-GARCH = `MLOGGARCH_CONSTANTS` (ln(|η|+1) magnitude,
+  `mean_log_modulus`; non-norm deferred). **Fixture match (FIEGARCH tier):** all six params rel
+  `≤2e-4`, loglik `≤2.4e-7`, AIC/BIC `≤2e-10`, σ-series `≤8.4e-7` (rel `≤8.2e-5`); recursion-at-params
+  σ to `~1e-16`. **The γ-tell carries over:** FIMEGARCH γ=0.172 vs FIMLog-GARCH γ=0.321 (1.87× ratio,
+  the log-modulus signature); both d≈0.74, φ₁≈0.39. **Checks (`test_fimegarch.py` +
+  `test_fimloggarch.py`, 22 tests):** fixture match, recursion reconstruction, `σ_0=exp(ωσ/2)`
+  presample tell, **d→0 reduction** to short-memory MEGARCH / MLog-GARCH (agreement `<1e-9` after
+  t=100), exact scale-equivariance, known-truth recovery incl. d, sim invariants + edges, FIMLog-GARCH
+  non-norm deferral. Docs: spec-notes §10, `__init__` Phase-3/4 sections, PROGRESS. Gate green.
+  **The Type-I long-memory family (FIEGARCH / FIMEGARCH / FIMLog-GARCH) is complete.**
 
 ## Next — optional depth only (planned scope is done)
 

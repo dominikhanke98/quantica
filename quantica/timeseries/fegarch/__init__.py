@@ -51,8 +51,31 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.fit_loggarch` /
   :func:`~quantica.timeseries.fegarch.loggarch_sim`. This completes the four Phase-2 EGF models.
 
-The fractional-differencing engine, the long-memory models, the dual mean and the forecasting/risk
-tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
+**Phase 3 — the fractional-differencing engine** (complete):
+
+* **(1-L)^d operator** (:mod:`~quantica.timeseries.fegarch.fracdiff`) — the binomial
+  :math:`(1-L)^d = \sum_i (-1)^i \binom{d}{i} L^i` filter (Hosking 1981; Bollerslev-Mikkelsen 1996),
+  :func:`~quantica.timeseries.fegarch.fracdiff_coeffs` +
+  :func:`~quantica.timeseries.fegarch.fracdiff`
+  (direct and FFT paths, App. C.3 truncation ``L = n-1`` / pre-sample 0). An internal filter, not a
+  fitted model — validated analytically + cross-method, the load-bearing infrastructure for Phase 4.
+
+**Phase 4 — long-memory (fractionally-integrated) models** (Type-I family complete):
+
+* **FIEGARCH / FIMEGARCH / FIMLog-GARCH** (:mod:`~quantica.timeseries.fegarch.fiegarch`) — the
+  fractionally-integrated Type-I EGF models, a truncated-MA(∞) log-variance recursion
+  :math:`\ln\sigma_t^2 = \omega_\sigma + \sum_i \theta_i\, g(\eta_{t-1-i})` whose coefficients
+  :math:`\theta(B) = \phi^{-1}(B)(1-B)^{-d}\psi(B)` splice the Phase-3 fractional operator into the
+  Phase-2 Type-I news impact :math:`g`. They are built by composition — the same
+  :func:`~quantica.timeseries.fegarch.theta_coefficients` machinery, differing only in the
+  constant-set (EGARCH / MEGARCH / MLog-GARCH) — via
+  :func:`~quantica.timeseries.fegarch.fit_fiegarch` /
+  :func:`~quantica.timeseries.fegarch.fit_fimegarch` /
+  :func:`~quantica.timeseries.fegarch.fit_fimloggarch` and their simulators. The fractional order
+  :math:`d \in (0, 1)` is estimated (not clamped at ``0.5``).
+
+The remaining long-memory models (FIGARCH / FIAPARCH / FITGARCH / FIGJR / FILog-GARCH), the dual
+mean and the forecasting/risk tie-back arrive later — see ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -96,7 +119,13 @@ from quantica.timeseries.fegarch.egarch import (
 from quantica.timeseries.fegarch.fiegarch import (
     fiegarch_recursion,
     fiegarch_sim,
+    fimegarch_recursion,
+    fimegarch_sim,
+    fimloggarch_recursion,
+    fimloggarch_sim,
     fit_fiegarch,
+    fit_fimegarch,
+    fit_fimloggarch,
     theta_coefficients,
 )
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
@@ -129,9 +158,15 @@ __all__ = [
     "egarch_sim",
     "fiegarch_recursion",
     "fiegarch_sim",
+    "fimegarch_recursion",
+    "fimegarch_sim",
+    "fimloggarch_recursion",
+    "fimloggarch_sim",
     "fit_aparch",
     "fit_egarch",
     "fit_fiegarch",
+    "fit_fimegarch",
+    "fit_fimloggarch",
     "fit_garch",
     "fit_gjr",
     "fit_loggarch",
