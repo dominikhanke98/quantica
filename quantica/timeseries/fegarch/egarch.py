@@ -83,6 +83,9 @@ if TYPE_CHECKING:
     from quantica.core.types import FloatArray
 
 __all__ = [
+    "EGARCH_CONSTANTS",
+    "MEGARCH_CONSTANTS",
+    "MLOGGARCH_CONSTANTS",
     "egarch_recursion",
     "egarch_sim",
     "fit_egarch",
@@ -92,14 +95,15 @@ __all__ = [
     "megarch_sim",
     "mloggarch_recursion",
     "mloggarch_sim",
+    "type1_news_impact",
 ]
 
 _VAR_NAMES = ("mu", "omega_sig", "phi1", "kappa", "gamma")
 
 # Construction constants (M_asy, p_asy, M_mag, p_mag) — fixed per model, not fitted.
-_EGARCH_CONSTANTS = (0.0, 1.0, 0.0, 1.0)
-_MEGARCH_CONSTANTS = (1.0, 0.0, 0.0, 1.0)
-_MLOGGARCH_CONSTANTS = (1.0, 0.0, 1.0, 0.0)
+EGARCH_CONSTANTS = (0.0, 1.0, 0.0, 1.0)
+MEGARCH_CONSTANTS = (1.0, 0.0, 0.0, 1.0)
+MLOGGARCH_CONSTANTS = (1.0, 0.0, 1.0, 0.0)
 
 
 def _modulus_core(a: float, modulus: float, power: float) -> float:
@@ -124,6 +128,45 @@ def _g_asy(eta: float, modulus: float, power: float) -> float:
 def _g_mag(eta: float, modulus: float, power: float) -> float:
     r"""Magnitude transform :math:`g_{\mathrm{mag}}(\eta) = \text{core}(|\eta|)` (no sign)."""
     return _modulus_core(abs(eta), modulus, power)
+
+
+def type1_news_impact(
+    eta: float,
+    kappa: float,
+    gamma: float,
+    *,
+    constants: tuple[float, float, float, float],
+    mean_asy: float,
+    mean_mag: float,
+) -> float:
+    r"""The Type-I EGF news-impact transform :math:`g(\eta)` for a given constant-set.
+
+    :math:`g(\eta) = \kappa\{g_{\mathrm{asy}}(\eta) - \operatorname{E}[g_{\mathrm{asy}}]\} +
+    \gamma\{g_{\mathrm{mag}}(\eta) - \operatorname{E}[g_{\mathrm{mag}}]\}` (WP 2026-04 Eq. 7). It is
+    the shared seam reused by the short-memory Type-I models and by the fractionally-integrated
+    variants (FIEGARCH / FIMEGARCH / FIMLog-GARCH), which compose it with the ``(1-L)^d`` operator.
+
+    Parameters
+    ----------
+    eta : float
+        The standardized residual :math:`\eta_t`.
+    kappa, gamma : float
+        The asymmetry and magnitude coefficients.
+    constants : tuple of float
+        ``(M_asy, p_asy, M_mag, p_mag)`` — the model's fixed construction constants.
+    mean_asy, mean_mag : float
+        The centering moments :math:`\operatorname{E}[g_{\mathrm{asy}}]` (0 for symmetric) and
+        :math:`\operatorname{E}[g_{\mathrm{mag}}]`, from the conditional distribution.
+
+    Returns
+    -------
+    float
+        The news-impact value :math:`g(\eta)`.
+    """
+    m_asy, p_asy, m_mag, p_mag = constants
+    return kappa * (_g_asy(eta, m_asy, p_asy) - mean_asy) + gamma * (
+        _g_mag(eta, m_mag, p_mag) - mean_mag
+    )
 
 
 def _type1_variance(
@@ -155,7 +198,6 @@ def _type1_variance(
         \phi_1\ln\operatorname{Var}(r)` (``ddof=1``) and a zero pre-sample news impact.
     """
     mu, omega_sig, phi1, kappa, gamma = (float(p) for p in params)
-    m_asy, p_asy, m_mag, p_mag = constants
     y = np.asarray(returns, dtype=np.float64)
     resid = y - mu
     n = y.size
@@ -164,8 +206,8 @@ def _type1_variance(
     log_var[0] = omega + phi1 * np.log(np.var(y, ddof=1))  # g pre-sample = 0
     for t in range(1, n):
         eta = resid[t - 1] / np.exp(log_var[t - 1] / 2.0)
-        g = kappa * (_g_asy(eta, m_asy, p_asy) - mean_asy) + gamma * (
-            _g_mag(eta, m_mag, p_mag) - mean_mag
+        g = type1_news_impact(
+            eta, kappa, gamma, constants=constants, mean_asy=mean_asy, mean_mag=mean_mag
         )
         log_var[t] = omega + g + phi1 * log_var[t - 1]
     return np.exp(log_var)
@@ -190,7 +232,7 @@ def egarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: flo
         The conditional variances :math:`\sigma_t^2`.
     """
     return _type1_variance(
-        params, returns, constants=_EGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
+        params, returns, constants=EGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
     )
 
 
@@ -214,7 +256,7 @@ def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: fl
         The conditional variances :math:`\sigma_t^2`.
     """
     return _type1_variance(
-        params, returns, constants=_MEGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
+        params, returns, constants=MEGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
     )
 
 
@@ -241,7 +283,7 @@ def mloggarch_recursion(
         The conditional variances :math:`\sigma_t^2`.
     """
     return _type1_variance(
-        params, returns, constants=_MLOGGARCH_CONSTANTS, mean_asy=0.0, mean_mag=mean_log_modulus
+        params, returns, constants=MLOGGARCH_CONSTANTS, mean_asy=0.0, mean_mag=mean_log_modulus
     )
 
 
@@ -330,7 +372,7 @@ def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega_sig, phi1, kappa, gamma``, log-likelihood, per-observation AIC/BIC,
         and the conditional-volatility series (original return units).
     """
-    return _fit_type1(returns, cond_dist, constants=_EGARCH_CONSTANTS, log_modulus_magnitude=False)
+    return _fit_type1(returns, cond_dist, constants=EGARCH_CONSTANTS, log_modulus_magnitude=False)
 
 
 def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
@@ -348,7 +390,7 @@ def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     GarchFit
         Estimates ``mu, omega_sig, phi1, kappa, gamma`` (+ log-likelihood, AIC/BIC, conditional SD).
     """
-    return _fit_type1(returns, cond_dist, constants=_MEGARCH_CONSTANTS, log_modulus_magnitude=False)
+    return _fit_type1(returns, cond_dist, constants=MEGARCH_CONSTANTS, log_modulus_magnitude=False)
 
 
 def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
@@ -366,9 +408,7 @@ def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     GarchFit
         Estimates ``mu, omega_sig, phi1, kappa, gamma`` (+ log-likelihood, AIC/BIC, conditional SD).
     """
-    return _fit_type1(
-        returns, cond_dist, constants=_MLOGGARCH_CONSTANTS, log_modulus_magnitude=True
-    )
+    return _fit_type1(returns, cond_dist, constants=MLOGGARCH_CONSTANTS, log_modulus_magnitude=True)
 
 
 def _sim_type1(
@@ -399,16 +439,14 @@ def _sim_type1(
         mean_mag = distribution.mean_log_modulus(dist_params)
     else:
         mean_mag = distribution.abs_moment(dist_params)
-    m_asy, p_asy, m_mag, p_mag = constants
     omega = omega_sig * (1.0 - phi1)
     total = n + n_burn
     eta = distribution.sample(total, rng, dist_params)
     log_var = np.empty(total, dtype=np.float64)
     log_var[0] = omega_sig  # start at the unconditional mean E[ln sigma^2]
     for t in range(1, total):
-        e = eta[t - 1]
-        g = kappa * (_g_asy(e, m_asy, p_asy) - mean_asy) + gamma * (
-            _g_mag(e, m_mag, p_mag) - mean_mag
+        g = type1_news_impact(
+            eta[t - 1], kappa, gamma, constants=constants, mean_asy=mean_asy, mean_mag=mean_mag
         )
         log_var[t] = omega + g + phi1 * log_var[t - 1]
     sigma = np.exp(log_var / 2.0)
@@ -470,7 +508,7 @@ def egarch_sim(
         phi1=phi1,
         kappa=kappa,
         gamma=gamma,
-        constants=_EGARCH_CONSTANTS,
+        constants=EGARCH_CONSTANTS,
         log_modulus_magnitude=False,
         cond_dist=cond_dist,
         dist_params=dist_params,
@@ -529,7 +567,7 @@ def megarch_sim(
         phi1=phi1,
         kappa=kappa,
         gamma=gamma,
-        constants=_MEGARCH_CONSTANTS,
+        constants=MEGARCH_CONSTANTS,
         log_modulus_magnitude=False,
         cond_dist=cond_dist,
         dist_params=dist_params,
@@ -589,7 +627,7 @@ def mloggarch_sim(
         phi1=phi1,
         kappa=kappa,
         gamma=gamma,
-        constants=_MLOGGARCH_CONSTANTS,
+        constants=MLOGGARCH_CONSTANTS,
         log_modulus_magnitude=True,
         cond_dist=cond_dist,
         dist_params=dist_params,

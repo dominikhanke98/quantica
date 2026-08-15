@@ -559,5 +559,70 @@ Realized:
 
 ---
 
-*Add further specification derivations here as later phases (the long-memory FI models, the dual
-mean) are implemented — always from the papers/manual, never the source.*
+## 9. FIEGARCH(1,d,1) — the first long-memory model — RESOLVED (Phase 4)
+
+**Sources.** WP 2026-04 §2.1 Eqs. 4–6 (the fractionally-integrated EGF), App. C.3 Eq. 50 (the
+truncated-MA(∞) recursion + the L=n−1 / pre-sample-0 policy inherited from §8.2). fEGarch source
+never consulted; validated against the committed output fixture
+`fit_fiegarch11_norm_{params.json,sigma.csv}` (generated once in R on the seeded
+`synthetic_returns.csv`).
+
+### 9.1 The model — composition, not new numerics
+
+FIEGARCH replaces EGARCH's AR log-variance recursion with a **truncated MA(∞)** in the same Type-I
+news impact `g(η) = κη + γ(|η| − E|η|)` (the EGARCH `(0,1,0,1)` constant-set, §7):
+
+```
+ln σ²_t = ωσ + Σ_{i=0}^{L−1} θ_i · g(η_{t−1−i}),     θ(B) = φ⁻¹(B)(1−B)^{−d}ψ(B) = Σ θ_i B^i,  θ_0 = 1,
+```
+
+which for orders `(1,d,1)` (`p=q=1` ⇒ `ψ(B)=1`) is `θ(B) = (1 − φ₁B)⁻¹(1 − B)^{−d}`. So the whole
+model is built by **composition of two existing engines** — nothing new is hand-rolled:
+
+- the **Phase-2 Type-I `g`** is reused verbatim through the `type1_news_impact(…, constants=
+  EGARCH_CONSTANTS, mean_asy=0, mean_mag=E|η|)` seam (§7.3);
+- the **`θ` coefficients** are the causal convolution of the geometric `φ⁻¹(B) = Σ_k φ₁^k B^k` series
+  with the **Phase-3 fractional-integration** coefficients `b_i(−d)` of `(1−B)^{−d}` —
+  i.e. `fracdiff_coeffs(−d, L)` at **negative** exponent (fractional *integration*, §8.1) — computed
+  as `θ_i = Σ_{k=0}^{i} φ₁^k b_{i−k}(−d)`, FFT-accelerated (the Nielsen-Noël 2021 product App. C.3
+  cites). `theta_coefficients(φ₁, d, L)` returns these with `θ_0 = 1`.
+
+Parameter vector: `(mu, omega_sig, phi1, kappa, gamma, d)` — EGARCH's five plus the fractional `d`.
+
+### 9.2 Pre-sample — the one real divergence from EGARCH (fixture-pinned)
+
+The MA(∞) form has **no `ln σ²_{t−i}` feedback** and **no `ln Var(r)` seed** (unlike EGARCH's AR
+form, §5.3). Two consequences, both confirmed against the fixture to `~1e-16`:
+
+- the intercept is `ωσ` **directly** — *not* the AR-form `ωσ(1−φ₁)` (which reconstructs the fixture
+  σ-series at relative error `4.9`, decisively wrong);
+- the `g`-history is `0` for `t ≤ 0`, so `ln σ²_0 = ωσ` and **`σ_0 = exp(ωσ/2)` exactly** — asserted
+  as the presample *tell* in the tests.
+
+### 9.3 The fractional order `d ∈ (0, 1)` — bound NOT clamped at 0.5
+
+`d = 0` collapses to short-memory EGARCH; `d ∈ (0, 0.5)` is weakly stationary long memory; and
+`d ∈ (0.5, 1)` is mean-reverting but **non-stationary** long memory. The fEGarch fit lands
+`d = 0.744` (upper regime) with a small `φ₁ = 0.39`: the high-persistence GARCH-simulated data is
+captured by a large `d` and a small `φ₁`, the persistence **reparameterized from the AR term into the
+slow θ tail**. The QMLE bound is therefore `d ∈ (1e-6, 0.9999)` — **not** clamped at 0.5 — and the
+truncation is the full `L = n−1` (§8.2), so the whole slowly-decaying θ tail is load-bearing at large
+`d`. Scale-equivariance is the EGARCH one (additive `ωσ ← ωσ + ln c²`, `μ ← cμ`, everything else
+invariant), exact at the recursion level.
+
+### 9.4 Fixture confirmation + checks
+
+`fit_fiegarch(returns, cond_dist="norm")` matches the fEGarch fixture at **EGARCH tier** (the model is
+well-identified despite the extra `d`): all six params to relative `≤ 3.4e-4` (`d` to `2.8e-5`),
+log-likelihood to `7e-7`, AIC/BIC to `6e-10`, and the σ-series to `1.8e-6` (relative `6.3e-5`). The
+recursion at the reported params reproduces the fixture σ to `1.4e-16`. Additional checks: the
+`σ_0 = exp(ωσ/2)` presample tell; the **d→0 reduction** (`theta_coefficients(φ₁,0,L)` collapses to
+EGARCH's geometric `θ_i = φ₁^i` to `~1e-16`); exact recursion-level scale-equivariance; and
+known-truth recovery of all six params incl. `d` within a few SE (the `d`/`φ₁` SEs are wider — the
+persistence trades off between them on a flatter surface). The fit recursion is `O(n²)` (g feeds back
+through σ); simulation is `O(n log n)` (innovations given ⇒ g precomputed, one FFT convolution).
+
+---
+
+*Add further specification derivations here as later phases (the remaining long-memory FI models, the
+dual mean) are implemented — always from the papers/manual, never the source.*

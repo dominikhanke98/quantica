@@ -120,8 +120,9 @@ APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ C
 at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
-**Phase 4 long-memory models ← NEXT (and final) MODEL-BUILDING STEP** (FIGARCH…, then FIEGARCH /
-FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
+**Phase 4 long-memory models ← IN PROGRESS (the final MODEL-BUILDING STEP): FIEGARCH(1,d,1) DONE
+(Step 33, PR #19)**, remaining FIMEGARCH / FIMLog-GARCH / FIGARCH / FIAPARCH / FITGARCH / FIGJR /
+FILog-GARCH → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1215,6 +1216,31 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   extend the short-memory recursions (Phase 1); **FIEGARCH / FIMEGARCH / FIMLog-GARCH** extend the
   generalized Type-I `g`-transformation seam (Phase 2 §7); **FILog-GARCH** is Type-II and inherits
   Log-GARCH's near-common-root ridge.
+
+- **Step 33 — fEGarch Phase 4, first long-memory model: FIEGARCH(1,d,1) (branch `feat/fegarch-phase4`,
+  PR #19, NOT merged).** The first fractionally-integrated model, built purely by **composition** of
+  existing engines — clean-room from WP171 §2.1 Eqs. 4–6 + App. C.3 Eq. 50 (no fEGarch source),
+  validated against the new committed fixture `fit_fiegarch11_norm_*`. New
+  `quantica/timeseries/fegarch/fiegarch.py`: `theta_coefficients(phi1, d, length)` (the θ(B) =
+  (1−φ₁B)⁻¹(1−B)^{−d} coefficients — geometric φ⁻¹ series FFT-convolved with the Phase-3
+  `fracdiff_coeffs(−d)` fractional-*integration* coefficients, θ_0=1), `fiegarch_recursion`
+  (truncated MA(∞) `ln σ²_t = ωσ + Σ θ_i g(η_{t−1−i})` reusing the Phase-2 `type1_news_impact` at
+  `EGARCH_CONSTANTS`), `fit_fiegarch` (scale-equivariant QMLE on the Phase-0 engine, param vector
+  `(mu, omega_sig, phi1, kappa, gamma, d)`, `d` bound `(1e-6, 0.9999)` — **not** clamped at 0.5), and
+  `fiegarch_sim` (`O(n log n)`, one FFT convolution). **Reuse seam added to `egarch.py`:** public
+  `type1_news_impact` + `EGARCH/MEGARCH/MLOGGARCH_CONSTANTS`, with `_type1_variance`/`_sim_type1`
+  refactored to call it (Phase-2 regression bit-identical, 27 tests pass). **The one divergence from
+  EGARCH (fixture-pinned):** MA-form presample — intercept `ωσ` directly (not AR-form `ωσ(1−φ₁)`), no
+  `ln Var` seed, so `σ_0 = exp(ωσ/2)` exactly. **Fixture match (EGARCH tier):** all six params to rel
+  `≤3.4e-4` (`d` to `2.8e-5`), loglik `7e-7`, AIC/BIC `6e-10`, σ-series `1.8e-6` (rel `6.3e-5`);
+  recursion-at-fixture-params reproduces σ to `1.4e-16`. **Checks (`test_fiegarch.py`, 11 tests):**
+  fixture match, recursion reconstruction, `σ_0=exp(ωσ/2)` presample tell, **d→0 reduction** to
+  EGARCH's geometric `θ_i=φ₁^i` (~1e-16), exact recursion-level scale-equivariance, known-truth
+  recovery incl. `d`, sim invariants + edge cases; the fitted `d=0.744` (upper regime) with `φ₁=0.39`
+  confirms the persistence reparameterizes into the θ tail. Docs: spec-notes §9, PROGRESS. Gate green.
+  **Next Phase-4 models** reuse this pattern: FIMEGARCH / FIMLog-GARCH swap the Type-I constant-set;
+  FIGARCH / FIAPARCH / FITGARCH / FIGJR compose `(1−L)^d` with the SM recursions; FILog-GARCH is
+  Type-II.
 
 ## Next — optional depth only (planned scope is done)
 

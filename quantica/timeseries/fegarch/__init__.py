@@ -79,6 +79,9 @@ from quantica.timeseries.fegarch.distributions import (
     get_distribution,
 )
 from quantica.timeseries.fegarch.egarch import (
+    EGARCH_CONSTANTS,
+    MEGARCH_CONSTANTS,
+    MLOGGARCH_CONSTANTS,
     egarch_recursion,
     egarch_sim,
     fit_egarch,
@@ -88,6 +91,13 @@ from quantica.timeseries.fegarch.egarch import (
     megarch_sim,
     mloggarch_recursion,
     mloggarch_sim,
+    type1_news_impact,
+)
+from quantica.timeseries.fegarch.fiegarch import (
+    fiegarch_recursion,
+    fiegarch_sim,
+    fit_fiegarch,
+    theta_coefficients,
 )
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
@@ -101,6 +111,9 @@ from quantica.timeseries.fegarch.qmle import (
 
 __all__ = [
     "DISTRIBUTIONS",
+    "EGARCH_CONSTANTS",
+    "MEGARCH_CONSTANTS",
+    "MLOGGARCH_CONSTANTS",
     "AverageLaplace",
     "ConditionalDistribution",
     "FernandezSteelSkew",
@@ -114,8 +127,11 @@ __all__ = [
     "aparch_sim",
     "egarch_recursion",
     "egarch_sim",
+    "fiegarch_recursion",
+    "fiegarch_sim",
     "fit_aparch",
     "fit_egarch",
+    "fit_fiegarch",
     "fit_garch",
     "fit_gjr",
     "fit_loggarch",
@@ -139,4 +155,6 @@ __all__ = [
     "quasi_max_likelihood",
     "tgarch_recursion",
     "tgarch_sim",
+    "theta_coefficients",
+    "type1_news_impact",
 ]
