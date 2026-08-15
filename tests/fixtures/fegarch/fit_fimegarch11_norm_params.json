@@ -1,0 +1,25 @@
+{
+  "model": "fimegarch",
+  "cond_dist": "norm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "n-1",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00048881712632293183,
+    "omega_sig": -9.1157146677710568,
+    "phi1": 0.3913505269555943,
+    "kappa": -0.032898393807228782,
+    "gamma": 0.1719890328942861,
+    "d": 0.74362479058571351
+  },
+  "loglikelihood": 7593.0771696961492,
+  "aic": -6.0696617357569194,
+  "bic": -6.0556840253308639,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

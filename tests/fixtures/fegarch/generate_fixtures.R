@@ -243,6 +243,43 @@ tryCatch({
 }, error = function(e) cat("  ERROR fiegarch:", conditionMessage(e),
                           "| exists('fiegarch_spec') =", exists("fiegarch_spec"), "\n"))
 
+# --- Phase-4 long-memory: FIMEGARCH, FIMLog-GARCH ----------------------------
+# The fractionally-integrated Type-I modulus variants — long-memory analogues of MEGARCH /
+# MLog-GARCH, same fractional order d as FIEGARCH. Spec-first via the dedicated fimegarch_spec() /
+# fimloggarch_spec() wrappers + fEGarch(), like fiegarch_spec — the calling convention is CONFIRMED
+# below via ls()/args() (NOT guessed; no source read). Diagnostic: list the package's fi*_spec
+# wrappers and print the args of the two we use, so the console output pins the convention.
+cat("  fi*_spec wrappers in package:fEGarch:",
+    paste(grep("^fi.*_spec$", ls("package:fEGarch"), value = TRUE), collapse = ", "), "\n")
+for (fn in c("fimegarch_spec", "fimloggarch_spec")) {
+  if (exists(fn)) cat(sprintf("    args(%s): %s\n", fn,
+                              paste(deparse(args(get(fn))), collapse = " ")))
+}
+
+# print the full named parameter vector (so the fractional order d is visible whatever it is named)
+cat_pars <- function(fit) {
+  p <- pars(fit)
+  cat("   ", paste(sprintf("%s=%.7g", names(p), as.numeric(p)), collapse = ", "), "\n")
+}
+
+tryCatch({
+  fimegarch_fit <- fEGarch(fimegarch_spec(orders = c(1, 1), cond_dist = "norm"), returns,
+                           parallel = FALSE)
+  cat("  fimegarch pars:", paste(names(pars(fimegarch_fit)), collapse = ", "), "\n")
+  cat_pars(fimegarch_fit)
+  fit_and_dump(fimegarch_fit, "fimegarch11_norm", "fimegarch", "norm", trunc = "n-1")
+}, error = function(e) cat("  ERROR fimegarch:", conditionMessage(e),
+                          "| exists('fimegarch_spec') =", exists("fimegarch_spec"), "\n"))
+
+tryCatch({
+  fimloggarch_fit <- fEGarch(fimloggarch_spec(orders = c(1, 1), cond_dist = "norm"), returns,
+                             parallel = FALSE)
+  cat("  fimloggarch pars:", paste(names(pars(fimloggarch_fit)), collapse = ", "), "\n")
+  cat_pars(fimloggarch_fit)
+  fit_and_dump(fimloggarch_fit, "fimloggarch11_norm", "fimloggarch", "norm", trunc = "n-1")
+}, error = function(e) cat("  ERROR fimloggarch:", conditionMessage(e),
+                          "| exists('fimloggarch_spec') =", exists("fimloggarch_spec"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -287,14 +324,17 @@ manifest <- list(
       megarch11_norm = list(params = "fit_megarch11_norm_params.json", sigma = "fit_megarch11_norm_sigma.csv"),
       mloggarch11_norm = list(params = "fit_mloggarch11_norm_params.json", sigma = "fit_mloggarch11_norm_sigma.csv"),
       fiegarch11_norm = list(params = "fit_fiegarch11_norm_params.json", sigma = "fit_fiegarch11_norm_sigma.csv",
-                             note = "first Phase-4 long-memory fixture (fractionally-integrated EGARCH; fractional order d estimated, App. C.3 trunc L=n-1)"))),
+                             note = "first Phase-4 long-memory fixture (fractionally-integrated EGARCH; fractional order d estimated, App. C.3 trunc L=n-1)"),
+      fimegarch11_norm = list(params = "fit_fimegarch11_norm_params.json", sigma = "fit_fimegarch11_norm_sigma.csv",
+                              note = "Phase-4 long-memory: fractionally-integrated MEGARCH (Type-I modulus asymmetry, |eta| magnitude; d estimated, App. C.3 trunc L=n-1)"),
+      fimloggarch11_norm = list(params = "fit_fimloggarch11_norm_params.json", sigma = "fit_fimloggarch11_norm_sigma.csv",
+                                note = "Phase-4 long-memory: fractionally-integrated MLog-GARCH (Type-I modulus asymmetry + ln(|eta|+1) magnitude; d estimated, App. C.3 trunc L=n-1)"))),
   pending_fixtures = paste(
-    "Phase-2 EGARCH-family (1,1)/norm fits are complete; FIEGARCH is the first Phase-4 long-memory",
-    "fit. Later phases need more fixtures: all short-memory + EGARCH-family models under the other 7",
-    "conditional distributions; the remaining long-memory fits (FIGARCH/FIAPARCH/FILog-GARCH/",
-    "FIMEGARCH/FIMLog-GARCH, Phase 4); dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES",
-    "(Phase 6). Extend this script and",
-    "re-run when those models are implemented."))
+    "Phase-2 EGARCH-family (1,1)/norm fits are complete; the Type-I long-memory FI models",
+    "(FIEGARCH/FIMEGARCH/FIMLog-GARCH) are done. Later phases need more fixtures: all short-memory +",
+    "EGARCH-family models under the other 7 conditional distributions; the remaining long-memory fits",
+    "(FIGARCH/FIAPARCH/FITGARCH/FIGJR/FILog-GARCH, Phase 4); dual-mean (ARMA/FARIMA) fits (Phase 5);",
+    "and forecasts / VaR-ES (Phase 6). Extend this script and re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")
