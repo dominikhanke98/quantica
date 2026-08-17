@@ -73,9 +73,21 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.fit_fimegarch` /
   :func:`~quantica.timeseries.fegarch.fit_fimloggarch` and their simulators. The fractional order
   :math:`d \in (0, 1)` is estimated (not clamped at ``0.5``).
+* **FIGARCH(1,d,1)** (:mod:`~quantica.timeseries.fegarch.figarch`) — the first
+  **variance-recursion** long-memory model (a different seam from the EGF family): the operator
+  enters the conditional-variance polynomial,
+  :math:`\sigma_t^2 = \omega + \sum_i \theta_i \varepsilon_{t-i}^2`
+  with :math:`\theta(B) = 1-(1-\phi_1 B)(1-B)^d/(1-\beta_1 B)` (Baillie-Bollerslev-Mikkelsen 1996;
+  WP175). The intercept :math:`\omega` is used directly, and — with no :math:`\eta`/:math:`\sigma^2`
+  feedback — :math:`\sigma_t^2` is a pure linear filter of observed :math:`\varepsilon^2`. Via
+  :func:`~quantica.timeseries.fegarch.fit_figarch` and
+  :func:`~quantica.timeseries.fegarch.figarch_sim`; the shared primitives
+  :func:`~quantica.timeseries.fegarch.figarch_coefficients` and
+  :func:`~quantica.timeseries.fegarch.figarch_variance_filter` (with the resolved 50-term
+  ``Var(ddof=1)`` pre-sample) are inherited by the FIAPARCH / FITGARCH / FIGJR group.
 
-The remaining long-memory models (FIGARCH / FIAPARCH / FITGARCH / FIGJR / FILog-GARCH), the dual
-mean and the forecasting/risk tie-back arrive later — see ``docs/fegarch-port-roadmap.md``.
+The remaining long-memory models (FIAPARCH / FITGARCH / FIGJR / FILog-GARCH), the dual mean and the
+forecasting/risk tie-back arrive later — see ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -128,6 +140,14 @@ from quantica.timeseries.fegarch.fiegarch import (
     fit_fimloggarch,
     theta_coefficients,
 )
+from quantica.timeseries.fegarch.figarch import (
+    FIGARCH_PRESAMPLE,
+    figarch_coefficients,
+    figarch_recursion,
+    figarch_sim,
+    figarch_variance_filter,
+    fit_figarch,
+)
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
 from quantica.timeseries.fegarch.loggarch import fit_loggarch, loggarch_recursion, loggarch_sim
@@ -141,6 +161,7 @@ from quantica.timeseries.fegarch.qmle import (
 __all__ = [
     "DISTRIBUTIONS",
     "EGARCH_CONSTANTS",
+    "FIGARCH_PRESAMPLE",
     "MEGARCH_CONSTANTS",
     "MLOGGARCH_CONSTANTS",
     "AverageLaplace",
@@ -158,6 +179,10 @@ __all__ = [
     "egarch_sim",
     "fiegarch_recursion",
     "fiegarch_sim",
+    "figarch_coefficients",
+    "figarch_recursion",
+    "figarch_sim",
+    "figarch_variance_filter",
     "fimegarch_recursion",
     "fimegarch_sim",
     "fimloggarch_recursion",
@@ -165,6 +190,7 @@ __all__ = [
     "fit_aparch",
     "fit_egarch",
     "fit_fiegarch",
+    "fit_figarch",
     "fit_fimegarch",
     "fit_fimloggarch",
     "fit_garch",

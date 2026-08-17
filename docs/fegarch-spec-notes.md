@@ -679,5 +679,87 @@ is **deferred** (its `mean_log_modulus` centering is implemented only for the no
 
 ---
 
+## 11. FIGARCH(1,d,1) — the variance-recursion long-memory seam — RESOLVED (Phase 4)
+
+**Sources.** Baillie-Bollerslev-Mikkelsen (1996) for the FIGARCH form; Conrad-Haag (2006) for the
+ARCH(∞) non-negativity conditions; **WP175 §2.1 Eqs. 2.3-2.4** for the ω-direct parameterization.
+fEGarch source never consulted; validated against the committed fixture `fit_figarch11_norm_*` (R
+function `figarch()` confirmed via `ls`/`args` — a **data-first** function, there is no
+`figarch_spec`). The pre-sample convention was resolved by matching the fixture to machine precision.
+
+### 11.1 A new seam — the operator in the *variance* recursion (ω-direct, no feedback)
+
+FIGARCH is the first **non-EGF** long-memory model: the `(1−L)^d` operator enters the
+conditional-**variance** polynomial (WP175 Eq. 2.4), not the log-variance θ(B):
+
+```
+σ²_t = ω + Σ_{i=1}^{∞} θ_i ε²_{t−i},   ε_t = r_t − μ,   θ(B) = 1 − (1−φ₁B)(1−B)^d / (1−β₁B),
+```
+
+with `θ_1 = d + φ₁ − β₁` and all `θ_i ≥ 0` (Conrad-Haag). Three properties distinguish this seam:
+
+- **ω-direct intercept.** The intercept is the **variance** `ω` (WP175 `ω*`) used *directly* — **not**
+  the Baillie-Bollerslev-Mikkelsen / `arch`-package ARCH(∞) intercept `(1−β₁)⁻¹ω`. This was pinned
+  empirically (`ω + Var ≈ mean h_fix`) and confirmed against WP175; the `arch` package's `(1−β)⁻¹ω`
+  form is why it diverges at ~2e-3 (§11.4).
+- **No feedback.** `σ²_t` is a **pure linear filter of observed `ε²`** — there is no η/σ² feedback
+  (unlike every prior model). So the fit recursion is a single causal convolution
+  (`figarch_variance_filter`), not a coupled step-by-step recursion, and the fit is fast (O(n log n),
+  ~0.6 s). Simulation *does* couple (there `ε²=σ²η²` is generated), so it is a sequential recursion.
+- **Reuses Phase-3 `fracdiff_coeffs` at +d.** `θ(B)` = `fracdiff_coeffs(+d)` ⊛ `(1−φ₁B)` ⊛ geometric
+  `(1−β₁B)⁻¹` (FFT-accelerated) — the *positive* exponent `(1−B)^d` is fractional **differencing**,
+  vs FIEGARCH's `−d` integration. Factored into public `figarch_coefficients` +
+  `figarch_variance_filter`, the reusable primitives the SM-FI group inherits (§11.5).
+
+Parameter vector `(mu, omega, phi1, beta1, d)`; `φ₁`/`β₁` the ARCH/GARCH lags, `d ∈ (0,1)`
+(figarch's `drange`; fitted `d = 0.678` is upper-regime). ω scales **multiplicatively** by `c²` under
+a return rescale (a variance intercept), unlike the EGF `ωσ` additive shift.
+
+### 11.2 Pre-sample = 50 terms at Var(ddof=1) — resolved to machine precision
+
+App. C.3's EGF convention (`L=n−1`, g/ξ=0) does **not** apply to FIGARCH. `figarch()`'s own defaults
+are `trunc="none"`, `presample=50`, which WP171/WP175 do not fully specify. Resolved against the
+fixture by exhaustive candidate testing: the pre-sample `ε²_{t−i}` (`t−i ≤ 0`) are seeded at the
+**unbiased sample variance `Var(r)` (ddof=1)** for exactly the first **50** lags, `0` beyond;
+`trunc="none"` = the θ(B) series runs full length. **Both parameters are decisive and unique:**
+
+| convention | max\|σ − fixture\| |
+|---|---|
+| **50 terms, Var(ddof=1)** | **4.86e-17** (machine-exact) |
+| 50 terms, Var(ddof=0) | 2.33e-6 |
+| 49 or 51 terms, Var(ddof=1) | ~8e-6 |
+| all pre-sample = 0 | 9.25e-3 |
+| unconditional ω/(1−Σθ) (degenerate, Σθ→1) | 3.71e-2 |
+
+Confirmed by an independent direct (non-FFT) recomputation (~1e-17 at every sampled `t`). This is a
+**complete resolution** — no irreducible-from-output fork.
+
+### 11.3 Fixture confirmation + checks
+
+`figarch_recursion` at the reported params reproduces the fixture σ to **4.86e-17** (5.9e-17 with the
+FFT coefficient path). `fit_figarch` matches at ~1e-5: all five params to relative `≤ 3.6e-5`,
+log-likelihood to `7.8e-9`, AIC/BIC to `6.3e-12`, σ-series to `8.7e-8` (relative `7.3e-5`); the fit
+converges in ~0.6 s. Additional checks: the 50-term/ddof=1 uniqueness (§11.2); the **d→0 reduction**
+(`figarch_coefficients(φ₁,β₁,0,L)` collapses to GARCH's ARCH(∞) `θ_i = (φ₁−β₁)β₁^{i−1}` to ~1e-16);
+exact recursion-level scale-equivariance (ω → c²ω); and known-truth recovery of all five params incl.
+`d` within a few SE.
+
+### 11.4 The `arch` cross-check (documented-divergence anchor)
+
+`arch` 8.0.0's `FIGARCH` uses the BBM `(1−β)⁻¹ω` intercept and an EWMA backcast, so at the fEGarch
+params it reproduces the fixture only to **2.1e-3** — a **rough sanity anchor** confirming the general
+BBM form, **not** a machine-precision benchmark. The fEGarch fixture (matched to 4.86e-17) is the
+primary anchor; the ω-direct + 50-term-Var convention is what distinguishes fEGarch's FIGARCH.
+
+### 11.5 The short-memory FI group inherits this seam
+
+`figarch_coefficients` (the `fracdiff(+d) ⊛ ARMA` θ-composition) and `figarch_variance_filter` (the
+ω-direct linear filter with the 50-term `Var(ddof=1)` pre-sample) are factored as reusable primitives.
+**FIAPARCH / FITGARCH / FIGJR** compose the *same* θ(B) and filter, differing only in the *news* term
+fed to the filter (a power/asymmetry transform of `ε` instead of `ε²`) — exactly as the EGF FI group
+shared `type1_news_impact`. This is the last major new seam of the long-memory family.
+
+---
+
 *Add further specification derivations here as later phases (the remaining long-memory FI models, the
 dual mean) are implemented — always from the papers/manual, never the source.*

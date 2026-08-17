@@ -61,6 +61,9 @@
                     <a class="variable" href="#EGARCH_CONSTANTS">EGARCH_CONSTANTS</a>
             </li>
             <li>
+                    <a class="variable" href="#FIGARCH_PRESAMPLE">FIGARCH_PRESAMPLE</a>
+            </li>
+            <li>
                     <a class="variable" href="#MEGARCH_CONSTANTS">MEGARCH_CONSTANTS</a>
             </li>
             <li>
@@ -352,6 +355,18 @@
                     <a class="function" href="#fiegarch_sim">fiegarch_sim</a>
             </li>
             <li>
+                    <a class="function" href="#figarch_coefficients">figarch_coefficients</a>
+            </li>
+            <li>
+                    <a class="function" href="#figarch_recursion">figarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#figarch_sim">figarch_sim</a>
+            </li>
+            <li>
+                    <a class="function" href="#figarch_variance_filter">figarch_variance_filter</a>
+            </li>
+            <li>
                     <a class="function" href="#fimegarch_recursion">fimegarch_recursion</a>
             </li>
             <li>
@@ -371,6 +386,9 @@
             </li>
             <li>
                     <a class="function" href="#fit_fiegarch">fit_fiegarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_figarch">fit_figarch</a>
             </li>
             <li>
                     <a class="function" href="#fit_fimegarch">fit_fimegarch</a>
@@ -555,10 +573,22 @@ constant-set (EGARCH / MEGARCH / MLog-GARCH) — via
 <code>~<a href="#fit_fimegarch">quantica.timeseries.fegarch.fit_fimegarch()</a></code> /
 <code>~<a href="#fit_fimloggarch">quantica.timeseries.fegarch.fit_fimloggarch()</a></code> and their simulators. The fractional order
 \( d \in (0, 1) \) is estimated (not clamped at <code>0.5</code>).</li>
+<li><strong>FIGARCH(1,d,1)</strong> (<code>~<a href="fegarch/figarch.html">quantica.timeseries.fegarch.figarch</a></code>) — the first
+<strong>variance-recursion</strong> long-memory model (a different seam from the EGF family): the operator
+enters the conditional-variance polynomial,
+\( \sigma_t^2 = \omega + \sum_i \theta_i \varepsilon_{t-i}^2 \)
+with \( \theta(B) = 1-(1-\phi_1 B)(1-B)^d/(1-\beta_1 B) \) (Baillie-Bollerslev-Mikkelsen 1996;
+WP175). The intercept \( \omega \) is used directly, and — with no \( \eta \)/\( \sigma^2 \)
+feedback — \( \sigma_t^2 \) is a pure linear filter of observed \( \varepsilon^2 \). Via
+<code>~<a href="#fit_figarch">quantica.timeseries.fegarch.fit_figarch()</a></code> and
+<code>~<a href="#figarch_sim">quantica.timeseries.fegarch.figarch_sim()</a></code>; the shared primitives
+<code>~<a href="#figarch_coefficients">quantica.timeseries.fegarch.figarch_coefficients()</a></code> and
+<code>~<a href="#figarch_variance_filter">quantica.timeseries.fegarch.figarch_variance_filter()</a></code> (with the resolved 50-term
+<code>Var(ddof=1)</code> pre-sample) are inherited by the FIAPARCH / FITGARCH / FIGJR group.</li>
 </ul>
 
-<p>The remaining long-memory models (FIGARCH / FIAPARCH / FITGARCH / FIGJR / FILog-GARCH), the dual
-mean and the forecasting/risk tie-back arrive later — see <code>docs/fegarch-port-roadmap.md</code>.</p>
+<p>The remaining long-memory models (FIAPARCH / FITGARCH / FIGJR / FILog-GARCH), the dual mean and the
+forecasting/risk tie-back arrive later — see <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -586,6 +616,18 @@ mean and the forecasting/risk tie-back arrive later — see <code>docs/fegarch-p
         
     </div>
     <a class="headerlink" href="#EGARCH_CONSTANTS"></a>
+    
+    
+
+                </section>
+                <section id="FIGARCH_PRESAMPLE">
+                    <div class="attr variable">
+            <span class="name">FIGARCH_PRESAMPLE</span>        =
+<span class="default_value">50</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FIGARCH_PRESAMPLE"></a>
     
     
 
@@ -2121,6 +2163,184 @@ Burn-in samples discarded (default 500).</li>
 
 
                 </section>
+                <section id="figarch_coefficients">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">figarch_coefficients</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">beta1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">length</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#figarch_coefficients"></a>
+    
+            <div class="docstring"><p>ARCH(∞) coefficients of \( \theta(B) = 1 - (1-\phi_1 B)(1-B)^d/(1-\beta_1 B) \).</p>
+
+<p>The causal convolution of the fractional-<strong>differencing</strong> coefficients \( b_i(+d) \) of
+\( (1-B)^d \) (Phase-3 <code><a href="#fracdiff_coeffs">fracdiff_coeffs()</a></code> at <em>positive</em> exponent) with the MA factor
+\( (1-\phi_1 B) \) and the geometric \( (1-\beta_1 B)^{-1}=\sum_j \beta_1^j B^j \) series.
+<code>d = 0</code> recovers the short-memory GARCH \( \theta_i=(\phi_1-\beta_1)\beta_1^{i-1} \).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>phi1</strong> (float):
+The ARCH lag coefficient (the \( \phi_1 \) of \( (1-\phi_1 B) \)).</li>
+<li><strong>beta1</strong> (float):
+The GARCH lag coefficient (<code>|beta1| &lt; 1</code> for the geometric expansion).</li>
+<li><strong>d</strong> (float):
+The fractional differencing order.</li>
+<li><strong>length</strong> (int):
+Number of coefficients <code>theta_0 .. theta_{length-1}</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (length,)</strong>: The coefficients, with <code>theta[0] == 0</code> (no contemporaneous \( \varepsilon_t^2 \) term)
+and <code>theta[1] == d + phi1 - beta1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="figarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">figarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#figarch_recursion"></a>
+    
+            <div class="docstring"><p>FIGARCH(1,d,1) conditional variance \( \sigma_t^2 \) (a QMLE <code><a href="#VarianceRecursion">VarianceRecursion</a></code>).</p>
+
+<p>A pure linear filter of the observed squared residuals — no feedback (see the module docstring).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (5,)):
+<code>(mu, omega, phi1, beta1, d)</code> — <code>omega</code> is the variance intercept (used directly) and
+<code>d</code> the fractional differencing order.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \), with the first
+<code><a href="#FIGARCH_PRESAMPLE">FIGARCH_PRESAMPLE</a></code> pre-sample \( \varepsilon^2 \) seeded at <code>Var(r, ddof=1)</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="figarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">figarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">beta1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#figarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a FIGARCH(1,d,1) process under a chosen conditional distribution.</p>
+
+<p>Unlike the fit (a pure filter of observed \( \varepsilon^2 \)), simulation <strong>couples</strong>:
+\( \varepsilon_t^2 = \sigma_t^2\eta_t^2 \) is generated, so \( \sigma_t^2 \) is built
+step-by-step from the past \( \varepsilon^2 \). The pre-sample terms are seeded at the level
+\( \omega/(1-\beta_1) \) and discarded via a long burn-in (long-memory transients
+decay slowly).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega</strong> (float):
+The variance intercept (<code>omega &gt; 0</code>).</li>
+<li><strong>phi1, beta1, d</strong> (float):
+FIGARCH parameters; requires <code>|beta1| &lt; 1</code> and <code>0 &lt;= d &lt; 1</code>.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>).</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 1000; larger than the EGF models' 500 because FIGARCH's
+long-memory transient decays hyperbolically).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive, <code>omega &lt;= 0</code>, <code>|beta1| &gt;= 1</code>, or <code>d</code> is outside <code>[0, 1)</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="figarch_variance_filter">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">figarch_variance_filter</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">news</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">theta</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">omega</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">presample_value</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">n_presample</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#figarch_variance_filter"></a>
+    
+            <div class="docstring"><p>Apply the ω-direct ARCH(∞) filter \( \omega + \sum_i \theta_i\,\text{news}_{t-i} \).</p>
+
+<p>The shared variance-recursion primitive for the short-memory FI group. Because there is no
+feedback, the whole series is one causal convolution of <code>theta</code> with the <code>news</code> (observed at
+fit time), pre-padded by <code>n_presample</code> terms seeded at <code>presample_value</code> (0 beyond).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>news</strong> (ndarray, shape (T,)):
+The observed news series (\( \varepsilon^2 \) for FIGARCH; a power/asymmetry transform for
+FIAPARCH / FITGARCH / FIGJR).</li>
+<li><strong>theta</strong> (ndarray):
+The ARCH(∞) coefficients from <code><a href="#figarch_coefficients">figarch_coefficients()</a></code>; must have length at least
+<code>T + n_presample</code> so the full <code>trunc="none"</code> series is used.</li>
+<li><strong>omega</strong> (float):
+The variance intercept, used <strong>directly</strong> (not <code>(1-beta1)^{-1} omega</code>).</li>
+<li><strong>presample_value</strong> (float):
+The value seeding the first <code>n_presample</code> pre-sample news terms (<code>Var(r, ddof=1)</code> for
+FIGARCH).</li>
+<li><strong>n_presample</strong> (int, optional):
+The number of pre-sample terms (default <code><a href="#FIGARCH_PRESAMPLE">FIGARCH_PRESAMPLE</a></code> = 50).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>theta</code> is shorter than <code>T + n_presample</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fimegarch_recursion">
                     <div class="attr function">
             
@@ -2379,6 +2599,37 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>, the on
 <ul>
 <li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma, d</code>, log-likelihood, per-observation AIC/BIC,
 and the conditional-volatility series (original return units).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_figarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_figarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_figarch"></a>
+    
+            <div class="docstring"><p>Fit FIGARCH(1,d,1) with a constant mean by QMLE under a chosen conditional distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega, phi1, beta1, d</code>, log-likelihood, per-observation AIC/BIC, and the
+conditional-volatility series (original return units).</li>
 </ul>
 </div>
 

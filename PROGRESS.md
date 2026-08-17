@@ -121,8 +121,9 @@ at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursio
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
 **Phase 4 long-memory models ← IN PROGRESS (the final MODEL-BUILDING STEP): the Type-I FI family
-FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34, PR #19)**, remaining FIGARCH / FIAPARCH
-/ FITGARCH / FIGJR / FILog-GARCH → Phase 5 dual mean (ARMA / FARIMA mean +
+FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34) + FIGARCH(1,d,1) the variance-recursion
+seam DONE (Step 35), all on PR #19**, remaining FIAPARCH / FITGARCH / FIGJR / FILog-GARCH → Phase 5
+dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1266,6 +1267,30 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   t=100), exact scale-equivariance, known-truth recovery incl. d, sim invariants + edges, FIMLog-GARCH
   non-norm deferral. Docs: spec-notes §10, `__init__` Phase-3/4 sections, PROGRESS. Gate green.
   **The Type-I long-memory family (FIEGARCH / FIMEGARCH / FIMLog-GARCH) is complete.**
+
+- **Step 35 — fEGarch Phase 4, FIGARCH(1,d,1): the variance-recursion seam (branch
+  `feat/fegarch-phase4`, PR #19, NOT merged).** The first **non-EGF** long-memory model — a
+  fundamentally new seam where the `(1−L)^d` operator enters the conditional-VARIANCE polynomial (not
+  the log-variance θ(B)). Clean-room from BBM (1996) + Conrad-Haag (2006) + WP175 §2.1 Eqs. 2.3-2.4;
+  the `presample=50`/`trunc="none"` convention was resolved by a read-only reconstruction gate to
+  machine precision (4.86e-17) BEFORE building (a 4-message flow: fixture → structure spec-extraction
+  → presample diagnostic → build). New `quantica/timeseries/fegarch/figarch.py`: `figarch_coefficients`
+  (θ(B)=1−(1−φ₁B)(1−B)^d/(1−β₁B) via `fracdiff_coeffs(+d)` ⊛ ARMA, FFT-accelerated; θ_1=d+φ₁−β₁, θ_0=0),
+  `figarch_variance_filter` (the ω-direct linear filter with the 50-term Var(ddof=1) pre-sample),
+  `figarch_recursion` (news=ε², pure convolution — NO η/σ² feedback, unlike every prior model),
+  `fit_figarch` (QMLE; ω scales multiplicatively by scale², d bound (0,1)), `figarch_sim` (coupled
+  step-by-step, since innovations are drawn). **Key spec findings:** ω-direct intercept (WP175 ω*, NOT
+  BBM/arch's (1−β)⁻¹ω); pre-sample = exactly 50 terms at Var(r, ddof=1) — both the count 50 and ddof=1
+  decisive (49/51→8e-6, ddof=0→2.3e-6). **Fixture match:** recursion@params 4.86e-17 (5.9e-17 FFT
+  path); fit all 5 params rel ≤3.6e-5, loglik 7.8e-9, AIC/BIC 6.3e-12, σ rel 7.3e-5. **Checks
+  (`test_figarch.py`, 12 tests):** fixture match, recursion reconstruction, the 50-term/ddof=1
+  uniqueness, θ composition (θ_1=d+φ₁−β₁), d→0 reduction to GARCH's (φ₁−β₁)β₁^{i−1}, exact scale-
+  equivariance (ω→c²ω), known-truth incl. d, arch cross-check (documented ~2e-3 divergence, skip-safe),
+  sim invariants + edges. **arch cross-check:** arch 8.0.0's FIGARCH uses (1−β)⁻¹ω + EWMA backcast →
+  2.1e-3 (sanity anchor, not machine-precision). Docs: spec-notes §11, PROGRESS. Gate green.
+  **The variance-recursion seam is factored (`figarch_coefficients` + `figarch_variance_filter`) so
+  FIAPARCH / FITGARCH / FIGJR inherit it — they differ only in the news term (power/asymmetry
+  transform of ε instead of ε²).**
 
 ## Next — optional depth only (planned scope is done)
 
