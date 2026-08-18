@@ -310,6 +310,33 @@ tryCatch({
                           "| exists('figarch') =", exists("figarch"),
                           "| exists('figarch_spec') =", exists("figarch_spec"), "\n"))
 
+# --- Phase-4 long-memory: FIAPARCH (variance-recursion long memory + APARCH power/asymmetry) ------
+# FIAPARCH is the fractionally-integrated APARCH — FIGARCH's variance-recursion seam PLUS APARCH's
+# asymmetry gamma1 and estimated power delta. Data-first like figarch (confirmed via ls()/args()
+# below; NOT guessed, no source read). Its args() is printed — in particular any fix_delta-type arg
+# (APARCH used fix_delta=c(NA,1,2), i.e. delta estimated by default): report FIAPARCH's default so we
+# know whether delta is estimated. Called like figarch; wrapped in tryCatch so a failure prints the
+# model, the error and both exists() checks and NEVER writes a partial fixture.
+cat("  fiaparch exists?", exists("fiaparch"), " fiaparch_spec exists?", exists("fiaparch_spec"), "\n")
+for (fn in c("fiaparch", "fiaparch_spec")) {
+  if (exists(fn)) cat(sprintf("    args(%s): %s\n", fn,
+                              paste(deparse(args(get(fn))), collapse = " ")))
+}
+
+tryCatch({
+  fiaparch_fit <- if (exists("fiaparch")) {
+    fiaparch(returns, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
+  } else {
+    fEGarch(fiaparch_spec(orders = c(1, 1), cond_dist = "norm"), returns, parallel = FALSE)
+  }
+  cat("  fiaparch pars:", paste(names(pars(fiaparch_fit)), collapse = ", "), "\n")
+  cat_pars(fiaparch_fit)
+  # record FIAPARCH's OWN trunc/presample defaults (from its args()), like figarch (trunc="none").
+  fit_and_dump(fiaparch_fit, "fiaparch11_norm", "fiaparch", "norm", trunc = "none")
+}, error = function(e) cat("  ERROR fiaparch:", conditionMessage(e),
+                          "| exists('fiaparch') =", exists("fiaparch"),
+                          "| exists('fiaparch_spec') =", exists("fiaparch_spec"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -360,14 +387,16 @@ manifest <- list(
       fimloggarch11_norm = list(params = "fit_fimloggarch11_norm_params.json", sigma = "fit_fimloggarch11_norm_sigma.csv",
                                 note = "Phase-4 long-memory: fractionally-integrated MLog-GARCH (Type-I modulus asymmetry + ln(|eta|+1) magnitude; d estimated, App. C.3 trunc L=n-1)"),
       figarch11_norm = list(params = "fit_figarch11_norm_params.json", sigma = "fit_figarch11_norm_sigma.csv",
-                            note = "Phase-4 long-memory: fractionally-integrated GARCH (VARIANCE-recursion long memory, NOT the EGF log-variance family; d estimated; figarch()'s own defaults trunc='none', presample=50)"))),
+                            note = "Phase-4 long-memory: fractionally-integrated GARCH (VARIANCE-recursion long memory, NOT the EGF log-variance family; d estimated; figarch()'s own defaults trunc='none', presample=50)"),
+      fiaparch11_norm = list(params = "fit_fiaparch11_norm_params.json", sigma = "fit_fiaparch11_norm_sigma.csv",
+                             note = "Phase-4 long-memory: fractionally-integrated APARCH (FIGARCH variance-recursion seam + APARCH asymmetry gamma1 + estimated power delta + fractional d; fiaparch()'s own defaults trunc='none', presample=50)"))),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; the Type-I long-memory FI models",
-    "(FIEGARCH/FIMEGARCH/FIMLog-GARCH) are done, and FIGARCH (the variance-recursion long-memory GARCH)",
-    "is added. Later phases need more fixtures: all short-memory + EGARCH-family models under the other",
-    "7 conditional distributions; the remaining long-memory fits (FIAPARCH/FITGARCH/FIGJR/FILog-GARCH,",
-    "Phase 4); dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this",
-    "script and re-run when those models are implemented."))
+    "(FIEGARCH/FIMEGARCH/FIMLog-GARCH) are done, and the variance-recursion FI models FIGARCH + FIAPARCH",
+    "are added. Later phases need more fixtures: all short-memory + EGARCH-family models under the other",
+    "7 conditional distributions; the remaining long-memory fits (FITGARCH/FIGJR/FILog-GARCH, Phase 4);",
+    "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and",
+    "re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")
