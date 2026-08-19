@@ -761,5 +761,71 @@ shared `type1_news_impact`. This is the last major new seam of the long-memory f
 
 ---
 
+## 12. FIAPARCH(1,d,1) — the δ-power seam + a documented bounded-limit seed — RESOLVED (Phase 4)
+
+**Sources.** Ding-Granger-Engle (1993) APARCH; Tse (1998) FIAPARCH; BBM (1996) + Conrad-Haag (2006)
+for the FIGARCH ARCH(∞); **WP175 §2.1 Eqs. 2.9-2.10** for the ω-direct σ^δ form. fEGarch source never
+consulted; validated against **two** committed fixtures — the boundary `fit_fiaparch11_norm_*` (d≈1)
+and the interior `fit_fiaparch11_norm_interior_*` (d≈0, on the additive low-persistence series). R
+function `fiaparch()` confirmed data-first via `ls`/`args` (`fix_delta=c(NA,1,2)` ⇒ δ estimated).
+
+### 12.1 The δ-power composition — proven to machine precision
+
+WP175 Eq. 2.10 gives FIAPARCH as FIGARCH's **same ARCH(∞) sequence** `{θ_i}` applied to the APARCH
+power-asymmetry news:
+
+```
+σ^δ_t = ω + Σ_{i=1}^{∞} θ_i (|ε_{t−i}| − γ ε_{t−i})^δ,   ε = r − μ,   θ(B) = 1 − (1−φ₁B)(1−B)^d/(1−β₁B),
+```
+
+then `σ = (σ^δ)^{1/δ}`. So it is built **entirely by reuse** — `figarch_coefficients` **unchanged**
+(WP175 confirms the identical θ(B); θ₁ = d+φ₁−β₁) and `figarch_variance_filter` with the **news term
+swapped** from `ε²` to `(|ε|−γε)^δ`. ω is in σ^δ units, used directly; no η/σ² feedback. **The seam is
+machine-exact:** the recursion at each fixture's own *empirical* seed reproduces its σ-series to
+`1.1e-16` (boundary) and `2.3e-17` (interior). Param vector `(mu, omega, phi1, beta1, gamma, delta,
+d)` — 7, the largest. **Reductions:** δ=2, γ=0 → FIGARCH (`(|ε|)²=ε²`, verified to `~6e-8`, the
+seed-convention residual §12.3); d→0 → short-memory APARCH.
+
+### 12.2 The d≈1 boundary is forced (Conrad-Haag) and weakly identified
+
+Non-negativity requires `θ₁ = d+φ₁−β₁ ≥ 0`, i.e. **`d ≥ β₁−φ₁`**. The high-persistence fixture
+(β₁=0.913) therefore **forces `d = 0.99999987`** (≥ 0.912); the low-persistence series (α+β=0.60)
+lands `d ≈ 5e-7`. At the boundary the parameters are **weakly identified** (a near-flat likelihood
+ridge with φ₁≈0): the fit reaches fEGarch's log-likelihood to `0.06/7599` but at a *different* ridge
+point (ω off 58%, δ off 9.5%), while d and β₁ recover. Interior d is well-identified — the fit
+recovers all seven params (ω to ~4%, the rest to ~1e-3), σ to `3e-5`.
+
+### 12.3 The presample seed — the SECOND irreducible-from-output limit (after APARCH σ₀)
+
+FIGARCH seeds its 50-term presample at the sample mean of *its* news (`Var(r,ddof=1)` = mean of `ε²`).
+FIAPARCH **generalizes that rule**: seed at **`mean[(|ε|−γε)^δ]`** (which reduces to FIGARCH's
+`Var(ddof=1)` at δ=2,γ=0 up to the μ-vs-r̄/ddof choice). This is **not** fEGarch's exact value. Two
+fixtures at d≈0 and d≈1 **disconfirmed every closed form**:
+
+| candidate | interior d≈0 | boundary d≈1 |
+|---|---|---|
+| `Var^{δ/2}·E[(\|z\|−γz)^δ]` (the FIGARCH-consistent family) | 1.6% off | 44% off |
+| `mean(news)` (the chosen convention) | **0.07% off** | 49% off |
+
+The empirical seed is **above the structural floor** (Σθ≤1 ⇒ seed ≥ σ^δ[0]−ω) that every natural
+candidate sits below, and it carries a **d-dependent inflation** (factor `1.0 → 1.49` as `d: 0 → 1`)
+that no closed form from two points reproduces — the exact value is an **internal fEGarch backcast**,
+the **second irreducible-from-output limit in the port** (after the short-memory APARCH σ₀ presample,
+§4.2 / line 327). It is handled the same way: `mean(news)` is the principled convention, the **seam is
+machine-exact** (proven separately), and only the seed carries a σ-residual that grows from **~1e-6
+(interior d) to ~1e-3 (boundary d≈1)** where the long-memory transient decays slowly. This bound is
+**asserted honestly** in the tests (`test_seam_is_machine_exact_at_the_empirical_seed` proves the
+seam; the fixture-match tests assert the achievable bounded tolerances with comments), **not hidden**
+by loose tolerances.
+
+### 12.4 Two synthetic inputs
+
+The identification needed a second `(d, δ, γ)` point away from the boundary, so an **additive**
+low-persistence series `synthetic_returns_lowpersist.csv` (GARCH(1,1), α+β=0.60, seed 20240902) was
+committed — the original `synthetic_returns.csv` and all its fixtures stay byte-identical. The
+interior fit lands `d≈0, δ=2.596, γ=0.032`, well separated from the boundary `d≈1, δ=1.582, γ=0.112`.
+
+---
+
 *Add further specification derivations here as later phases (the remaining long-memory FI models, the
 dual mean) are implemented — always from the papers/manual, never the source.*

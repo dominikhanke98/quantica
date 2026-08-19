@@ -85,8 +85,18 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.figarch_coefficients` and
   :func:`~quantica.timeseries.fegarch.figarch_variance_filter` (with the resolved 50-term
   ``Var(ddof=1)`` pre-sample) are inherited by the FIAPARCH / FITGARCH / FIGJR group.
+* **FIAPARCH(1,d,1)** (:mod:`~quantica.timeseries.fegarch.fiaparch`) — FIGARCH's variance-recursion
+  seam with the APARCH power-asymmetry news,
+  :math:`\sigma_t^\delta = \omega + \sum_i \theta_i (|\varepsilon|-\gamma\varepsilon)^\delta_{t-i}`,
+  using the *same* :math:`\theta(B)` as FIGARCH (Tse 1998; WP175 Eq. 2.10). Reuses
+  :func:`~quantica.timeseries.fegarch.figarch_coefficients` and
+  :func:`~quantica.timeseries.fegarch.figarch_variance_filter` with the news swapped, via
+  :func:`~quantica.timeseries.fegarch.fit_fiaparch` /
+  :func:`~quantica.timeseries.fegarch.fiaparch_sim`. The δ-power seam is machine-exact, but the
+  presample seed is a **documented bounded limit** (the 2nd irreducible-from-output value after the
+  APARCH :math:`\sigma_0` fork) — seeded at ``mean(news)`` with the residual documented.
 
-The remaining long-memory models (FIAPARCH / FITGARCH / FIGJR / FILog-GARCH), the dual mean and the
+The remaining long-memory models (FITGARCH / FIGJR / FILog-GARCH), the dual mean and the
 forecasting/risk tie-back arrive later — see ``docs/fegarch-port-roadmap.md``.
 """
 
@@ -127,6 +137,12 @@ from quantica.timeseries.fegarch.egarch import (
     mloggarch_recursion,
     mloggarch_sim,
     type1_news_impact,
+)
+from quantica.timeseries.fegarch.fiaparch import (
+    fiaparch_news,
+    fiaparch_recursion,
+    fiaparch_sim,
+    fit_fiaparch,
 )
 from quantica.timeseries.fegarch.fiegarch import (
     fiegarch_recursion,
@@ -177,6 +193,9 @@ __all__ = [
     "aparch_sim",
     "egarch_recursion",
     "egarch_sim",
+    "fiaparch_news",
+    "fiaparch_recursion",
+    "fiaparch_sim",
     "fiegarch_recursion",
     "fiegarch_sim",
     "figarch_coefficients",
@@ -189,6 +208,7 @@ __all__ = [
     "fimloggarch_sim",
     "fit_aparch",
     "fit_egarch",
+    "fit_fiaparch",
     "fit_fiegarch",
     "fit_figarch",
     "fit_fimegarch",

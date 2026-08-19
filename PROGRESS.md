@@ -121,9 +121,9 @@ at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursio
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
 **Phase 4 long-memory models ← IN PROGRESS (the final MODEL-BUILDING STEP): the Type-I FI family
-FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34) + FIGARCH(1,d,1) the variance-recursion
-seam DONE (Step 35), all on PR #19**, remaining FIAPARCH / FITGARCH / FIGJR / FILog-GARCH → Phase 5
-dual mean (ARMA / FARIMA mean +
+FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34) + the variance-recursion FI models
+FIGARCH (Step 35) + FIAPARCH (Step 36) DONE, all on PR #19**, remaining FITGARCH / FIGJR / FILog-GARCH
+→ Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1291,6 +1291,31 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   **The variance-recursion seam is factored (`figarch_coefficients` + `figarch_variance_filter`) so
   FIAPARCH / FITGARCH / FIGJR inherit it — they differ only in the news term (power/asymmetry
   transform of ε instead of ε²).**
+
+- **Step 36 — fEGarch Phase 4, FIAPARCH(1,d,1): the δ-power seam + a documented bounded-limit seed
+  (branch `feat/fegarch-phase4`, PR #19, NOT merged).** The fractionally-integrated APARCH — FIGARCH's
+  variance-recursion seam with the APARCH power-asymmetry news. Clean-room from Tse (1998) + WP175
+  Eqs. 2.9-2.10 (no fEGarch source); validated against TWO fixtures (boundary d≈1 + interior d≈0 on a
+  new additive low-persistence series). New `quantica/timeseries/fegarch/fiaparch.py`: `fiaparch_news`
+  ((|ε|−γε)^δ, reduces to ε² at γ=0,δ=2), `fiaparch_recursion` (reuses `figarch_coefficients` UNCHANGED
+  + `figarch_variance_filter` with the news swapped, σ^δ→σ² mapping, NO feedback), `fit_fiaparch` (QMLE;
+  ω scales by scale^δ; 7 params, d-bound (1e-7, 0.9999999) to permit the boundary), `fiaparch_sim`
+  (coupled). **The δ-power seam is machine-exact:** recursion at each fixture's empirical seed
+  reproduces σ to 1.1e-16 (boundary) / 2.3e-17 (interior) — proven separately from the seed. **The
+  presample seed is the SECOND irreducible-from-output limit** (after APARCH σ₀): two fixtures at
+  d≈0/d≈1 disconfirmed every closed form (candidate `Var^{δ/2}·E[(|z|−γz)^δ]` 1.6% at interior/44% at
+  boundary; `mean(news)` 0.07% at interior with a d-dependent inflation 1.0→1.49 as d:0→1); the exact
+  value is an internal fEGarch backcast. Built with `mean(news)` (FIGARCH's Var(ddof=1) rule
+  generalized), the σ-residual documented at ~1e-6 (interior) → ~1e-3 (boundary). **The d≈1 boundary
+  is forced by Conrad-Haag** (d ≥ β₁−φ₁, β₁=0.913 ⇒ d≈1) and weakly identified (flat ridge: the fit
+  matches loglik to 0.06/7599 but ω/δ diverge). **Honest tests (`test_fiaparch.py`, 11):** seam-exact
+  (both fixtures, parametrized), interior fixture-match (params ~1e-3, σ 3e-5), boundary
+  as-good-but-weakly-identified (loglik <0.5, d/β₁ recover, σ bounded <5e-3 with comments — NOT
+  tightened to hide the limit), mean-news bounded-residual, δ=2,γ=0→FIGARCH reduction (~6e-8),
+  news transform, known-truth (shape params tight, ω seed-sensitive), sim + edges. Docs: spec-notes
+  §12, PROGRESS. Gate green. **Two irreducible-from-output limits now recorded honestly (APARCH σ₀,
+  FIAPARCH seed) rather than hidden by loose tolerances — the effective-challenge discipline. FITGARCH
+  / FIGJR remain (same seam, power/indicator news).**
 
 ## Next — optional depth only (planned scope is done)
 
