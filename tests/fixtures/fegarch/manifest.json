@@ -27,6 +27,19 @@
       },
       "innovations": "standard normal"
     },
+    "input_series_lowpersist": {
+      "file": "synthetic_returns_lowpersist.csv",
+      "note": "SECOND, lower-persistence synthetic GARCH(1,1) series (alpha+beta=0.60) so FIAPARCH's d lands INSIDE (0,0.5) — used only for the interior-d FIAPARCH fixture that identifies the presample-seed formula; ADDITIVE, does not touch the main series",
+      "seed": 20240902,
+      "n": 2500,
+      "dgp": {
+        "mu": 0.00029999999999999997,
+        "omega": 5.7599999999999997e-05,
+        "alpha": 0.14999999999999999,
+        "beta": 0.45000000000000001
+      },
+      "innovations": "standard normal"
+    },
     "settings": {
       "orders": [1, 1],
       "cond_dist": "norm",
@@ -91,7 +104,13 @@
       "fiaparch11_norm": {
         "params": "fit_fiaparch11_norm_params.json",
         "sigma": "fit_fiaparch11_norm_sigma.csv",
-        "note": "Phase-4 long-memory: fractionally-integrated APARCH (FIGARCH variance-recursion seam + APARCH asymmetry gamma1 + estimated power delta + fractional d; fiaparch()'s own defaults trunc='none', presample=50)"
+        "note": "Phase-4 long-memory: fractionally-integrated APARCH (FIGARCH variance-recursion seam + APARCH asymmetry gamma1 + estimated power delta + fractional d; fiaparch()'s own defaults trunc='none', presample=50). BOUNDARY fixture: d~1 (forced by high beta1 via Conrad-Haag d>=beta1-phi1)"
+      },
+      "fiaparch11_norm_interior": {
+        "params": "fit_fiaparch11_norm_interior_params.json",
+        "sigma": "fit_fiaparch11_norm_interior_sigma.csv",
+        "input": "synthetic_returns_lowpersist.csv",
+        "note": "Phase-4: FIAPARCH on the LOW-PERSISTENCE series so d lands INTERIOR (inside (0,0.5)) — the second (d,delta,gamma) point that identifies the presample-seed formula f(Var,delta,gamma,d), disentangled from the boundary fixture's near-integration inflation"
       }
     }
   },

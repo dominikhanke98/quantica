@@ -140,17 +140,41 @@ returns <- SIM$mu + eps
 write_series_csv(returns, file.path(OUTDIR, "synthetic_returns.csv"), "return")
 cat(sprintf("  synthetic series: n=%d mean=%.2e sd=%.4f\n", SIM_N, mean(returns), sd(returns)))
 
-fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none") {
+# --- a SECOND, LOWER-PERSISTENCE synthetic series (additive; does NOT touch the first) ------------
+# The high-persistence series above (alpha+beta=0.98) forces FIAPARCH's d -> 1 (Conrad-Haag: d >=
+# beta1-phi1 needs a high beta1). To land d INSIDE (0, 0.5) we generate a SHORT-memory GARCH(1,1)
+# with alpha+beta ~ 0.60, committed separately as synthetic_returns_lowpersist.csv. Distinct seed.
+SIM_SEED_LP <- 20240902L
+SIM_N_LP <- 2500L
+SIM_LP <- list(mu = 3e-4, omega = 5.76e-5, alpha = 0.15, beta = 0.45)  # alpha+beta=0.60, ~1.2% sd
+set.seed(SIM_SEED_LP)
+sig2_lp <- numeric(SIM_N_LP); eps_lp <- numeric(SIM_N_LP)
+sig2_lp[1] <- SIM_LP$omega / (1 - SIM_LP$alpha - SIM_LP$beta)
+z_lp <- rnorm(SIM_N_LP)
+for (t in seq_len(SIM_N_LP)) {
+  if (t > 1) sig2_lp[t] <- SIM_LP$omega + SIM_LP$alpha * eps_lp[t - 1]^2 + SIM_LP$beta * sig2_lp[t - 1]
+  eps_lp[t] <- sqrt(sig2_lp[t]) * z_lp[t]
+}
+returns_lp <- SIM_LP$mu + eps_lp
+write_series_csv(returns_lp, file.path(OUTDIR, "synthetic_returns_lowpersist.csv"), "return")
+cat(sprintf("  low-persist series: n=%d mean=%.2e sd=%.4f (alpha+beta=%.2f)\n",
+            SIM_N_LP, mean(returns_lp), sd(returns_lp), SIM_LP$alpha + SIM_LP$beta))
+
+fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none",
+                         input = "synthetic_returns.csv", n_obs = length(returns),
+                         seed = SIM_SEED) {
   # `trunc` records the truncation policy metadata: "none" for the short-memory models (default),
   # and the long-memory default L = n-1 (WP171 App. C.3) for the fractionally-integrated ones.
+  # `input`/`n_obs`/`seed` default to the main synthetic series but can name a different input
+  # (e.g. the low-persistence series for the interior-d FIAPARCH fixture).
   p <- pars(fit)
   ic <- inf_criteria(fit)
   params <- as.list(as.numeric(p)); names(params) <- names(p)
   meta <- list(
     model = model, cond_dist = cond_dist, orders = c(1L, 1L),
     presample = 50L, trunc = trunc, mean_included = TRUE,
-    n_obs = length(returns), input = "synthetic_returns.csv",
-    parallel = FALSE, seed = SIM_SEED,
+    n_obs = n_obs, input = input,
+    parallel = FALSE, seed = seed,
     params = params,
     loglikelihood = as.numeric(llhood(fit)),
     aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
@@ -337,6 +361,23 @@ tryCatch({
                           "| exists('fiaparch') =", exists("fiaparch"),
                           "| exists('fiaparch_spec') =", exists("fiaparch_spec"), "\n"))
 
+# --- Phase-4: FIAPARCH at INTERIOR d (on the low-persistence series) ------------------------------
+# The boundary fixture (d~1) cannot separate the presample-seed formula from near-integration
+# inflation. A SECOND FIAPARCH fit on the low-persistence series should land d well inside (0, 0.5),
+# disentangling f(Var, delta, gamma, d). Reports the fitted d, delta, gamma so we can verify d is
+# interior; dumped with the low-persistence input recorded in the metadata. tryCatch-wrapped.
+tryCatch({
+  fiaparch_int_fit <- fiaparch(returns_lp, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
+  cat("  fiaparch(interior) pars:", paste(names(pars(fiaparch_int_fit)), collapse = ", "), "\n")
+  cat_pars(fiaparch_int_fit)
+  ip <- pars(fiaparch_int_fit)
+  cat(sprintf("  fiaparch(interior) d=%.7f delta=%.7f gamma=%.7f\n",
+              as.numeric(ip[["d"]]), as.numeric(ip[["delta"]]), as.numeric(ip[["gamma"]])))
+  fit_and_dump(fiaparch_int_fit, "fiaparch11_norm_interior", "fiaparch", "norm", trunc = "none",
+               input = "synthetic_returns_lowpersist.csv", n_obs = SIM_N_LP, seed = SIM_SEED_LP)
+}, error = function(e) cat("  ERROR fiaparch(interior):", conditionMessage(e),
+                          "| exists('fiaparch') =", exists("fiaparch"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -369,6 +410,10 @@ manifest <- list(
       file = "synthetic_returns.csv",
       note = "committed synthetic GARCH(1,1) series (NOT fEGarch's SP500 data — avoids redistributing its GPL-3 dataset)",
       seed = SIM_SEED, n = SIM_N, dgp = SIM, innovations = "standard normal"),
+    input_series_lowpersist = list(
+      file = "synthetic_returns_lowpersist.csv",
+      note = "SECOND, lower-persistence synthetic GARCH(1,1) series (alpha+beta=0.60) so FIAPARCH's d lands INSIDE (0,0.5) — used only for the interior-d FIAPARCH fixture that identifies the presample-seed formula; ADDITIVE, does not touch the main series",
+      seed = SIM_SEED_LP, n = SIM_N_LP, dgp = SIM_LP, innovations = "standard normal"),
     settings = list(orders = c(1L, 1L), cond_dist = "norm", presample = 50L,
                     trunc = "none", mean_included = TRUE, parallel = FALSE),
     fits = list(
@@ -389,7 +434,10 @@ manifest <- list(
       figarch11_norm = list(params = "fit_figarch11_norm_params.json", sigma = "fit_figarch11_norm_sigma.csv",
                             note = "Phase-4 long-memory: fractionally-integrated GARCH (VARIANCE-recursion long memory, NOT the EGF log-variance family; d estimated; figarch()'s own defaults trunc='none', presample=50)"),
       fiaparch11_norm = list(params = "fit_fiaparch11_norm_params.json", sigma = "fit_fiaparch11_norm_sigma.csv",
-                             note = "Phase-4 long-memory: fractionally-integrated APARCH (FIGARCH variance-recursion seam + APARCH asymmetry gamma1 + estimated power delta + fractional d; fiaparch()'s own defaults trunc='none', presample=50)"))),
+                             note = "Phase-4 long-memory: fractionally-integrated APARCH (FIGARCH variance-recursion seam + APARCH asymmetry gamma1 + estimated power delta + fractional d; fiaparch()'s own defaults trunc='none', presample=50). BOUNDARY fixture: d~1 (forced by high beta1 via Conrad-Haag d>=beta1-phi1)"),
+      fiaparch11_norm_interior = list(params = "fit_fiaparch11_norm_interior_params.json", sigma = "fit_fiaparch11_norm_interior_sigma.csv",
+                                      input = "synthetic_returns_lowpersist.csv",
+                                      note = "Phase-4: FIAPARCH on the LOW-PERSISTENCE series so d lands INTERIOR (inside (0,0.5)) — the second (d,delta,gamma) point that identifies the presample-seed formula f(Var,delta,gamma,d), disentangled from the boundary fixture's near-integration inflation"))),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; the Type-I long-memory FI models",
     "(FIEGARCH/FIMEGARCH/FIMLog-GARCH) are done, and the variance-recursion FI models FIGARCH + FIAPARCH",
