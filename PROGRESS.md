@@ -120,10 +120,26 @@ APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ C
 at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
-**Phase 4 long-memory models ← COMPLETE (all eight FI models, Steps 33-38, on PR #19): the Type-I FI
-family FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) (Steps 33-34) + the variance-recursion FI family
-FIGARCH / FIAPARCH / FITGARCH / FIGJR(1,d,1) (Steps 35-37) + the Type-II FILog-GARCH(1,d,1) (Step 38)**
-→ Phase 5 dual mean (ARMA / FARIMA mean +
+**Phase 4 long-memory models ← COMPLETE + MERGED (PR #19 → `main` `5b5198b`, 14 commits): all eight
+fractionally-integrated models — the Type-I FI family FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1)
+(Steps 33-34) + the variance-recursion FI family FIGARCH / FIAPARCH / FITGARCH / FIGJR(1,d,1)
+(Steps 35-37) + the Type-II FILog-GARCH(1,d,1) (Step 38), each fixture-validated (σ-series
+machine-to-1e-5 tier), composing the Phase-3 `(1−L)^d` operator into the Phase-1/Phase-2 recursions.**
+**Three effective-challenge findings (settled):** (1) fEGarch's **FIGJR uses the `(|ε|−γε)²` kernel**,
+NOT the Glosten indicator (both Glosten forms miss at ~1.4e-3), carrying the Phase-1 GJR finding into
+the FI form; (2) the **FIAPARCH presample seed is irreducible-from-output** — two fixtures at d≈0/d≈1
+disconfirmed every closed form; built with `mean(news)` as a documented bounded limit (the 2nd such
+after the APARCH σ₀ fork), the seam machine-exact and only the seed carrying a d-dependent σ-residual
+(~1e-6 interior → ~1e-3 boundary); (3) fEGarch's **FILog-GARCH fixture is a strictly-dominated local
+optimum** — the seam is machine-exact at its params (~1e-15), but every data-driven optimizer start
+(data mean, randoms, even a start from fEGarch's own params) reaches a basin ~+120 log-likelihood
+higher, so it is fEGarch's optimizer landing poorly, not the model; validated by strict domination,
+not a param-match to the suboptimal fixture. **The port's core model machinery is now complete** — all
+eight EGF/Type-I/Type-II + variance-recursion recursions and the fracdiff engine. What remains is
+**breadth, not new recursions**: the other 7 conditional distributions on the FS-skew wrapper (the
+deferred `abs_moment` / `mean_log_sq` / `mean_log_modulus` under skew + per-iteration moments for
+jointly-estimated shape parameters), and the mean / dual-mean models. Next: Phase 5 dual mean (ARMA /
+FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1363,10 +1379,12 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   coefficients separated — does NOT assert a param-by-param match to the dominated fixture),
   σ[0]=exp(ωσ/2) tell, γ composition, d→0→Log-GARCH,
   scale-equivariance, known-truth incl. d, non-norm deferral (mean_log_sq norm-only), sim + edges.
-  Docs: spec-notes §14, `__init__` Phase-4 section, PROGRESS. Gate green. **PHASE 4 IS COMPLETE — all
-  eight fractionally-integrated models built and validated; the clean-room reimplementation caught the
-  reference package's own optimizer failing (the project's clearest effective-challenge result). Ready
-  for the Phase-4 merge review.**
+  Docs: spec-notes §14, `__init__` Phase-4 section, PROGRESS. Gate green. **PHASE 4 IS COMPLETE + MERGED
+  (PR #19 → `main` `5b5198b`) — all eight fractionally-integrated models built and validated; the
+  clean-room reimplementation caught the reference package's optimizer landing in a strictly-dominated
+  local optimum (the project's clearest effective-challenge result). Pre-merge, a multi-start check
+  refined the claim from "non-converged" to "strictly-dominated local optimum" (commit `e4685b9`) and
+  strengthened the test to assert domination from every sensible start.**
 
 ## Next — optional depth only (planned scope is done)
 
