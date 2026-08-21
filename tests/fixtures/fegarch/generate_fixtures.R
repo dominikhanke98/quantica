@@ -378,6 +378,40 @@ tryCatch({
 }, error = function(e) cat("  ERROR fiaparch(interior):", conditionMessage(e),
                           "| exists('fiaparch') =", exists("fiaparch"), "\n"))
 
+# --- Phase-4 long-memory: FITGARCH + FIGJR (variance-recursion, plain-power news swaps) ------------
+# The last two variance-recursion FI models. FITGARCH is the fractionally-integrated TGARCH (Zakoian
+# sigma-recursion, delta=1) and FIGJR the fractionally-integrated GJR-GARCH. Data-first like figarch
+# (confirmed via ls()/args() below; NOT guessed, no source read). CRITICAL to report: (a) FITGARCH's
+# args() -- does it have a fix_delta arg, or is delta FIXED at 1 (so NOT a fitted param)? (b) the
+# exact function name for GJR (figjr vs figjrgarch). Print the signatures of whichever exist, then
+# call them. Wrapped in tryCatch so a failure prints the model, the error and exists() checks and
+# NEVER writes a partial fixture.
+cat("  fi* variance-recursion fns present:",
+    paste(intersect(c("fitgarch", "figjr", "figjrgarch"), ls("package:fEGarch")), collapse = ", "), "\n")
+for (fn in c("fitgarch", "figjr", "figjrgarch")) {
+  if (exists(fn)) cat(sprintf("    args(%s): %s\n", fn,
+                              paste(deparse(args(get(fn))), collapse = " ")))
+}
+
+tryCatch({
+  fitgarch_fit <- fitgarch(returns, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
+  cat("  fitgarch pars:", paste(names(pars(fitgarch_fit)), collapse = ", "), "\n")
+  cat_pars(fitgarch_fit)
+  fit_and_dump(fitgarch_fit, "fitgarch11_norm", "fitgarch", "norm", trunc = "none")
+}, error = function(e) cat("  ERROR fitgarch:", conditionMessage(e),
+                          "| exists('fitgarch') =", exists("fitgarch"), "\n"))
+
+# GJR: the fEGarch function name is confirmed via exists() (figjr or figjrgarch), NOT guessed.
+tryCatch({
+  figjr_fn <- if (exists("figjrgarch")) figjrgarch else figjr
+  figjr_fit <- figjr_fn(returns, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
+  cat("  figjr pars:", paste(names(pars(figjr_fit)), collapse = ", "), "\n")
+  cat_pars(figjr_fit)
+  fit_and_dump(figjr_fit, "figjr11_norm", "figjr", "norm", trunc = "none")
+}, error = function(e) cat("  ERROR figjr:", conditionMessage(e),
+                          "| exists('figjr') =", exists("figjr"),
+                          "| exists('figjrgarch') =", exists("figjrgarch"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -437,14 +471,18 @@ manifest <- list(
                              note = "Phase-4 long-memory: fractionally-integrated APARCH (FIGARCH variance-recursion seam + APARCH asymmetry gamma1 + estimated power delta + fractional d; fiaparch()'s own defaults trunc='none', presample=50). BOUNDARY fixture: d~1 (forced by high beta1 via Conrad-Haag d>=beta1-phi1)"),
       fiaparch11_norm_interior = list(params = "fit_fiaparch11_norm_interior_params.json", sigma = "fit_fiaparch11_norm_interior_sigma.csv",
                                       input = "synthetic_returns_lowpersist.csv",
-                                      note = "Phase-4: FIAPARCH on the LOW-PERSISTENCE series so d lands INTERIOR (inside (0,0.5)) — the second (d,delta,gamma) point that identifies the presample-seed formula f(Var,delta,gamma,d), disentangled from the boundary fixture's near-integration inflation"))),
+                                      note = "Phase-4: FIAPARCH on the LOW-PERSISTENCE series so d lands INTERIOR (inside (0,0.5)) — the second (d,delta,gamma) point that identifies the presample-seed formula f(Var,delta,gamma,d), disentangled from the boundary fixture's near-integration inflation"),
+      fitgarch11_norm = list(params = "fit_fitgarch11_norm_params.json", sigma = "fit_fitgarch11_norm_sigma.csv",
+                             note = "Phase-4 long-memory: fractionally-integrated TGARCH (Zakoian sigma-recursion, delta=1 FIXED; FIGARCH variance-recursion seam with the (|eps|-gamma eps) news; fitgarch()'s own defaults trunc='none', presample=50)"),
+      figjr11_norm = list(params = "fit_figjr11_norm_params.json", sigma = "fit_figjr11_norm_sigma.csv",
+                          note = "Phase-4 long-memory: fractionally-integrated GJR-GARCH (FIGARCH variance-recursion seam; the news-kernel form — (|eps|-gamma eps)^2 APARCH-delta=2 vs Glosten indicator — is confirmed by the reconstruction gate, per the Phase-1 GJR finding; trunc='none', presample=50)"))),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; the Type-I long-memory FI models",
-    "(FIEGARCH/FIMEGARCH/FIMLog-GARCH) are done, and the variance-recursion FI models FIGARCH + FIAPARCH",
-    "are added. Later phases need more fixtures: all short-memory + EGARCH-family models under the other",
-    "7 conditional distributions; the remaining long-memory fits (FITGARCH/FIGJR/FILog-GARCH, Phase 4);",
-    "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and",
-    "re-run when those models are implemented."))
+    "(FIEGARCH/FIMEGARCH/FIMLog-GARCH) are done, and the variance-recursion FI family",
+    "(FIGARCH/FIAPARCH/FITGARCH/FIGJR) is complete. Later phases need more fixtures: all short-memory +",
+    "EGARCH-family models under the other 7 conditional distributions; the remaining long-memory fit",
+    "(FILog-GARCH, Phase 4); dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6).",
+    "Extend this script and re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")
