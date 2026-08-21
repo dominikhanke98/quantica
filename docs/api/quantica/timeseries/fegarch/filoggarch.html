@@ -116,13 +116,21 @@ is \( \omega_\sigma \) directly (no <code>ln Var</code> seed), the \( \xi \)-his
 \( t \le 0 \), so \( \ln\sigma_0^2 = \omega_\sigma \) and
 \( \sigma_0 = \exp(\omega_\sigma/2) \). Truncation is <code>L = n - 1</code> (App. C.3).</p>
 
-<p><strong>The relaxed ridge + honest misfit.</strong> Short-memory Log-GARCH sits on a near-common-root ridge
+<p><strong>The relaxed ridge.</strong> Short-memory Log-GARCH sits on a near-common-root ridge
 (\( \phi_1 \approx -\psi_1 \), weakly identified). Here the fractional \( d \) <strong>absorbs the
 persistence</strong> — the fixture fits \( \phi_1 = 0.306, \psi_1 = -0.556 \) (well separated, :math:<code>d =
 0.289</code> interior), the FIEGARCH pattern (\( \phi_1 \) dropped from ~0.98) — so all coefficients are
-identified and recover tight (no ridge tolerance). Note FILog-GARCH fits the GARCH-simulated fixture
-series ~160 log-likelihood <strong>worse</strong> than the rest of the family: the data is not Type-II
-log-long-memory, so this is <strong>honest model misfit</strong>, not a defect.</p>
+identified and recover tight (no ridge tolerance).</p>
+
+<p><strong>Effective challenge — fEGarch's fixture is a strictly-dominated local optimum.</strong> The committed
+fixture reports \( \mu = -0.003, \text{loglik} = 7436 \), but this is a strictly-dominated local
+optimum: every data-driven optimizer start (the data mean, random starts, and even a start from
+fEGarch's own reported params) escapes to a basin <code>~+120</code> log-likelihood higher
+(\( \text{loglik} \approx 7556 \), \( \mu \) near the data mean) — only an optimizer <em>placed</em> at
+\( \mu = -0.003 \) stays there. Since <code><a href="#filoggarch_recursion">filoggarch_recursion()</a></code> at those same params reproduces
+the fixture \( \sigma \)-series to <code>~1e-15</code>, it is fEGarch's <strong>optimizer</strong> landing in a poor
+local optimum, not the model. <code><a href="#fit_filoggarch">fit_filoggarch()</a></code> (data-mean started) reaches the dominant basin;
+the tests assert strict domination from every sensible start rather than matching the fixture.</p>
 </div>
 
                 

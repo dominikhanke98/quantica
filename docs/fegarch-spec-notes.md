@@ -880,7 +880,7 @@ FITGARCH / FIGJR); only FILog-GARCH (Type-II) remains in Phase 4.
 
 ---
 
-## 14. FILog-GARCH(1,d,1) — the Type-II fractional model + a non-converged fixture — RESOLVED (Phase 4)
+## 14. FILog-GARCH(1,d,1) — the Type-II fractional model + a dominated-fixture finding — RESOLVED (Phase 4)
 
 **Sources.** Geweke (1986) / Pantula (1986) / Milhøj (1987) Log-GARCH; Feng et al. (2020a)
 FILog-GARCH; **WP171 §2.1 Eqs. 10-13** for the Type-II fractional form. fEGarch source never
@@ -916,24 +916,28 @@ identified). FILog-GARCH fits `ϕ₁=0.306, ψ₁=−0.556` (separation `|ϕ₁+
 (ϕ₁ dropped from ~0.99, the FIEGARCH pattern), so all coefficients are identified and recover tight
 (no ridge tolerance, no boundary handling).
 
-### 14.3 An effective-challenge finding — fEGarch's fixture fit is NON-CONVERGED
+### 14.3 An effective-challenge finding — fEGarch's fixture is a strictly-dominated local optimum
 
-The fixture reports `mu=−0.003054, loglik=7435.98` — but this is **not the ML optimum**. The
-log-likelihood gradient in μ at the fitted point is large (not ≈0), and profiling μ shows the
-likelihood **increasing monotonically** through it toward μ near the data mean. A properly-converged
-clean-room `fit_filoggarch` (data-mean-started) reaches **`mu=+3.6e-4` (≈ data mean +4.8e-4),
-`loglik=7555.85` — `+119.87` higher** — at sensible params (`ϕ₁=0.393, ψ₁=−0.631, d=0.294`,
-separated). So **fEGarch's optimizer did not converge for FILog-GARCH on this series**; the low
-fixture loglik (~160 below the family) is the symptom, and at the true optimum the loglik (~7556) is
-in line with the family (the residual ~40 gap is genuine Type-II-vs-GARCH-data misfit).
+The fixture reports `mu=−0.003054, loglik=7435.98` — a **strictly-dominated local optimum**. A
+multi-start check settles the mechanism: an optimizer *placed* at `mu=−0.003` stays there (loglik
+7435.9, ≈ the fixture — so it is a genuine local optimum, not a stopped-mid-climb point), **but no
+data-driven start reaches it**. The data mean → 7555.85 (`+119.87`), three random starts →
+7553.3–7559.2 (`+117` to `+123`), and **even a start from fEGarch's own reported params escapes** to
+7536.8 (`+101`). So every sensible start lands in a basin `~+120` higher (`mu` near the data mean,
+`ϕ₁≈0.39, ψ₁≈−0.63, d≈0.29`, separated). Since `filoggarch_recursion` at fEGarch's params reproduces
+the fixture σ to `~1e-15`, it is fEGarch's **optimizer** landing in a poor local optimum, not the
+model. (At the dominant optimum the loglik ~7556 is only ~40 below the family — mild genuine
+Type-II-vs-GARCH-data misfit; the ~120 gap to the fixture is the local-optimum artifact.)
 
 **Validated honestly in two parts** (`test_filoggarch.py`, 11 tests): (1) the **seam is machine-exact
 at fEGarch's params** (`test_seam_is_machine_exact_at_fegarch_params`, ~1e-15 — the model is correct);
-(2) the **fit BEATS the non-converged fixture** (`test_fit_beats_the_non_converged_fegarch_fixture` —
-loglik strictly higher by >100, μ near the data mean, d interior, coefficients separated). We do
-**not** assert a param-by-param match to the suboptimal fixture — that would validate a bad optimum.
-This is the port's clearest **effective-challenge result**: an independent reimplementation catching
-the reference package's own optimizer failing. Additional checks: the `σ[0]=exp(ωσ/2)` presample tell,
+(2) the **fit strictly dominates the fixture from every sensible start**
+(`test_fit_strictly_dominates_the_fegarch_local_optimum` — the data-mean fit plus two random starts
+plus a start from fEGarch's own params all beat the fixture by >100 loglik; μ near the data mean, d
+interior, coefficients separated). We do **not** assert a param-by-param match to the dominated
+fixture — that would validate a bad optimum. This is the port's clearest **effective-challenge
+result**: an independent reimplementation catching the reference package's optimizer landing in a
+strictly-dominated local optimum. Additional checks: the `σ[0]=exp(ωσ/2)` presample tell,
 γ composition (`γ_0=0`, `γ_1=d+ϕ₁+ψ₁`), exact scale-equivariance, known-truth recovery incl. d, and
 the non-norm deferral (`mean_log_sq` is norm-only, as MLog-GARCH).
 

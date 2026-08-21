@@ -112,8 +112,9 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.fit_filoggarch` /
   :func:`~quantica.timeseries.fegarch.filoggarch_sim`. The seam is machine-exact; the fractional
   :math:`d` relaxes short-memory Log-GARCH's near-common-root ridge. **This is Phase 4's clearest
-  effective-challenge result**: fEGarch's committed fixture fit on the synthetic series is
-  non-converged, and an independent clean-room fit reaches a ~+120-higher log-likelihood.
+  effective-challenge result**: fEGarch's committed fixture fit sits at a strictly-dominated local
+  optimum, and an independent clean-room fit reaches a ~+120-higher log-likelihood from every
+  sensible start.
 
 **Phase 4 is complete** — all eight fractionally-integrated models. The dual mean and the
 forecasting/risk tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.

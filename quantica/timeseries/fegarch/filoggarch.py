@@ -36,13 +36,21 @@ is :math:`\omega_\sigma` directly (no ``ln Var`` seed), the :math:`\xi`-history 
 :math:`t \le 0`, so :math:`\ln\sigma_0^2 = \omega_\sigma` and
 :math:`\sigma_0 = \exp(\omega_\sigma/2)`. Truncation is ``L = n - 1`` (App. C.3).
 
-**The relaxed ridge + honest misfit.** Short-memory Log-GARCH sits on a near-common-root ridge
+**The relaxed ridge.** Short-memory Log-GARCH sits on a near-common-root ridge
 (:math:`\phi_1 \approx -\psi_1`, weakly identified). Here the fractional :math:`d` **absorbs the
 persistence** — the fixture fits :math:`\phi_1 = 0.306, \psi_1 = -0.556` (well separated, :math:`d =
 0.289` interior), the FIEGARCH pattern (:math:`\phi_1` dropped from ~0.98) — so all coefficients are
-identified and recover tight (no ridge tolerance). Note FILog-GARCH fits the GARCH-simulated fixture
-series ~160 log-likelihood **worse** than the rest of the family: the data is not Type-II
-log-long-memory, so this is **honest model misfit**, not a defect.
+identified and recover tight (no ridge tolerance).
+
+**Effective challenge — fEGarch's fixture is a strictly-dominated local optimum.** The committed
+fixture reports :math:`\mu = -0.003, \text{loglik} = 7436`, but this is a strictly-dominated local
+optimum: every data-driven optimizer start (the data mean, random starts, and even a start from
+fEGarch's own reported params) escapes to a basin ``~+120`` log-likelihood higher
+(:math:`\text{loglik} \approx 7556`, :math:`\mu` near the data mean) — only an optimizer *placed* at
+:math:`\mu = -0.003` stays there. Since :func:`filoggarch_recursion` at those same params reproduces
+the fixture :math:`\sigma`-series to ``~1e-15``, it is fEGarch's **optimizer** landing in a poor
+local optimum, not the model. :func:`fit_filoggarch` (data-mean started) reaches the dominant basin;
+the tests assert strict domination from every sensible start rather than matching the fixture.
 """
 
 from __future__ import annotations

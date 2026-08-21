@@ -1353,11 +1353,15 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   γ to Log-GARCH's (ψ₁+ϕ₁)ϕ₁^{i-1}. **Ridge relaxes:** ϕ₁=0.306, ψ₁=−0.556 (separated), d=0.289
   interior — the fractional d absorbs the persistence, so coefficients recover tight (no ridge/boundary
   handling). **Effective-challenge finding (user chose this validation):** fEGarch's committed fixture
-  fit is NON-CONVERGED (mu=−0.003, loglik=7436, large μ-gradient); a data-mean-started clean-room fit
-  BEATS it — mu=+3.6e-4 (≈ data mean), loglik=7555.85 (+119.87 higher), at sensible params. **Tests
-  (`test_filoggarch.py`, 11):** seam-exact at fEGarch params, `test_fit_beats_the_non_converged_fegarch_fixture`
-  (loglik >fixture+100, μ near data mean, d interior, coefficients separated — does NOT assert a
-  param-by-param match to the suboptimal fixture), σ[0]=exp(ωσ/2) tell, γ composition, d→0→Log-GARCH,
+  fit sits at a STRICTLY-DOMINATED LOCAL OPTIMUM (mu=−0.003, loglik=7436) — a multi-start check shows
+  every data-driven start (data mean, randoms, and even a start from fEGarch's own params) escapes to
+  a basin +101 to +123 loglik higher (mu near the data mean, loglik ~7556); only a start PLACED at
+  mu=−0.003 stays there. The seam is machine-exact at those params (~1e-15), so it is fEGarch's
+  optimizer, not the model. **Tests (`test_filoggarch.py`, 11):** seam-exact at fEGarch params,
+  `test_fit_strictly_dominates_the_fegarch_local_optimum` (the data-mean fit + two random starts + a
+  start from fEGarch's own params all beat the fixture by >100 loglik; μ near data mean, d interior,
+  coefficients separated — does NOT assert a param-by-param match to the dominated fixture),
+  σ[0]=exp(ωσ/2) tell, γ composition, d→0→Log-GARCH,
   scale-equivariance, known-truth incl. d, non-norm deferral (mean_log_sq norm-only), sim + edges.
   Docs: spec-notes §14, `__init__` Phase-4 section, PROGRESS. Gate green. **PHASE 4 IS COMPLETE — all
   eight fractionally-integrated models built and validated; the clean-room reimplementation caught the
