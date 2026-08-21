@@ -412,6 +412,29 @@ tryCatch({
                           "| exists('figjr') =", exists("figjr"),
                           "| exists('figjrgarch') =", exists("figjrgarch"), "\n"))
 
+# --- Phase-4 long-memory: FILog-GARCH (the Type-II EGF FI model, the LAST Phase-4 model) ----------
+# FILog-GARCH is the fractionally-integrated Log-GARCH: a Type-II EGF model, so spec-first via
+# filoggarch_spec() + fEGarch() (like loggarch_spec), NOT data-first. Confirmed via ls()/args() below
+# (NOT guessed; no source read). Print the signature, then call it. Report the fitted d, phi1, psi1
+# (the near-common-root ridge question: does phi1 ~ -psi1 persist, or does d absorb the persistence?).
+# The EGF FI models use the App. C.3 truncation default L = n-1 -- confirm for FILog-GARCH via its
+# metadata. Wrapped in tryCatch so a failure prints the model, the error and exists() and NEVER writes
+# a partial fixture.
+cat("  filoggarch_spec exists?", exists("filoggarch_spec"), "\n")
+if (exists("filoggarch_spec")) {
+  cat(sprintf("    args(filoggarch_spec): %s\n",
+              paste(deparse(args(filoggarch_spec)), collapse = " ")))
+}
+
+tryCatch({
+  filoggarch_fit <- fEGarch(filoggarch_spec(orders = c(1, 1), cond_dist = "norm"), returns,
+                            parallel = FALSE)
+  cat("  filoggarch pars:", paste(names(pars(filoggarch_fit)), collapse = ", "), "\n")
+  cat_pars(filoggarch_fit)
+  fit_and_dump(filoggarch_fit, "filoggarch11_norm", "filoggarch", "norm", trunc = "n-1")
+}, error = function(e) cat("  ERROR filoggarch:", conditionMessage(e),
+                          "| exists('filoggarch_spec') =", exists("filoggarch_spec"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -475,14 +498,16 @@ manifest <- list(
       fitgarch11_norm = list(params = "fit_fitgarch11_norm_params.json", sigma = "fit_fitgarch11_norm_sigma.csv",
                              note = "Phase-4 long-memory: fractionally-integrated TGARCH (Zakoian sigma-recursion, delta=1 FIXED; FIGARCH variance-recursion seam with the (|eps|-gamma eps) news; fitgarch()'s own defaults trunc='none', presample=50)"),
       figjr11_norm = list(params = "fit_figjr11_norm_params.json", sigma = "fit_figjr11_norm_sigma.csv",
-                          note = "Phase-4 long-memory: fractionally-integrated GJR-GARCH (FIGARCH variance-recursion seam; the news-kernel form — (|eps|-gamma eps)^2 APARCH-delta=2 vs Glosten indicator — is confirmed by the reconstruction gate, per the Phase-1 GJR finding; trunc='none', presample=50)"))),
+                          note = "Phase-4 long-memory: fractionally-integrated GJR-GARCH (FIGARCH variance-recursion seam; the news-kernel form — (|eps|-gamma eps)^2 APARCH-delta=2 vs Glosten indicator — is confirmed by the reconstruction gate, per the Phase-1 GJR finding; trunc='none', presample=50)"),
+      filoggarch11_norm = list(params = "fit_filoggarch11_norm_params.json", sigma = "fit_filoggarch11_norm_sigma.csv",
+                               note = "Phase-4 long-memory: fractionally-integrated Log-GARCH (Type-II EGF, spec-first via filoggarch_spec; the LAST Phase-4 model; Log-GARCH's {mu, omega_sig, phi1, psi1} + fractional d; App. C.3 trunc L=n-1)"))),
   pending_fixtures = paste(
-    "Phase-2 EGARCH-family (1,1)/norm fits are complete; the Type-I long-memory FI models",
-    "(FIEGARCH/FIMEGARCH/FIMLog-GARCH) are done, and the variance-recursion FI family",
-    "(FIGARCH/FIAPARCH/FITGARCH/FIGJR) is complete. Later phases need more fixtures: all short-memory +",
-    "EGARCH-family models under the other 7 conditional distributions; the remaining long-memory fit",
-    "(FILog-GARCH, Phase 4); dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6).",
-    "Extend this script and re-run when those models are implemented."))
+    "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
+    "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",
+    "(FIGARCH/FIAPARCH/FITGARCH/FIGJR), and the Type-II FILog-GARCH. Later phases need more fixtures: all",
+    "short-memory + EGARCH-family + long-memory models under the other 7 conditional distributions;",
+    "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and",
+    "re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")
