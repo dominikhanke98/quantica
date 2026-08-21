@@ -121,9 +121,9 @@ at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursio
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
 **Phase 4 long-memory models ← IN PROGRESS (the final MODEL-BUILDING STEP): the Type-I FI family
-FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34) + the variance-recursion FI models
-FIGARCH (Step 35) + FIAPARCH (Step 36) DONE, all on PR #19**, remaining FITGARCH / FIGJR / FILog-GARCH
-→ Phase 5 dual mean (ARMA / FARIMA mean +
+FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34) + the variance-recursion FI family
+FIGARCH / FIAPARCH / FITGARCH / FIGJR(1,d,1) COMPLETE (Steps 35-37), all on PR #19**, remaining
+FILog-GARCH (Type-II) → Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1316,6 +1316,28 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   §12, PROGRESS. Gate green. **Two irreducible-from-output limits now recorded honestly (APARCH σ₀,
   FIAPARCH seed) rather than hidden by loose tolerances — the effective-challenge discipline. FITGARCH
   / FIGJR remain (same seam, power/indicator news).**
+
+- **Step 37 — fEGarch Phase 4, FITGARCH + FIGJR(1,d,1): the δ-fixed FI variants, completing the
+  variance-recursion family (branch `feat/fegarch-phase4`, PR #19, NOT merged).** The last two
+  variance-recursion FI models, built as **thin wrappers** over the FIAPARCH machinery (the Phase-1
+  `asymmetric.py` pattern where GJR/TGARCH/APARCH shared one power recursion). Clean-room from Zakoian
+  (1994) / Glosten et al. (1993) + WP175 (no fEGarch source); fixtures `fit_fitgarch11_norm_*` /
+  `fit_figjr11_norm_*`. **R fns confirmed via `ls`/`args`:** `fitgarch()` + `figjrgarch()` (the GJR fn
+  is `figjrgarch`), **neither with `fix_delta`** — so δ is FIXED (FITGARCH δ=1 the Zakoian
+  σ-recursion, FIGJR δ=2), params `{mu, omega, phi1, beta1, gamma, d}` (6, no delta). **Reconstruction
+  gate (isolating the news term at the empirical seed):** FITGARCH `(|ε|−γε)^1` → 9.37e-17; **FIGJR
+  kernel confirmed `(|ε|−γε)²` (4.16e-17) — NOT the Glosten indicator (both Glosten forms miss at
+  1.4e-3)**, carrying the Phase-1 GJR finding into the FI form. `fiaparch.py` refactored: shared
+  `_fit_fi_power(delta_fixed)` (FIAPARCH None / FITGARCH 1 / FIGJR 2); `fitgarch_recursion` ≡
+  `fiaparch_recursion(δ=1)` and `figjr_recursion` ≡ `fiaparch_recursion(δ=2)` bit-for-bit; new
+  `fit_fitgarch`/`fit_figjr`/`fitgarch_sim`/`figjr_sim`. **Fixture match (both recover tight — the
+  fixed δ removes FIAPARCH's flat ridge):** FITGARCH d=1 (forced) but params ≤1e-2, σ 1.3e-6; FIGJR
+  d=0.66 (interior), params ≤1.2e-3, σ 4.5e-5. **Tests (`test_fitgarch_figjr.py`, 11):** seam-exact
+  (both, parametrized), fixture-match (both), the FIGJR-kernel-vs-Glosten finding, wrapper-equality
+  (≡ FIAPARCH at fixed δ), d→0→SM TGARCH/GJR (with the φ₁=α+β param map, <1e-10 after t=200),
+  known-truth (both, ω seed-sensitive), sim + edges. Docs: spec-notes §13, `__init__` Phase-4 section,
+  PROGRESS. Gate green. **The variance-recursion FI family (FIGARCH / FIAPARCH / FITGARCH / FIGJR) is
+  COMPLETE — only FILog-GARCH (Type-II) remains in Phase 4.**
 
 ## Next — optional depth only (planned scope is done)
 

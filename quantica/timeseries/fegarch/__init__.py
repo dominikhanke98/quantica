@@ -95,9 +95,17 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.fiaparch_sim`. The δ-power seam is machine-exact, but the
   presample seed is a **documented bounded limit** (the 2nd irreducible-from-output value after the
   APARCH :math:`\sigma_0` fork) — seeded at ``mean(news)`` with the residual documented.
+* **FITGARCH / FIGJR(1,d,1)** (:mod:`~quantica.timeseries.fegarch.fiaparch`) — FIAPARCH with the
+  power :math:`\delta` **fixed**: FITGARCH at :math:`\delta=1` (Zakoian 1994) and FIGJR at
+  :math:`\delta=2` (Glosten et al. 1993). Thin wrappers over the FIAPARCH machinery (bit-for-bit
+  ``fiaparch_recursion`` at fixed δ), fitting ``{mu, omega, phi1, beta1, gamma, d}`` via
+  :func:`~quantica.timeseries.fegarch.fit_fitgarch` / :func:`~quantica.timeseries.fegarch.fit_figjr`
+  and their simulators. The reconstruction gate confirmed the **FIGJR kernel is
+  :math:`(|\varepsilon|-\gamma\varepsilon)^2`, not the Glosten indicator** (the Phase-1 GJR finding
+  in FI form). This completes the variance-recursion FI family.
 
-The remaining long-memory models (FITGARCH / FIGJR / FILog-GARCH), the dual mean and the
-forecasting/risk tie-back arrive later — see ``docs/fegarch-port-roadmap.md``.
+The remaining long-memory model (FILog-GARCH, Type-II), the dual mean and the forecasting/risk
+tie-back arrive later — see ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -142,7 +150,13 @@ from quantica.timeseries.fegarch.fiaparch import (
     fiaparch_news,
     fiaparch_recursion,
     fiaparch_sim,
+    figjr_recursion,
+    figjr_sim,
     fit_fiaparch,
+    fit_figjr,
+    fit_fitgarch,
+    fitgarch_recursion,
+    fitgarch_sim,
 )
 from quantica.timeseries.fegarch.fiegarch import (
     fiegarch_recursion,
@@ -202,6 +216,8 @@ __all__ = [
     "figarch_recursion",
     "figarch_sim",
     "figarch_variance_filter",
+    "figjr_recursion",
+    "figjr_sim",
     "fimegarch_recursion",
     "fimegarch_sim",
     "fimloggarch_recursion",
@@ -211,14 +227,18 @@ __all__ = [
     "fit_fiaparch",
     "fit_fiegarch",
     "fit_figarch",
+    "fit_figjr",
     "fit_fimegarch",
     "fit_fimloggarch",
+    "fit_fitgarch",
     "fit_garch",
     "fit_gjr",
     "fit_loggarch",
     "fit_megarch",
     "fit_mloggarch",
     "fit_tgarch",
+    "fitgarch_recursion",
+    "fitgarch_sim",
     "fracdiff",
     "fracdiff_coeffs",
     "garch_recursion",

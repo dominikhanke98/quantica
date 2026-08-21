@@ -75,15 +75,23 @@ from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
+    from quantica.timeseries.fegarch.qmle import VarianceRecursion
 
 __all__ = [
     "fiaparch_news",
     "fiaparch_recursion",
     "fiaparch_sim",
+    "figjr_recursion",
+    "figjr_sim",
     "fit_fiaparch",
+    "fit_figjr",
+    "fit_fitgarch",
+    "fitgarch_recursion",
+    "fitgarch_sim",
 ]
 
 _VAR_NAMES = ("mu", "omega", "phi1", "beta1", "gamma", "delta", "d")
+_VAR_NAMES_FIXED = ("mu", "omega", "phi1", "beta1", "gamma", "d")  # FITGARCH/FIGJR: delta is fixed
 
 
 def fiaparch_news(resid: FloatArray, gamma: float, delta: float) -> FloatArray:
@@ -142,21 +150,13 @@ def fiaparch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
     )  # sigma^2 = (sigma^delta)^(2/d)
 
 
-def fit_fiaparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
-    """Fit FIAPARCH(1,d,1) with a constant mean by QMLE under a chosen conditional distribution.
+def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | None) -> GarchFit:
+    """Shared QMLE fit for the variance-recursion FI-power family (FIAPARCH / FITGARCH / FIGJR).
 
-    Parameters
-    ----------
-    returns : ndarray, shape (T,)
-        The return series.
-    cond_dist : str, optional
-        One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
-
-    Returns
-    -------
-    GarchFit
-        Estimates ``mu, omega, phi1, beta1, gamma, delta, d``, log-likelihood, per-observation
-        AIC/BIC, and the conditional-volatility series (original return units).
+    ``delta_fixed=None`` estimates ``delta`` (FIAPARCH, 7 params); a fixed value drops it from
+    the parameter vector (FITGARCH ``delta=1`` the Zakoian sigma-recursion, FIGJR ``delta=2``) and
+    inserts it into the recursion. Scale-equivariant: ``mu`` scales by ``scale``, the ``omega``
+    intercept by ``scale**delta`` (it is a sigma^delta intercept), the rest are invariant.
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
@@ -164,33 +164,59 @@ def fit_fiaparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     scaled = y / scale
     distribution = get_distribution(cond_dist)
 
-    var_start = (float(np.mean(scaled)), 0.05, 0.2, 0.5, 0.05, 1.5, 0.3)
-    var_bounds = (
-        (-10.0, 10.0),
-        (1e-8, 100.0),  # omega > 0 (sigma^delta intercept)
-        (1e-6, 0.9999),
-        (1e-6, 0.9999),
-        (-0.9999, 0.9999),  # gamma leverage, |gamma| < 1
-        (0.25, 4.0),  # delta > 0 (APARCH power)
-        (1e-7, 0.9999999),  # d in (0, 1) -- must permit the boundary d approx 1 (high-beta1 series)
-    )
+    # d-bound (1e-7, 0.9999999) must permit the boundary d approx 1 (high-beta1 series).
+    var_names: tuple[str, ...]
+    var_start: tuple[float, ...]
+    var_bounds: tuple[tuple[float, float], ...]
+    recursion: VarianceRecursion
+    if delta_fixed is None:
+        var_names = _VAR_NAMES
+        var_start = (float(np.mean(scaled)), 0.05, 0.2, 0.5, 0.05, 1.5, 0.3)
+        var_bounds = (
+            (-10.0, 10.0),
+            (1e-8, 100.0),  # omega > 0 (sigma^delta intercept)
+            (1e-6, 0.9999),
+            (1e-6, 0.9999),
+            (-0.9999, 0.9999),  # gamma leverage, |gamma| < 1
+            (0.25, 4.0),  # delta > 0 (APARCH power)
+            (1e-7, 0.9999999),
+        )
+        recursion = fiaparch_recursion
+    else:
+        var_names = _VAR_NAMES_FIXED
+        var_start = (float(np.mean(scaled)), 0.05, 0.2, 0.5, 0.05, 0.3)
+        var_bounds = (
+            (-10.0, 10.0),
+            (1e-8, 100.0),
+            (1e-6, 0.9999),
+            (1e-6, 0.9999),
+            (-0.9999, 0.9999),
+            (1e-7, 0.9999999),
+        )
+
+        def _delta_fixed_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
+            p = np.asarray(params, dtype=np.float64)
+            full = np.array([p[0], p[1], p[2], p[3], p[4], delta_fixed, p[5]])  # insert delta
+            return fiaparch_recursion(full, returns)
+
+        recursion = _delta_fixed_recursion
 
     result = quasi_max_likelihood(
         scaled,
-        fiaparch_recursion,
+        recursion,
         distribution,
         var_start=var_start,
         var_bounds=var_bounds,
-        var_names=_VAR_NAMES,
+        var_names=var_names,
         mean=True,
     )
 
     # Undo the scaling: mu scales (~scale); omega is a sigma^delta intercept, so it scales by
-    # scale^delta; phi1/beta1/gamma/delta/d are scale-invariant.
+    # scale^delta; phi1/beta1/gamma/(delta)/d are scale-invariant.
+    delta_hat = float(result.params[5]) if delta_fixed is None else float(delta_fixed)
     names = result.param_names
     values = np.asarray(result.params, dtype=np.float64).copy()
     std_errors_arr = np.asarray(result.std_errors, dtype=np.float64).copy()
-    delta_hat = float(values[5])
     values[0] *= scale
     values[1] *= scale**delta_hat
     std_errors_arr[0] *= scale
@@ -215,6 +241,25 @@ def fit_fiaparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         n_obs=n,
         converged=result.converged,
     )
+
+
+def fit_fiaparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+    """Fit FIAPARCH(1,d,1) with a constant mean by QMLE under a chosen conditional distribution.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (T,)
+        The return series.
+    cond_dist : str, optional
+        One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+
+    Returns
+    -------
+    GarchFit
+        Estimates ``mu, omega, phi1, beta1, gamma, delta, d``, log-likelihood, per-observation
+        AIC/BIC, and the conditional-volatility series (original return units).
+    """
+    return _fit_fi_power(returns, cond_dist, delta_fixed=None)
 
 
 def fiaparch_sim(
@@ -302,4 +347,159 @@ def fiaparch_sim(
     return (
         np.asarray(returns[n_burn:], dtype=np.float64),
         np.asarray(sigma[n_burn:], dtype=np.float64),
+    )
+
+
+# =============================================================================
+# FITGARCH and FIGJR — FIAPARCH with delta FIXED (thin wrappers, not reimplementations).
+#
+# fEGarch's fitgarch()/figjrgarch() are data-first with NO fix_delta arg, so delta is fixed:
+# FITGARCH = delta 1 (the Zakoian sigma-recursion), FIGJR = delta 2 (the GJR power). Both use the
+# SAME APARCH power-asymmetry news (|eps|-gamma eps)^delta as FIAPARCH -- the reconstruction gate
+# confirmed the FIGJR kernel is (|eps|-gamma eps)^2, NOT the Glosten indicator (matching the Phase-1
+# short-memory GJR finding). They therefore reuse fiaparch_recursion / _fit_fi_power / fiaparch_sim
+# with delta pinned; the parameter vector drops delta -> (mu, omega, phi1, beta1, gamma, d).
+# =============================================================================
+
+
+def fitgarch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
+    r"""FITGARCH(1,d,1) conditional variance — FIAPARCH at :math:`\delta = 1` (Zakoian recursion).
+
+    Parameters
+    ----------
+    params : ndarray, shape (6,)
+        ``(mu, omega, phi1, beta1, gamma, d)``; ``omega`` is the ``sigma`` intercept (``delta=1``).
+    returns : ndarray, shape (T,)
+        The return series.
+
+    Returns
+    -------
+    ndarray, shape (T,)
+        The conditional variances :math:`\sigma_t^2`.
+    """
+    p = np.asarray(params, dtype=np.float64)
+    full = np.array([p[0], p[1], p[2], p[3], p[4], 1.0, p[5]])  # insert delta = 1
+    return fiaparch_recursion(full, returns)
+
+
+def figjr_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
+    r"""FIGJR(1,d,1) conditional variance — FIAPARCH at :math:`\delta = 2` (the GJR power kernel).
+
+    Uses the :math:`(|\varepsilon|-\gamma\varepsilon)^2` APARCH kernel (confirmed by the
+    reconstruction gate to machine precision), **not** the Glosten indicator.
+
+    Parameters
+    ----------
+    params : ndarray, shape (6,)
+        ``(mu, omega, phi1, beta1, gamma, d)``; ``omega`` is the sigma^2 intercept (``delta=2``).
+    returns : ndarray, shape (T,)
+        The return series.
+
+    Returns
+    -------
+    ndarray, shape (T,)
+        The conditional variances :math:`\sigma_t^2`.
+    """
+    p = np.asarray(params, dtype=np.float64)
+    full = np.array([p[0], p[1], p[2], p[3], p[4], 2.0, p[5]])  # insert delta = 2
+    return fiaparch_recursion(full, returns)
+
+
+def fit_fitgarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+    """Fit FITGARCH(1,d,1) (FIAPARCH at delta=1, the Zakoian sigma-recursion) by QMLE.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (T,)
+        The return series.
+    cond_dist : str, optional
+        One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+
+    Returns
+    -------
+    GarchFit
+        Estimates ``mu, omega, phi1, beta1, gamma, d`` (delta fixed at 1), + log-likelihood, AIC/BIC
+        and the conditional-SD series.
+    """
+    return _fit_fi_power(returns, cond_dist, delta_fixed=1.0)
+
+
+def fit_figjr(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+    """Fit FIGJR(1,d,1) (FIAPARCH at delta=2, the (|eps|-gamma eps)^2 GJR kernel) by QMLE.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (T,)
+        The return series.
+    cond_dist : str, optional
+        One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+
+    Returns
+    -------
+    GarchFit
+        Estimates ``mu, omega, phi1, beta1, gamma, d`` (delta fixed at 2), + log-likelihood, AIC/BIC
+        and the conditional-SD series.
+    """
+    return _fit_fi_power(returns, cond_dist, delta_fixed=2.0)
+
+
+def fitgarch_sim(
+    n: int,
+    *,
+    mu: float = 0.0,
+    omega: float,
+    phi1: float,
+    beta1: float,
+    gamma: float,
+    d: float,
+    cond_dist: str = "norm",
+    dist_params: tuple[float, ...] = (),
+    rng: np.random.Generator,
+    n_burn: int = 1000,
+) -> tuple[FloatArray, FloatArray]:
+    """Simulate a FITGARCH(1,d,1) process (FIAPARCH at delta=1). See :func:`fiaparch_sim`."""
+    return fiaparch_sim(
+        n,
+        mu=mu,
+        omega=omega,
+        phi1=phi1,
+        beta1=beta1,
+        gamma=gamma,
+        delta=1.0,
+        d=d,
+        cond_dist=cond_dist,
+        dist_params=dist_params,
+        rng=rng,
+        n_burn=n_burn,
+    )
+
+
+def figjr_sim(
+    n: int,
+    *,
+    mu: float = 0.0,
+    omega: float,
+    phi1: float,
+    beta1: float,
+    gamma: float,
+    d: float,
+    cond_dist: str = "norm",
+    dist_params: tuple[float, ...] = (),
+    rng: np.random.Generator,
+    n_burn: int = 1000,
+) -> tuple[FloatArray, FloatArray]:
+    """Simulate a FIGJR(1,d,1) process (FIAPARCH at delta=2). See :func:`fiaparch_sim`."""
+    return fiaparch_sim(
+        n,
+        mu=mu,
+        omega=omega,
+        phi1=phi1,
+        beta1=beta1,
+        gamma=gamma,
+        delta=2.0,
+        d=d,
+        cond_dist=cond_dist,
+        dist_params=dist_params,
+        rng=rng,
+        n_burn=n_burn,
     )

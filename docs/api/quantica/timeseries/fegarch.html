@@ -376,6 +376,12 @@
                     <a class="function" href="#figarch_variance_filter">figarch_variance_filter</a>
             </li>
             <li>
+                    <a class="function" href="#figjr_recursion">figjr_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#figjr_sim">figjr_sim</a>
+            </li>
+            <li>
                     <a class="function" href="#fimegarch_recursion">fimegarch_recursion</a>
             </li>
             <li>
@@ -403,10 +409,16 @@
                     <a class="function" href="#fit_figarch">fit_figarch</a>
             </li>
             <li>
+                    <a class="function" href="#fit_figjr">fit_figjr</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_fimegarch">fit_fimegarch</a>
             </li>
             <li>
                     <a class="function" href="#fit_fimloggarch">fit_fimloggarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_fitgarch">fit_fitgarch</a>
             </li>
             <li>
                     <a class="function" href="#fit_garch">fit_garch</a>
@@ -425,6 +437,12 @@
             </li>
             <li>
                     <a class="function" href="#fit_tgarch">fit_tgarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fitgarch_recursion">fitgarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#fitgarch_sim">fitgarch_sim</a>
             </li>
             <li>
                     <a class="function" href="#fracdiff">fracdiff</a>
@@ -607,10 +625,18 @@ using the <em>same</em> \( \theta(B) \) as FIGARCH (Tse 1998; WP175 Eq. 2.10). R
 <code>~<a href="#fiaparch_sim">quantica.timeseries.fegarch.fiaparch_sim()</a></code>. The δ-power seam is machine-exact, but the
 presample seed is a <strong>documented bounded limit</strong> (the 2nd irreducible-from-output value after the
 APARCH \( \sigma_0 \) fork) — seeded at <code>mean(news)</code> with the residual documented.</li>
+<li><strong>FITGARCH / FIGJR(1,d,1)</strong> (<code>~<a href="fegarch/fiaparch.html">quantica.timeseries.fegarch.fiaparch</a></code>) — FIAPARCH with the
+power \( \delta \) <strong>fixed</strong>: FITGARCH at \( \delta=1 \) (Zakoian 1994) and FIGJR at
+\( \delta=2 \) (Glosten et al. 1993). Thin wrappers over the FIAPARCH machinery (bit-for-bit
+<code><a href="#fiaparch_recursion">fiaparch_recursion</a></code> at fixed δ), fitting <code>{mu, omega, phi1, beta1, gamma, d}</code> via
+<code>~<a href="#fit_fitgarch">quantica.timeseries.fegarch.fit_fitgarch()</a></code> / <code>~<a href="#fit_figjr">quantica.timeseries.fegarch.fit_figjr()</a></code>
+and their simulators. The reconstruction gate confirmed the <strong>FIGJR kernel is
+\( (|\varepsilon|-\gamma\varepsilon)^2 \), not the Glosten indicator</strong> (the Phase-1 GJR finding
+in FI form). This completes the variance-recursion FI family.</li>
 </ul>
 
-<p>The remaining long-memory models (FITGARCH / FIGJR / FILog-GARCH), the dual mean and the
-forecasting/risk tie-back arrive later — see <code>docs/fegarch-port-roadmap.md</code>.</p>
+<p>The remaining long-memory model (FILog-GARCH, Type-II), the dual mean and the forecasting/risk
+tie-back arrive later — see <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -2488,6 +2514,54 @@ The number of pre-sample terms (default <code><a href="#FIGARCH_PRESAMPLE">FIGAR
 
 
                 </section>
+                <section id="figjr_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">figjr_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#figjr_recursion"></a>
+    
+            <div class="docstring"><p>FIGJR(1,d,1) conditional variance — FIAPARCH at \( \delta = 2 \) (the GJR power kernel).</p>
+
+<p>Uses the \( (|\varepsilon|-\gamma\varepsilon)^2 \) APARCH kernel (confirmed by the
+reconstruction gate to machine precision), <strong>not</strong> the Glosten indicator.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (6,)):
+<code>(mu, omega, phi1, beta1, gamma, d)</code>; <code>omega</code> is the sigma^2 intercept (<code>delta=2</code>).</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="figjr_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">figjr_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">beta1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#figjr_sim"></a>
+    
+            <div class="docstring"><p>Simulate a FIGJR(1,d,1) process (FIAPARCH at delta=2). See <code><a href="#fiaparch_sim">fiaparch_sim()</a></code>.</p>
+</div>
+
+
+                </section>
                 <section id="fimegarch_recursion">
                     <div class="attr function">
             
@@ -2813,6 +2887,37 @@ conditional-volatility series (original return units).</li>
 
 
                 </section>
+                <section id="fit_figjr">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_figjr</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_figjr"></a>
+    
+            <div class="docstring"><p>Fit FIGJR(1,d,1) (FIAPARCH at delta=2, the (|eps|-gamma eps)^2 GJR kernel) by QMLE.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega, phi1, beta1, gamma, d</code> (delta fixed at 2), + log-likelihood, AIC/BIC
+and the conditional-SD series.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fit_fimegarch">
                     <div class="attr function">
             
@@ -2871,6 +2976,37 @@ Conditional-distribution code (default <code>"norm"</code>, the only validated o
 <ul>
 <li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma, d</code> (+ log-likelihood, AIC/BIC, conditional
 SD).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_fitgarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_fitgarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_fitgarch"></a>
+    
+            <div class="docstring"><p>Fit FITGARCH(1,d,1) (FIAPARCH at delta=1, the Zakoian sigma-recursion) by QMLE.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega, phi1, beta1, gamma, d</code> (delta fixed at 1), + log-likelihood, AIC/BIC
+and the conditional-SD series.</li>
 </ul>
 </div>
 
@@ -3057,6 +3193,51 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>).</li>
 <li><strong>GarchFit</strong>: Estimates <code>mu, omega, phi1, beta1, gamma1</code> (+ shape parameters), log-likelihood,
 per-observation AIC/BIC, and the conditional-volatility series.</li>
 </ul>
+</div>
+
+
+                </section>
+                <section id="fitgarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fitgarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fitgarch_recursion"></a>
+    
+            <div class="docstring"><p>FITGARCH(1,d,1) conditional variance — FIAPARCH at \( \delta = 1 \) (Zakoian recursion).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (6,)):
+<code>(mu, omega, phi1, beta1, gamma, d)</code>; <code>omega</code> is the <code>sigma</code> intercept (<code>delta=1</code>).</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fitgarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fitgarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">beta1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fitgarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a FITGARCH(1,d,1) process (FIAPARCH at delta=1). See <code><a href="#fiaparch_sim">fiaparch_sim()</a></code>.</p>
 </div>
 
 

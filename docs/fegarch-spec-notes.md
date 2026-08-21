@@ -827,5 +827,58 @@ interior fit lands `d≈0, δ=2.596, γ=0.032`, well separated from the boundary
 
 ---
 
+## 13. FITGARCH(1,d,1) + FIGJR(1,d,1) — the δ-fixed FI variants — RESOLVED (Phase 4)
+
+**Sources.** Zakoian (1994) TGARCH (δ=1); Glosten-Jagannathan-Runkle (1993) GJR (δ=2); Tse (1998) +
+WP175 for the FI form. fEGarch source never consulted; validated against `fit_fitgarch11_norm_*` and
+`fit_figjr11_norm_*`. R functions confirmed data-first via `ls`/`args`: **`fitgarch()`** and
+**`figjrgarch()`** (the GJR function is `figjrgarch`, not `figjr`) — **neither has a `fix_delta` arg**,
+so δ is *fixed* (not fitted), unlike FIAPARCH.
+
+### 13.1 FITGARCH / FIGJR = FIAPARCH with δ fixed (thin wrappers)
+
+FITGARCH is FIAPARCH at **δ=1** (the Zakoian σ-recursion) and FIGJR at **δ=2**; both fit the 6-vector
+`{mu, omega, phi1, beta1, gamma, d}` (no δ). They reuse `fiaparch_recursion` with δ pinned —
+`fitgarch_recursion ≡ fiaparch_recursion(δ=1)` and `figjr_recursion ≡ fiaparch_recursion(δ=2)`
+bit-for-bit — and the shared `_fit_fi_power(delta_fixed=…)` QMLE (the Phase-1 `asymmetric.py` pattern,
+where GJR/TGARCH/APARCH shared one power recursion). `omega` is a σ^δ intercept (σ-units for FITGARCH,
+σ²-units for FIGJR), scaling by `scale^δ`.
+
+### 13.2 The FIGJR kernel — `(|ε|−γε)²`, NOT the Glosten indicator (confirmed)
+
+The reconstruction gate settled the GJR news kernel at the empirical seed:
+
+| kernel | max\|σ−fixture\| |
+|---|---|
+| **`(|ε|−γε)²`** (APARCH-δ=2) | **4.16e-17** (machine-exact) |
+| Glosten `ε²(1+γ·1[ε<0])` | 1.43e-3 |
+| Glosten `ε²+γ·min(ε,0)²` | 1.43e-3 |
+
+So fEGarch's FIGJR uses the **APARCH `(|ε|−γε)²` kernel**, carrying the **Phase-1 short-memory GJR
+finding** (§4.1) into the FI form — the fixture confirms it, not an assumption. FITGARCH's news is the
+same kernel at δ=1, `(|ε|−γε)`, machine-exact at `9.37e-17`.
+
+### 13.3 Fixture confirmation + the boundary difference
+
+Both are **machine-exact at their empirical seed** (FITGARCH `9.37e-17`, FIGJR `4.16e-17` — the seam
+proven separately from the seed). Both fits **recover tight**: FITGARCH all params to `≤1e-2` (σ to
+`1.3e-6`), FIGJR all six to `≤1.2e-3` (σ to `4.5e-5`). Notably FITGARCH lands `d=1` (β₁=0.921 forces
+it, Conrad-Haag §12.2) yet is **well-identified** — the *fixed* δ removes the flat likelihood ridge
+that made FIAPARCH's d≈1 boundary weakly identified, so the seed's bounded residual stays small
+(`~1e-6`) and the params recover. FIGJR lands `d=0.66` (interior). Both inherit the FIAPARCH
+`mean(news)` bounded-limit seed.
+
+### 13.4 Reduction anchors
+
+`fitgarch_recursion`/`figjr_recursion` ≡ `fiaparch_recursion(δ=1/2)` exactly (wrapper correctness).
+The **d→0** reduction to short-memory TGARCH / GJR holds *after the pre-sample transient* (`<1e-10`
+past `t=200`), under the parameterization map — the FI `phi1` is WP175's `φ₁ = α+β`, so the
+short-memory ARCH coefficient is `α = φ₁−β₁` and the SM intercept is `ω(1−β₁)` (the FI ARCH(∞) form
+and the SM AR-form are the same process with different pre-sample seeds; `φ₁>β₁` keeps the reduced
+coefficients non-negative). **This completes the variance-recursion FI family** (FIGARCH / FIAPARCH /
+FITGARCH / FIGJR); only FILog-GARCH (Type-II) remains in Phase 4.
+
+---
+
 *Add further specification derivations here as later phases (the remaining long-memory FI models, the
 dual mean) are implemented — always from the papers/manual, never the source.*
