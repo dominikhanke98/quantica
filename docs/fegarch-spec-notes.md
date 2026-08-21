@@ -880,5 +880,68 @@ FITGARCH / FIGJR); only FILog-GARCH (Type-II) remains in Phase 4.
 
 ---
 
-*Add further specification derivations here as later phases (the remaining long-memory FI models, the
-dual mean) are implemented — always from the papers/manual, never the source.*
+## 14. FILog-GARCH(1,d,1) — the Type-II fractional model + a non-converged fixture — RESOLVED (Phase 4)
+
+**Sources.** Geweke (1986) / Pantula (1986) / Milhøj (1987) Log-GARCH; Feng et al. (2020a)
+FILog-GARCH; **WP171 §2.1 Eqs. 10-13** for the Type-II fractional form. fEGarch source never
+consulted; validated against `fit_filoggarch11_norm_*`. R function `filoggarch_spec` confirmed
+spec-first via `ls`/`args` (like `loggarch_spec` / `fiegarch_spec`). This is the **last Phase-4
+model** — the Type-II counterpart of FIEGARCH.
+
+### 14.1 The Type-II fractional recursion — machine-exact
+
+WP171 Eqs. 10-11 give the truncated MA(∞) log-variance recursion loading the **log-square news**
+`ξ_t = ln(η²_t) − E[ln η²]` (Log-GARCH's news, not FIEGARCH's Type-I `g(η)`):
+
+```
+ln σ²_t = ωσ + γ(B) ξ_t,   γ(B) = ϕ⁻¹(B)(1−B)^{−d}ψ(B) − 1 = Σ_{i≥1} γ_i B^i,
+```
+
+which for (1,d,1) is `γ(B) = (1−ϕ₁B)⁻¹(1−B)^{−d}(1+ψ₁B) − 1`, with `γ_0 = 0` (the `−1` drops the
+constant, so the news loads from lag 1) and `γ_1 = d+ϕ₁+ψ₁`. So it is **built by composition**,
+reusing FIEGARCH's `theta_coefficients` (geometric `ϕ⁻¹` ⊛ `fracdiff_coeffs(−d)`, fractional
+*integration*) convolved with the Type-II MA factor **`(1+ψ₁B)`** — `ψ₁` enters the γ(B) numerator.
+It reuses the Log-GARCH `mean_log_sq` moment (norm: `E[ln η²]=−γ_E−ln2=−1.27036`) and the **FIEGARCH
+MA(∞) presample** (ωσ intercept direct, ξ-history=0, `σ[0]=exp(ωσ/2)`). Like FIEGARCH the fit couples
+(ξ_t depends on σ_t) → O(n²); simulation does not (ξ from drawn η) → one convolution. Param vector
+`(mu, omega_sig, phi1, psi1, d)`. **The recursion at fEGarch's own params reproduces the fixture σ to
+`1.05e-15`** — the seam is machine-exact. The **d→0 reduction** collapses γ_i to short-memory
+Log-GARCH's `(ψ₁+ϕ₁)ϕ₁^{i-1}` (~1e-12).
+
+### 14.2 The ridge relaxes — d absorbs the persistence
+
+Short-memory Log-GARCH sits on a near-common-root ridge (`ϕ₁≈−ψ₁`, `ϕ₁=0.989, ψ₁=−0.954`, weakly
+identified). FILog-GARCH fits `ϕ₁=0.306, ψ₁=−0.556` (separation `|ϕ₁+ψ₁|=0.25`, well apart) with
+`d=0.289` **interior** (weakly-stationary regime) — the fractional d **absorbs the persistence**
+(ϕ₁ dropped from ~0.99, the FIEGARCH pattern), so all coefficients are identified and recover tight
+(no ridge tolerance, no boundary handling).
+
+### 14.3 An effective-challenge finding — fEGarch's fixture fit is NON-CONVERGED
+
+The fixture reports `mu=−0.003054, loglik=7435.98` — but this is **not the ML optimum**. The
+log-likelihood gradient in μ at the fitted point is large (not ≈0), and profiling μ shows the
+likelihood **increasing monotonically** through it toward μ near the data mean. A properly-converged
+clean-room `fit_filoggarch` (data-mean-started) reaches **`mu=+3.6e-4` (≈ data mean +4.8e-4),
+`loglik=7555.85` — `+119.87` higher** — at sensible params (`ϕ₁=0.393, ψ₁=−0.631, d=0.294`,
+separated). So **fEGarch's optimizer did not converge for FILog-GARCH on this series**; the low
+fixture loglik (~160 below the family) is the symptom, and at the true optimum the loglik (~7556) is
+in line with the family (the residual ~40 gap is genuine Type-II-vs-GARCH-data misfit).
+
+**Validated honestly in two parts** (`test_filoggarch.py`, 11 tests): (1) the **seam is machine-exact
+at fEGarch's params** (`test_seam_is_machine_exact_at_fegarch_params`, ~1e-15 — the model is correct);
+(2) the **fit BEATS the non-converged fixture** (`test_fit_beats_the_non_converged_fegarch_fixture` —
+loglik strictly higher by >100, μ near the data mean, d interior, coefficients separated). We do
+**not** assert a param-by-param match to the suboptimal fixture — that would validate a bad optimum.
+This is the port's clearest **effective-challenge result**: an independent reimplementation catching
+the reference package's own optimizer failing. Additional checks: the `σ[0]=exp(ωσ/2)` presample tell,
+γ composition (`γ_0=0`, `γ_1=d+ϕ₁+ψ₁`), exact scale-equivariance, known-truth recovery incl. d, and
+the non-norm deferral (`mean_log_sq` is norm-only, as MLog-GARCH).
+
+**Phase 4 is complete — all eight fractionally-integrated models** (the Type-I EGF family FIEGARCH /
+FIMEGARCH / FIMLog-GARCH; the variance-recursion family FIGARCH / FIAPARCH / FITGARCH / FIGJR; and the
+Type-II FILog-GARCH) are implemented and validated.
+
+---
+
+*Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)
+are implemented — always from the papers/manual, never the source.*

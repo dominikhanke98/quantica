@@ -103,9 +103,20 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   and their simulators. The reconstruction gate confirmed the **FIGJR kernel is
   :math:`(|\varepsilon|-\gamma\varepsilon)^2`, not the Glosten indicator** (the Phase-1 GJR finding
   in FI form). This completes the variance-recursion FI family.
+* **FILog-GARCH(1,d,1)** (:mod:`~quantica.timeseries.fegarch.filoggarch`) — the **Type-II**
+  fractional model (fractionally-integrated Log-GARCH, the counterpart of FIEGARCH). Its MA(∞) loads
+  the log-square news :math:`\xi = \ln\eta^2 - \operatorname{E}[\ln\eta^2]` through
+  :math:`\gamma(B) = (1-\phi_1 B)^{-1}(1-B)^{-d}(1+\psi_1 B) - 1` (WP 2026-04 Eqs. 10-11), reusing
+  FIEGARCH's :func:`~quantica.timeseries.fegarch.theta_coefficients` + the :math:`(1+\psi_1 B)` MA
+  factor and the Log-GARCH ``mean_log_sq`` moment, via
+  :func:`~quantica.timeseries.fegarch.fit_filoggarch` /
+  :func:`~quantica.timeseries.fegarch.filoggarch_sim`. The seam is machine-exact; the fractional
+  :math:`d` relaxes short-memory Log-GARCH's near-common-root ridge. **This is Phase 4's clearest
+  effective-challenge result**: fEGarch's committed fixture fit on the synthetic series is
+  non-converged, and an independent clean-room fit reaches a ~+120-higher log-likelihood.
 
-The remaining long-memory model (FILog-GARCH, Type-II), the dual mean and the forecasting/risk
-tie-back arrive later — see ``docs/fegarch-port-roadmap.md``.
+**Phase 4 is complete** — all eight fractionally-integrated models. The dual mean and the
+forecasting/risk tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -178,6 +189,12 @@ from quantica.timeseries.fegarch.figarch import (
     figarch_variance_filter,
     fit_figarch,
 )
+from quantica.timeseries.fegarch.filoggarch import (
+    filoggarch_gamma_coefficients,
+    filoggarch_recursion,
+    filoggarch_sim,
+    fit_filoggarch,
+)
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
 from quantica.timeseries.fegarch.loggarch import fit_loggarch, loggarch_recursion, loggarch_sim
@@ -218,6 +235,9 @@ __all__ = [
     "figarch_variance_filter",
     "figjr_recursion",
     "figjr_sim",
+    "filoggarch_gamma_coefficients",
+    "filoggarch_recursion",
+    "filoggarch_sim",
     "fimegarch_recursion",
     "fimegarch_sim",
     "fimloggarch_recursion",
@@ -228,6 +248,7 @@ __all__ = [
     "fit_fiegarch",
     "fit_figarch",
     "fit_figjr",
+    "fit_filoggarch",
     "fit_fimegarch",
     "fit_fimloggarch",
     "fit_fitgarch",

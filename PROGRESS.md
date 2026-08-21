@@ -120,10 +120,10 @@ APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ C
 at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
-**Phase 4 long-memory models ← IN PROGRESS (the final MODEL-BUILDING STEP): the Type-I FI family
-FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) DONE (Steps 33-34) + the variance-recursion FI family
-FIGARCH / FIAPARCH / FITGARCH / FIGJR(1,d,1) COMPLETE (Steps 35-37), all on PR #19**, remaining
-FILog-GARCH (Type-II) → Phase 5 dual mean (ARMA / FARIMA mean +
+**Phase 4 long-memory models ← COMPLETE (all eight FI models, Steps 33-38, on PR #19): the Type-I FI
+family FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) (Steps 33-34) + the variance-recursion FI family
+FIGARCH / FIAPARCH / FITGARCH / FIGJR(1,d,1) (Steps 35-37) + the Type-II FILog-GARCH(1,d,1) (Step 38)**
+→ Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1338,6 +1338,31 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   known-truth (both, ω seed-sensitive), sim + edges. Docs: spec-notes §13, `__init__` Phase-4 section,
   PROGRESS. Gate green. **The variance-recursion FI family (FIGARCH / FIAPARCH / FITGARCH / FIGJR) is
   COMPLETE — only FILog-GARCH (Type-II) remains in Phase 4.**
+
+- **Step 38 — fEGarch Phase 4, FILog-GARCH(1,d,1): the Type-II fractional model, COMPLETING PHASE 4
+  (branch `feat/fegarch-phase4`, PR #19, NOT merged).** The last of the eight FI models — the Type-II
+  counterpart of FIEGARCH (fractionally-integrated Log-GARCH). Clean-room from WP171 §2.1 Eqs. 10-13
+  (no fEGarch source); `filoggarch_spec` confirmed spec-first via `ls`/`args`. New
+  `quantica/timeseries/fegarch/filoggarch.py`: `filoggarch_gamma_coefficients` (γ(B)=(1−ϕ₁B)⁻¹(1−B)^{−d}
+  (1+ψ₁B)−1 via FIEGARCH's `theta_coefficients` + the (1+ψ₁B) MA factor; γ_0=0, γ_1=d+ϕ₁+ψ₁),
+  `filoggarch_recursion` (MA(∞) loading the log-square news ξ=ln(η²)−E[ln η²] with `mean_log_sq`
+  centering + the FIEGARCH MA(∞) presample σ[0]=exp(ωσ/2); couples like FIEGARCH), `fit_filoggarch`
+  (QMLE, scale-equivariant), `filoggarch_sim` (non-coupled, O(n log n)). Reuses the Phase-3 fracdiff
+  engine, the Log-GARCH ξ machinery, and the FIEGARCH presample — the Type-II analogue of the FIEGARCH
+  build. **Seam machine-exact:** recursion at fEGarch's params reproduces σ to 1.05e-15; d→0 collapses
+  γ to Log-GARCH's (ψ₁+ϕ₁)ϕ₁^{i-1}. **Ridge relaxes:** ϕ₁=0.306, ψ₁=−0.556 (separated), d=0.289
+  interior — the fractional d absorbs the persistence, so coefficients recover tight (no ridge/boundary
+  handling). **Effective-challenge finding (user chose this validation):** fEGarch's committed fixture
+  fit is NON-CONVERGED (mu=−0.003, loglik=7436, large μ-gradient); a data-mean-started clean-room fit
+  BEATS it — mu=+3.6e-4 (≈ data mean), loglik=7555.85 (+119.87 higher), at sensible params. **Tests
+  (`test_filoggarch.py`, 11):** seam-exact at fEGarch params, `test_fit_beats_the_non_converged_fegarch_fixture`
+  (loglik >fixture+100, μ near data mean, d interior, coefficients separated — does NOT assert a
+  param-by-param match to the suboptimal fixture), σ[0]=exp(ωσ/2) tell, γ composition, d→0→Log-GARCH,
+  scale-equivariance, known-truth incl. d, non-norm deferral (mean_log_sq norm-only), sim + edges.
+  Docs: spec-notes §14, `__init__` Phase-4 section, PROGRESS. Gate green. **PHASE 4 IS COMPLETE — all
+  eight fractionally-integrated models built and validated; the clean-room reimplementation caught the
+  reference package's own optimizer failing (the project's clearest effective-challenge result). Ready
+  for the Phase-4 merge review.**
 
 ## Next — optional depth only (planned scope is done)
 

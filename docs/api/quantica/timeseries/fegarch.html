@@ -382,6 +382,15 @@
                     <a class="function" href="#figjr_sim">figjr_sim</a>
             </li>
             <li>
+                    <a class="function" href="#filoggarch_gamma_coefficients">filoggarch_gamma_coefficients</a>
+            </li>
+            <li>
+                    <a class="function" href="#filoggarch_recursion">filoggarch_recursion</a>
+            </li>
+            <li>
+                    <a class="function" href="#filoggarch_sim">filoggarch_sim</a>
+            </li>
+            <li>
                     <a class="function" href="#fimegarch_recursion">fimegarch_recursion</a>
             </li>
             <li>
@@ -410,6 +419,9 @@
             </li>
             <li>
                     <a class="function" href="#fit_figjr">fit_figjr</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_filoggarch">fit_filoggarch</a>
             </li>
             <li>
                     <a class="function" href="#fit_fimegarch">fit_fimegarch</a>
@@ -633,10 +645,21 @@ power \( \delta \) <strong>fixed</strong>: FITGARCH at \( \delta=1 \) (Zakoian 1
 and their simulators. The reconstruction gate confirmed the <strong>FIGJR kernel is
 \( (|\varepsilon|-\gamma\varepsilon)^2 \), not the Glosten indicator</strong> (the Phase-1 GJR finding
 in FI form). This completes the variance-recursion FI family.</li>
+<li><strong>FILog-GARCH(1,d,1)</strong> (<code>~<a href="fegarch/filoggarch.html">quantica.timeseries.fegarch.filoggarch</a></code>) — the <strong>Type-II</strong>
+fractional model (fractionally-integrated Log-GARCH, the counterpart of FIEGARCH). Its MA(∞) loads
+the log-square news \( \xi = \ln\eta^2 - \operatorname{E}[\ln\eta^2] \) through
+\( \gamma(B) = (1-\phi_1 B)^{-1}(1-B)^{-d}(1+\psi_1 B) - 1 \) (WP 2026-04 Eqs. 10-11), reusing
+FIEGARCH's <code>~<a href="#theta_coefficients">quantica.timeseries.fegarch.theta_coefficients()</a></code> + the \( (1+\psi_1 B) \) MA
+factor and the Log-GARCH <code>mean_log_sq</code> moment, via
+<code>~<a href="#fit_filoggarch">quantica.timeseries.fegarch.fit_filoggarch()</a></code> /
+<code>~<a href="#filoggarch_sim">quantica.timeseries.fegarch.filoggarch_sim()</a></code>. The seam is machine-exact; the fractional
+\( d \) relaxes short-memory Log-GARCH's near-common-root ridge. <strong>This is Phase 4's clearest
+effective-challenge result</strong>: fEGarch's committed fixture fit on the synthetic series is
+non-converged, and an independent clean-room fit reaches a ~+120-higher log-likelihood.</li>
 </ul>
 
-<p>The remaining long-memory model (FILog-GARCH, Type-II), the dual mean and the forecasting/risk
-tie-back arrive later — see <code>docs/fegarch-port-roadmap.md</code>.</p>
+<p><strong>Phase 4 is complete</strong> — all eight fractionally-integrated models. The dual mean and the
+forecasting/risk tie-back arrive in later phases — see <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -2562,6 +2585,139 @@ The return series.</li>
 
 
                 </section>
+                <section id="filoggarch_gamma_coefficients">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">filoggarch_gamma_coefficients</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">psi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">length</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#filoggarch_gamma_coefficients"></a>
+    
+            <div class="docstring"><p>Coefficients \( \gamma_i \), \( \gamma(B)=(1-\phi_1 B)^{-1}(1-B)^{-d}(1+\psi_1 B)-1 \).</p>
+
+<p>Reuses FIEGARCH's <code><a href="#theta_coefficients">theta_coefficients()</a></code> (geometric \( \phi^{-1} \) ⊛ <code><a href="#fracdiff_coeffs">fracdiff_coeffs</a></code>,
+at <code>-d</code> fractional integration) convolved with the Type-II MA factor \( (1+\psi_1 B) \);
+the trailing <code>-1</code> sets \( \gamma_0 = 0 \). <code>d = 0</code> recovers short-memory Log-GARCH's
+\( \gamma_i = (\psi_1+\phi_1)\phi_1^{i-1} \).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>phi1</strong> (float):
+The AR coefficient (<code>|phi1| &lt; 1</code>).</li>
+<li><strong>psi1</strong> (float):
+The MA coefficient (in the numerator \( 1+\psi_1 B \)).</li>
+<li><strong>d</strong> (float):
+The fractional order.</li>
+<li><strong>length</strong> (int):
+Number of coefficients <code>gamma_0 .. gamma_{length-1}</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (length,)</strong>: The coefficients, with <code>gamma[0] == 0</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="filoggarch_recursion">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">filoggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_sq</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#filoggarch_recursion"></a>
+    
+            <div class="docstring"><p>FILog-GARCH(1,d,1) conditional variance \( \sigma_t^2 \) (a QMLE <code><a href="#VarianceRecursion">VarianceRecursion</a></code>).</p>
+
+<p>The truncated MA(∞) Type-II recursion :math:<code>\ln\sigma_t^2 = \omega_\sigma + \sum_{i\ge 1}
+\gamma_i\xi_{t-i}</code> with \( \xi_t = \ln(\eta_t^2) - \operatorname{E}[\ln\eta^2] \),
+\( \eta_t = (r_t-\mu)/\sigma_t \). Couples (\( \xi_t \) depends on \( \sigma_t \)), so it
+is a step-by-step recursion, like FIEGARCH.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>params</strong> (ndarray, shape (5,)):
+<code>(mu, omega_sig, phi1, psi1, d)</code> — <code>omega_sig</code> is
+\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \) (the MA(∞) intercept, used
+directly), <code>psi1</code> the MA coefficient, <code>d</code> the fractional order.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>mean_log_sq</strong> (float):
+\( \operatorname{E}[\ln\eta^2] \), the log-square centering, from
+<code>~<a href="#ConditionalDistribution.mean_log_sq">quantica.timeseries.fegarch.ConditionalDistribution.mean_log_sq()</a></code> (keyword-only).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The conditional variances \( \sigma_t^2 \), seeded with
+\( \ln\sigma_0^2 = \omega_\sigma \) (zero pre-sample \( \xi \), no <code>ln Var</code> seed).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="filoggarch_sim">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">filoggarch_sim</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">omega_sig</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">phi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">psi1</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">d</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">()</span>,</span><span class="param">	<span class="n">rng</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">_generator</span><span class="o">.</span><span class="n">Generator</span>,</span><span class="param">	<span class="n">n_burn</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#filoggarch_sim"></a>
+    
+            <div class="docstring"><p>Simulate a FILog-GARCH(1,d,1) process under a chosen conditional distribution.</p>
+
+<p>Unlike the fit, simulation does <strong>not</strong> couple: the innovations \( \eta_t \) are drawn, so
+\( \xi_t = \ln(\eta_t^2) - \operatorname{E}[\ln\eta^2] \) is precomputed and the MA(∞) is one
+convolution (<code>O(n log n)</code>), like <code>~<a href="#fiegarch_sim">quantica.timeseries.fegarch.fiegarch_sim()</a></code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>n</strong> (int):
+Number of observations to return (after burn-in).</li>
+<li><strong>mu</strong> (float, optional):
+Constant mean (default 0).</li>
+<li><strong>omega_sig</strong> (float):
+\( \omega_\sigma = \operatorname{E}[\ln\sigma_t^2] \), the MA(∞) intercept.</li>
+<li><strong>phi1, psi1, d</strong> (float):
+FILog-GARCH parameters; requires <code>|phi1| &lt; 1</code> and <code>0 &lt;= d &lt; 1</code>.</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>). Non-norm needs <code>mean_log_sq</code>, which is
+implemented only for the normal (deferred, as for MLog-GARCH).</li>
+<li><strong>dist_params</strong> (tuple of float, optional):
+Shape parameters for the distribution.</li>
+<li><strong>rng</strong> (numpy.random.Generator):
+Seeded generator (keyword-only).</li>
+<li><strong>n_burn</strong> (int, optional):
+Burn-in samples discarded (default 500).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple of ndarray</strong>: <code>(returns, sigma)</code> of shape <code>(n,)</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n</code> is not positive, <code>|phi1| &gt;= 1</code>, or <code>d</code> is outside <code>[0, 1)</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fimegarch_recursion">
                     <div class="attr function">
             
@@ -2913,6 +3069,37 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>, the on
 <ul>
 <li><strong>GarchFit</strong>: Estimates <code>mu, omega, phi1, beta1, gamma, d</code> (delta fixed at 2), + log-likelihood, AIC/BIC
 and the conditional-SD series.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_filoggarch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_filoggarch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_filoggarch"></a>
+    
+            <div class="docstring"><p>Fit FILog-GARCH(1,d,1) with a constant mean by QMLE under a chosen conditional distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>cond_dist</strong> (str, optional):
+One of the eight fEGarch distribution codes (default <code>"norm"</code>, the only validated one).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, psi1, d</code>, log-likelihood, per-observation AIC/BIC, and the
+conditional-volatility series (original return units).</li>
 </ul>
 </div>
 
