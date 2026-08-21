@@ -51,6 +51,15 @@
             <h2>API Documentation</h2>
                 <ul class="memberlist">
             <li>
+                    <a class="variable" href="#EGARCH_CONSTANTS">EGARCH_CONSTANTS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#MEGARCH_CONSTANTS">MEGARCH_CONSTANTS</a>
+            </li>
+            <li>
+                    <a class="variable" href="#MLOGGARCH_CONSTANTS">MLOGGARCH_CONSTANTS</a>
+            </li>
+            <li>
                     <a class="function" href="#egarch_recursion">egarch_recursion</a>
             </li>
             <li>
@@ -76,6 +85,9 @@
             </li>
             <li>
                     <a class="function" href="#mloggarch_sim">mloggarch_sim</a>
+            </li>
+            <li>
+                    <a class="function" href="#type1_news_impact">type1_news_impact</a>
             </li>
     </ul>
 
@@ -164,6 +176,42 @@ App. C.3, the pre-sample news-impact history is zero and :math:<code>\ln\sigma_0
                 
                 
             </section>
+                <section id="EGARCH_CONSTANTS">
+                    <div class="attr variable">
+            <span class="name">EGARCH_CONSTANTS</span>        =
+<span class="default_value">(0.0, 1.0, 0.0, 1.0)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#EGARCH_CONSTANTS"></a>
+    
+    
+
+                </section>
+                <section id="MEGARCH_CONSTANTS">
+                    <div class="attr variable">
+            <span class="name">MEGARCH_CONSTANTS</span>        =
+<span class="default_value">(1.0, 0.0, 0.0, 1.0)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MEGARCH_CONSTANTS"></a>
+    
+    
+
+                </section>
+                <section id="MLOGGARCH_CONSTANTS">
+                    <div class="attr variable">
+            <span class="name">MLOGGARCH_CONSTANTS</span>        =
+<span class="default_value">(1.0, 0.0, 1.0, 0.0)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MLOGGARCH_CONSTANTS"></a>
+    
+    
+
+                </section>
                 <section id="egarch_recursion">
                     <div class="attr function">
             
@@ -493,6 +541,46 @@ Burn-in samples discarded (default 500).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi1| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="type1_news_impact">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">type1_news_impact</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">eta</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">kappa</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">gamma</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">constants</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">mean_asy</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">mean_mag</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#type1_news_impact"></a>
+    
+            <div class="docstring"><p>The Type-I EGF news-impact transform \( g(\eta) \) for a given constant-set.</p>
+
+<p>:math:<code>g(\eta) = \kappa\{g_{\mathrm{asy}}(\eta) - \operatorname{E}[g_{\mathrm{asy}}]\} +
+\gamma\{g_{\mathrm{mag}}(\eta) - \operatorname{E}[g_{\mathrm{mag}}]\}</code> (WP 2026-04 Eq. 7). It is
+the shared seam reused by the short-memory Type-I models and by the fractionally-integrated
+variants (FIEGARCH / FIMEGARCH / FIMLog-GARCH), which compose it with the <code>(1-L)^d</code> operator.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>eta</strong> (float):
+The standardized residual \( \eta_t \).</li>
+<li><strong>kappa, gamma</strong> (float):
+The asymmetry and magnitude coefficients.</li>
+<li><strong>constants</strong> (tuple of float):
+<code>(M_asy, p_asy, M_mag, p_mag)</code> — the model's fixed construction constants.</li>
+<li><strong>mean_asy, mean_mag</strong> (float):
+The centering moments \( \operatorname{E}[g_{\mathrm{asy}}] \) (0 for symmetric) and
+\( \operatorname{E}[g_{\mathrm{mag}}] \), from the conditional distribution.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The news-impact value \( g(\eta) \).</li>
 </ul>
 </div>
 

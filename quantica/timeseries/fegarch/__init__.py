@@ -51,8 +51,73 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   :func:`~quantica.timeseries.fegarch.fit_loggarch` /
   :func:`~quantica.timeseries.fegarch.loggarch_sim`. This completes the four Phase-2 EGF models.
 
-The fractional-differencing engine, the long-memory models, the dual mean and the forecasting/risk
-tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
+**Phase 3 — the fractional-differencing engine** (complete):
+
+* **(1-L)^d operator** (:mod:`~quantica.timeseries.fegarch.fracdiff`) — the binomial
+  :math:`(1-L)^d = \sum_i (-1)^i \binom{d}{i} L^i` filter (Hosking 1981; Bollerslev-Mikkelsen 1996),
+  :func:`~quantica.timeseries.fegarch.fracdiff_coeffs` +
+  :func:`~quantica.timeseries.fegarch.fracdiff`
+  (direct and FFT paths, App. C.3 truncation ``L = n-1`` / pre-sample 0). An internal filter, not a
+  fitted model — validated analytically + cross-method, the load-bearing infrastructure for Phase 4.
+
+**Phase 4 — long-memory (fractionally-integrated) models** (Type-I family complete):
+
+* **FIEGARCH / FIMEGARCH / FIMLog-GARCH** (:mod:`~quantica.timeseries.fegarch.fiegarch`) — the
+  fractionally-integrated Type-I EGF models, a truncated-MA(∞) log-variance recursion
+  :math:`\ln\sigma_t^2 = \omega_\sigma + \sum_i \theta_i\, g(\eta_{t-1-i})` whose coefficients
+  :math:`\theta(B) = \phi^{-1}(B)(1-B)^{-d}\psi(B)` splice the Phase-3 fractional operator into the
+  Phase-2 Type-I news impact :math:`g`. They are built by composition — the same
+  :func:`~quantica.timeseries.fegarch.theta_coefficients` machinery, differing only in the
+  constant-set (EGARCH / MEGARCH / MLog-GARCH) — via
+  :func:`~quantica.timeseries.fegarch.fit_fiegarch` /
+  :func:`~quantica.timeseries.fegarch.fit_fimegarch` /
+  :func:`~quantica.timeseries.fegarch.fit_fimloggarch` and their simulators. The fractional order
+  :math:`d \in (0, 1)` is estimated (not clamped at ``0.5``).
+* **FIGARCH(1,d,1)** (:mod:`~quantica.timeseries.fegarch.figarch`) — the first
+  **variance-recursion** long-memory model (a different seam from the EGF family): the operator
+  enters the conditional-variance polynomial,
+  :math:`\sigma_t^2 = \omega + \sum_i \theta_i \varepsilon_{t-i}^2`
+  with :math:`\theta(B) = 1-(1-\phi_1 B)(1-B)^d/(1-\beta_1 B)` (Baillie-Bollerslev-Mikkelsen 1996;
+  WP175). The intercept :math:`\omega` is used directly, and — with no :math:`\eta`/:math:`\sigma^2`
+  feedback — :math:`\sigma_t^2` is a pure linear filter of observed :math:`\varepsilon^2`. Via
+  :func:`~quantica.timeseries.fegarch.fit_figarch` and
+  :func:`~quantica.timeseries.fegarch.figarch_sim`; the shared primitives
+  :func:`~quantica.timeseries.fegarch.figarch_coefficients` and
+  :func:`~quantica.timeseries.fegarch.figarch_variance_filter` (with the resolved 50-term
+  ``Var(ddof=1)`` pre-sample) are inherited by the FIAPARCH / FITGARCH / FIGJR group.
+* **FIAPARCH(1,d,1)** (:mod:`~quantica.timeseries.fegarch.fiaparch`) — FIGARCH's variance-recursion
+  seam with the APARCH power-asymmetry news,
+  :math:`\sigma_t^\delta = \omega + \sum_i \theta_i (|\varepsilon|-\gamma\varepsilon)^\delta_{t-i}`,
+  using the *same* :math:`\theta(B)` as FIGARCH (Tse 1998; WP175 Eq. 2.10). Reuses
+  :func:`~quantica.timeseries.fegarch.figarch_coefficients` and
+  :func:`~quantica.timeseries.fegarch.figarch_variance_filter` with the news swapped, via
+  :func:`~quantica.timeseries.fegarch.fit_fiaparch` /
+  :func:`~quantica.timeseries.fegarch.fiaparch_sim`. The δ-power seam is machine-exact, but the
+  presample seed is a **documented bounded limit** (the 2nd irreducible-from-output value after the
+  APARCH :math:`\sigma_0` fork) — seeded at ``mean(news)`` with the residual documented.
+* **FITGARCH / FIGJR(1,d,1)** (:mod:`~quantica.timeseries.fegarch.fiaparch`) — FIAPARCH with the
+  power :math:`\delta` **fixed**: FITGARCH at :math:`\delta=1` (Zakoian 1994) and FIGJR at
+  :math:`\delta=2` (Glosten et al. 1993). Thin wrappers over the FIAPARCH machinery (bit-for-bit
+  ``fiaparch_recursion`` at fixed δ), fitting ``{mu, omega, phi1, beta1, gamma, d}`` via
+  :func:`~quantica.timeseries.fegarch.fit_fitgarch` / :func:`~quantica.timeseries.fegarch.fit_figjr`
+  and their simulators. The reconstruction gate confirmed the **FIGJR kernel is
+  :math:`(|\varepsilon|-\gamma\varepsilon)^2`, not the Glosten indicator** (the Phase-1 GJR finding
+  in FI form). This completes the variance-recursion FI family.
+* **FILog-GARCH(1,d,1)** (:mod:`~quantica.timeseries.fegarch.filoggarch`) — the **Type-II**
+  fractional model (fractionally-integrated Log-GARCH, the counterpart of FIEGARCH). Its MA(∞) loads
+  the log-square news :math:`\xi = \ln\eta^2 - \operatorname{E}[\ln\eta^2]` through
+  :math:`\gamma(B) = (1-\phi_1 B)^{-1}(1-B)^{-d}(1+\psi_1 B) - 1` (WP 2026-04 Eqs. 10-11), reusing
+  FIEGARCH's :func:`~quantica.timeseries.fegarch.theta_coefficients` + the :math:`(1+\psi_1 B)` MA
+  factor and the Log-GARCH ``mean_log_sq`` moment, via
+  :func:`~quantica.timeseries.fegarch.fit_filoggarch` /
+  :func:`~quantica.timeseries.fegarch.filoggarch_sim`. The seam is machine-exact; the fractional
+  :math:`d` relaxes short-memory Log-GARCH's near-common-root ridge. **This is Phase 4's clearest
+  effective-challenge result**: fEGarch's committed fixture fit sits at a strictly-dominated local
+  optimum, and an independent clean-room fit reaches a ~+120-higher log-likelihood from every
+  sensible start.
+
+**Phase 4 is complete** — all eight fractionally-integrated models. The dual mean and the
+forecasting/risk tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -79,6 +144,9 @@ from quantica.timeseries.fegarch.distributions import (
     get_distribution,
 )
 from quantica.timeseries.fegarch.egarch import (
+    EGARCH_CONSTANTS,
+    MEGARCH_CONSTANTS,
+    MLOGGARCH_CONSTANTS,
     egarch_recursion,
     egarch_sim,
     fit_egarch,
@@ -88,6 +156,45 @@ from quantica.timeseries.fegarch.egarch import (
     megarch_sim,
     mloggarch_recursion,
     mloggarch_sim,
+    type1_news_impact,
+)
+from quantica.timeseries.fegarch.fiaparch import (
+    fiaparch_news,
+    fiaparch_recursion,
+    fiaparch_sim,
+    figjr_recursion,
+    figjr_sim,
+    fit_fiaparch,
+    fit_figjr,
+    fit_fitgarch,
+    fitgarch_recursion,
+    fitgarch_sim,
+)
+from quantica.timeseries.fegarch.fiegarch import (
+    fiegarch_recursion,
+    fiegarch_sim,
+    fimegarch_recursion,
+    fimegarch_sim,
+    fimloggarch_recursion,
+    fimloggarch_sim,
+    fit_fiegarch,
+    fit_fimegarch,
+    fit_fimloggarch,
+    theta_coefficients,
+)
+from quantica.timeseries.fegarch.figarch import (
+    FIGARCH_PRESAMPLE,
+    figarch_coefficients,
+    figarch_recursion,
+    figarch_sim,
+    figarch_variance_filter,
+    fit_figarch,
+)
+from quantica.timeseries.fegarch.filoggarch import (
+    filoggarch_gamma_coefficients,
+    filoggarch_recursion,
+    filoggarch_sim,
+    fit_filoggarch,
 )
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
@@ -101,6 +208,10 @@ from quantica.timeseries.fegarch.qmle import (
 
 __all__ = [
     "DISTRIBUTIONS",
+    "EGARCH_CONSTANTS",
+    "FIGARCH_PRESAMPLE",
+    "MEGARCH_CONSTANTS",
+    "MLOGGARCH_CONSTANTS",
     "AverageLaplace",
     "ConditionalDistribution",
     "FernandezSteelSkew",
@@ -114,14 +225,42 @@ __all__ = [
     "aparch_sim",
     "egarch_recursion",
     "egarch_sim",
+    "fiaparch_news",
+    "fiaparch_recursion",
+    "fiaparch_sim",
+    "fiegarch_recursion",
+    "fiegarch_sim",
+    "figarch_coefficients",
+    "figarch_recursion",
+    "figarch_sim",
+    "figarch_variance_filter",
+    "figjr_recursion",
+    "figjr_sim",
+    "filoggarch_gamma_coefficients",
+    "filoggarch_recursion",
+    "filoggarch_sim",
+    "fimegarch_recursion",
+    "fimegarch_sim",
+    "fimloggarch_recursion",
+    "fimloggarch_sim",
     "fit_aparch",
     "fit_egarch",
+    "fit_fiaparch",
+    "fit_fiegarch",
+    "fit_figarch",
+    "fit_figjr",
+    "fit_filoggarch",
+    "fit_fimegarch",
+    "fit_fimloggarch",
+    "fit_fitgarch",
     "fit_garch",
     "fit_gjr",
     "fit_loggarch",
     "fit_megarch",
     "fit_mloggarch",
     "fit_tgarch",
+    "fitgarch_recursion",
+    "fitgarch_sim",
     "fracdiff",
     "fracdiff_coeffs",
     "garch_recursion",
@@ -139,4 +278,6 @@ __all__ = [
     "quasi_max_likelihood",
     "tgarch_recursion",
     "tgarch_sim",
+    "theta_coefficients",
+    "type1_news_impact",
 ]

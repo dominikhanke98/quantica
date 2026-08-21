@@ -120,8 +120,10 @@ APARCH through the unified QMLE interface, validated against fEGarch fits) ✓ C
 at σ-rel ~1e-5 — EGARCH/MEGARCH/MLog-GARCH as one generalized Type-I recursion, Log-GARCH Type-II** →
 **Phase 3 fractional-differencing engine `(1−L)^d` ✓ COMPLETE + MERGED (PR #18 → `main` `24cde7a`):
 validated analytically/cross-method (no fixture — internal filter)** →
-**Phase 4 long-memory models ← NEXT (and final) MODEL-BUILDING STEP** (FIGARCH…, then FIEGARCH /
-FILog-GARCH / FIMLog-GARCH / FIMEGARCH — the headline) → Phase 5 dual mean (ARMA / FARIMA mean +
+**Phase 4 long-memory models ← COMPLETE (all eight FI models, Steps 33-38, on PR #19): the Type-I FI
+family FIEGARCH / FIMEGARCH / FIMLog-GARCH(1,d,1) (Steps 33-34) + the variance-recursion FI family
+FIGARCH / FIAPARCH / FITGARCH / FIGJR(1,d,1) (Steps 35-37) + the Type-II FILog-GARCH(1,d,1) (Step 38)**
+→ Phase 5 dual mean (ARMA / FARIMA mean +
 GARCH-in-mean) → Phase 6 forecasting / risk / diagnostics (tie-back into the existing risk pillar's
 VaR-ES + backtests) → *Phase 7 (optional)* semiparametric local-polynomial scale. Realistic size:
 ~7–12 PRs across many sessions; Phases 0 and 3 are the hard, load-bearing ones. Clean-room-from-specs
@@ -1215,6 +1217,156 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   extend the short-memory recursions (Phase 1); **FIEGARCH / FIMEGARCH / FIMLog-GARCH** extend the
   generalized Type-I `g`-transformation seam (Phase 2 §7); **FILog-GARCH** is Type-II and inherits
   Log-GARCH's near-common-root ridge.
+
+- **Step 33 — fEGarch Phase 4, first long-memory model: FIEGARCH(1,d,1) (branch `feat/fegarch-phase4`,
+  PR #19, NOT merged).** The first fractionally-integrated model, built purely by **composition** of
+  existing engines — clean-room from WP171 §2.1 Eqs. 4–6 + App. C.3 Eq. 50 (no fEGarch source),
+  validated against the new committed fixture `fit_fiegarch11_norm_*`. New
+  `quantica/timeseries/fegarch/fiegarch.py`: `theta_coefficients(phi1, d, length)` (the θ(B) =
+  (1−φ₁B)⁻¹(1−B)^{−d} coefficients — geometric φ⁻¹ series FFT-convolved with the Phase-3
+  `fracdiff_coeffs(−d)` fractional-*integration* coefficients, θ_0=1), `fiegarch_recursion`
+  (truncated MA(∞) `ln σ²_t = ωσ + Σ θ_i g(η_{t−1−i})` reusing the Phase-2 `type1_news_impact` at
+  `EGARCH_CONSTANTS`), `fit_fiegarch` (scale-equivariant QMLE on the Phase-0 engine, param vector
+  `(mu, omega_sig, phi1, kappa, gamma, d)`, `d` bound `(1e-6, 0.9999)` — **not** clamped at 0.5), and
+  `fiegarch_sim` (`O(n log n)`, one FFT convolution). **Reuse seam added to `egarch.py`:** public
+  `type1_news_impact` + `EGARCH/MEGARCH/MLOGGARCH_CONSTANTS`, with `_type1_variance`/`_sim_type1`
+  refactored to call it (Phase-2 regression bit-identical, 27 tests pass). **The one divergence from
+  EGARCH (fixture-pinned):** MA-form presample — intercept `ωσ` directly (not AR-form `ωσ(1−φ₁)`), no
+  `ln Var` seed, so `σ_0 = exp(ωσ/2)` exactly. **Fixture match (EGARCH tier):** all six params to rel
+  `≤3.4e-4` (`d` to `2.8e-5`), loglik `7e-7`, AIC/BIC `6e-10`, σ-series `1.8e-6` (rel `6.3e-5`);
+  recursion-at-fixture-params reproduces σ to `1.4e-16`. **Checks (`test_fiegarch.py`, 11 tests):**
+  fixture match, recursion reconstruction, `σ_0=exp(ωσ/2)` presample tell, **d→0 reduction** to
+  EGARCH's geometric `θ_i=φ₁^i` (~1e-16), exact recursion-level scale-equivariance, known-truth
+  recovery incl. `d`, sim invariants + edge cases; the fitted `d=0.744` (upper regime) with `φ₁=0.39`
+  confirms the persistence reparameterizes into the θ tail. Docs: spec-notes §9, PROGRESS. Gate green.
+  **Next Phase-4 models** reuse this pattern: FIMEGARCH / FIMLog-GARCH swap the Type-I constant-set;
+  FIGARCH / FIAPARCH / FITGARCH / FIGJR compose `(1−L)^d` with the SM recursions; FILog-GARCH is
+  Type-II.
+
+- **Step 34 — fEGarch Phase 4, FIMEGARCH + FIMLog-GARCH(1,d,1) (branch `feat/fegarch-phase4`, PR #19,
+  NOT merged).** The next two Phase-4 long-memory models — the fractionally-integrated MEGARCH and
+  MLog-GARCH, built as **thin wrappers** over FIEGARCH's machinery (the *exact* long-memory analogue
+  of the Phase-2 §7 EGARCH→MEGARCH/MLog-GARCH relationship). Clean-room from WP171 §2.1 + App. C.3 +
+  the §7 constant-sets (no fEGarch source); validated against new committed fixtures
+  `fit_fimegarch11_norm_*` / `fit_fimloggarch11_norm_*` (R spec fns `fimegarch_spec` /
+  `fimloggarch_spec` confirmed via `ls`/`args`). **Compressed flow (no separate spec-extraction
+  stage):** the build was gated on a **read-only reconstruction** — both fixtures reconstructed from
+  their committed params using the existing `theta_coefficients` + `type1_news_impact` at the model's
+  constant-set to **machine precision** (FIMEGARCH `1.28e-16`, FIMLog-GARCH `1.25e-16`), confirming
+  the clean analogue before any model code. **Reuse seam:** `fiegarch.py` refactored to a private
+  `_fiegarch_variance`/`_fit_fiegarch`/`_sim_fiegarch` (constants + `log_modulus_magnitude` params,
+  mirroring `egarch.py`'s `_type1_*` seam); the six new public fns are one-liners; FIEGARCH's public
+  path + 11 tests unchanged (bit-identical). Constant-sets: FIMEGARCH = `MEGARCH_CONSTANTS` (|η|
+  magnitude, `abs_moment`), FIMLog-GARCH = `MLOGGARCH_CONSTANTS` (ln(|η|+1) magnitude,
+  `mean_log_modulus`; non-norm deferred). **Fixture match (FIEGARCH tier):** all six params rel
+  `≤2e-4`, loglik `≤2.4e-7`, AIC/BIC `≤2e-10`, σ-series `≤8.4e-7` (rel `≤8.2e-5`); recursion-at-params
+  σ to `~1e-16`. **The γ-tell carries over:** FIMEGARCH γ=0.172 vs FIMLog-GARCH γ=0.321 (1.87× ratio,
+  the log-modulus signature); both d≈0.74, φ₁≈0.39. **Checks (`test_fimegarch.py` +
+  `test_fimloggarch.py`, 22 tests):** fixture match, recursion reconstruction, `σ_0=exp(ωσ/2)`
+  presample tell, **d→0 reduction** to short-memory MEGARCH / MLog-GARCH (agreement `<1e-9` after
+  t=100), exact scale-equivariance, known-truth recovery incl. d, sim invariants + edges, FIMLog-GARCH
+  non-norm deferral. Docs: spec-notes §10, `__init__` Phase-3/4 sections, PROGRESS. Gate green.
+  **The Type-I long-memory family (FIEGARCH / FIMEGARCH / FIMLog-GARCH) is complete.**
+
+- **Step 35 — fEGarch Phase 4, FIGARCH(1,d,1): the variance-recursion seam (branch
+  `feat/fegarch-phase4`, PR #19, NOT merged).** The first **non-EGF** long-memory model — a
+  fundamentally new seam where the `(1−L)^d` operator enters the conditional-VARIANCE polynomial (not
+  the log-variance θ(B)). Clean-room from BBM (1996) + Conrad-Haag (2006) + WP175 §2.1 Eqs. 2.3-2.4;
+  the `presample=50`/`trunc="none"` convention was resolved by a read-only reconstruction gate to
+  machine precision (4.86e-17) BEFORE building (a 4-message flow: fixture → structure spec-extraction
+  → presample diagnostic → build). New `quantica/timeseries/fegarch/figarch.py`: `figarch_coefficients`
+  (θ(B)=1−(1−φ₁B)(1−B)^d/(1−β₁B) via `fracdiff_coeffs(+d)` ⊛ ARMA, FFT-accelerated; θ_1=d+φ₁−β₁, θ_0=0),
+  `figarch_variance_filter` (the ω-direct linear filter with the 50-term Var(ddof=1) pre-sample),
+  `figarch_recursion` (news=ε², pure convolution — NO η/σ² feedback, unlike every prior model),
+  `fit_figarch` (QMLE; ω scales multiplicatively by scale², d bound (0,1)), `figarch_sim` (coupled
+  step-by-step, since innovations are drawn). **Key spec findings:** ω-direct intercept (WP175 ω*, NOT
+  BBM/arch's (1−β)⁻¹ω); pre-sample = exactly 50 terms at Var(r, ddof=1) — both the count 50 and ddof=1
+  decisive (49/51→8e-6, ddof=0→2.3e-6). **Fixture match:** recursion@params 4.86e-17 (5.9e-17 FFT
+  path); fit all 5 params rel ≤3.6e-5, loglik 7.8e-9, AIC/BIC 6.3e-12, σ rel 7.3e-5. **Checks
+  (`test_figarch.py`, 12 tests):** fixture match, recursion reconstruction, the 50-term/ddof=1
+  uniqueness, θ composition (θ_1=d+φ₁−β₁), d→0 reduction to GARCH's (φ₁−β₁)β₁^{i−1}, exact scale-
+  equivariance (ω→c²ω), known-truth incl. d, arch cross-check (documented ~2e-3 divergence, skip-safe),
+  sim invariants + edges. **arch cross-check:** arch 8.0.0's FIGARCH uses (1−β)⁻¹ω + EWMA backcast →
+  2.1e-3 (sanity anchor, not machine-precision). Docs: spec-notes §11, PROGRESS. Gate green.
+  **The variance-recursion seam is factored (`figarch_coefficients` + `figarch_variance_filter`) so
+  FIAPARCH / FITGARCH / FIGJR inherit it — they differ only in the news term (power/asymmetry
+  transform of ε instead of ε²).**
+
+- **Step 36 — fEGarch Phase 4, FIAPARCH(1,d,1): the δ-power seam + a documented bounded-limit seed
+  (branch `feat/fegarch-phase4`, PR #19, NOT merged).** The fractionally-integrated APARCH — FIGARCH's
+  variance-recursion seam with the APARCH power-asymmetry news. Clean-room from Tse (1998) + WP175
+  Eqs. 2.9-2.10 (no fEGarch source); validated against TWO fixtures (boundary d≈1 + interior d≈0 on a
+  new additive low-persistence series). New `quantica/timeseries/fegarch/fiaparch.py`: `fiaparch_news`
+  ((|ε|−γε)^δ, reduces to ε² at γ=0,δ=2), `fiaparch_recursion` (reuses `figarch_coefficients` UNCHANGED
+  + `figarch_variance_filter` with the news swapped, σ^δ→σ² mapping, NO feedback), `fit_fiaparch` (QMLE;
+  ω scales by scale^δ; 7 params, d-bound (1e-7, 0.9999999) to permit the boundary), `fiaparch_sim`
+  (coupled). **The δ-power seam is machine-exact:** recursion at each fixture's empirical seed
+  reproduces σ to 1.1e-16 (boundary) / 2.3e-17 (interior) — proven separately from the seed. **The
+  presample seed is the SECOND irreducible-from-output limit** (after APARCH σ₀): two fixtures at
+  d≈0/d≈1 disconfirmed every closed form (candidate `Var^{δ/2}·E[(|z|−γz)^δ]` 1.6% at interior/44% at
+  boundary; `mean(news)` 0.07% at interior with a d-dependent inflation 1.0→1.49 as d:0→1); the exact
+  value is an internal fEGarch backcast. Built with `mean(news)` (FIGARCH's Var(ddof=1) rule
+  generalized), the σ-residual documented at ~1e-6 (interior) → ~1e-3 (boundary). **The d≈1 boundary
+  is forced by Conrad-Haag** (d ≥ β₁−φ₁, β₁=0.913 ⇒ d≈1) and weakly identified (flat ridge: the fit
+  matches loglik to 0.06/7599 but ω/δ diverge). **Honest tests (`test_fiaparch.py`, 11):** seam-exact
+  (both fixtures, parametrized), interior fixture-match (params ~1e-3, σ 3e-5), boundary
+  as-good-but-weakly-identified (loglik <0.5, d/β₁ recover, σ bounded <5e-3 with comments — NOT
+  tightened to hide the limit), mean-news bounded-residual, δ=2,γ=0→FIGARCH reduction (~6e-8),
+  news transform, known-truth (shape params tight, ω seed-sensitive), sim + edges. Docs: spec-notes
+  §12, PROGRESS. Gate green. **Two irreducible-from-output limits now recorded honestly (APARCH σ₀,
+  FIAPARCH seed) rather than hidden by loose tolerances — the effective-challenge discipline. FITGARCH
+  / FIGJR remain (same seam, power/indicator news).**
+
+- **Step 37 — fEGarch Phase 4, FITGARCH + FIGJR(1,d,1): the δ-fixed FI variants, completing the
+  variance-recursion family (branch `feat/fegarch-phase4`, PR #19, NOT merged).** The last two
+  variance-recursion FI models, built as **thin wrappers** over the FIAPARCH machinery (the Phase-1
+  `asymmetric.py` pattern where GJR/TGARCH/APARCH shared one power recursion). Clean-room from Zakoian
+  (1994) / Glosten et al. (1993) + WP175 (no fEGarch source); fixtures `fit_fitgarch11_norm_*` /
+  `fit_figjr11_norm_*`. **R fns confirmed via `ls`/`args`:** `fitgarch()` + `figjrgarch()` (the GJR fn
+  is `figjrgarch`), **neither with `fix_delta`** — so δ is FIXED (FITGARCH δ=1 the Zakoian
+  σ-recursion, FIGJR δ=2), params `{mu, omega, phi1, beta1, gamma, d}` (6, no delta). **Reconstruction
+  gate (isolating the news term at the empirical seed):** FITGARCH `(|ε|−γε)^1` → 9.37e-17; **FIGJR
+  kernel confirmed `(|ε|−γε)²` (4.16e-17) — NOT the Glosten indicator (both Glosten forms miss at
+  1.4e-3)**, carrying the Phase-1 GJR finding into the FI form. `fiaparch.py` refactored: shared
+  `_fit_fi_power(delta_fixed)` (FIAPARCH None / FITGARCH 1 / FIGJR 2); `fitgarch_recursion` ≡
+  `fiaparch_recursion(δ=1)` and `figjr_recursion` ≡ `fiaparch_recursion(δ=2)` bit-for-bit; new
+  `fit_fitgarch`/`fit_figjr`/`fitgarch_sim`/`figjr_sim`. **Fixture match (both recover tight — the
+  fixed δ removes FIAPARCH's flat ridge):** FITGARCH d=1 (forced) but params ≤1e-2, σ 1.3e-6; FIGJR
+  d=0.66 (interior), params ≤1.2e-3, σ 4.5e-5. **Tests (`test_fitgarch_figjr.py`, 11):** seam-exact
+  (both, parametrized), fixture-match (both), the FIGJR-kernel-vs-Glosten finding, wrapper-equality
+  (≡ FIAPARCH at fixed δ), d→0→SM TGARCH/GJR (with the φ₁=α+β param map, <1e-10 after t=200),
+  known-truth (both, ω seed-sensitive), sim + edges. Docs: spec-notes §13, `__init__` Phase-4 section,
+  PROGRESS. Gate green. **The variance-recursion FI family (FIGARCH / FIAPARCH / FITGARCH / FIGJR) is
+  COMPLETE — only FILog-GARCH (Type-II) remains in Phase 4.**
+
+- **Step 38 — fEGarch Phase 4, FILog-GARCH(1,d,1): the Type-II fractional model, COMPLETING PHASE 4
+  (branch `feat/fegarch-phase4`, PR #19, NOT merged).** The last of the eight FI models — the Type-II
+  counterpart of FIEGARCH (fractionally-integrated Log-GARCH). Clean-room from WP171 §2.1 Eqs. 10-13
+  (no fEGarch source); `filoggarch_spec` confirmed spec-first via `ls`/`args`. New
+  `quantica/timeseries/fegarch/filoggarch.py`: `filoggarch_gamma_coefficients` (γ(B)=(1−ϕ₁B)⁻¹(1−B)^{−d}
+  (1+ψ₁B)−1 via FIEGARCH's `theta_coefficients` + the (1+ψ₁B) MA factor; γ_0=0, γ_1=d+ϕ₁+ψ₁),
+  `filoggarch_recursion` (MA(∞) loading the log-square news ξ=ln(η²)−E[ln η²] with `mean_log_sq`
+  centering + the FIEGARCH MA(∞) presample σ[0]=exp(ωσ/2); couples like FIEGARCH), `fit_filoggarch`
+  (QMLE, scale-equivariant), `filoggarch_sim` (non-coupled, O(n log n)). Reuses the Phase-3 fracdiff
+  engine, the Log-GARCH ξ machinery, and the FIEGARCH presample — the Type-II analogue of the FIEGARCH
+  build. **Seam machine-exact:** recursion at fEGarch's params reproduces σ to 1.05e-15; d→0 collapses
+  γ to Log-GARCH's (ψ₁+ϕ₁)ϕ₁^{i-1}. **Ridge relaxes:** ϕ₁=0.306, ψ₁=−0.556 (separated), d=0.289
+  interior — the fractional d absorbs the persistence, so coefficients recover tight (no ridge/boundary
+  handling). **Effective-challenge finding (user chose this validation):** fEGarch's committed fixture
+  fit sits at a STRICTLY-DOMINATED LOCAL OPTIMUM (mu=−0.003, loglik=7436) — a multi-start check shows
+  every data-driven start (data mean, randoms, and even a start from fEGarch's own params) escapes to
+  a basin +101 to +123 loglik higher (mu near the data mean, loglik ~7556); only a start PLACED at
+  mu=−0.003 stays there. The seam is machine-exact at those params (~1e-15), so it is fEGarch's
+  optimizer, not the model. **Tests (`test_filoggarch.py`, 11):** seam-exact at fEGarch params,
+  `test_fit_strictly_dominates_the_fegarch_local_optimum` (the data-mean fit + two random starts + a
+  start from fEGarch's own params all beat the fixture by >100 loglik; μ near data mean, d interior,
+  coefficients separated — does NOT assert a param-by-param match to the dominated fixture),
+  σ[0]=exp(ωσ/2) tell, γ composition, d→0→Log-GARCH,
+  scale-equivariance, known-truth incl. d, non-norm deferral (mean_log_sq norm-only), sim + edges.
+  Docs: spec-notes §14, `__init__` Phase-4 section, PROGRESS. Gate green. **PHASE 4 IS COMPLETE — all
+  eight fractionally-integrated models built and validated; the clean-room reimplementation caught the
+  reference package's own optimizer failing (the project's clearest effective-challenge result). Ready
+  for the Phase-4 merge review.**
 
 ## Next — optional depth only (planned scope is done)
 
