@@ -187,6 +187,27 @@ fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none",
 garch_fit <- garch(returns, orders = c(1, 1), cond_dist = "norm", parallel = FALSE)
 fit_and_dump(garch_fit, "garch11_norm", "garch", "norm")
 
+# --- GARCH(1,1) under the seven NON-normal conditional distributions --------------------------------
+# The distributions-breadth step: fit the same GARCH(1,1) on the committed series under each of the
+# other seven fEGarch conditional laws (std/ged/ald and their FS-skew variants). The review item is
+# how each distribution's shape/skew parameter(s) appear in the fitted pars() vector -- the
+# joint-estimation structure the QMLE build must reproduce. Each fit is wrapped in tryCatch so a
+# failure prints the dist, the error and exists('garch') and NEVER writes a partial fixture. `cat_pars`
+# (defined later in the file for the FI models) is re-defined here so the shape/skew values print.
+cat_pars <- function(fit) {
+  p <- pars(fit)
+  cat("   ", paste(sprintf("%s=%.7g", names(p), as.numeric(p)), collapse = ", "), "\n")
+}
+for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+  tryCatch({
+    gfit <- garch(returns, orders = c(1, 1), cond_dist = dist, parallel = FALSE)
+    cat(sprintf("  garch11_%s pars:", dist), paste(names(pars(gfit)), collapse = ", "), "\n")
+    cat_pars(gfit)
+    fit_and_dump(gfit, sprintf("garch11_%s", dist), "garch", dist)
+  }, error = function(e) cat(sprintf("  ERROR garch11_%s:", dist), conditionMessage(e),
+                            "| exists('garch') =", exists("garch"), "\n"))
+}
+
 egarch_fit <- fEGarch(egarch_spec(orders = c(1, 1), cond_dist = "norm"), returns, parallel = FALSE)
 fit_and_dump(egarch_fit, "egarch11_norm", "egarch", "norm")
 
@@ -475,6 +496,20 @@ manifest <- list(
                     trunc = "none", mean_included = TRUE, parallel = FALSE),
     fits = list(
       garch11_norm = list(params = "fit_garch11_norm_params.json", sigma = "fit_garch11_norm_sigma.csv"),
+      garch11_std = list(params = "fit_garch11_std_params.json", sigma = "fit_garch11_std_sigma.csv",
+                         note = "GARCH(1,1) under conditional Student-t (adds a df/shape param); distributions-breadth step"),
+      garch11_ged = list(params = "fit_garch11_ged_params.json", sigma = "fit_garch11_ged_sigma.csv",
+                         note = "GARCH(1,1) under conditional GED (adds a shape param)"),
+      garch11_ald = list(params = "fit_garch11_ald_params.json", sigma = "fit_garch11_ald_sigma.csv",
+                         note = "GARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5) -- record whatever P the fit selects)"),
+      garch11_snorm = list(params = "fit_garch11_snorm_params.json", sigma = "fit_garch11_snorm_sigma.csv",
+                           note = "GARCH(1,1) under FS-skew normal (adds a skew param)"),
+      garch11_sstd = list(params = "fit_garch11_sstd_params.json", sigma = "fit_garch11_sstd_sigma.csv",
+                          note = "GARCH(1,1) under FS-skew Student-t (adds shape + skew)"),
+      garch11_sged = list(params = "fit_garch11_sged_params.json", sigma = "fit_garch11_sged_sigma.csv",
+                          note = "GARCH(1,1) under FS-skew GED (adds shape + skew)"),
+      garch11_sald = list(params = "fit_garch11_sald_params.json", sigma = "fit_garch11_sald_sigma.csv",
+                          note = "GARCH(1,1) under FS-skew ALD (adds P + skew)"),
       gjrgarch11_norm = list(params = "fit_gjrgarch11_norm_params.json", sigma = "fit_gjrgarch11_norm_sigma.csv"),
       tgarch11_norm = list(params = "fit_tgarch11_norm_params.json", sigma = "fit_tgarch11_norm_sigma.csv"),
       aparch11_norm = list(params = "fit_aparch11_norm_params.json", sigma = "fit_aparch11_norm_sigma.csv"),
@@ -504,10 +539,11 @@ manifest <- list(
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",
-    "(FIGARCH/FIAPARCH/FITGARCH/FIGJR), and the Type-II FILog-GARCH. Later phases need more fixtures: all",
-    "short-memory + EGARCH-family + long-memory models under the other 7 conditional distributions;",
-    "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and",
-    "re-run when those models are implemented."))
+    "(FIGARCH/FIAPARCH/FITGARCH/FIGJR), and the Type-II FILog-GARCH. The distributions-breadth step has",
+    "begun: GARCH(1,1) is now fitted under all seven non-normal distributions (std/ged/ald/snorm/sstd/",
+    "sged/sald). Later phases need more fixtures: the OTHER short-memory + EGARCH-family + long-memory",
+    "models under the seven non-normal distributions; dual-mean (ARMA/FARIMA) fits (Phase 5); and",
+    "forecasts / VaR-ES (Phase 6). Extend this script and re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")

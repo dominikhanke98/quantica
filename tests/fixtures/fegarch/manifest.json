@@ -53,6 +53,41 @@
         "params": "fit_garch11_norm_params.json",
         "sigma": "fit_garch11_norm_sigma.csv"
       },
+      "garch11_std": {
+        "params": "fit_garch11_std_params.json",
+        "sigma": "fit_garch11_std_sigma.csv",
+        "note": "GARCH(1,1) under conditional Student-t (adds a df/shape param); distributions-breadth step"
+      },
+      "garch11_ged": {
+        "params": "fit_garch11_ged_params.json",
+        "sigma": "fit_garch11_ged_sigma.csv",
+        "note": "GARCH(1,1) under conditional GED (adds a shape param)"
+      },
+      "garch11_ald": {
+        "params": "fit_garch11_ald_params.json",
+        "sigma": "fit_garch11_ald_sigma.csv",
+        "note": "GARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5) -- record whatever P the fit selects)"
+      },
+      "garch11_snorm": {
+        "params": "fit_garch11_snorm_params.json",
+        "sigma": "fit_garch11_snorm_sigma.csv",
+        "note": "GARCH(1,1) under FS-skew normal (adds a skew param)"
+      },
+      "garch11_sstd": {
+        "params": "fit_garch11_sstd_params.json",
+        "sigma": "fit_garch11_sstd_sigma.csv",
+        "note": "GARCH(1,1) under FS-skew Student-t (adds shape + skew)"
+      },
+      "garch11_sged": {
+        "params": "fit_garch11_sged_params.json",
+        "sigma": "fit_garch11_sged_sigma.csv",
+        "note": "GARCH(1,1) under FS-skew GED (adds shape + skew)"
+      },
+      "garch11_sald": {
+        "params": "fit_garch11_sald_params.json",
+        "sigma": "fit_garch11_sald_sigma.csv",
+        "note": "GARCH(1,1) under FS-skew ALD (adds P + skew)"
+      },
       "gjrgarch11_norm": {
         "params": "fit_gjrgarch11_norm_params.json",
         "sigma": "fit_gjrgarch11_norm_sigma.csv"
@@ -129,5 +164,5 @@
       }
     }
   },
-  "pending_fixtures": "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family (FIGARCH/FIAPARCH/FITGARCH/FIGJR), and the Type-II FILog-GARCH. Later phases need more fixtures: all short-memory + EGARCH-family + long-memory models under the other 7 conditional distributions; dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and re-run when those models are implemented."
+  "pending_fixtures": "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family (FIGARCH/FIAPARCH/FITGARCH/FIGJR), and the Type-II FILog-GARCH. The distributions-breadth step has begun: GARCH(1,1) is now fitted under all seven non-normal distributions (std/ged/ald/snorm/sstd/ sged/sald). Later phases need more fixtures: the OTHER short-memory + EGARCH-family + long-memory models under the seven non-normal distributions; dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and re-run when those models are implemented."
 }

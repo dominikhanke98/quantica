@@ -1,0 +1,24 @@
+{
+  "model": "garch",
+  "cond_dist": "snorm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00054859673273868672,
+    "omega": 3.0087898955022441e-06,
+    "phi1": 0.082405423304150877,
+    "beta1": 0.89770798592043854,
+    "skew": 0.98653726908575401
+  },
+  "loglikelihood": 7601.2075809318994,
+  "aic": -6.0769660647455197,
+  "bic": -6.0653179727238076,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
