@@ -947,5 +947,69 @@ Type-II FILog-GARCH) are implemented and validated.
 
 ---
 
+## 15. The joint shape-parameter QMLE path — GARCH×std, and a weakly-identified `nu` — RESOLVED (Phase 5)
+
+**Sources.** Bollerslev (1987) for the standardized Student-t; the shape-parameter joint-estimation
+convention is fEGarch's own default (shape/skew parameters optimized *jointly* with the model
+parameters, not profiled). fEGarch source never consulted; validated against `fit_garch11_std_*`.
+This is the **first distribution-breadth** work — the same GARCH(1,1) recursion under a non-normal
+conditional law, exercising the shape parameter carried in the fitted vector.
+
+### 15.1 The mechanism — the engine already carries shape parameters
+
+The Phase-0 QMLE engine (`quasi_max_likelihood`) already appends a distribution's shape parameters to
+the fitted vector: `start = [*var_start, *dist.param_start]`, the negative-log-likelihood splits
+`theta[:n_var]` (variance recursion) from `theta[n_var:]` (fed to `dist.logpdf`), and the reported
+`param_names = (*var_names, *dist.param_names)`. So GARCH×std needs **no engine change** — `fit_garch`
+just routes `cond_dist="std"` through, and the fitted vector becomes `(mu, omega, alpha, beta, nu)`.
+The standardized Student-t density is `z = T·√((ν−2)/ν)` with `ν > 2` for finite unit variance; our
+layer names the parameter `nu`, the fEGarch fixture reports it as `df` (a naming reconcile, no
+behavioural difference). **The seam is machine-exact**: at fEGarch's reported params (incl.
+`df = 341.89`) the GARCH σ series reproduces to `~1e-17` (σ does not depend on `nu`) and the
+Student-t log-likelihood to `~1e-10`.
+
+### 15.2 The optimizer seam — a flat shape ridge defeats L-BFGS-B
+
+On the **Gaussian** synthetic returns the Student-t MLE is `ν → ∞` (the normal limit): the
+log-likelihood rises **monotonically** in `nu` toward the GARCH×norm supremum `7601.11` and is
+*unreachable* at any finite `nu` (it is the `ν=∞` limit). The ridge is near-flat at large `nu`
+(`ll(100)=7600.04`, `ll(342)=7600.83`, `ll(5000)=7601.09`, `ll(∞)=7601.1096`), and L-BFGS-B's
+projected-gradient step **stalls** there — it stops barely past its start (loglik ~7600.3, *below*
+the fixture). The fix: **shape-parameter fits switch to derivative-free Nelder-Mead**, which climbs
+the flat ridge to the `nu` bound (`1e6`) and reaches `7601.10996` — within `~1e-4` of the supremum.
+The `nu` upper bound was raised to `1e6` (from a low cap) so this limit is reachable. The **norm path
+keeps L-BFGS-B** (no shape parameter) and is therefore **bit-identical** to the validated Phase-1
+fixture (`< 1e-8`).
+
+### 15.3 An effective-challenge finding — the std fixture is strictly dominated (same pattern as §14)
+
+fEGarch's `df = 341.89` fixture has loglik `7600.83` — **0.28 below** the GARCH×norm optimum
+`7601.11`, since std **nests** norm as `ν → ∞`. It is a strictly-dominated point on the flat `nu`
+ridge (fEGarch's optimizer stopping short of the `ν=∞` limit), exactly the honest pattern of the
+FILog-GARCH local optimum (§14). Our fit **dominates** it: loglik `7601.10996 ≥ 7600.83` and within
+`~1e-3` of the normal supremum. So the validation is **identification-structured**:
+
+* **well-identified pieces tight** — `mu` and `omega/alpha/beta` recover to `< 1%` (`mu 0.09%`,
+  `omega 0.66%`, `alpha 0.08%, beta 0.02%`);
+* **`nu` by regime only** — asserted `> 100` (large), **never** param-exact against the dominated
+  `df = 341.89`; its standard error is (correctly) non-finite — the likelihood is flat in `nu` — so
+  only the well-identified SEs are asserted finite;
+* **σ at the ridge level** — the two fits sit at different `nu` (`1e6` vs `341.89`), so their variance
+  parameters and thus σ differ at the `~1e-3` relative level (`max|dev| ~1.5e-5`); the machine-exact
+  σ agreement is the seam test at *identical* params, not the two-fit comparison.
+
+We do **not** assert `loglik ≥ 7601.11` literally — that is the `ν=∞` supremum, unreachable at finite
+`nu`; the honest assertion is `≥` the dominated fixture *and* within `~1e-2` of the supremum.
+
+### 15.4 Reduction anchor + known-truth
+
+**Reduction**: `std.logpdf(z, ν=1e6)` collapses to `norm.logpdf(z)` (`< 1e-3`), so GARCH×std recovers
+GARCH×norm. **Known-truth**: simulating GARCH×std with a genuine `df = 6` (identified heavy tails),
+QMLE recovers `nu = 6.01` (SE `0.36`, `|dev|/SE = 0.03`) — the shape parameter is sharply identified
+when the data actually has it, in deliberate contrast to the near-normal fixture where it flies to the
+bound. Validated in `test_garch_std.py` (6 tests).
+
+---
+
 *Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)
 are implemented — always from the papers/manual, never the source.*

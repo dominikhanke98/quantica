@@ -207,7 +207,10 @@ class StudentT(ConditionalDistribution):
 
     name = "std"
     param_names = ("nu",)
-    param_bounds = ((2.05, 100.0),)
+    # Upper bound is large: the df is unbounded above (the normal is the nu -> inf limit), and real
+    # fits can land in the hundreds when the data has near-normal tails. Do NOT cap it low or that
+    # normal limit is unreachable (fEGarch fits nu ~ 341 on the Gaussian-simulated series).
+    param_bounds = ((2.05, 1.0e6),)
     param_start = (8.0,)
 
     def logpdf(self, z: FloatArray, params: Sequence[float] | None = None) -> FloatArray:

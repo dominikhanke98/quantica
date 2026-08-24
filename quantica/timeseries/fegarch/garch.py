@@ -142,6 +142,17 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     var_start = (float(np.mean(scaled)), variance * 0.05, 0.05, 0.90)
     var_bounds = ((-10.0, 10.0), (1e-8, 1e6), (0.0, 0.9999), (0.0, 0.9999))
 
+    # Distribution shape parameters can lie on a near-flat likelihood ridge (e.g. Student-t df on
+    # near-normal data, where the MLE is df -> infinity): L-BFGS-B's projected-gradient step stalls
+    # there and stops far short, so the shape-parameter fits use derivative-free Nelder-Mead, which
+    # climbs the flat ridge to the boundary. The norm path (no shape parameter) keeps L-BFGS-B, so
+    # it stays bit-identical to the validated Phase-1 fixture.
+    if distribution.param_names:
+        method: str = "Nelder-Mead"
+        options: dict[str, object] | None = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
+    else:
+        method, options = "L-BFGS-B", None
+
     result = quasi_max_likelihood(
         scaled,
         garch_recursion,
@@ -150,6 +161,8 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         var_bounds=var_bounds,
         var_names=_VAR_NAMES,
         mean=True,
+        method=method,
+        options=options,
     )
 
     # Undo the scaling: mu ~ scale, omega ~ scale^2, alpha/beta and shape params invariant.

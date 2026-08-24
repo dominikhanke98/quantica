@@ -1386,6 +1386,33 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   refined the claim from "non-converged" to "strictly-dominated local optimum" (commit `e4685b9`) and
   strengthened the test to assert domination from every sensible start.**
 
+- **Step 39 — fEGarch distribution-breadth, part 1: the joint shape-parameter QMLE path, proven on
+  GARCH×std (branch `feat/fegarch-distributions`, NOT merged).** The first non-normal conditional law
+  fit end-to-end. Fixtures first: `generate_fixtures.R` extended to fit GARCH(1,1) under all seven
+  non-norm dists (std/ged/ald/snorm/sstd/sged/sald), 14 files committed (`test(fegarch): add GARCH(1,1)
+  fit fixtures under the 7 non-norm distributions`); all shape/skew params sit at their normal limits
+  on the Gaussian data (std `df=341.89`, sstd `df=340.8, skew=0.986`; ald/sald `P=5` at the boundary).
+  **The engine needed no change** — `quasi_max_likelihood` already appends `dist.param_start`/`bounds`
+  to the fitted vector and splits var/dist params, so `fit_garch(cond_dist="std")` yields
+  `(mu, omega, alpha, beta, nu)`. Two seams surfaced: (a) StudentT's `nu` upper bound raised to `1e6`
+  (the MLE is `ν→∞` on near-normal data); (b) L-BFGS-B **stalls** on the flat `nu` ridge (stops below
+  the fixture), so **shape-parameter fits switch to derivative-free Nelder-Mead** — the norm path keeps
+  L-BFGS-B and stays **bit-identical** (`<1e-8`). **Seam machine-exact:** at fEGarch's params (incl.
+  `df=341.89`) σ reproduces to ~1e-17 and the std loglik to ~1e-10. **Effective-challenge finding (same
+  pattern as §14):** the std fixture (`df=341.89, loglik=7600.83`) is **strictly dominated** — 0.28
+  below the GARCH×norm optimum `7601.11`, since std nests norm as `ν→∞`; fEGarch's optimizer stopped
+  short of the `ν=∞` limit. Our Nelder-Mead fit climbs to the `nu` bound and reaches `7601.10996` (≥ the
+  fixture, within ~1e-3 of the normal supremum). **Identification-structured validation:** var-params
+  tight (`mu 0.09%`, `omega 0.66%`, `alpha 0.08%, beta 0.02%`); `nu` by regime only (`>100`, NOT
+  param-exact against the dominated `df`; its SE is non-finite — flat likelihood — so only the
+  well-identified SEs asserted finite); σ-vs-fixture at the ridge level (`~1.5e-5` abs, the df-wobble),
+  the tight σ proof being the seam. Reduction anchor: `std.logpdf(z, ν=1e6)→norm.logpdf` (`<1e-3`).
+  Known-truth: simulate GARCH×std `df=6` (identified) → `nu=6.01` (SE 0.36, `|dev|/SE=0.03`), sharply
+  recovered — contrast the near-normal fixture. **Tests (`test_garch_std.py`, 6):** seam-exact,
+  fixture-match (var tight / `nu` regime / σ ridge-level), `test_std_fit_dominates_the_sub_optimal_
+  fegarch_optimum`, norm-path-unchanged, `df→∞`-recovers-norm, known-truth `df=6`. Docs: spec-notes §15.
+  Gate green. **NOT merged — first commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
