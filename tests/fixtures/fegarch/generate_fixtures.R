@@ -238,6 +238,28 @@ tryCatch({
 }, error = function(e) cat("  ERROR aparch:", conditionMessage(e),
                           "| exists('aparch') =", exists("aparch"), "\n"))
 
+# --- GJR-GARCH / TGARCH / APARCH under the seven NON-normal conditional distributions -----------------
+# Distributions breadth for the Phase-1 asymmetric short-memory models: fit each of gjrgarch/tgarch/
+# aparch on the committed series under each of the seven non-norm laws, with the same data-first calls
+# as the norm fits above (match.fun(model)(returns, orders, cond_dist, parallel)). cat_pars prints the
+# fitted shape/skew and, where present, aparch's delta and ald/sald's profiled P, so the joint-estimation
+# structure is visible. aparch estimates delta by default (fix_delta = c(NA, 1, 2)), so aparch x <dist>
+# jointly estimates BOTH delta and the shape/skew params -- the largest short-memory vector. Each fit is
+# wrapped in tryCatch (model+dist, error, exists(<fn>)); a failure NEVER writes a partial fixture.
+for (model in c("gjrgarch", "tgarch", "aparch")) {
+  for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+    tryCatch({
+      afit <- match.fun(model)(returns, orders = c(1, 1), cond_dist = dist, parallel = FALSE)
+      cat(sprintf("  %s11_%s pars:", model, dist), paste(names(pars(afit)), collapse = ", "), "
+")
+      cat_pars(afit)
+      fit_and_dump(afit, sprintf("%s11_%s", model, dist), model, dist)
+    }, error = function(e) cat(sprintf("  ERROR %s11_%s:", model, dist), conditionMessage(e),
+                              sprintf("| exists('%s') = %s", model, exists(model)), "
+"))
+  }
+}
+
 # --- Phase-2 EGARCH-family (Type-II): Log-GARCH ------------------------------
 # Log-GARCH is a Type-II EGF model, so it is spec-first (loggarch_spec() + fEGarch()),
 # like egarch above — confirmed via ls()/args() (there is no data-first loggarch()
@@ -513,6 +535,48 @@ manifest <- list(
       gjrgarch11_norm = list(params = "fit_gjrgarch11_norm_params.json", sigma = "fit_gjrgarch11_norm_sigma.csv"),
       tgarch11_norm = list(params = "fit_tgarch11_norm_params.json", sigma = "fit_tgarch11_norm_sigma.csv"),
       aparch11_norm = list(params = "fit_aparch11_norm_params.json", sigma = "fit_aparch11_norm_sigma.csv"),
+      gjrgarch11_std = list(params = "fit_gjrgarch11_std_params.json", sigma = "fit_gjrgarch11_std_sigma.csv",
+                          note = "GJR-GARCH(1,1) under conditional Student-t (adds a df/shape param)"),
+      gjrgarch11_ged = list(params = "fit_gjrgarch11_ged_params.json", sigma = "fit_gjrgarch11_ged_sigma.csv",
+                          note = "GJR-GARCH(1,1) under conditional GED (adds a shape param)"),
+      gjrgarch11_ald = list(params = "fit_gjrgarch11_ald_params.json", sigma = "fit_gjrgarch11_ald_sigma.csv",
+                          note = "GJR-GARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5) -- record whatever P the fit selects)"),
+      gjrgarch11_snorm = list(params = "fit_gjrgarch11_snorm_params.json", sigma = "fit_gjrgarch11_snorm_sigma.csv",
+                          note = "GJR-GARCH(1,1) under FS-skew normal (adds a skew param)"),
+      gjrgarch11_sstd = list(params = "fit_gjrgarch11_sstd_params.json", sigma = "fit_gjrgarch11_sstd_sigma.csv",
+                          note = "GJR-GARCH(1,1) under FS-skew Student-t (adds shape + skew)"),
+      gjrgarch11_sged = list(params = "fit_gjrgarch11_sged_params.json", sigma = "fit_gjrgarch11_sged_sigma.csv",
+                          note = "GJR-GARCH(1,1) under FS-skew GED (adds shape + skew)"),
+      gjrgarch11_sald = list(params = "fit_gjrgarch11_sald_params.json", sigma = "fit_gjrgarch11_sald_sigma.csv",
+                          note = "GJR-GARCH(1,1) under FS-skew ALD (adds P + skew)"),
+      tgarch11_std = list(params = "fit_tgarch11_std_params.json", sigma = "fit_tgarch11_std_sigma.csv",
+                          note = "TGARCH(1,1) under conditional Student-t (adds a df/shape param)"),
+      tgarch11_ged = list(params = "fit_tgarch11_ged_params.json", sigma = "fit_tgarch11_ged_sigma.csv",
+                          note = "TGARCH(1,1) under conditional GED (adds a shape param)"),
+      tgarch11_ald = list(params = "fit_tgarch11_ald_params.json", sigma = "fit_tgarch11_ald_sigma.csv",
+                          note = "TGARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5) -- record whatever P the fit selects)"),
+      tgarch11_snorm = list(params = "fit_tgarch11_snorm_params.json", sigma = "fit_tgarch11_snorm_sigma.csv",
+                          note = "TGARCH(1,1) under FS-skew normal (adds a skew param)"),
+      tgarch11_sstd = list(params = "fit_tgarch11_sstd_params.json", sigma = "fit_tgarch11_sstd_sigma.csv",
+                          note = "TGARCH(1,1) under FS-skew Student-t (adds shape + skew)"),
+      tgarch11_sged = list(params = "fit_tgarch11_sged_params.json", sigma = "fit_tgarch11_sged_sigma.csv",
+                          note = "TGARCH(1,1) under FS-skew GED (adds shape + skew)"),
+      tgarch11_sald = list(params = "fit_tgarch11_sald_params.json", sigma = "fit_tgarch11_sald_sigma.csv",
+                          note = "TGARCH(1,1) under FS-skew ALD (adds P + skew)"),
+      aparch11_std = list(params = "fit_aparch11_std_params.json", sigma = "fit_aparch11_std_sigma.csv",
+                          note = "APARCH(1,1) under conditional Student-t (adds a df/shape param) ; delta also jointly estimated (aparch default)"),
+      aparch11_ged = list(params = "fit_aparch11_ged_params.json", sigma = "fit_aparch11_ged_sigma.csv",
+                          note = "APARCH(1,1) under conditional GED (adds a shape param) ; delta also jointly estimated (aparch default)"),
+      aparch11_ald = list(params = "fit_aparch11_ald_params.json", sigma = "fit_aparch11_ald_sigma.csv",
+                          note = "APARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5) -- record whatever P the fit selects) ; delta also jointly estimated (aparch default)"),
+      aparch11_snorm = list(params = "fit_aparch11_snorm_params.json", sigma = "fit_aparch11_snorm_sigma.csv",
+                          note = "APARCH(1,1) under FS-skew normal (adds a skew param) ; delta also jointly estimated (aparch default)"),
+      aparch11_sstd = list(params = "fit_aparch11_sstd_params.json", sigma = "fit_aparch11_sstd_sigma.csv",
+                          note = "APARCH(1,1) under FS-skew Student-t (adds shape + skew) ; delta also jointly estimated (aparch default)"),
+      aparch11_sged = list(params = "fit_aparch11_sged_params.json", sigma = "fit_aparch11_sged_sigma.csv",
+                          note = "APARCH(1,1) under FS-skew GED (adds shape + skew) ; delta also jointly estimated (aparch default)"),
+      aparch11_sald = list(params = "fit_aparch11_sald_params.json", sigma = "fit_aparch11_sald_sigma.csv",
+                          note = "APARCH(1,1) under FS-skew ALD (adds P + skew) ; delta also jointly estimated (aparch default)"),
       egarch11_norm = list(params = "fit_egarch11_norm_params.json", sigma = "fit_egarch11_norm_sigma.csv"),
       loggarch11_norm = list(params = "fit_loggarch11_norm_params.json", sigma = "fit_loggarch11_norm_sigma.csv"),
       megarch11_norm = list(params = "fit_megarch11_norm_params.json", sigma = "fit_megarch11_norm_sigma.csv"),
@@ -540,10 +604,11 @@ manifest <- list(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",
     "(FIGARCH/FIAPARCH/FITGARCH/FIGJR), and the Type-II FILog-GARCH. The distributions-breadth step has",
-    "begun: GARCH(1,1) is now fitted under all seven non-normal distributions (std/ged/ald/snorm/sstd/",
-    "sged/sald). Later phases need more fixtures: the OTHER short-memory + EGARCH-family + long-memory",
-    "models under the seven non-normal distributions; dual-mean (ARMA/FARIMA) fits (Phase 5); and",
-    "forecasts / VaR-ES (Phase 6). Extend this script and re-run when those models are implemented."))
+    "advanced: GARCH(1,1) AND the asymmetric short-memory family (GJR-GARCH/TGARCH/APARCH) are now",
+    "fitted under all seven non-normal distributions (std/ged/ald/snorm/sstd/sged/sald). Later phases",
+    "need more fixtures: the EGARCH-family + long-memory models under the seven non-normal distributions;",
+    "dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script",
+    "and re-run when those models are implemented."))
 write_json(manifest, file.path(OUTDIR, "manifest.json"))
 
 cat("done.\n")
