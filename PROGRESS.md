@@ -1413,6 +1413,50 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   fegarch_optimum`, norm-path-unchanged, `df→∞`-recovers-norm, known-truth `df=6`. Docs: spec-notes §15.
   Gate green. **NOT merged — first commit of the distribution-breadth PR.**
 
+- **Step 40 — fEGarch distribution-breadth, part 2: GARCH×ged (continuous shape) + GARCH×ald (the
+  P-profiling fork) (branch `feat/fegarch-distributions`, NOT merged).** The two structurally-different
+  follow-ups to GARCH×std. **GED reuses the §15 machinery verbatim — no code change** — but is the
+  *contrast* regime: its shape is **sharply identified** (`shape=2.15`, SE 0.10, a genuine interior
+  peak), so the whole fit incl. the shape reproduces the fixture to machine order (shape rel 2.8e-7,
+  loglik 5e-10, σ 3.5e-8), like norm. No dominated-reference issue: GED nests norm at shape=2 and 2.15
+  is a real finite-sample improvement, so the fixture loglik 7602.31 sits legitimately *above* norm
+  7601.11 (just confirm we reach it). Reduction: `ged.logpdf(z,shape=2)→norm.logpdf` (3.5e-15).
+  Known-truth shape=1.2 → `nu=1.21` (`|dev|/SE=0.48`). So std/ged bracket the two identification
+  regimes of the same continuous path: flat ridge (std, nu-by-regime) vs sharp peak (ged, nu-exact).
+  **ALD is the new mechanism — the discrete integer-grid P-profiling fork.** P is NOT a QMLE param
+  (`AverageLaplace.param_names=()`, P a construction attribute); fEGarch profiles it over `Prange=c(1,5)`.
+  `fit_garch(ald)` takes a new outer-grid-search branch (`_fit_garch_ald`): for each P∈{1..5} fit the 4
+  continuous params at fixed P (L-BFGS-B, no ridge), pick the best loglik; the `(P,loglik)` grid is
+  surfaced on `GarchFit.profile` (new field). **AIC/BIC count P (k=5)** though it's profiled — confirmed
+  (k=5 gives aic −6.06632, k=4 doesn't). Profile monotone `P1 7547 → P5 7587.90`, peaks at the boundary
+  P=5 = the fixture's selection (empirical confirmation of the profiling convention; source never read).
+  **Honest misfit (documented):** even at P=5 the ALD is ~13 loglik below norm — fat-tailed family, wrong
+  for Gaussian data, which is *why* it pins at the boundary. Seam machine-exact at P=5 (σ 7e-18, loglik
+  0). Known-truth: in-grid P=2 (drawing ALD(2) innovations directly) → interior profile max, recovers
+  P=2 + continuous (beta within 0.3%). Refactor: extracted `_garch_fit_from_result`; norm/std bit-identical.
+  **Tests: `test_garch_ged.py` (5), `test_garch_ald.py` (7).** Docs: spec-notes §16. Gate green (1300+
+  pass). **NOT merged — second commit of the distribution-breadth PR.**
+
+- **Step 41 — fEGarch distribution-breadth, part 3: the four skewed dists snorm/sstd/sged/sald,
+  COMPLETING THE GARCH SET (all 8) (branch `feat/fegarch-distributions`, NOT merged).** The
+  Fernández–Steel `skew` param joins the joint fit. **`xi`↔`skew` reconcile:** the FS wrapper's math
+  variable is ξ and `s=ξ` applied directly (Phase-2 finding), so the public param was **renamed
+  `xi`→`skew`** (`param_names` boundary) to match fEGarch's argument + the fixtures; name-only, nothing
+  depended on the old name (test_distributions uses positional tuples). **Mechanism reuse:** snorm/sstd/
+  sged need NO new code (non-empty `param_names` → existing joint Nelder-Mead path). **sald is the
+  compound case** — continuous skew INSIDE, profiled P grid OUTSIDE — so `_fit_garch_ald` generalized
+  (`skewed=` flag): per P build `FernandezSteelSkew(AverageLaplace(p=P))`, fit `{…,skew}` jointly
+  (Nelder-Mead), select best P; AIC/BIC count BOTH P and skew (`k=6`; snorm `k=5`) — confirmed to ~1e-13.
+  **Identification: three sharp, one dominated.** snorm/sged/sald reproduce fixtures incl. skew to ~1e-6,
+  each legitimately ≥ its symmetric base (snorm 7601.21>norm, sged 7602.35>ged, sald 7588.13>ald); skew<1
+  (left). **sstd is dominated** (inherits std's flat nu ridge): fixture 7600.93 < norm 7601.11, our fit
+  climbs nu→bound to snorm's 7601.21, beating it +0.28 (std pattern) — seam-exact at fixture params, nu by
+  regime, skew still identified. **Reductions machine-exact (FS proof):** snorm@skew=1→norm, sstd→std,
+  sged→ged, sald→ald all 0.0e+00. **Known-truth:** GARCH×sstd skew=0.85,df=6 → skew=0.847 (|dev|/SE=0.32),
+  nu=5.8 — positive control. **Tests: `test_garch_skewed.py` (11).** Docs: spec-notes §17. Gate green.
+  **The GARCH distribution set is COMPLETE — all 8 conditional laws fit + validated. NOT merged — third
+  commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at

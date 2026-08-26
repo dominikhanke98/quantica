@@ -401,16 +401,20 @@ class FernandezSteelSkew(ConditionalDistribution):
     :math:`s = \xi` (:math:`C_E = \mu`, :math:`C_V = \sigma`); at :math:`\xi = 1`, :math:`C_E = 0`
     and :math:`C_V = 1`, so it reduces exactly to the base.
 
-    The ``xi`` parameter is fEGarch's ``skew`` argument **directly** (no reparameterization):
-    confirmed against the fixtures, ``skew < 1`` gives a left-skew and ``skew > 1`` a right-skew.
-    (Fernández & Steel 1998 introduced the density split; the mean-0/variance-1 constants above are
-    algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)
+    The skew parameter is fEGarch's ``skew`` argument **directly** (no reparameterization): the
+    split uses :math:`s = \xi`, so it is **exposed under the name ``skew``** (the internal math
+    variable is still :math:`\xi`). Confirmed against the fixtures, ``skew < 1`` gives a left-skew
+    and ``skew > 1`` a right-skew. (Fernández & Steel 1998 introduced the density split; the
+    mean-0/variance-1 constants above are algebraically the Lambert-Laurent form and equal App. C.1
+    Eqs. 39--40.)
     """
 
     def __init__(self, base: _SymmetricBase) -> None:
         self._base = base
         self.name = "s" + base.name
-        self.param_names = (*base.param_names, "xi")
+        # fEGarch's argument is ``skew`` (= xi applied directly), so the public parameter is named
+        # ``skew`` to match the fixtures; the equations/local variables keep the symbol xi.
+        self.param_names = (*base.param_names, "skew")
         self.param_bounds = (*base.param_bounds, (0.1, 10.0))
         self.param_start = (*base.param_start, 1.0)
 

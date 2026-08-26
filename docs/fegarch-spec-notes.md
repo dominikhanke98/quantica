@@ -1009,6 +1009,109 @@ QMLE recovers `nu = 6.01` (SE `0.36`, `|dev|/SE = 0.03`) — the shape parameter
 when the data actually has it, in deliberate contrast to the near-normal fixture where it flies to the
 bound. Validated in `test_garch_std.py` (6 tests).
 
+## 16. GARCH×ged (sharply-identified shape) + GARCH×ald (the P-profiling fork) — RESOLVED (Phase 5)
+
+**Sources.** Nelson (1991) GED standardization; the scaled-average-Laplace equations WP 2026-04 App.
+C.1 Eqs. 31–33, 37 (already the basis of the Phase-0 `AverageLaplace`); the Prange P-profiling is
+fEGarch's own convention. fEGarch source never consulted; validated against `fit_garch11_ged_*` and
+`fit_garch11_ald_*`. These are the two structurally-different follow-ups to GARCH×std (§15): ged
+reuses the *continuous* shape path, ald introduces the *discrete integer-grid* path.
+
+### 16.1 GARCH×ged — the same path as std, but sharply identified (the contrast case)
+
+GED reuses the §15 machinery verbatim (shape param in the fitted vector, Nelder-Mead), and needs **no
+code change** — `fit_garch(cond_dist="ged")` already routes through. But the *outcome is the opposite
+regime*: on the synthetic returns the GED shape has a genuine interior peak (`shape = 2.15`,
+`SE ≈ 0.10`), so it is **sharply identified**, and the whole fit — the shape included — reproduces the
+fixture to machine order (`shape` rel `2.8e-7`, loglik dev `5e-10`, σ dev `3.5e-8`), exactly like the
+norm fit. Our layer names the shape `nu`; the fixture names it `shape` (same `gennorm` β; `shape = 2`
+the normal). **No dominated-reference issue here** (unlike std): GED nests norm at `shape = 2`, and
+the fitted `shape = 2.15` is a *real* finite-sample improvement, so the fixture loglik `7602.31` sits
+legitimately **above** norm `7601.11` — nothing to challenge, just confirm we reach it.
+**Reduction**: `ged.logpdf(z, shape=2)` collapses to `norm.logpdf(z)` (`3.5e-15`, machine).
+**Known-truth**: simulated `shape = 1.2` (fat-tailed) recovers `nu = 1.21` (`|dev|/SE = 0.48`).
+`test_garch_ged.py` (5 tests). So std and ged bracket the two identification regimes of the *same*
+continuous shape path: flat ridge (std, `nu` by regime) vs sharp peak (ged, `nu` param-exact).
+
+### 16.2 GARCH×ald — the discrete P-profiling fork (the new mechanism)
+
+The ALD's degree `P` is **not** a QMLE parameter: `AverageLaplace.param_names = ()`, and `P` is a
+construction attribute (`AverageLaplace(p=…)`). fEGarch *profiles* it over the integer grid
+`Prange = c(1, 5)`. So `fit_garch(cond_dist="ald")` takes a **new outer-grid-search branch**
+(`_fit_garch_ald`): for each `P ∈ {1,2,3,4,5}` fit the four continuous params `(mu, omega, alpha,
+beta)` at that fixed `P` (a fixed-shape ALD → gradient-based L-BFGS-B, no flat ridge), then select the
+best log-likelihood. `P` never enters the continuous optimizer. The `(P, loglik)` grid is surfaced on
+the result (`GarchFit.profile`). **AIC/BIC count `P` in the penalty (`k = 5`)** even though it is
+profiled, not optimized — confirmed against the fixture (`k = 5` reproduces `aic = −6.06632`, `k = 4`
+does not).
+
+**The profile + selection reproduce the fixture** (empirical confirmation of the profiling
+convention, since the source is never read): the loglik rises monotonically `P1 7547.11 → P2 7569.14
+→ P3 7579.00 → P4 7584.47 → P5 7587.90`, peaking at the **boundary `P = 5`** — exactly the fixture's
+selection and its `P=5` loglik. **Honest misfit (documented, not a defect):** even at its thinnest
+tail (`P = 5`, raw kurtosis `3 + 3/(P+1) = 3.5`) the ALD is `~13` loglik **below** norm — the ALD is a
+fat-tailed family and Gaussian data has no excess kurtosis, so it cannot match the normal, and that is
+*why* the profile pins at the boundary rather than an interior optimum. **Seam machine-exact** at the
+fixture's `P = 5` (σ `7e-18`, loglik `0`). **Known-truth**: simulating GARCH×ALD at an *in-grid*
+`P = 2` (drawing ALD(2) innovations directly, since `garch_sim` exposes only the default-P ALD) gives
+an **interior** profile max, so the grid search recovers `P = 2` and the continuous params (`beta`
+within `0.3%`) — the in-grid contrast to the boundary pin on Gaussian data. `test_garch_ald.py`
+(7 tests). This is the port's first **discrete/profiled** parameter — the structural counterpoint to
+the continuous shape params of std/ged.
+
+## 17. GARCH×{snorm,sstd,sged,sald} — the Fernández–Steel `skew` param, completing the set — RESOLVED (Phase 5)
+
+**Sources.** Fernández–Steel (1998) skew split; the mean-0/variance-1 re-standardization WP 2026-04
+App. C.1 Eqs. 38–41 (already the basis of the Phase-0/2 `FernandezSteelSkew` wrapper). fEGarch source
+never consulted; validated against `fit_garch11_{snorm,sstd,sged,sald}_*`. This **completes the GARCH
+distribution set (all 8)**.
+
+### 17.1 The `skew` param + the `xi`↔`skew` reconcile
+
+The FS wrapper adds **one** parameter — the skew `s` — on top of a symmetric base, splitting the
+density `h(x) = 2/(s+1/s)·f(x·s^{−sign x})` and re-standardizing to mean 0 / var 1, so `s = 1`
+recovers the base. The joint QMLE vector carries `skew` alongside the base's own shape params:
+snorm `{…, skew}`, sstd `{…, nu, skew}`, sged `{…, nu, skew}`, sald `{…, skew}` (+ profiled P). **The
+`xi`↔`skew` reconcile:** the wrapper's internal math variable is `ξ` and `s = ξ` **applied directly**
+(the short-memory Phase-2 finding, `s<1` left / `s>1` right / `s=1` symmetric), so the public
+parameter is **renamed `xi`→`skew`** at the boundary (`get_distribution("snorm").param_names ==
+("skew",)`) to match fEGarch's argument and the fixtures. The rename is name-only (the equations keep
+`ξ`); nothing depended on the old public name (`test_distributions.py` uses positional tuples).
+Bounds `(0.1, 10.0)`, start `1.0` (symmetric).
+
+### 17.2 Mechanism reuse — snorm/sstd/sged for free, sald the compound case
+
+snorm/sstd/sged need **no new code**: `param_names` is non-empty, so `fit_garch` already routes them
+through the joint Nelder-Mead shape path (§15). **sald is the compound case** — the FS skew is a
+continuous inner param but `P` is still the profiled integer grid — so `_fit_garch_ald` was
+generalized: for each `P ∈ {1..5}` it builds `FernandezSteelSkew(AverageLaplace(p=P))` and fits
+`{mu,omega,alpha,beta,skew}` jointly (Nelder-Mead, flat skew ridge), then selects the best `P`. The
+**AIC/BIC penalty counts both the profiled P and the skew** (`k = 6`; snorm `k = 5`) — confirmed
+against every fixture's `aic` to `~1e-13`.
+
+### 17.3 Identification — three sharp, one dominated (the sstd inheritance)
+
+On the symmetric Gaussian returns the **skew is nonetheless identified** (a finite sample carries a
+detectable asymmetry signal), so **snorm / sged / sald reproduce their fixtures — skew included — to
+`~1e-6`** (like ged), and each sits legitimately **at or above its symmetric base** (snorm `7601.21 >`
+norm `7601.11`; sged `7602.35 >` ged `7602.31`; sald `7588.13 >` ald `7587.90`). Each skew is `< 1`
+(the fixtures' left-skew). **The one dominated case is `sstd`**, which inherits Student-t's flat `nu`
+ridge (MLE `ν→∞`): its fixture (`df = 340.8, loglik 7600.93`) sits **below** norm `7601.11`, so it is
+strictly dominated; our Nelder-Mead fit climbs `ν` to the bound and reaches **snorm's** optimum
+`7601.21`, **dominating the fixture by `+0.28`** (the exact std pattern of §15). So sstd is validated
+like std — seam machine-exact at the fixture's own params (proving the joint `df+skew` likelihood is
+right), `nu` by regime, `skew` still identified (within `~1e-3` of the fixture), fit `≥` the dominated
+reference. The skew is the *identified* direction even in sstd; only `nu` is the flat ridge.
+
+### 17.4 Reduction anchor + known-truth
+
+**Reduction (FS correctness proof):** each skewed density at `skew = 1` equals its symmetric base to
+**floating-point zero** — snorm@1→norm, sstd@1→std, sged@1→ged, sald@1→ald all `0.0e+00`.
+**Known-truth:** simulating GARCH×sstd at a genuine `skew = 0.85` (`df = 6`) recovers `skew = 0.847`
+(`|dev|/SE = 0.32`) and `nu = 5.8` (`|dev|/SE = 0.66`) — the positive control that the skew estimation
+pins down a real asymmetry when present, in contrast to the near-symmetric fixture. `test_garch_skewed.py`
+(11 tests). **The GARCH distribution set is complete — all eight conditional laws fit and validated.**
+
 ---
 
 *Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)
