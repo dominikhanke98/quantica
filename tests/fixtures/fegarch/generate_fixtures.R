@@ -478,6 +478,34 @@ tryCatch({
 }, error = function(e) cat("  ERROR filoggarch:", conditionMessage(e),
                           "| exists('filoggarch_spec') =", exists("filoggarch_spec"), "\n"))
 
+# --- Phase-5 distributions breadth: the variance-recursion FI family under 7 non-norm laws ----------
+# FIGARCH / FIAPARCH / FITGARCH / FIGJR under each of std/ged/ald/snorm/sstd/sged/sald, with the same
+# data-first calls as the norm fixtures (each model's own trunc='none', presample=50 defaults, NOT the
+# EGF FI models' n-1). cat_pars prints the fitted shape/skew, the fractional d, and -- for fiaparch --
+# the power delta, so the review can see whether the distribution choice shifts d, and the fiaparch
+# delta+shape+d compound. The GJR function is figjrgarch (resolved via exists, as the norm fixture);
+# its fixtures keep the established figjr11_* name. Each fit is tryCatch-wrapped (never a partial).
+figjr_fn2 <- if (exists("figjrgarch")) figjrgarch else figjr
+fi_dist_models <- list(
+  list(name = "figarch",  fn = figarch),
+  list(name = "fiaparch", fn = fiaparch),
+  list(name = "fitgarch", fn = fitgarch),
+  list(name = "figjr",    fn = figjr_fn2)
+)
+for (m in fi_dist_models) {
+  for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+    tryCatch({
+      ffit <- m$fn(returns, orders = c(1, 1), cond_dist = dist, parallel = FALSE)
+      cat(sprintf("  %s11_%s pars:", m$name, dist), paste(names(pars(ffit)), collapse = ", "), "
+")
+      cat_pars(ffit)
+      fit_and_dump(ffit, sprintf("%s11_%s", m$name, dist), m$name, dist, trunc = "none")
+    }, error = function(e) cat(sprintf("  ERROR %s11_%s:", m$name, dist), conditionMessage(e),
+                              sprintf("| exists('%s') = %s", m$name, exists(m$name)), "
+"))
+  }
+}
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -589,15 +617,71 @@ manifest <- list(
                                 note = "Phase-4 long-memory: fractionally-integrated MLog-GARCH (Type-I modulus asymmetry + ln(|eta|+1) magnitude; d estimated, App. C.3 trunc L=n-1)"),
       figarch11_norm = list(params = "fit_figarch11_norm_params.json", sigma = "fit_figarch11_norm_sigma.csv",
                             note = "Phase-4 long-memory: fractionally-integrated GARCH (VARIANCE-recursion long memory, NOT the EGF log-variance family; d estimated; figarch()'s own defaults trunc='none', presample=50)"),
+      figarch11_std = list(params = "fit_figarch11_std_params.json", sigma = "fit_figarch11_std_sigma.csv",
+                          note = "FIGARCH(1,d,1) under conditional Student-t (df + fractional d); trunc='none'"),
+      figarch11_ged = list(params = "fit_figarch11_ged_params.json", sigma = "fit_figarch11_ged_sigma.csv",
+                          note = "FIGARCH(1,d,1) under conditional GED (shape + fractional d); trunc='none'"),
+      figarch11_ald = list(params = "fit_figarch11_ald_params.json", sigma = "fit_figarch11_ald_sigma.csv",
+                          note = "FIGARCH(1,d,1) under conditional ALD (P profiled over Prange=c(1,5) + fractional d); trunc='none'"),
+      figarch11_snorm = list(params = "fit_figarch11_snorm_params.json", sigma = "fit_figarch11_snorm_sigma.csv",
+                          note = "FIGARCH(1,d,1) under FS-skew normal (skew + fractional d); trunc='none'"),
+      figarch11_sstd = list(params = "fit_figarch11_sstd_params.json", sigma = "fit_figarch11_sstd_sigma.csv",
+                          note = "FIGARCH(1,d,1) under FS-skew Student-t (df + skew + fractional d); trunc='none'"),
+      figarch11_sged = list(params = "fit_figarch11_sged_params.json", sigma = "fit_figarch11_sged_sigma.csv",
+                          note = "FIGARCH(1,d,1) under FS-skew GED (shape + skew + fractional d); trunc='none'"),
+      figarch11_sald = list(params = "fit_figarch11_sald_params.json", sigma = "fit_figarch11_sald_sigma.csv",
+                          note = "FIGARCH(1,d,1) under FS-skew ALD (P + skew + fractional d); trunc='none'"),
       fiaparch11_norm = list(params = "fit_fiaparch11_norm_params.json", sigma = "fit_fiaparch11_norm_sigma.csv",
                              note = "Phase-4 long-memory: fractionally-integrated APARCH (FIGARCH variance-recursion seam + APARCH asymmetry gamma1 + estimated power delta + fractional d; fiaparch()'s own defaults trunc='none', presample=50). BOUNDARY fixture: d~1 (forced by high beta1 via Conrad-Haag d>=beta1-phi1)"),
+      fiaparch11_std = list(params = "fit_fiaparch11_std_params.json", sigma = "fit_fiaparch11_std_sigma.csv",
+                          note = "FIAPARCH(1,d,1) under conditional Student-t (df + fractional d) ; delta + d jointly estimated; trunc='none'"),
+      fiaparch11_ged = list(params = "fit_fiaparch11_ged_params.json", sigma = "fit_fiaparch11_ged_sigma.csv",
+                          note = "FIAPARCH(1,d,1) under conditional GED (shape + fractional d) ; delta + d jointly estimated; trunc='none'"),
+      fiaparch11_ald = list(params = "fit_fiaparch11_ald_params.json", sigma = "fit_fiaparch11_ald_sigma.csv",
+                          note = "FIAPARCH(1,d,1) under conditional ALD (P profiled over Prange=c(1,5) + fractional d) ; delta + d jointly estimated; trunc='none'"),
+      fiaparch11_snorm = list(params = "fit_fiaparch11_snorm_params.json", sigma = "fit_fiaparch11_snorm_sigma.csv",
+                          note = "FIAPARCH(1,d,1) under FS-skew normal (skew + fractional d) ; delta + d jointly estimated; trunc='none'"),
+      fiaparch11_sstd = list(params = "fit_fiaparch11_sstd_params.json", sigma = "fit_fiaparch11_sstd_sigma.csv",
+                          note = "FIAPARCH(1,d,1) under FS-skew Student-t (df + skew + fractional d) ; delta + d jointly estimated; trunc='none'"),
+      fiaparch11_sged = list(params = "fit_fiaparch11_sged_params.json", sigma = "fit_fiaparch11_sged_sigma.csv",
+                          note = "FIAPARCH(1,d,1) under FS-skew GED (shape + skew + fractional d) ; delta + d jointly estimated; trunc='none'"),
+      fiaparch11_sald = list(params = "fit_fiaparch11_sald_params.json", sigma = "fit_fiaparch11_sald_sigma.csv",
+                          note = "FIAPARCH(1,d,1) under FS-skew ALD (P + skew + fractional d) ; delta + d jointly estimated; trunc='none'"),
       fiaparch11_norm_interior = list(params = "fit_fiaparch11_norm_interior_params.json", sigma = "fit_fiaparch11_norm_interior_sigma.csv",
                                       input = "synthetic_returns_lowpersist.csv",
                                       note = "Phase-4: FIAPARCH on the LOW-PERSISTENCE series so d lands INTERIOR (inside (0,0.5)) — the second (d,delta,gamma) point that identifies the presample-seed formula f(Var,delta,gamma,d), disentangled from the boundary fixture's near-integration inflation"),
       fitgarch11_norm = list(params = "fit_fitgarch11_norm_params.json", sigma = "fit_fitgarch11_norm_sigma.csv",
                              note = "Phase-4 long-memory: fractionally-integrated TGARCH (Zakoian sigma-recursion, delta=1 FIXED; FIGARCH variance-recursion seam with the (|eps|-gamma eps) news; fitgarch()'s own defaults trunc='none', presample=50)"),
+      fitgarch11_std = list(params = "fit_fitgarch11_std_params.json", sigma = "fit_fitgarch11_std_sigma.csv",
+                          note = "FITGARCH(1,d,1) under conditional Student-t (df + fractional d); trunc='none'"),
+      fitgarch11_ged = list(params = "fit_fitgarch11_ged_params.json", sigma = "fit_fitgarch11_ged_sigma.csv",
+                          note = "FITGARCH(1,d,1) under conditional GED (shape + fractional d); trunc='none'"),
+      fitgarch11_ald = list(params = "fit_fitgarch11_ald_params.json", sigma = "fit_fitgarch11_ald_sigma.csv",
+                          note = "FITGARCH(1,d,1) under conditional ALD (P profiled over Prange=c(1,5) + fractional d); trunc='none'"),
+      fitgarch11_snorm = list(params = "fit_fitgarch11_snorm_params.json", sigma = "fit_fitgarch11_snorm_sigma.csv",
+                          note = "FITGARCH(1,d,1) under FS-skew normal (skew + fractional d); trunc='none'"),
+      fitgarch11_sstd = list(params = "fit_fitgarch11_sstd_params.json", sigma = "fit_fitgarch11_sstd_sigma.csv",
+                          note = "FITGARCH(1,d,1) under FS-skew Student-t (df + skew + fractional d); trunc='none'"),
+      fitgarch11_sged = list(params = "fit_fitgarch11_sged_params.json", sigma = "fit_fitgarch11_sged_sigma.csv",
+                          note = "FITGARCH(1,d,1) under FS-skew GED (shape + skew + fractional d); trunc='none'"),
+      fitgarch11_sald = list(params = "fit_fitgarch11_sald_params.json", sigma = "fit_fitgarch11_sald_sigma.csv",
+                          note = "FITGARCH(1,d,1) under FS-skew ALD (P + skew + fractional d); trunc='none'"),
       figjr11_norm = list(params = "fit_figjr11_norm_params.json", sigma = "fit_figjr11_norm_sigma.csv",
                           note = "Phase-4 long-memory: fractionally-integrated GJR-GARCH (FIGARCH variance-recursion seam; the news-kernel form — (|eps|-gamma eps)^2 APARCH-delta=2 vs Glosten indicator — is confirmed by the reconstruction gate, per the Phase-1 GJR finding; trunc='none', presample=50)"),
+      figjr11_std = list(params = "fit_figjr11_std_params.json", sigma = "fit_figjr11_std_sigma.csv",
+                          note = "FIGJR(1,d,1) under conditional Student-t (df + fractional d); trunc='none'"),
+      figjr11_ged = list(params = "fit_figjr11_ged_params.json", sigma = "fit_figjr11_ged_sigma.csv",
+                          note = "FIGJR(1,d,1) under conditional GED (shape + fractional d); trunc='none'"),
+      figjr11_ald = list(params = "fit_figjr11_ald_params.json", sigma = "fit_figjr11_ald_sigma.csv",
+                          note = "FIGJR(1,d,1) under conditional ALD (P profiled over Prange=c(1,5) + fractional d); trunc='none'"),
+      figjr11_snorm = list(params = "fit_figjr11_snorm_params.json", sigma = "fit_figjr11_snorm_sigma.csv",
+                          note = "FIGJR(1,d,1) under FS-skew normal (skew + fractional d); trunc='none'"),
+      figjr11_sstd = list(params = "fit_figjr11_sstd_params.json", sigma = "fit_figjr11_sstd_sigma.csv",
+                          note = "FIGJR(1,d,1) under FS-skew Student-t (df + skew + fractional d); trunc='none'"),
+      figjr11_sged = list(params = "fit_figjr11_sged_params.json", sigma = "fit_figjr11_sged_sigma.csv",
+                          note = "FIGJR(1,d,1) under FS-skew GED (shape + skew + fractional d); trunc='none'"),
+      figjr11_sald = list(params = "fit_figjr11_sald_params.json", sigma = "fit_figjr11_sald_sigma.csv",
+                          note = "FIGJR(1,d,1) under FS-skew ALD (P + skew + fractional d); trunc='none'"),
       filoggarch11_norm = list(params = "fit_filoggarch11_norm_params.json", sigma = "fit_filoggarch11_norm_sigma.csv",
                                note = "Phase-4 long-memory: fractionally-integrated Log-GARCH (Type-II EGF, spec-first via filoggarch_spec; the LAST Phase-4 model; Log-GARCH's {mu, omega_sig, phi1, psi1} + fractional d; App. C.3 trunc L=n-1)"))),
   pending_fixtures = paste(
