@@ -1457,6 +1457,29 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   **The GARCH distribution set is COMPLETE — all 8 conditional laws fit + validated. NOT merged — third
   commit of the distribution-breadth PR.**
 
+- **Step 42 — fEGarch distribution-breadth, part 4: GJR-GARCH/TGARCH/APARCH under the 7 non-norm
+  distributions, the compressed inheritance build (branch `feat/fegarch-distributions`, NOT merged).**
+  First the 21 R fixtures (committed `b8614f1`); then the compressed build — pure *composition* of two
+  proven layers (the three recursions on norm §4 + the distribution machinery on GARCH×8), so **no spec
+  extraction**. **Reconstruction gate first (go/no-go):** naive full-series reconstruction gives only
+  ~1e-7 σ/~1e-5 loglik, but that is NOT a distribution interaction — it's identical for norm and is the
+  asymmetric family's known presample-seed discrepancy (§4). Seeding σ[0] from the fixture (isolating the
+  recursion FORM, as the Phase-1 norm test does) makes the gate **machine-exact for all 21**: σ[1:] worst
+  1.73e-17, loglik worst 4.39e-10 → composition clean, no surprise interaction, GO. **Machinery reuse
+  wholesale:** `_fit_aparch_family` got the same Nelder-Mead-shape branch + `_ALD_PRANGE` P-profiling
+  (generalized to `_fit_aparch_ald` for ald AND compound sald) + `GarchFit.profile`; the one
+  family-specific piece is the δ-dependent unscaling (`omega~scale^δ`, extracted to `_build_asym_fit`).
+  GJR/TGARCH add gamma1; APARCH adds gamma1+delta — the 7-param (×std) and **8-param** (×sstd) compounds.
+  **Identification-structured (same as GARCH×8):** identified ged/ald/snorm/sged/sald reproduce fixtures
+  (loglik ~1e-5, σ ~2e-7 presample floor, shape/skew ~1e-6); **δ interior 2.24–2.47** co-estimated with
+  the shape; **P=5** selected every model; **std/sstd dominated** (fixture below the norm/snorm sibling,
+  our fit climbs df to reach the sibling optimum, +0.28). skew→1→base reductions <1e-9 per model×dist.
+  **8-param known-truth (the key positive control):** APARCH×sstd simulated with δ=1.6, df=6, skew=0.85
+  recovers ALL of δ (|dev|/SE 0.12–0.39), df (1.28–1.45), skew (0.19–0.35). **Tests:
+  `test_asymmetric_distributions.py` (73).** Docs: spec-notes §18. Gate green. **Completes the
+  short-memory variance-recursion family (GARCH/GJR/TGARCH/APARCH) under all 8 distributions. NOT
+  merged — fifth commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at

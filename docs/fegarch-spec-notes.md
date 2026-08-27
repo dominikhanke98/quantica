@@ -1112,6 +1112,58 @@ reference. The skew is the *identified* direction even in sstd; only `nu` is the
 pins down a real asymmetry when present, in contrast to the near-symmetric fixture. `test_garch_skewed.py`
 (11 tests). **The GARCH distribution set is complete — all eight conditional laws fit and validated.**
 
+## 18. GJR-GARCH / TGARCH / APARCH under all 8 distributions — the compressed inheritance build — RESOLVED (Phase 5)
+
+**Sources.** Glosten–Jagannathan–Runkle (1993) GJR, Zakoian (1994) TGARCH, Ding–Granger–Engle (1993)
+APARCH (already the Phase-1 recursions); the distribution machinery is the proven GARCH×8 stack. No
+new spec extraction — this is a **composition** of two already-validated layers. fEGarch source never
+consulted; validated against `fit_{gjrgarch,tgarch,aparch}11_*`.
+
+### 18.1 The reconstruction gate — the go/no-go, and the presample-seed subtlety
+
+Because the three recursions are proven on norm (§4) and the eight distribution likelihoods on
+GARCH×8 (§15–17), the compressed build's correctness reduces to a **reconstruction gate**: at each of
+the 21 fixtures' own params, does recursion σ + distribution log-likelihood reproduce the fixture? A
+*naive* full-series reconstruction gives only `~1e-7` σ / `~1e-5` loglik — but this is **not** a
+distribution interaction: it is identical for **norm** (I verified), and is the asymmetric family's
+**known presample-seed** discrepancy (§4: the news-impact `kernel_0` seed differs from fEGarch's by
+`~1e-7`, unlike GARCH's exact `Var(r)` seed). Seeding `σ[0]` from the fixture (isolating the recursion
+*form*, exactly as the Phase-1 norm reconstruction test does) makes the gate **machine-exact for all
+21**: `σ[1:]` worst `1.73e-17`, loglik worst `4.39e-10`. So the composition is clean — no unexpected
+model×distribution interaction — and the `~1e-7` is the same presample floor the norm fixtures already
+tolerate at `<1e-5`.
+
+### 18.2 Machinery reuse — one shared upgrade
+
+`_fit_aparch_family` inherited the GARCH shape/skew/P-profiling **wholesale**: the same Nelder-Mead
+branch for near-flat shape/skew ridges, the same `_ALD_PRANGE` P-profiling fork (generalized to
+`_fit_aparch_ald`, reused for `ald` and the compound `sald`), and the same `GarchFit.profile`. The one
+family-specific piece is the **δ-dependent unscaling** (`omega ~ scale^δ`, extracted into
+`_build_asym_fit`), because APARCH's `δ` is jointly estimated. GJR/TGARCH add `gamma1` to the base;
+APARCH adds `gamma1 + delta` — the **7-param** `{mu,omega,phi1,beta1,gamma1,delta,df}` (×std) and
+**8-param** `{…,delta,df,skew}` (×sstd) compounds, the largest short-memory vectors in the port.
+
+### 18.3 Identification-structured validation (identical pattern to GARCH×8)
+
+* **Identified** (ged/ald/snorm/sged/sald): reproduce loglik (`~1e-5`, within `<1e-4`), σ (`~2e-7`,
+  the presample floor), AIC/BIC (`~1e-8`), the asymmetry `gamma1` and shape/skew (sharply identified,
+  `~1e-6`). **δ (APARCH)** recovers tight and **interior** (`2.24–2.47`, co-estimated with the shape,
+  never pinned at a δ∈{1,2} seed). **P (ald/sald)** profiles to the boundary and selects `5`, every
+  model.
+* **Dominated std / sstd**: inherit Student-t's flat `df` ridge, so each fixture sits **below** its
+  symmetric-tailed sibling (gjr×std `7602.75` < gjr×norm `7603.04`; sstd < snorm), strictly dominated.
+  Our Nelder-Mead fit climbs `df` to the bound and **reaches the sibling's optimum**, dominating the
+  fixture by `+0.28` (the exact std pattern). `df` validated by regime, `skew` still identified.
+* **Reductions**: skew→1 recovers the symmetric base, composed with each recursion at a common σ path
+  (`<1e-9`, per model×dist).
+* **Known-truth — the 8-param positive control**: simulating APARCH×sstd with an identified
+  `δ = 1.6`, fat tails `df = 6` and left-skew `0.85` recovers **all** of `δ` (`|dev|/SE = 0.12–0.39`),
+  `df` (`1.28–1.45`) and `skew` (`0.19–0.35`) — proving the full 8-way joint estimation works when the
+  data exercises every parameter, in deliberate contrast to the near-symmetric Gaussian fixture.
+
+`test_asymmetric_distributions.py` (73 tests). **This completes the short-memory variance-recursion
+family (GARCH / GJR / TGARCH / APARCH) under all eight conditional distributions.**
+
 ---
 
 *Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)

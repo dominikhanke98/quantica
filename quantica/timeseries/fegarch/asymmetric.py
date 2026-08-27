@@ -70,13 +70,21 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quantica.timeseries.fegarch.distributions import get_distribution
-from quantica.timeseries.fegarch.garch import GarchFit
+from quantica.timeseries.fegarch.distributions import (
+    AverageLaplace,
+    FernandezSteelSkew,
+    get_distribution,
+)
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
 from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
-    from quantica.timeseries.fegarch.qmle import VarianceRecursion
+    from quantica.timeseries.fegarch.qmle import QMLEResult, VarianceRecursion
+
+# Optimizer options for the derivative-free Nelder-Mead used on the near-flat shape/skew ridges
+# (Student-t df -> inf, FS skew -> 1 on near-symmetric data), matching the GARCH shape-fit path.
+_SHAPE_OPTIONS: dict[str, object] = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
 
 __all__ = [
     "aparch_recursion",
@@ -209,15 +217,96 @@ def aparch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
     )
 
 
+def _build_asym_fit(
+    result: QMLEResult,
+    cond_dist: str,
+    scale: float,
+    n: int,
+    delta_fixed: float | None,
+    var_names: tuple[str, ...],
+    *,
+    k: int,
+    extra_params: dict[str, float] | None = None,
+    profile: tuple[tuple[int, float], ...] | None = None,
+) -> GarchFit:
+    """Assemble a :class:`GarchFit` from a QMLE result: undo the delta-dependent scaling + AIC/BIC.
+
+    Parameters
+    ----------
+    result : QMLEResult
+        The fitted engine result on the rescaled returns.
+    cond_dist : str
+        The conditional-distribution code.
+    scale : float
+        The return scale divided out before fitting.
+    n : int
+        Number of observations.
+    delta_fixed : float or None
+        The fixed power (GJR/TGARCH) or ``None`` for the free-delta APARCH.
+    var_names : tuple of str
+        The variance-recursion parameter names (five for GJR/TGARCH, six for APARCH).
+    k : int
+        Parameter count for the AIC/BIC penalty (includes a profiled degree where one applies).
+    extra_params : dict of str to float, optional
+        Extra parameters not produced by the optimizer (e.g. the ALD's profiled ``P``).
+    profile : tuple of (int, float) or None, optional
+        The ALD ``(P, log-likelihood)`` grid, forwarded to :class:`GarchFit`.
+
+    Returns
+    -------
+    GarchFit
+        The fitted model in original units.
+    """
+    names = result.param_names
+    delta = float(delta_fixed) if delta_fixed is not None else float(result.params[5])
+    # Undo the scaling: mu ~ scale, omega ~ scale^delta; phi1/beta1/gamma1/delta/shape invariant.
+    n_extra = len(names) - len(var_names)  # distribution shape parameters (0 for ald's profiled P)
+    if delta_fixed is None:
+        var_factors = [scale, scale**delta, 1.0, 1.0, 1.0, 1.0]
+    else:
+        var_factors = [scale, scale**delta, 1.0, 1.0, 1.0]
+    factors = np.array(var_factors + [1.0] * n_extra, dtype=np.float64)
+    values = result.params * factors
+    params = {name: float(v) for name, v in zip(names, values, strict=True)}
+    std_errors = {
+        name: float(se * f) for name, se, f in zip(names, result.std_errors, factors, strict=True)
+    }
+    if extra_params:
+        params.update(extra_params)
+
+    loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
+    aic = (2.0 * k - 2.0 * loglik) / n
+    bic = (k * np.log(n) - 2.0 * loglik) / n
+    conditional_volatility = np.sqrt(result.conditional_variance) * scale
+
+    return GarchFit(
+        cond_dist=cond_dist,
+        params=params,
+        std_errors=std_errors,
+        loglikelihood=float(loglik),
+        aic=float(aic),
+        bic=float(bic),
+        conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
+        n_obs=n,
+        converged=result.converged,
+        profile=profile,
+    )
+
+
 def _fit_aparch_family(
     returns: FloatArray, cond_dist: str, *, delta_fixed: float | None
 ) -> GarchFit:
-    """Shared QMLE fit (``delta_fixed`` set for GJR/TGARCH, ``None`` for the free-delta APARCH)."""
+    """Shared QMLE fit (``delta_fixed`` set for GJR/TGARCH, ``None`` for the free-delta APARCH).
+
+    Inherits the GARCH distribution machinery wholesale: the shape parameters ride in the fitted
+    vector, near-flat shape/skew ridges use derivative-free Nelder-Mead, and the ALD's degree ``P``
+    is profiled over :data:`_ALD_PRANGE` (an outer grid, counted in the AIC/BIC penalty). APARCH
+    additionally carries a jointly-estimated ``delta`` (the 7/8-parameter compounds).
+    """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
     scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude omega
     scaled = y / scale
-    distribution = get_distribution(cond_dist)
 
     variance = float(np.var(scaled, ddof=1))
     mean_start = float(np.mean(scaled))
@@ -240,6 +329,30 @@ def _fit_aparch_family(
         var_start = (mean_start, omega_start, 0.05, 0.90, 0.0)
         var_bounds = _shared_bounds
 
+    # The ALD (and sALD) profiles its integer degree P over the grid, exactly as GARCH; every other
+    # distribution's shape/skew parameters are estimated jointly by the engine.
+    if cond_dist in ("ald", "sald"):
+        return _fit_aparch_ald(
+            scaled,
+            scale,
+            n,
+            recursion,
+            var_names,
+            var_start,
+            var_bounds,
+            delta_fixed,
+            skewed=cond_dist == "sald",
+        )
+
+    distribution = get_distribution(cond_dist)
+    # Near-flat shape/skew ridges (Student-t df, FS skew) stall L-BFGS-B, so shape-parameter fits
+    # Nelder-Mead; the norm path (no shape parameter) keeps L-BFGS-B and stays bit-identical.
+    if distribution.param_names:
+        method: str = "Nelder-Mead"
+        options: dict[str, object] | None = _SHAPE_OPTIONS
+    else:
+        method, options = "L-BFGS-B", None
+
     result = quasi_max_likelihood(
         scaled,
         recursion,
@@ -248,39 +361,66 @@ def _fit_aparch_family(
         var_bounds=var_bounds,
         var_names=var_names,
         mean=True,
+        method=method,
+        options=options,
+    )
+    return _build_asym_fit(
+        result, cond_dist, scale, n, delta_fixed, var_names, k=result.params.size
     )
 
-    names = result.param_names
-    delta = float(delta_fixed) if delta_fixed is not None else float(result.params[5])
-    # Undo the scaling: mu ~ scale, omega ~ scale^delta; phi1/beta1/gamma1/delta/shape invariant.
-    n_extra = len(names) - len(var_names)  # distribution shape parameters
-    if delta_fixed is None:
-        var_factors = [scale, scale**delta, 1.0, 1.0, 1.0, 1.0]
-    else:
-        var_factors = [scale, scale**delta, 1.0, 1.0, 1.0]
-    factors = np.array(var_factors + [1.0] * n_extra, dtype=np.float64)
-    values = result.params * factors
-    params = {name: float(v) for name, v in zip(names, values, strict=True)}
-    std_errors = {
-        name: float(se * f) for name, se, f in zip(names, result.std_errors, factors, strict=True)
-    }
 
-    loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
-    k = result.params.size
-    aic = (2.0 * k - 2.0 * loglik) / n
-    bic = (k * np.log(n) - 2.0 * loglik) / n
-    conditional_volatility = np.sqrt(result.conditional_variance) * scale
+def _fit_aparch_ald(
+    scaled: FloatArray,
+    scale: float,
+    n: int,
+    recursion: VarianceRecursion,
+    var_names: tuple[str, ...],
+    var_start: tuple[float, ...],
+    var_bounds: tuple[tuple[float, float], ...],
+    delta_fixed: float | None,
+    *,
+    skewed: bool,
+) -> GarchFit:
+    """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for a GJR/TGARCH/APARCH recursion.
 
-    return GarchFit(
-        cond_dist=cond_dist,
-        params=params,
-        std_errors=std_errors,
-        loglikelihood=float(loglik),
-        aic=float(aic),
-        bic=float(bic),
-        conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
-        n_obs=n,
-        converged=result.converged,
+    Mirrors the GARCH ``_fit_garch_ald`` fork: fit the continuous parameters at each fixed ``P``
+    (plus the FS ``skew`` for ``sald``), select the best log-likelihood, and count ``P`` in the
+    AIC/BIC penalty. ``P`` never enters the continuous optimizer.
+    """
+    method = "Nelder-Mead" if skewed else "L-BFGS-B"
+    options = _SHAPE_OPTIONS if skewed else None
+    best: QMLEResult | None = None
+    best_p = 0
+    profile: list[tuple[int, float]] = []
+    for p in _ALD_PRANGE:
+        base = AverageLaplace(p=p)
+        distribution = FernandezSteelSkew(base) if skewed else base
+        result = quasi_max_likelihood(
+            scaled,
+            recursion,
+            distribution,
+            var_start=var_start,
+            var_bounds=var_bounds,
+            var_names=var_names,
+            mean=True,
+            method=method,
+            options=options,
+        )
+        profile.append((p, float(result.loglikelihood - n * np.log(scale))))
+        if best is None or result.loglikelihood > best.loglikelihood:
+            best, best_p = result, p
+
+    assert best is not None  # _ALD_PRANGE is non-empty
+    return _build_asym_fit(
+        best,
+        "sald" if skewed else "ald",
+        scale,
+        n,
+        delta_fixed,
+        var_names,
+        k=best.params.size + 1,  # P is profiled, not optimized, but counts in the penalty
+        extra_params={"P": float(best_p)},
+        profile=tuple(profile),
     )
 
 
