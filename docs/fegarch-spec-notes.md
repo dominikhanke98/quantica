@@ -1164,6 +1164,62 @@ APARCH adds `gamma1 + delta` — the **7-param** `{mu,omega,phi1,beta1,gamma1,de
 `test_asymmetric_distributions.py` (73 tests). **This completes the short-memory variance-recursion
 family (GARCH / GJR / TGARCH / APARCH) under all eight conditional distributions.**
 
+## 19. FIGARCH / FIAPARCH / FITGARCH / FIGJR under all 8 distributions + the tail-persistence d-shift — RESOLVED (Phase 5)
+
+**Sources.** Baillie–Bollerslev–Mikkelsen 1996 / Conrad–Haag 2006 FIGARCH; Tse 1998 FIAPARCH; the
+Phase-4 recursions (§11–13); the distribution machinery proven on GARCH×8. A composition of two
+proven layers — **no spec extraction** (§12). fEGarch source never consulted; validated against
+`fit_{figarch,fiaparch,fitgarch,figjr}11_*`. This completes the **FI variance-recursion family** under
+all eight laws.
+
+### 19.1 The reconstruction gate — machine-exact for all 28
+
+The go/no-go: FIGARCH's presample (50 terms, `Var` ddof=1) matches fEGarch exactly, so its recursion
+reconstructs σ directly (~1e-16); the δ-power family (FIAPARCH/FITGARCH/FIGJR) carries the documented
+presample-seed offset (§12), so σ[0] is backed out of the fixture (isolating the recursion *form*, as
+the norm FI tests do). Seeded that way, **all 28 model×dist compose machine-exactly** — σ[1:] worst
+`1.4e-16`, loglik worst `1.4e-10`. The recursion + fractional operator + distribution likelihood
+compose cleanly; no unexpected interaction. GO.
+
+### 19.2 Machinery reuse
+
+`fit_figarch` (extracted `_figarch_fit_from_result` + `_fit_figarch_ald`) and `_fit_fi_power`
+(extracted `_build_fi_power_fit` + `_fit_fi_power_ald`) inherited the GARCH shape/skew Nelder-Mead
+branch and the `_ALD_PRANGE` P-profiling wholesale; only the model-specific unscaling differs (FIGARCH
+`omega ~ scale^2`; the δ-power family `omega ~ scale^delta`). FIGARCH adds `d`; FIAPARCH adds
+`gamma + delta + d` (the **9-param** `×sstd` compound); FITGARCH/FIGJR add `gamma + d` (δ fixed 1/2).
+
+### 19.3 The tail-absorbs-persistence d-shift (the headline finding)
+
+**The distribution shifts the fractional order `d`.** The Conrad–Haag non-negativity floor
+`d ≥ β₁ − φ₁` forces `d → 1` when `β₁` is high, so FIAPARCH/FITGARCH pin `d = 1.000` under
+norm/ged/snorm/sged/ald/sald. But a **heavy-tailed law (std/sstd) lets `β₁` drop**, lowering the floor,
+so `d` lands **interior**: FIAPARCH std/sstd `d = 0.72/0.71` (vs 1.0), FITGARCH std/sstd `0.91/0.64`,
+FIGARCH sstd `0.54` (vs norm 0.68), FIGJR std `0.53`. So `d` is boundary-identified under some
+distributions and interior under others *for the same model* — the tolerance is structured **per
+fixture**, not per model. `delta` (FIAPARCH) settles at **~1.5–1.7**, below short-memory APARCH's
+~2.4: with a fractional `d` now carrying the persistence, the power `δ` no longer has to.
+
+### 19.4 Seam-centric validation — the fit is comparable-or-better (effective challenge)
+
+The `d`-boundary is a **near-flat ridge**, so both fEGarch and our optimizer land at different local
+optima. For **std/sstd our fit strictly dominates every fixture** — the heavy tail pushes `df → ∞`
+*and* `d →` boundary, a higher optimum than fEGarch's interior-`d`, finite-`df` stop (FITGARCH×sstd
+`+3.83` loglik; FIAPARCH×std `+1.56`). A few `ald`/`sald` boundary cases land slightly lower (our
+optimizer's own weak-identification, worst `−0.31`). So the **seam is the correctness proof**; the fit
+is validated as *reaches-or-beats* the fixture (std/sstd domination asserted; tight fixture-match only
+for the well-identified interior-`d` cases: FIGARCH/FIGJR × ged). This is the effective-challenge
+pattern of §14, now across a whole family: an independent reimplementation routinely finding higher
+optima than the reference on a flat ridge.
+
+**Reductions**: skew→1 recovers the symmetric base, composed with each FI recursion (`<1e-9`).
+**The 9-param known-truth** (`test_fi_distributions.py`, the widest joint fit in the port): simulating
+FIAPARCH×sstd with an identified `δ = 1.5`, interior `d = 0.35`, fat tails `df = 6` and skew `0.85`
+recovers **all four** substitutable parameters — `δ` (`|dev|/SE ≤ 1.4`), `d` (`≤ 1.5`), `df` (`≤ 0.7`),
+`skew` (`≤ 0.7`). If four partially-substitutable parameters co-recover on data that separates them,
+the joint machinery is sound. `test_fi_distributions.py` (83 tests). **This completes the FI
+variance-recursion family under all eight conditional distributions.**
+
 ---
 
 *Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)

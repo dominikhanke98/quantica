@@ -1480,6 +1480,29 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   short-memory variance-recursion family (GARCH/GJR/TGARCH/APARCH) under all 8 distributions. NOT
   merged — fifth commit of the distribution-breadth PR.**
 
+- **Step 43 — fEGarch distribution-breadth, part 5: FIGARCH/FIAPARCH/FITGARCH/FIGJR under the 7
+  non-norm distributions, the FI compressed build (branch `feat/fegarch-distributions`, NOT merged).**
+  First the 28 R fixtures (committed `83adf13`); then the compressed build — composition of the FI
+  recursions (proven on norm §11-13) + the distribution machinery (GARCH×8), so **no spec extraction**.
+  **Reconstruction gate machine-exact for all 28** (σ[1:] worst 1.4e-16, loglik 1.4e-10): FIGARCH
+  direct (exact 50-term presample), the δ-power family fixture-seeded (documented presample offset §12,
+  same as norm). **Machinery reuse:** `fit_figarch` and `_fit_fi_power` got the Nelder-Mead-shape branch
+  + `_ALD_PRANGE` P-profiling (extracted `_figarch_fit_from_result`/`_fit_figarch_ald` and
+  `_build_fi_power_fit`/`_fit_fi_power_ald`); only unscaling differs (figarch omega~scale², δ-power
+  omega~scale^δ). FIGARCH adds d; FIAPARCH adds gamma+delta+d (**9-param ×sstd**); FITGARCH/FIGJR
+  gamma+d (δ fixed). **Headline — tail-absorbs-persistence d-shift:** Conrad-Haag floor d≥β₁−φ₁ pins
+  d→1 under norm/ged/snorm/sged/ald/sald, but heavy tails (std/sstd) let β₁ drop → d interior (fiaparch
+  0.72/0.71, fitgarch 0.91/0.64, figarch sstd 0.54); per-fixture d-tolerance (boundary vs interior).
+  delta (fiaparch) ~1.5-1.7, below short-memory ~2.4 (d carries the persistence). **Seam-centric
+  effective-challenge:** the d-boundary is a flat ridge; for std/sstd our fit STRICTLY DOMINATES every
+  fixture (df→∞ AND d→boundary; fitgarch×sstd +3.83), a few ald/sald boundary cases land slightly lower
+  (worst −0.31, our optimizer's weak-id). So the seam is the proof; the fit reaches-or-beats the fixture
+  (std/sstd domination asserted; tight match only for interior-d figarch/figjr×ged). skew→1→base <1e-9.
+  **9-param known-truth (widest joint fit in the port):** FIAPARCH×sstd δ=1.5,d=0.35,df=6,skew=0.85
+  recovers ALL four substitutable params (|dev|/SE ≤1.5). **Tests: `test_fi_distributions.py` (83).**
+  Docs: spec-notes §19. Gate green. **Completes the FI variance-recursion family under all 8
+  distributions. NOT merged — sixth commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
