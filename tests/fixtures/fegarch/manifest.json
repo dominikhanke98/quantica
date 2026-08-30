@@ -209,6 +209,31 @@
         "params": "fit_egarch11_norm_params.json",
         "sigma": "fit_egarch11_norm_sigma.csv"
       },
+      "egarch11_ged": {
+        "params": "fit_egarch11_ged_params.json",
+        "sigma": "fit_egarch11_ged_sigma.csv",
+        "note": "EGARCH(1,1) under conditional GED (adds a shape param); g-centering E|eta| is distribution-dependent"
+      },
+      "egarch11_ald": {
+        "params": "fit_egarch11_ald_params.json",
+        "sigma": "fit_egarch11_ald_sigma.csv",
+        "note": "EGARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); g-centering E|eta| is distribution-dependent"
+      },
+      "egarch11_snorm": {
+        "params": "fit_egarch11_snorm_params.json",
+        "sigma": "fit_egarch11_snorm_sigma.csv",
+        "note": "EGARCH(1,1) under FS-skew normal (adds a skew param); g-centering E|eta| is distribution-dependent"
+      },
+      "egarch11_sged": {
+        "params": "fit_egarch11_sged_params.json",
+        "sigma": "fit_egarch11_sged_sigma.csv",
+        "note": "EGARCH(1,1) under FS-skew GED (adds shape + skew); g-centering E|eta| is distribution-dependent"
+      },
+      "egarch11_sald": {
+        "params": "fit_egarch11_sald_params.json",
+        "sigma": "fit_egarch11_sald_sigma.csv",
+        "note": "EGARCH(1,1) under FS-skew ALD (adds P + skew); g-centering E|eta| is distribution-dependent"
+      },
       "loggarch11_norm": {
         "params": "fit_loggarch11_norm_params.json",
         "sigma": "fit_loggarch11_norm_sigma.csv"

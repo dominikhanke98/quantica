@@ -211,6 +211,27 @@ for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
 egarch_fit <- fEGarch(egarch_spec(orders = c(1, 1), cond_dist = "norm"), returns, parallel = FALSE)
 fit_and_dump(egarch_fit, "egarch11_norm", "egarch", "norm")
 
+# --- Phase-5 distributions breadth: EGARCH(1,1) under the 7 non-norm conditional laws --------------
+# EGARCH is the Type-I EGF model, spec-first via egarch_spec() + fEGarch() (like the norm fit above;
+# NOT data-first). Its g(eta) = kappa*eta + gamma*(|eta| - E|eta|) centering E|eta| is
+# DISTRIBUTION-DEPENDENT, so kappa/gamma may re-fit across laws -- the review item this step feeds.
+# trunc="none" matches the egarch norm fixture (its own default, recorded above). cat_pars prints the
+# fitted shape/skew. Each fit is tryCatch-wrapped (never a partial fixture). NOTE: fEGarch's own
+# optimizer FAILS to converge for egarch x std and egarch x sstd ("Error during optimization") on this
+# series -- the continuous-df cases -- so only the 5 converging laws produce fixtures (documented,
+# not worked around: OUTPUT only, §12).
+for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+  tryCatch({
+    efit <- fEGarch(egarch_spec(orders = c(1, 1), cond_dist = dist), returns, parallel = FALSE)
+    cat(sprintf("  egarch11_%s pars:", dist), paste(names(pars(efit)), collapse = ", "), "
+")
+    cat_pars(efit)
+    fit_and_dump(efit, sprintf("egarch11_%s", dist), "egarch", dist)
+  }, error = function(e) cat(sprintf("  ERROR egarch11_%s:", dist), conditionMessage(e),
+                            "| exists('egarch_spec') =", exists("egarch_spec"), "
+"))
+}
+
 # --- Phase-1 short-memory models: GJR-GARCH, TGARCH, APARCH -------------------
 # The v1.0.6 public signatures (confirmed via args(), NOT source) are data-first and
 # identical to garch(): fn(rt, orders, cond_dist, ..., parallel) — so they are called
@@ -606,6 +627,16 @@ manifest <- list(
       aparch11_sald = list(params = "fit_aparch11_sald_params.json", sigma = "fit_aparch11_sald_sigma.csv",
                           note = "APARCH(1,1) under FS-skew ALD (adds P + skew) ; delta also jointly estimated (aparch default)"),
       egarch11_norm = list(params = "fit_egarch11_norm_params.json", sigma = "fit_egarch11_norm_sigma.csv"),
+      egarch11_ged = list(params = "fit_egarch11_ged_params.json", sigma = "fit_egarch11_ged_sigma.csv",
+                          note = "EGARCH(1,1) under conditional GED (adds a shape param); g-centering E|eta| is distribution-dependent"),
+      egarch11_ald = list(params = "fit_egarch11_ald_params.json", sigma = "fit_egarch11_ald_sigma.csv",
+                          note = "EGARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); g-centering E|eta| is distribution-dependent"),
+      egarch11_snorm = list(params = "fit_egarch11_snorm_params.json", sigma = "fit_egarch11_snorm_sigma.csv",
+                          note = "EGARCH(1,1) under FS-skew normal (adds a skew param); g-centering E|eta| is distribution-dependent"),
+      egarch11_sged = list(params = "fit_egarch11_sged_params.json", sigma = "fit_egarch11_sged_sigma.csv",
+                          note = "EGARCH(1,1) under FS-skew GED (adds shape + skew); g-centering E|eta| is distribution-dependent"),
+      egarch11_sald = list(params = "fit_egarch11_sald_params.json", sigma = "fit_egarch11_sald_sigma.csv",
+                          note = "EGARCH(1,1) under FS-skew ALD (adds P + skew); g-centering E|eta| is distribution-dependent"),
       loggarch11_norm = list(params = "fit_loggarch11_norm_params.json", sigma = "fit_loggarch11_norm_sigma.csv"),
       megarch11_norm = list(params = "fit_megarch11_norm_params.json", sigma = "fit_megarch11_norm_sigma.csv"),
       mloggarch11_norm = list(params = "fit_mloggarch11_norm_params.json", sigma = "fit_mloggarch11_norm_sigma.csv"),
