@@ -43,9 +43,48 @@ import numpy as np
 from scipy import integrate, special, stats
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from quantica.core.types import FloatArray
+
+# Number of subdivisions for the moment quadratures; ample for the smooth standardized densities.
+_MOMENT_QUAD_LIMIT = 200
+
+
+def _moment_by_quadrature(
+    logpdf: Callable[[FloatArray, Sequence[float] | None], FloatArray],
+    params: Sequence[float] | None,
+    g: Callable[[float], float],
+) -> float:
+    r"""The moment :math:`E[g(z)] = \int g(z) f(z)\,dz` by adaptive quadrature over a density.
+
+    The uniform path for the EGF centering moments that have no elementary closed form (the
+    log-transforms, and every moment of the Fernández-Steel skew). The integral is split at ``0`` so
+    the ``g = ln z^2`` singularity sits at an integration endpoint (quadrature skips evaluating it).
+
+    Parameters
+    ----------
+    logpdf : callable
+        The distribution's ``logpdf(z, params)`` (vectorized; called on 1-element arrays here).
+    params : sequence of float or None
+        The shape parameters passed through to ``logpdf``.
+    g : callable
+        The scalar moment kernel (e.g. ``abs`` for :math:`E|z|`).
+
+    Returns
+    -------
+    float
+        The moment :math:`E[g(z)]`.
+    """
+
+    def integrand(z: float) -> float:
+        density = float(np.exp(logpdf(np.array([z], dtype=np.float64), params)[0]))
+        return g(z) * density
+
+    lower, _ = integrate.quad(integrand, -np.inf, 0.0, limit=_MOMENT_QUAD_LIMIT)
+    upper, _ = integrate.quad(integrand, 0.0, np.inf, limit=_MOMENT_QUAD_LIMIT)
+    return float(lower + upper)
+
 
 __all__ = [
     "DISTRIBUTIONS",
@@ -239,6 +278,16 @@ class StudentT(ConditionalDistribution):
         log_val = special.gammaln((nu + 1.0) / 2.0) - special.gammaln(nu / 2.0)
         return float(2.0 * np.sqrt(nu - 2.0) * np.exp(log_val) / (np.sqrt(np.pi) * (nu - 1.0)))
 
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` by quadrature (shape-dependent, no closed form)."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` by quadrature (shape-dependent)."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
+
 
 class GeneralizedError(ConditionalDistribution):
     r"""The standardized generalized error distribution (``ged``), shape :math:`\nu > 0`.
@@ -284,6 +333,16 @@ class GeneralizedError(ConditionalDistribution):
             special.gammaln(1.0 / nu) + special.gammaln(3.0 / nu)
         )
         return float(np.exp(log_val))
+
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` by quadrature (shape-dependent, no closed form)."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` by quadrature (shape-dependent)."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
 
 
 _ALD_PPF_BRACKET = 40.0  # standardized-quantile bracket for the numeric inversion
@@ -379,6 +438,16 @@ class AverageLaplace(ConditionalDistribution):
         self._params(params)
         return self.absolute_moment(1)
 
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` by quadrature (no closed form)."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` by quadrature."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
+
 
 # --------------------------------------------------------------------------- #
 # Fernández-Steel skew wrapper
@@ -462,6 +531,25 @@ class FernandezSteelSkew(ConditionalDistribution):
         upper = xi * self._base.ppf(0.5 + (p * (xi2 + 1.0) - 1.0) / (2.0 * xi2), base_params)
         a = np.where(p <= p0, lower, upper)
         return np.asarray((a - mu) / sigma, dtype=np.float64)
+
+    def abs_moment(self, params: Sequence[float] | None = None) -> float:
+        r"""First absolute moment :math:`E|z|` of the *skewed* law, by quadrature over ``f_skew``.
+
+        The EGARCH/MEGARCH magnitude centering under a skewed innovation. Reduces to the base
+        ``abs_moment`` at ``skew = 1`` (the correctness anchor). Unlike the symmetric bases (closed
+        form) this has no elementary form because of the mean-shift ``mu_FS`` inside the ``|.|``.
+        """
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: abs(z))
+
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` of the skewed law, by quadrature over f_skew."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` of the skewed law, by quadrature."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
 
 
 # --------------------------------------------------------------------------- #

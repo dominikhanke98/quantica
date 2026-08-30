@@ -141,18 +141,23 @@ def test_loggarch_sim_is_stationary_and_positive() -> None:
     assert abs(np.mean(np.log(sigma**2)) - (-8.8)) < 0.1  # E[ln sigma^2] ~ omega_sig
 
 
-def test_loggarch_sim_non_norm_is_deferred() -> None:
-    """Simulation under non-norm is deferred: Type-II needs ``mean_log_sq`` (only ``norm``)."""
-    with pytest.raises(NotImplementedError):
-        loggarch_sim(
-            3000,
-            omega_sig=-8.8,
-            phi1=0.9,
-            psi1=-0.5,
-            cond_dist="std",
-            dist_params=(6.0,),
-            rng=np.random.default_rng(2),
-        )
+def test_loggarch_sim_supports_non_norm() -> None:
+    """Simulation under non-norm now runs: the Type-II ``mean_log_sq`` is implemented (EGF infra).
+
+    The model inherits the shared distribution infrastructure (fixture-validated on EGARCH); here we
+    check only that the non-norm sim produces a valid positive series (structural inheritance).
+    """
+    returns, sigma = loggarch_sim(
+        3000,
+        omega_sig=-8.8,
+        phi1=0.9,
+        psi1=-0.5,
+        cond_dist="std",
+        dist_params=(6.0,),
+        rng=np.random.default_rng(2),
+    )
+    assert returns.shape == sigma.shape == (3000,)
+    assert np.all(sigma > 0.0)
 
 
 def test_loggarch_sim_rejects_bad_inputs() -> None:
@@ -163,8 +168,8 @@ def test_loggarch_sim_rejects_bad_inputs() -> None:
         loggarch_sim(100, omega_sig=-8.8, phi1=1.0, psi1=-0.5, rng=np.random.default_rng(3))
 
 
-def test_type_ii_mean_log_sq_deferred_for_non_norm() -> None:
-    """Only ``norm`` exposes mean_log_sq; std/ged and the skewed variants are deferred."""
+def test_type_ii_mean_log_sq_available_for_non_norm() -> None:
+    """mean_log_sq is now implemented for std/ged and the skewed variants (EGF infrastructure)."""
     for code in ("std", "ged", "snorm"):
-        with pytest.raises(NotImplementedError):
-            get_distribution(code).mean_log_sq(get_distribution(code).param_start)
+        dist = get_distribution(code)
+        assert np.isfinite(dist.mean_log_sq(dist.param_start))

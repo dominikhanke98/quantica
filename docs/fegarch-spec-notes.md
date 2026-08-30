@@ -1220,6 +1220,60 @@ recovers **all four** substitutable parameters — `δ` (`|dev|/SE ≤ 1.4`), `d
 the joint machinery is sound. `test_fi_distributions.py` (83 tests). **This completes the FI
 variance-recursion family under all eight conditional distributions.**
 
+## 20. The EGF distribution infrastructure — skew-wrapper moments + per-iteration centering, on EGARCH — RESOLVED (Phase 5)
+
+**Sources.** Fernández–Steel (1998) skew density (Eqs. 38–41, already in the distribution layer);
+Nelson (1991) EGARCH `g(η)`; the base-moment definitions. fEGarch source never consulted; validated
+against the five converging `fit_egarch11_*` fixtures + known-truth for std/sstd. **This is the EGF
+family's shared distribution support** — every Type-I EGF model (EGARCH/MEGARCH/MLog-GARCH + their FI
+variants) inherits it; it is *proven on EGARCH first*.
+
+Unlike the variance-recursion families, EGF distribution breadth is **new mechanism, not inheritance**,
+because `g(η)`'s centering `E[g(η)]` is distribution-dependent (`E|η|` for EGARCH/MEGARCH,
+`E[ln(|η|+1)]` for MLog-GARCH). Two pieces:
+
+### 20.1 The skew-wrapper moments — quadrature over `f_skew`
+
+The symmetric bases expose `abs_moment` (closed-form) but the log-moments (`mean_log_sq`,
+`mean_log_modulus`) only on `norm`; the **FS-skew wrapper exposed none**. All are now implemented by
+**adaptive quadrature over the standardized density** `E[G(z)] = ∫ G(z) f(z) dz`, split at 0 for the
+`ln z²` endpoint singularity — the same path `norm.mean_log_modulus` already used, filled uniformly
+for `std/ged/ald` (log-moments) and for the FS wrapper (all three). **Correctness anchor: at
+`skew = 1` every skewed moment equals the base moment** (`snorm→norm`, `sged→ged`, `sald→ald`, for
+`abs_moment`/`mean_log_sq`/`mean_log_modulus`) to `< 1e-9` (quad-exact). E\|η\| for the skewed law has
+no elementary closed form (the mean-shift `μ_FS` sits inside the `|·|`), so quadrature is the uniform
+choice; the log-moments need it regardless.
+
+### 20.2 The per-iteration centering — a QMLE hook
+
+For a jointly-estimated continuous shape, `E[g(η)]` is a **strong function of the shape** (E\|η\|(df):
+`df=3→0.637, 6→0.750, 100→0.796, ∞→0.798`), so the centering must be **re-computed each optimizer
+iteration** — not the precomputed constant the norm path uses. The engine gained a
+`recursion_uses_dist_params` hook: when set, `quasi_max_likelihood` calls the recursion
+`variance_recursion(var_params, returns, dist_params)`, so `_fit_type1` re-evaluates the magnitude
+moment from the *current* shape each call. Shape fits use **Nelder-Mead + a restart** (the flat shape
+ridge collapses the simplex — `snorm` first landed 1.10 loglik below its fixture, and a single restart
+recovered it to `0.000`); the ALD profiles `P` over the grid; **norm keeps the precomputed constant +
+L-BFGS-B, bit-identical** (egarch/megarch/mloggarch norm fixtures unchanged).
+
+### 20.3 Validation — 5 fixtures + the κ/γ-shift confirmation + a robustness finding
+
+**Reconstruction seam machine-exact** at each fixture's params (ged/ald closed-form-moment `~1e-15`,
+skewed quadrature-moment `~1e-13/1e-12`). **All five converging fixtures match** (loglik `3e-10`–`2e-5`,
+σ `~1e-7`); `P = 5` for ald/sald. The **κ/γ shift is explained by E\|η\|**: ald/sald have the E\|η\| that
+deviates most from norm (`0.781` vs `0.798`, −2.1%) and show the largest κ/γ re-fit (κ −6%, γ +1%),
+while ged/snorm/sged have E\|η\|≈norm and barely move κ/γ — the centering is confirmed against the
+fixtures.
+
+**std/sstd — the robustness finding.** fEGarch's own optimizer **failed** to fit egarch×std/sstd
+("Error during optimization") — the df-dependent E\|η\| centering + the near-unit-root EGF ARMA is the
+hardest EGF case, so *no fixture exists* and we do not fabricate one. Validated by **known-truth**
+instead: simulating egarch×std at `df=6` recovers `df` (`|dev|/SE ≤ 1.2`) and **converges**; egarch×sstd
+at `df=6, skew=0.85` recovers both. **Our Nelder-Mead + restart + stable closed-form E\|η\|(df) converges
+where the reference's optimizer failed** — an independent reimplementation fitting the reference's
+hardest EGF case. `test_egarch_distributions.py` (25 tests). **The EGF distribution infrastructure is
+proven; MEGARCH / MLog-GARCH / Log-GARCH and every FI-EGF variant now inherit it.**
+
 ---
 
 *Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)

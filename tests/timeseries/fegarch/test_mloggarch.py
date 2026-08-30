@@ -128,21 +128,24 @@ def test_mloggarch_sim_is_stationary_and_positive() -> None:
     assert abs(np.mean(np.log(sigma**2)) - (-8.8)) < 0.1  # E[ln sigma^2] ~ omega_sig
 
 
-def test_mloggarch_non_norm_is_deferred() -> None:
-    """MLog-GARCH under non-norm is deferred: its magnitude needs mean_log_modulus (only norm)."""
-    with pytest.raises(NotImplementedError):
-        mloggarch_sim(
-            100,
-            omega_sig=-8.8,
-            phi1=0.9,
-            kappa=-0.05,
-            gamma=0.25,
-            cond_dist="std",
-            dist_params=(6.0,),
-            rng=np.random.default_rng(3),
-        )
-    with pytest.raises(NotImplementedError):
-        get_distribution("std").mean_log_modulus((6.0,))
+def test_mloggarch_non_norm_supported() -> None:
+    """MLog-GARCH under non-norm now runs: its ``mean_log_modulus`` centering is implemented (EGF).
+
+    Structural inheritance of the EGF distribution infrastructure (fixture-validated on EGARCH).
+    """
+    returns, sigma = mloggarch_sim(
+        100,
+        omega_sig=-8.8,
+        phi1=0.9,
+        kappa=-0.05,
+        gamma=0.25,
+        cond_dist="std",
+        dist_params=(6.0,),
+        rng=np.random.default_rng(3),
+    )
+    assert returns.shape == sigma.shape == (100,)
+    assert np.all(sigma > 0.0)
+    assert np.isfinite(get_distribution("std").mean_log_modulus((6.0,)))  # centering available
 
 
 def test_mloggarch_sim_rejects_bad_inputs() -> None:

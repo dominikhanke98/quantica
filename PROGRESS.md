@@ -1503,6 +1503,29 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   Docs: spec-notes §19. Gate green. **Completes the FI variance-recursion family under all 8
   distributions. NOT merged — sixth commit of the distribution-breadth PR.**
 
+- **Step 44 — the EGF distribution infrastructure (skew-wrapper moments + per-iteration centering),
+  proven on EGARCH (branch `feat/fegarch-distributions`, NOT merged).** Fixtures first: EGARCH under 5
+  non-norm laws (std/sstd FAILED fEGarch's optimizer — committed `f93b8a6`). Then a two-stage build
+  (spec-extraction reported + STOPped, then this build). Unlike the variance-recursion families, EGF
+  breadth is NEW MECHANISM: `g(η)`'s centering `E[g(η)]` is distribution-dependent (`E|η|`
+  EGARCH/MEGARCH, `E[ln(|η|+1)]` MLog-GARCH). **(1) Skew-wrapper moments** — `abs_moment`/`mean_log_sq`/
+  `mean_log_modulus` on the FS wrapper (+ the missing base log-moments std/ged/ald) by adaptive
+  quadrature over `f_skew` (`_moment_by_quadrature`, split at 0 for the ln z² singularity); anchor:
+  skew=1→base moment `<1e-9` for all three, per skewed dist. **(2) Per-iteration centering** — new QMLE
+  hook `recursion_uses_dist_params`: the recursion gets `dist_params` and re-computes `E[g(η)]` from
+  the CURRENT shape each iteration (E|η|(df): df=3→0.637…∞→0.798). Shape fits use Nelder-Mead **+ a
+  restart** (flat ridge collapses the simplex — snorm first landed 1.10 loglik below its fixture, one
+  restart → 0.000); ald profiles P; norm keeps the constant + L-BFGS-B, bit-identical (megarch/mloggarch
+  norm unchanged). Refactored `_fit_type1` (extracted `_type1_centered_recursion`/`_run_type1_fit`/
+  `_build_type1_fit`/`_fit_type1_ald`). **Validation:** seam machine-exact (5 dists, ged/ald ~1e-15,
+  skewed ~1e-13); all 5 fixtures match (loglik 3e-10–2e-5, σ ~1e-7, P=5). **κ/γ shift explained by E|η|:**
+  ald/sald E|η|=0.781 (−2.1% vs norm) → largest κ/γ re-fit (κ −6%, γ +1%); ged/snorm E|η|≈norm → minimal.
+  **Robustness finding:** fEGarch's optimizer FAILED egarch×std/sstd; ours (Nelder-Mead+restart+stable
+  closed-form E|η|(df)) CONVERGES — known-truth df=6 recovers df (std) + df & skew (sstd). No fixture
+  fabricated. **Tests: `test_egarch_distributions.py` (25).** Docs: spec-notes §20. Gate green. **The EGF
+  distribution infrastructure is proven on EGARCH; MEGARCH/MLog-GARCH/Log-GARCH + all FI-EGF variants
+  inherit it. NOT merged — seventh commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at

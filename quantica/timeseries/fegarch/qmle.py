@@ -159,6 +159,7 @@ def quasi_max_likelihood(
     mean: bool = False,
     method: str = "L-BFGS-B",
     options: dict[str, object] | None = None,
+    recursion_uses_dist_params: bool = False,
 ) -> QMLEResult:
     r"""Fit a conditional-variance model by quasi-maximum likelihood.
 
@@ -191,6 +192,10 @@ def quasi_max_likelihood(
         near-common-root Log-GARCH ridge — use a derivative-free method such as ``"Nelder-Mead"``.
     options : dict, optional
         Extra ``options`` for :func:`scipy.optimize.minimize` (e.g. tighter simplex tolerances).
+    recursion_uses_dist_params : bool, optional
+        When ``True`` the recursion is called ``variance_recursion(var_params, returns,
+        dist_params)`` so it can re-compute a distribution-dependent term (the EGF ``E[g(eta)]``
+        centering) from the current shape each iteration; default ``False`` (var_params only).
 
     Returns
     -------
@@ -212,10 +217,17 @@ def quasi_max_likelihood(
     start = np.array([*var_start, *d_start], dtype=np.float64)
     bounds = [*var_bounds, *d_bounds]
 
+    def _recursion(var_params: FloatArray, dist_params: tuple[float, ...]) -> FloatArray:
+        # EGF centering re-computes E[g(eta)] from the CURRENT shape each iteration, so those
+        # recursions receive dist_params too; every other recursion depends only on var_params.
+        if recursion_uses_dist_params:
+            return np.asarray(variance_recursion(var_params, y, dist_params), dtype=np.float64)  # type: ignore[call-arg]
+        return np.asarray(variance_recursion(var_params, y), dtype=np.float64)
+
     def negative_loglik(theta: FloatArray) -> float:
         var_params = theta[:n_var]
         dist_params = tuple(float(p) for p in theta[n_var:])
-        sigma2 = np.asarray(variance_recursion(var_params, y), dtype=np.float64)
+        sigma2 = _recursion(var_params, dist_params)
         if not np.all(np.isfinite(sigma2)) or np.any(sigma2 <= 0.0):
             return 1e10
         sigma = np.sqrt(sigma2)
@@ -236,7 +248,7 @@ def quasi_max_likelihood(
         vcov = np.full((theta.size, theta.size), np.nan)
         std_errors = np.full(theta.size, np.nan)
 
-    sigma2 = np.asarray(variance_recursion(theta[:n_var], y), dtype=np.float64)
+    sigma2 = _recursion(theta[:n_var], tuple(float(p) for p in theta[n_var:]))
     return QMLEResult(
         params=theta,
         param_names=(*var_names, *distribution.param_names),

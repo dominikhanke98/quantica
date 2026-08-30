@@ -166,9 +166,13 @@ def test_egarch_sim_rejects_bad_inputs() -> None:
         )
 
 
-def test_skewed_egarch_abs_moment_is_deferred() -> None:
-    """Skewed-EGARCH is the documented Phase-2 follow-up: the FS wrapper lacks ``abs_moment``."""
+def test_skewed_egarch_abs_moment_is_available() -> None:
+    """The FS-skew ``abs_moment`` is now implemented (the Phase-5 EGF distribution infrastructure).
+
+    It computes by quadrature over the skewed density; reduces to the normal base at ``skew = 1``.
+    """
     from quantica.timeseries.fegarch import get_distribution
 
-    with pytest.raises(NotImplementedError):
-        get_distribution("snorm").abs_moment((1.2,))
+    snorm = get_distribution("snorm")
+    assert np.isfinite(snorm.abs_moment((1.2,)))
+    assert abs(snorm.abs_moment((1.0,)) - get_distribution("norm").abs_moment()) < 1e-9

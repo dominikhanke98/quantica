@@ -155,22 +155,25 @@ def test_known_truth_recovery() -> None:
         assert abs(fit.params[name] - true[name]) < 4.0 * se[name]
 
 
-def test_fimloggarch_non_norm_is_deferred() -> None:
-    """FIMLog-GARCH under non-norm is deferred: its magnitude needs mean_log_modulus (only norm)."""
-    with pytest.raises(NotImplementedError):
-        fimloggarch_sim(
-            100,
-            omega_sig=-8.8,
-            phi1=0.3,
-            kappa=-0.05,
-            gamma=0.30,
-            d=0.35,
-            cond_dist="std",
-            dist_params=(6.0,),
-            rng=np.random.default_rng(3),
-        )
-    with pytest.raises(NotImplementedError):
-        get_distribution("std").mean_log_modulus((6.0,))
+def test_fimloggarch_non_norm_supported() -> None:
+    """FIMLog-GARCH under non-norm now runs: its ``mean_log_modulus`` centering is implemented.
+
+    Structural inheritance of the EGF distribution infrastructure (fixture-validated on EGARCH).
+    """
+    returns, sigma = fimloggarch_sim(
+        100,
+        omega_sig=-8.8,
+        phi1=0.3,
+        kappa=-0.05,
+        gamma=0.30,
+        d=0.35,
+        cond_dist="std",
+        dist_params=(6.0,),
+        rng=np.random.default_rng(3),
+    )
+    assert returns.shape == sigma.shape == (100,)
+    assert np.all(sigma > 0.0)
+    assert np.isfinite(get_distribution("std").mean_log_modulus((6.0,)))  # centering available
 
 
 def test_fimloggarch_sim_rejects_bad_inputs() -> None:
