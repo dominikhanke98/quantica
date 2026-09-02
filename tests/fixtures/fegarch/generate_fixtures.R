@@ -522,6 +522,29 @@ tryCatch({
 }, error = function(e) cat("  ERROR filoggarch:", conditionMessage(e),
                           "| exists('filoggarch_spec') =", exists("filoggarch_spec"), "\n"))
 
+# --- Phase-5 distributions breadth: the FI-EGF family under 7 non-norm laws -------------------------
+# FIEGARCH / FIMEGARCH / FIMLog-GARCH / FILog-GARCH under each of std/ged/ald/snorm/sstd/sged/sald,
+# spec-first (<model>_spec + fEGarch), trunc="n-1" (the FI-EGF App. C.3 default, NOT the
+# variance-recursion "none"). Each EGF centering moment now under the fractional d. WATCH for
+# continuous-df optimizer failures (as EGARCH/megarch/mloggarch/loggarch std/sstd) -- the fractional d
+# on the flat likelihood may compound them, so more may fail; tryCatch catches each, writes NO fixture,
+# records the failure (those validate by known-truth in the build). cat_pars prints shape/skew and d.
+for (model in c("fiegarch", "fimegarch", "fimloggarch", "filoggarch")) {
+  spec_fn <- match.fun(paste0(model, "_spec"))
+  for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+    tryCatch({
+      efit <- fEGarch(spec_fn(orders = c(1, 1), cond_dist = dist), returns, parallel = FALSE)
+      cat(sprintf("  %s11_%s pars:", model, dist), paste(names(pars(efit)), collapse = ", "), "
+")
+      cat_pars(efit)
+      fit_and_dump(efit, sprintf("%s11_%s", model, dist), model, dist, trunc = "n-1")
+    }, error = function(e) cat(sprintf("  ERROR %s11_%s:", model, dist), conditionMessage(e),
+                              sprintf("| exists('%s_spec') = %s", model, exists(paste0(model, "_spec"))),
+                              "
+"))
+  }
+}
+
 # --- Phase-5 distributions breadth: the variance-recursion FI family under 7 non-norm laws ----------
 # FIGARCH / FIAPARCH / FITGARCH / FIGJR under each of std/ged/ald/snorm/sstd/sged/sald, with the same
 # data-first calls as the norm fixtures (each model's own trunc='none', presample=50 defaults, NOT the
@@ -697,10 +720,40 @@ manifest <- list(
                           note = "MLog-GARCH(1,1) under FS-skew ALD (adds P + skew); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"),
       fiegarch11_norm = list(params = "fit_fiegarch11_norm_params.json", sigma = "fit_fiegarch11_norm_sigma.csv",
                              note = "first Phase-4 long-memory fixture (fractionally-integrated EGARCH; fractional order d estimated, App. C.3 trunc L=n-1)"),
+      fiegarch11_ged = list(params = "fit_fiegarch11_ged_params.json", sigma = "fit_fiegarch11_ged_sigma.csv",
+                          note = "FIEGARCH(1,d,1) under conditional GED (adds a shape param); EGF LM (trunc n-1), fractional d"),
+      fiegarch11_ald = list(params = "fit_fiegarch11_ald_params.json", sigma = "fit_fiegarch11_ald_sigma.csv",
+                          note = "FIEGARCH(1,d,1) under conditional ALD (P profiled over Prange=c(1,5)); EGF LM (trunc n-1), fractional d"),
+      fiegarch11_snorm = list(params = "fit_fiegarch11_snorm_params.json", sigma = "fit_fiegarch11_snorm_sigma.csv",
+                          note = "FIEGARCH(1,d,1) under FS-skew normal (adds a skew param); EGF LM (trunc n-1), fractional d"),
+      fiegarch11_sged = list(params = "fit_fiegarch11_sged_params.json", sigma = "fit_fiegarch11_sged_sigma.csv",
+                          note = "FIEGARCH(1,d,1) under FS-skew GED (adds shape + skew); EGF LM (trunc n-1), fractional d"),
+      fiegarch11_sald = list(params = "fit_fiegarch11_sald_params.json", sigma = "fit_fiegarch11_sald_sigma.csv",
+                          note = "FIEGARCH(1,d,1) under FS-skew ALD (adds P + skew); EGF LM (trunc n-1), fractional d"),
       fimegarch11_norm = list(params = "fit_fimegarch11_norm_params.json", sigma = "fit_fimegarch11_norm_sigma.csv",
                               note = "Phase-4 long-memory: fractionally-integrated MEGARCH (Type-I modulus asymmetry, |eta| magnitude; d estimated, App. C.3 trunc L=n-1)"),
+      fimegarch11_ged = list(params = "fit_fimegarch11_ged_params.json", sigma = "fit_fimegarch11_ged_sigma.csv",
+                          note = "FIMEGARCH(1,d,1) under conditional GED (adds a shape param); EGF LM (trunc n-1), fractional d"),
+      fimegarch11_ald = list(params = "fit_fimegarch11_ald_params.json", sigma = "fit_fimegarch11_ald_sigma.csv",
+                          note = "FIMEGARCH(1,d,1) under conditional ALD (P profiled over Prange=c(1,5)); EGF LM (trunc n-1), fractional d"),
+      fimegarch11_snorm = list(params = "fit_fimegarch11_snorm_params.json", sigma = "fit_fimegarch11_snorm_sigma.csv",
+                          note = "FIMEGARCH(1,d,1) under FS-skew normal (adds a skew param); EGF LM (trunc n-1), fractional d"),
+      fimegarch11_sged = list(params = "fit_fimegarch11_sged_params.json", sigma = "fit_fimegarch11_sged_sigma.csv",
+                          note = "FIMEGARCH(1,d,1) under FS-skew GED (adds shape + skew); EGF LM (trunc n-1), fractional d"),
+      fimegarch11_sald = list(params = "fit_fimegarch11_sald_params.json", sigma = "fit_fimegarch11_sald_sigma.csv",
+                          note = "FIMEGARCH(1,d,1) under FS-skew ALD (adds P + skew); EGF LM (trunc n-1), fractional d"),
       fimloggarch11_norm = list(params = "fit_fimloggarch11_norm_params.json", sigma = "fit_fimloggarch11_norm_sigma.csv",
                                 note = "Phase-4 long-memory: fractionally-integrated MLog-GARCH (Type-I modulus asymmetry + ln(|eta|+1) magnitude; d estimated, App. C.3 trunc L=n-1)"),
+      fimloggarch11_ged = list(params = "fit_fimloggarch11_ged_params.json", sigma = "fit_fimloggarch11_ged_sigma.csv",
+                          note = "FIMLog-GARCH(1,d,1) under conditional GED (adds a shape param); EGF LM (trunc n-1), fractional d"),
+      fimloggarch11_ald = list(params = "fit_fimloggarch11_ald_params.json", sigma = "fit_fimloggarch11_ald_sigma.csv",
+                          note = "FIMLog-GARCH(1,d,1) under conditional ALD (P profiled over Prange=c(1,5)); EGF LM (trunc n-1), fractional d"),
+      fimloggarch11_snorm = list(params = "fit_fimloggarch11_snorm_params.json", sigma = "fit_fimloggarch11_snorm_sigma.csv",
+                          note = "FIMLog-GARCH(1,d,1) under FS-skew normal (adds a skew param); EGF LM (trunc n-1), fractional d"),
+      fimloggarch11_sged = list(params = "fit_fimloggarch11_sged_params.json", sigma = "fit_fimloggarch11_sged_sigma.csv",
+                          note = "FIMLog-GARCH(1,d,1) under FS-skew GED (adds shape + skew); EGF LM (trunc n-1), fractional d"),
+      fimloggarch11_sald = list(params = "fit_fimloggarch11_sald_params.json", sigma = "fit_fimloggarch11_sald_sigma.csv",
+                          note = "FIMLog-GARCH(1,d,1) under FS-skew ALD (adds P + skew); EGF LM (trunc n-1), fractional d"),
       figarch11_norm = list(params = "fit_figarch11_norm_params.json", sigma = "fit_figarch11_norm_sigma.csv",
                             note = "Phase-4 long-memory: fractionally-integrated GARCH (VARIANCE-recursion long memory, NOT the EGF log-variance family; d estimated; figarch()'s own defaults trunc='none', presample=50)"),
       figarch11_std = list(params = "fit_figarch11_std_params.json", sigma = "fit_figarch11_std_sigma.csv",
@@ -770,6 +823,20 @@ manifest <- list(
                           note = "FIGJR(1,d,1) under FS-skew ALD (P + skew + fractional d); trunc='none'"),
       filoggarch11_norm = list(params = "fit_filoggarch11_norm_params.json", sigma = "fit_filoggarch11_norm_sigma.csv",
                                note = "Phase-4 long-memory: fractionally-integrated Log-GARCH (Type-II EGF, spec-first via filoggarch_spec; the LAST Phase-4 model; Log-GARCH's {mu, omega_sig, phi1, psi1} + fractional d; App. C.3 trunc L=n-1)"))),
+      filoggarch11_std = list(params = "fit_filoggarch11_std_params.json", sigma = "fit_filoggarch11_std_sigma.csv",
+                          note = "FILog-GARCH(1,d,1) under conditional Student-t (adds a df/shape param); EGF LM (trunc n-1), fractional d"),
+      filoggarch11_ged = list(params = "fit_filoggarch11_ged_params.json", sigma = "fit_filoggarch11_ged_sigma.csv",
+                          note = "FILog-GARCH(1,d,1) under conditional GED (adds a shape param); EGF LM (trunc n-1), fractional d"),
+      filoggarch11_ald = list(params = "fit_filoggarch11_ald_params.json", sigma = "fit_filoggarch11_ald_sigma.csv",
+                          note = "FILog-GARCH(1,d,1) under conditional ALD (P profiled over Prange=c(1,5)); EGF LM (trunc n-1), fractional d"),
+      filoggarch11_snorm = list(params = "fit_filoggarch11_snorm_params.json", sigma = "fit_filoggarch11_snorm_sigma.csv",
+                          note = "FILog-GARCH(1,d,1) under FS-skew normal (adds a skew param); EGF LM (trunc n-1), fractional d"),
+      filoggarch11_sstd = list(params = "fit_filoggarch11_sstd_params.json", sigma = "fit_filoggarch11_sstd_sigma.csv",
+                          note = "FILog-GARCH(1,d,1) under FS-skew Student-t (adds shape + skew); EGF LM (trunc n-1), fractional d"),
+      filoggarch11_sged = list(params = "fit_filoggarch11_sged_params.json", sigma = "fit_filoggarch11_sged_sigma.csv",
+                          note = "FILog-GARCH(1,d,1) under FS-skew GED (adds shape + skew); EGF LM (trunc n-1), fractional d"),
+      filoggarch11_sald = list(params = "fit_filoggarch11_sald_params.json", sigma = "fit_filoggarch11_sald_sigma.csv",
+                          note = "FILog-GARCH(1,d,1) under FS-skew ALD (adds P + skew); EGF LM (trunc n-1), fractional d"),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",

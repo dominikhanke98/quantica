@@ -1,0 +1,26 @@
+{
+  "model": "fiegarch",
+  "cond_dist": "snorm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "n-1",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00048564297039462397,
+    "omega_sig": -9.1086090181193597,
+    "phi1": 0.38713507384174395,
+    "kappa": -0.022259139694497589,
+    "gamma": 0.17169268230585558,
+    "d": 0.74684991666460743,
+    "skew": 0.98890396224971966
+  },
+  "loglikelihood": 7593.3600192553113,
+  "aic": -6.0690880154042492,
+  "bic": -6.0527806865738514,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
