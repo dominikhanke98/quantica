@@ -1271,8 +1271,60 @@ hardest EGF case, so *no fixture exists* and we do not fabricate one. Validated 
 instead: simulating egarch×std at `df=6` recovers `df` (`|dev|/SE ≤ 1.2`) and **converges**; egarch×sstd
 at `df=6, skew=0.85` recovers both. **Our Nelder-Mead + restart + stable closed-form E\|η\|(df) converges
 where the reference's optimizer failed** — an independent reimplementation fitting the reference's
-hardest EGF case. `test_egarch_distributions.py` (25 tests). **The EGF distribution infrastructure is
-proven; MEGARCH / MLog-GARCH / Log-GARCH and every FI-EGF variant now inherit it.**
+hardest EGF case. `test_egarch_distributions.py` (25 tests).
+
+> **Framing correction (see §21).** EGARCH exercised only `abs_moment` (its `g_asy = η` has
+> `E[η] = 0`). The **full EGF centering-moment set is four**: `abs_moment` (E\|η\|), `mean_log_sq`
+> (E[ln η²]), `mean_log_modulus` (E[ln(\|η\|+1)]) and `mean_signed_log_modulus`
+> (E[sgn(η)·ln(\|η\|+1)], the modulus-log *asymmetry* centering). The 4th is skew-sensitive and only
+> the MEGARCH/MLog-GARCH build (§21) exercised it; the EGARCH step above proved the first, not all four.
+
+## 21. The 4th EGF moment + MEGARCH/MLog-GARCH/Log-GARCH under all 8 distributions — RESOLVED (Phase 5)
+
+**Sources.** Fernández–Steel skew density; the John–Draper (1980) modulus-log transform; the EGF
+constant-sets (§20). fEGarch source never consulted; validated against the 16 converging
+`fit_{megarch,mloggarch,loggarch}11_*` fixtures + known-truth for the 5 failures. This **completes the
+short-memory EGF family** under all eight distributions.
+
+### 21.1 The 4th EGF moment — the modulus-log asymmetry centering (the gate caught it)
+
+The reconstruction gate on the fixtures **failed** for megarch/mloggarch under *skew* (`~1e-6`) while
+symmetric + Log-GARCH + all of EGARCH were exact — exactly the "skewed-moment issue the EGARCH proof
+didn't cover" the STOP condition named. Diagnosis: MEGARCH/MLog-GARCH have a **modulus-log asymmetry**
+`g_asy = ζ(η) = sgn(η)·ln(|η|+1)` (`M_asy = 1, p_asy = 0`), whose centering `E[ζ(η)]` is an
+**odd-function expectation** — identically **0 for every symmetric base**, but **nonzero under skew**
+(`~0.001–0.002`). EGARCH's `g_asy = η` uses `E[η] = 0` (skew included); Log-GARCH's Type-II news is the
+even `ln η²` (no odd term). So only MEGARCH/MLog-GARCH need it.
+
+Fix: a **4th distribution moment** `mean_signed_log_modulus = E[sgn(z)·ln(|z|+1)]` — the base returns
+`0.0` (odd integrand, even density), the FS-skew wrapper computes it by the same quadrature over
+`f_skew`. **Odd-function anchor:** it vanishes at `skew = 1` (`< 1e-9`) and is exactly `0` for
+norm/std/ged/ald. Wiring it as the `mean_asy` for the two modulus-log-asymmetry models (per-iteration
+for continuous shape, in both fit *and* sim) makes the 6 skewed cases **machine-exact (~4e-17)**. The
+full EGF centering-moment set is now **four**.
+
+### 21.2 The compressed build — 16 fixtures + the γ tell + Log-GARCH's ridge
+
+Reconstruction gate machine-exact for **all 16** (megarch/mloggarch skewed `~4e-17`, loggarch `~1e-12`).
+**MEGARCH/MLog-GARCH are well identified** and match tightly (loglik `~1e-10`, σ `~1e-8`); **the γ tell
+carries under distributions** — MLog-GARCH's `E[ln(|η|+1)]` magnitude gives `γ ≈ 0.28`, MEGARCH's `E|η|`
+gives `≈ 0.16`, a **~1.80× ratio held across every law** (norm→sald). `P = 5` for all ald/sald. norm
+paths bit-identical.
+
+**Log-GARCH sits on its near-common-root `φ₁ ≈ −ψ₁` ridge**, weakly identified: with the (now
+per-iteration) `mean_log_sq` centering our fit **reaches-or-beats** each fixture (ged `−7e-4`; ald `+1.3`,
+sstd `+4.9` — strictly dominating), validated by the machine-exact seam, not a param match (the §14/§19
+effective-challenge pattern, now under distributions).
+
+### 21.3 The 5 fEGarch-optimizer-failure cases — robustness extended
+
+megarch/mloggarch std/sstd and loggarch std failed fEGarch's optimizer (continuous-df fragility); *no
+fixture exists*, none fabricated. Known-truth at `df = 6` (+`skew = 0.85` for sstd, which exercises the
+per-iteration `mean_asy` recompute in sim **and** fit): **our optimizer converges on all 5** and recovers
+`df` (+`skew`). The **loggarch std-fails/sstd-converges** split in fEGarch confirms these are flat-ridge
+*starting-point* solver failures (non-deterministic), not model failures — which is why our
+Nelder-Mead + restart is more robust to them. `test_egf_family_distributions.py` (46 tests). **The
+short-memory EGF family (EGARCH/MEGARCH/MLog-GARCH/Log-GARCH) is complete under all eight distributions.**
 
 ---
 

@@ -1526,6 +1526,27 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   distribution infrastructure is proven on EGARCH; MEGARCH/MLog-GARCH/Log-GARCH + all FI-EGF variants
   inherit it. NOT merged — seventh commit of the distribution-breadth PR.**
 
+- **Step 45 — the 4th EGF moment + MEGARCH/MLog-GARCH/Log-GARCH under all 8 distributions, COMPLETING
+  the short-memory EGF family (branch `feat/fegarch-distributions`, NOT merged).** Fixtures first: 21
+  fits, 16 converged (5 continuous-df failed fEGarch — megarch/mloggarch std/sstd, loggarch std —
+  committed `421e59b`). The compressed build's reconstruction gate CAUGHT a 4th EGF moment EGARCH could
+  not exercise: the modulus-log **asymmetry** centering E[sgn(η)·ln(|η|+1)] (odd-function, 0 for
+  symmetric, nonzero under skew) — megarch/mloggarch skewed missed at ~1e-6 while symmetric + Log-GARCH
+  + EGARCH were exact. STOPped, reported, got go-ahead, then built the fix: `mean_signed_log_modulus`
+  on the base (returns 0.0) + FS wrapper (quadrature), wired as `mean_asy` for the two
+  modulus-log-asymmetry models (per-iteration for continuous shape, in fit AND sim). Odd-function
+  anchor: →0 at skew=1, exactly 0 for symmetric bases. Also upgraded loggarch.py's fit path
+  (per-iteration mean_log_sq + ald P-profiling + restart; it was still constant-centering, off by up to
+  14 loglik). **Gate machine-exact for all 16** (megarch/mloggarch skewed now ~4e-17). **Validation:**
+  megarch/mloggarch tight (loglik ~1e-10, σ ~1e-8, P=5); **γ tell holds under distributions**
+  (MLog/MEGARCH γ ~1.80× every law); **Log-GARCH ridge** → fit reaches-or-beats fixture (ald +1.3,
+  sstd +4.9 dominate; seam-centric like §14/§19). norm bit-identical. **5 known-truths all converge**
+  (df=6 +skew=0.85) — robustness extended; the loggarch std-fails/sstd-converges split confirms
+  flat-ridge starting-point solver-fragility. The full EGF centering-moment set is now 4 (abs, log-sq,
+  log-modulus, signed-log-modulus). **Tests: `test_egf_family_distributions.py` (46).** Docs: spec-notes
+  §21 (+ §20 framing correction). Gate green. **COMPLETES the short-memory EGF family under all 8
+  distributions. NOT merged — eighth commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at

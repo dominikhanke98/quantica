@@ -250,7 +250,13 @@ def egarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: flo
     )
 
 
-def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: float) -> FloatArray:
+def megarch_recursion(
+    params: FloatArray,
+    returns: FloatArray,
+    *,
+    abs_moment: float,
+    mean_signed_log_modulus: float = 0.0,
+) -> FloatArray:
     r"""MEGARCH(1,1) conditional variance (the ``(1,0,0,1)`` Type-I instance).
 
     Modulus-log asymmetry :math:`\zeta(\eta)` with the EGARCH magnitude :math:`|\eta|`.
@@ -263,6 +269,10 @@ def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: fl
         The return series.
     abs_moment : float
         :math:`\operatorname{E}|\eta|`, the magnitude centering, from :meth:`abs_moment` (keyword).
+    mean_signed_log_modulus : float, optional
+        :math:`\operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)]`, the modulus-log
+        **asymmetry**
+        centering (``0`` for symmetric innovations, nonzero under skew). Default ``0`` (symmetric).
 
     Returns
     -------
@@ -270,12 +280,20 @@ def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: fl
         The conditional variances :math:`\sigma_t^2`.
     """
     return _type1_variance(
-        params, returns, constants=MEGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
+        params,
+        returns,
+        constants=MEGARCH_CONSTANTS,
+        mean_asy=mean_signed_log_modulus,
+        mean_mag=abs_moment,
     )
 
 
 def mloggarch_recursion(
-    params: FloatArray, returns: FloatArray, *, mean_log_modulus: float
+    params: FloatArray,
+    returns: FloatArray,
+    *,
+    mean_log_modulus: float,
+    mean_signed_log_modulus: float = 0.0,
 ) -> FloatArray:
     r"""MLog-GARCH(1,1) conditional variance (the ``(1,0,1,0)`` Type-I instance).
 
@@ -290,6 +308,9 @@ def mloggarch_recursion(
     mean_log_modulus : float
         :math:`\operatorname{E}[\ln(|\eta|+1)]`, the magnitude centering, from
         :meth:`mean_log_modulus` (keyword-only).
+    mean_signed_log_modulus : float, optional
+        :math:`\operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)]`, the asymmetry centering
+        (``0`` for symmetric, nonzero under skew). Default ``0`` (symmetric).
 
     Returns
     -------
@@ -297,7 +318,11 @@ def mloggarch_recursion(
         The conditional variances :math:`\sigma_t^2`.
     """
     return _type1_variance(
-        params, returns, constants=MLOGGARCH_CONSTANTS, mean_asy=0.0, mean_mag=mean_log_modulus
+        params,
+        returns,
+        constants=MLOGGARCH_CONSTANTS,
+        mean_asy=mean_signed_log_modulus,
+        mean_mag=mean_log_modulus,
     )
 
 
@@ -321,13 +346,25 @@ def _type1_centered_recursion(
     """Build the Type-I recursion with the right E[g(eta)] magnitude centering for a distribution.
 
     Returns ``(recursion, uses_dist_params, method, options)``. A distribution with shape parameters
-    re-computes the magnitude moment from the *current* shape each iteration (per-iteration
+    re-computes the centering moments from the *current* shape each iteration (per-iteration
     centering, Nelder-Mead); a shapeless distribution (``norm``, or a fixed-``P`` ALD) uses a
-    precomputed constant (L-BFGS-B), keeping the norm path bit-identical. The asymmetry centering is
-    ``0`` for EGARCH-type
-    ``g`` (``E[eta] = 0`` by standardization, skew included).
+    precomputed constant (L-BFGS-B), keeping the norm path bit-identical.
+
+    The **magnitude** centering is ``E|eta|`` (EGARCH/MEGARCH) or ``E[ln(|eta|+1)]`` (MLog-GARCH).
+    The **asymmetry** centering is ``0`` for EGARCH (``g_asy = eta``, ``E[eta] = 0`` even under
+    skew), but for the modulus-log-asymmetry models (MEGARCH/MLog-GARCH, ``M_asy=1, p_asy=0``) it is
+    the 4th
+    EGF moment ``E[sgn(eta) ln(|eta|+1)]`` (``mean_signed_log_modulus``) — ``0`` for symmetric
+    innovations but nonzero under skew, so it too recomputes per iteration.
     """
     moment = distribution.mean_log_modulus if log_modulus_magnitude else distribution.abs_moment
+    # g_asy = sgn(eta) ln(|eta|+1) when (M_asy, p_asy) = (1, 0); its centering is the signed
+    # modulus-log moment (0 for symmetric, nonzero under skew). EGARCH (0, 1) keeps mean_asy = 0.
+    modulus_log_asy = constants[0] == 1.0 and constants[1] == 0.0
+
+    def _mean_asy(dist_params: tuple[float, ...] | None) -> float:
+        return distribution.mean_signed_log_modulus(dist_params) if modulus_log_asy else 0.0
+
     if distribution.param_names:
 
         def per_iter(
@@ -335,16 +372,21 @@ def _type1_centered_recursion(
         ) -> FloatArray:
             mean_mag = moment(dist_params)
             return _type1_variance(
-                params, returns, constants=constants, mean_asy=0.0, mean_mag=mean_mag
+                params,
+                returns,
+                constants=constants,
+                mean_asy=_mean_asy(dist_params),
+                mean_mag=mean_mag,
             )
 
         return per_iter, True, "Nelder-Mead", _SHAPE_OPTIONS
 
     mean_mag = moment(distribution.param_start)  # precomputed constant (norm / fixed-P ALD)
+    mean_asy_const = _mean_asy(distribution.param_start)  # 0 for symmetric bases, hence norm
 
     def constant(params: FloatArray, returns: FloatArray) -> FloatArray:
         return _type1_variance(
-            params, returns, constants=constants, mean_asy=0.0, mean_mag=mean_mag
+            params, returns, constants=constants, mean_asy=mean_asy_const, mean_mag=mean_mag
         )
 
     return constant, False, "L-BFGS-B", None
@@ -374,7 +416,9 @@ def _run_type1_fit(
         "options": options,
         "recursion_uses_dist_params": uses_dist,
     }
-    result = quasi_max_likelihood(scaled, recursion, distribution, var_start=var_start, **kw)  # type: ignore[arg-type]
+    result = quasi_max_likelihood(
+        scaled, recursion, distribution, var_start=var_start, **kw  # type: ignore[arg-type]
+    )
     if method != "Nelder-Mead":
         return result
     n_var = len(var_start)
@@ -617,7 +661,11 @@ def _sim_type1(
         raise ValueError(f"require |phi1| < 1 for a stationary {model}(1,1)")
 
     distribution = get_distribution(cond_dist)
-    mean_asy = 0.0
+    # The modulus-log-asymmetry models (MEGARCH/MLog-GARCH, (M_asy, p_asy) = (1, 0)) center g_asy on
+    # E[sgn(eta) ln(|eta|+1)] (0 for symmetric, nonzero under skew); EGARCH keeps mean_asy = 0. The
+    # sim must use the SAME centering as the fit so known-truth recovers omega_sig under skew.
+    modulus_log_asy = constants[0] == 1.0 and constants[1] == 0.0
+    mean_asy = distribution.mean_signed_log_modulus(dist_params) if modulus_log_asy else 0.0
     if log_modulus_magnitude:
         mean_mag = distribution.mean_log_modulus(dist_params)
     else:

@@ -156,9 +156,9 @@ class ConditionalDistribution(ABC):
     def abs_moment(self, params: Sequence[float] | None = None) -> float:
         r"""First absolute moment :math:`E|z|` of the standardized innovation.
 
-        Needed by the EGARCH-family :math:`g(\eta)` centering (and the Fernández-Steel skew).
-        The symmetric bases override this; the skewed variants do **not** expose it yet (that is the
-        documented Phase-2 follow-up), so the base implementation raises.
+        Needed by the EGARCH-family :math:`g(\eta)` centering (and the Fernández-Steel skew). The
+        symmetric bases override this in closed form and the FS-skew wrapper by quadrature; the bare
+        base (no such distribution exists in the registry) raises.
         """
         raise NotImplementedError(f"{self.name} does not expose abs_moment (E|z|)")
 
@@ -166,9 +166,9 @@ class ConditionalDistribution(ABC):
         r"""Log-square moment :math:`E[\ln z^2]` of the standardized innovation.
 
         The Type-II EGF (Log-GARCH) centers its news impact on :math:`\xi = \ln z^2 - E[\ln z^2]`,
-        so — unlike EGARCH's :math:`E|z|` — it needs this *log*-moment. Only ``norm`` overrides it
-        here (closed form); ``std`` / ``ged`` / ``ald`` and the skewed variants are the documented
-        Phase-2 follow-up (only the normal Log-GARCH is validated), so the base raises.
+        so — unlike EGARCH's :math:`E|z|` — it needs this *log*-moment. ``norm`` has a closed form;
+        ``std`` / ``ged`` / ``ald`` and the FS-skew variants compute it by quadrature (Phase 5); the
+        bare base raises.
         """
         raise NotImplementedError(f"{self.name} does not expose mean_log_sq (E[ln z^2])")
 
@@ -176,12 +176,26 @@ class ConditionalDistribution(ABC):
         r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` of the standardized innovation.
 
         The modulus Type-I EGF models (MLog-GARCH) center their magnitude term on this moment of the
-        John-Draper (1980) modulus-log transform, rather than EGARCH/MEGARCH's :math:`E|z|`. Only
-        ``norm`` overrides it here (numerically, by quadrature — no elementary closed form);
-        ``std`` / ``ged`` / ``ald`` and the skewed variants are the documented follow-up, so the
+        John-Draper (1980) modulus-log transform, rather than EGARCH/MEGARCH's :math:`E|z|`. Every
+        base and the FS-skew wrapper compute it by quadrature (no elementary closed form); the bare
         base raises.
         """
         raise NotImplementedError(f"{self.name} does not expose mean_log_modulus (E[ln(|z|+1)])")
+
+    def mean_signed_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Signed modulus-log moment :math:`E[\operatorname{sgn}(z)\ln(|z|+1)]` (4th EGF moment).
+
+        The **asymmetry** centering :math:`E[g_{\mathrm{asy}}]` for the modulus-log-asymmetry Type-I
+        models (MEGARCH, MLog-GARCH), whose :math:`g_{\mathrm{asy}}(z) = \operatorname{sgn}(z)
+        \ln(|z|+1)` is odd. For **every symmetric base** the integrand is odd, the density even, so
+        this vanishes **exactly** — the base returns ``0.0``. The Fernández-Steel skew wrapper (an
+        asymmetric density) overrides it by quadrature, where it is small but nonzero and must be
+        centred out; it reduces back to ``0`` at ``skew = 1`` (the odd-function anchor). EGARCH's
+        :math:`g_{\mathrm{asy}} = z` uses :math:`E[z] = 0` instead, and Log-GARCH (Type-II) has no
+        asymmetry term, so neither needs this moment.
+        """
+        self._params(params)  # validate the shape-parameter arity
+        return 0.0
 
 
 # --------------------------------------------------------------------------- #
@@ -549,6 +563,17 @@ class FernandezSteelSkew(ConditionalDistribution):
         r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` of the skewed law, by quadrature."""
         return _moment_by_quadrature(
             self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
+
+    def mean_signed_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Signed modulus-log moment :math:`E[\operatorname{sgn}(z)\ln(|z|+1)]` of the skewed law.
+
+        The MEGARCH/MLog-GARCH asymmetry centering. Nonzero because the skewed density is skew;
+        reduces to ``0`` at ``skew = 1`` (the odd-function anchor), unlike the symmetric bases where
+        it is identically ``0``.
+        """
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.sign(z) * np.log(abs(z) + 1.0)
         )
 
 

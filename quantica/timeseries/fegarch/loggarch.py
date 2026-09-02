@@ -29,8 +29,10 @@ reported separately. There is **no asymmetry term** — Type-II is structurally 
 *log*-moment, unlike EGARCH's :math:`\operatorname{E}|\eta|`. It is sourced from the Phase-0
 distribution layer's :meth:`mean_log_sq` (``norm`` → :math:`\psi(\tfrac12) + \ln 2 = -\gamma_E -
 \ln 2 \approx -1.2703628`) and passed into the recursion as a captured value — never hard-coded (the
-same seam as EGARCH's :math:`\operatorname{E}|\eta|`). Only the normal is wired and validated here;
-jointly-estimated-shape distributions (``std`` / ``ged``) and the skewed variants are deferred.
+same seam as EGARCH's :math:`\operatorname{E}|\eta|`). **All eight distributions are wired** (Phase
+5): a jointly-estimated continuous shape recomputes ``mean_log_sq`` from the *current* shape each
+iteration (per-iteration centering) and the ALD profiles ``P``; on the flat ridge the fit reaches or
+beats each fixture (validated by the machine-exact seam, not a param-by-param match).
 
 **Pre-sample conditioning (confirmed against the fixture, machine precision).** Per WP 2026-04
 App. C.3 — exactly as for EGARCH — the pre-sample :math:`\xi` history is zero and
@@ -55,12 +57,23 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quantica.timeseries.fegarch.distributions import get_distribution
-from quantica.timeseries.fegarch.garch import GarchFit
+from quantica.timeseries.fegarch.distributions import (
+    AverageLaplace,
+    FernandezSteelSkew,
+    get_distribution,
+)
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
 from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
+    from quantica.timeseries.fegarch.qmle import QMLEResult
+
+# Nelder-Mead options for the stiff near-common-root ridge (unchanged from the norm-only fit).
+_LOGGARCH_OPTIONS: dict[str, object] = {"maxiter": 8000, "xatol": 1e-10, "fatol": 1e-10}
+_LOGGARCH_BOUNDS = ((-10.0, 10.0), (-50.0, 50.0), (-0.9999, 0.9999), (-0.9999, 0.9999))
+_MAX_LOGGARCH_RESTARTS = 3  # simplex-collapse restarts for the shape-parameter fits
+_LOGGARCH_RESTART_TOL = 1e-6
 
 __all__ = [
     "fit_loggarch",
@@ -135,33 +148,121 @@ def fit_loggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     n = y.size
     scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
     scaled = y / scale
-    distribution = get_distribution(cond_dist)
-
-    # E[ln eta^2] from the distribution layer (norm -> -gamma_E - ln2); captured, not hard-coded.
-    mean_log_sq = distribution.mean_log_sq(distribution.param_start)
-
-    def recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
-        return loggarch_recursion(params, returns, mean_log_sq=mean_log_sq)
-
     # Start near the flat phi1 ~ -psi1 ridge (high AR persistence, strong negative MA — the regime
     # Log-GARCH typically occupies) to land the optimizer in fEGarch's basin on this stiff surface.
     var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), 0.95, -0.9)
-    var_bounds = ((-10.0, 10.0), (-50.0, 50.0), (-0.9999, 0.9999), (-0.9999, 0.9999))
 
-    # Near-common-root ridge: the gradient-based default (L-BFGS-B) stalls on the flat phi1 ~ -psi1
-    # surface, so Log-GARCH uses the derivative-free Nelder-Mead simplex with tight tolerances.
-    result = quasi_max_likelihood(
-        scaled,
-        recursion,
-        distribution,
-        var_start=var_start,
-        var_bounds=var_bounds,
-        var_names=_VAR_NAMES,
-        mean=True,
-        method="Nelder-Mead",
-        options={"maxiter": 8000, "xatol": 1e-10, "fatol": 1e-10},
-    )
+    if cond_dist in ("ald", "sald"):
+        return _fit_loggarch_ald(scaled, scale, n, var_start, skewed=cond_dist == "sald")
 
+    distribution = get_distribution(cond_dist)
+    result = _run_loggarch_fit(scaled, distribution, var_start)
+    return _build_loggarch_fit(result, cond_dist, scale, n, k=result.params.size)
+
+
+def _loggarch_recursion_for(distribution: object) -> tuple[object, bool]:
+    """The Log-GARCH recursion for a distribution + whether it needs per-iteration ``dist_params``.
+
+    A distribution with shape parameters re-computes ``E[ln eta^2]`` from the *current* shape each
+    iteration (per-iteration centering); a shapeless distribution (``norm``, or a fixed-``P`` ALD)
+    captures a precomputed constant, keeping the norm path bit-identical.
+    """
+    if distribution.param_names:  # type: ignore[attr-defined]
+
+        def per_iter(
+            params: FloatArray, returns: FloatArray, dist_params: tuple[float, ...]
+        ) -> FloatArray:
+            return loggarch_recursion(
+                params,
+                returns,
+                mean_log_sq=distribution.mean_log_sq(dist_params),  # type: ignore[attr-defined]
+            )
+
+        return per_iter, True
+
+    mean_log_sq = distribution.mean_log_sq(distribution.param_start)  # type: ignore[attr-defined]
+
+    def constant(params: FloatArray, returns: FloatArray) -> FloatArray:
+        return loggarch_recursion(params, returns, mean_log_sq=mean_log_sq)
+
+    return constant, False
+
+
+def _run_loggarch_fit(
+    scaled: FloatArray, distribution: object, var_start: tuple[float, ...]
+) -> QMLEResult:
+    """Fit Log-GARCH under one distribution (Nelder-Mead), restarting if the simplex stalls.
+
+    The near-common-root ``phi1 ~ -psi1`` surface stalls the gradient-based default, so Log-GARCH
+    uses Nelder-Mead; a shape-dependent centering can collapse the simplex, so shape fits restart
+    from the solution until the log-likelihood stops improving.
+    """
+    recursion, uses_dist = _loggarch_recursion_for(distribution)
+    kw: dict[str, object] = {
+        "var_bounds": _LOGGARCH_BOUNDS,
+        "var_names": _VAR_NAMES,
+        "mean": True,
+        "method": "Nelder-Mead",
+        "options": _LOGGARCH_OPTIONS,
+        "recursion_uses_dist_params": uses_dist,
+    }
+    result = quasi_max_likelihood(scaled, recursion, distribution, var_start=var_start, **kw)  # type: ignore[arg-type]
+    if not uses_dist:  # norm / fixed-P ALD: a single deterministic fit, bit-identical
+        return result
+    n_var = len(var_start)
+    for _ in range(_MAX_LOGGARCH_RESTARTS):
+        var_restart = tuple(float(p) for p in result.params[:n_var])
+        dist_restart = tuple(float(p) for p in result.params[n_var:])
+        restarted = quasi_max_likelihood(
+            scaled,
+            recursion,
+            distribution,
+            var_start=var_restart,
+            dist_start=dist_restart,
+            **kw,  # type: ignore[arg-type]
+        )
+        if restarted.loglikelihood <= result.loglikelihood + _LOGGARCH_RESTART_TOL:
+            if restarted.loglikelihood > result.loglikelihood:
+                result = restarted
+            break
+        result = restarted
+    return result
+
+
+def _build_loggarch_fit(
+    result: QMLEResult,
+    cond_dist: str,
+    scale: float,
+    n: int,
+    *,
+    k: int,
+    extra_params: dict[str, float] | None = None,
+    profile: tuple[tuple[int, float], ...] | None = None,
+) -> GarchFit:
+    """Assemble a :class:`GarchFit` from a Log-GARCH result: undo the scaling and form AIC/BIC.
+
+    Parameters
+    ----------
+    result : QMLEResult
+        The fitted engine result on the rescaled returns.
+    cond_dist : str
+        The conditional-distribution code.
+    scale : float
+        The return scale divided out before fitting.
+    n : int
+        Number of observations.
+    k : int
+        Parameter count for the AIC/BIC penalty (includes the profiled ``P`` where one applies).
+    extra_params : dict of str to float, optional
+        Extra parameters not produced by the optimizer (the ALD's profiled ``P``).
+    profile : tuple of (int, float) or None, optional
+        The ALD ``(P, log-likelihood)`` grid, forwarded to :class:`GarchFit`.
+
+    Returns
+    -------
+    GarchFit
+        The fitted model in original units.
+    """
     # Undo the scaling: mu is multiplicative (~scale); omega_sig is a log-variance intercept, so it
     # shifts ADDITIVELY by ln(scale^2); phi1/psi1 and shape parameters are scale-invariant.
     names = result.param_names
@@ -172,9 +273,10 @@ def fit_loggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     std_errors_arr[0] *= scale  # additive shift on omega_sig leaves its SE unchanged
     params = {name: float(v) for name, v in zip(names, values, strict=True)}
     std_errors = {name: float(s) for name, s in zip(names, std_errors_arr, strict=True)}
+    if extra_params:
+        params.update(extra_params)
 
     loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
-    k = result.params.size
     aic = (2.0 * k - 2.0 * loglik) / n
     bic = (k * np.log(n) - 2.0 * loglik) / n
     conditional_volatility = np.sqrt(result.conditional_variance) * scale
@@ -189,6 +291,38 @@ def fit_loggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
         n_obs=n,
         converged=result.converged,
+        profile=profile,
+    )
+
+
+def _fit_loggarch_ald(
+    scaled: FloatArray, scale: float, n: int, var_start: tuple[float, ...], *, skewed: bool
+) -> GarchFit:
+    """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for Log-GARCH (ald / sald).
+
+    Each fixed-``P`` ALD has a constant ``mean_log_sq`` centering; ``sald`` adds the FS ``skew``
+    (per-iteration). ``P`` never enters the optimizer but counts in the AIC/BIC penalty.
+    """
+    best: QMLEResult | None = None
+    best_p = 0
+    profile: list[tuple[int, float]] = []
+    for p in _ALD_PRANGE:
+        base = AverageLaplace(p=p)
+        distribution = FernandezSteelSkew(base) if skewed else base
+        result = _run_loggarch_fit(scaled, distribution, var_start)
+        profile.append((p, float(result.loglikelihood - n * np.log(scale))))
+        if best is None or result.loglikelihood > best.loglikelihood:
+            best, best_p = result, p
+
+    assert best is not None  # _ALD_PRANGE is non-empty
+    return _build_loggarch_fit(
+        best,
+        "sald" if skewed else "ald",
+        scale,
+        n,
+        k=best.params.size + 1,
+        extra_params={"P": float(best_p)},
+        profile=tuple(profile),
     )
 
 
