@@ -316,6 +316,29 @@ tryCatch({
 }, error = function(e) cat("  ERROR mloggarch:", conditionMessage(e),
                           "| exists('mloggarch_spec') =", exists("mloggarch_spec"), "\n"))
 
+# --- Phase-5 distributions breadth: MEGARCH / MLog-GARCH / Log-GARCH under 7 non-norm laws ---------
+# The remaining short-memory EGF models under each non-norm law, spec-first (<model>_spec + fEGarch),
+# trunc="none" (their norm defaults). Each exercises a different EGF centering moment: MEGARCH E|eta|,
+# MLog-GARCH E[ln(|eta|+1)] (the log-modulus magnitude -> gamma ~0.28, ~1.8x MEGARCH's), Log-GARCH
+# E[ln eta^2]. WATCH for continuous-df optimizer failures like EGARCH x std/sstd (df-dependent
+# centering + EGF ARMA + Log-GARCH's near-common-root ridge): tryCatch catches them, writes NO
+# fixture, records the failure (those validate by known-truth in the build, as EGARCH x std).
+for (model in c("megarch", "mloggarch", "loggarch")) {
+  spec_fn <- match.fun(paste0(model, "_spec"))
+  for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+    tryCatch({
+      efit <- fEGarch(spec_fn(orders = c(1, 1), cond_dist = dist), returns, parallel = FALSE)
+      cat(sprintf("  %s11_%s pars:", model, dist), paste(names(pars(efit)), collapse = ", "), "
+")
+      cat_pars(efit)
+      fit_and_dump(efit, sprintf("%s11_%s", model, dist), model, dist)
+    }, error = function(e) cat(sprintf("  ERROR %s11_%s:", model, dist), conditionMessage(e),
+                              sprintf("| exists('%s_spec') = %s", model, exists(paste0(model, "_spec"))),
+                              "
+"))
+  }
+}
+
 # --- Phase-4 long-memory: FIEGARCH -------------------------------------------
 # FIEGARCH is the fractionally-integrated (long-memory) EGARCH: spec-first via the dedicated
 # fiegarch_spec() wrapper + fEGarch() — confirmed via ls()/args() (there is NO long_memo flag on
@@ -638,8 +661,40 @@ manifest <- list(
       egarch11_sald = list(params = "fit_egarch11_sald_params.json", sigma = "fit_egarch11_sald_sigma.csv",
                           note = "EGARCH(1,1) under FS-skew ALD (adds P + skew); g-centering E|eta| is distribution-dependent"),
       loggarch11_norm = list(params = "fit_loggarch11_norm_params.json", sigma = "fit_loggarch11_norm_sigma.csv"),
+      loggarch11_ged = list(params = "fit_loggarch11_ged_params.json", sigma = "fit_loggarch11_ged_sigma.csv",
+                          note = "Log-GARCH(1,1) under conditional GED (adds a shape param); E[ln eta^2] centering (Type-II)"),
+      loggarch11_ald = list(params = "fit_loggarch11_ald_params.json", sigma = "fit_loggarch11_ald_sigma.csv",
+                          note = "Log-GARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); E[ln eta^2] centering (Type-II)"),
+      loggarch11_snorm = list(params = "fit_loggarch11_snorm_params.json", sigma = "fit_loggarch11_snorm_sigma.csv",
+                          note = "Log-GARCH(1,1) under FS-skew normal (adds a skew param); E[ln eta^2] centering (Type-II)"),
+      loggarch11_sstd = list(params = "fit_loggarch11_sstd_params.json", sigma = "fit_loggarch11_sstd_sigma.csv",
+                          note = "Log-GARCH(1,1) under FS-skew Student-t (adds shape + skew); E[ln eta^2] centering (Type-II)"),
+      loggarch11_sged = list(params = "fit_loggarch11_sged_params.json", sigma = "fit_loggarch11_sged_sigma.csv",
+                          note = "Log-GARCH(1,1) under FS-skew GED (adds shape + skew); E[ln eta^2] centering (Type-II)"),
+      loggarch11_sald = list(params = "fit_loggarch11_sald_params.json", sigma = "fit_loggarch11_sald_sigma.csv",
+                          note = "Log-GARCH(1,1) under FS-skew ALD (adds P + skew); E[ln eta^2] centering (Type-II)"),
       megarch11_norm = list(params = "fit_megarch11_norm_params.json", sigma = "fit_megarch11_norm_sigma.csv"),
+      megarch11_ged = list(params = "fit_megarch11_ged_params.json", sigma = "fit_megarch11_ged_sigma.csv",
+                          note = "MEGARCH(1,1) under conditional GED (adds a shape param); E|eta| centering"),
+      megarch11_ald = list(params = "fit_megarch11_ald_params.json", sigma = "fit_megarch11_ald_sigma.csv",
+                          note = "MEGARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); E|eta| centering"),
+      megarch11_snorm = list(params = "fit_megarch11_snorm_params.json", sigma = "fit_megarch11_snorm_sigma.csv",
+                          note = "MEGARCH(1,1) under FS-skew normal (adds a skew param); E|eta| centering"),
+      megarch11_sged = list(params = "fit_megarch11_sged_params.json", sigma = "fit_megarch11_sged_sigma.csv",
+                          note = "MEGARCH(1,1) under FS-skew GED (adds shape + skew); E|eta| centering"),
+      megarch11_sald = list(params = "fit_megarch11_sald_params.json", sigma = "fit_megarch11_sald_sigma.csv",
+                          note = "MEGARCH(1,1) under FS-skew ALD (adds P + skew); E|eta| centering"),
       mloggarch11_norm = list(params = "fit_mloggarch11_norm_params.json", sigma = "fit_mloggarch11_norm_sigma.csv"),
+      mloggarch11_ged = list(params = "fit_mloggarch11_ged_params.json", sigma = "fit_mloggarch11_ged_sigma.csv",
+                          note = "MLog-GARCH(1,1) under conditional GED (adds a shape param); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"),
+      mloggarch11_ald = list(params = "fit_mloggarch11_ald_params.json", sigma = "fit_mloggarch11_ald_sigma.csv",
+                          note = "MLog-GARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"),
+      mloggarch11_snorm = list(params = "fit_mloggarch11_snorm_params.json", sigma = "fit_mloggarch11_snorm_sigma.csv",
+                          note = "MLog-GARCH(1,1) under FS-skew normal (adds a skew param); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"),
+      mloggarch11_sged = list(params = "fit_mloggarch11_sged_params.json", sigma = "fit_mloggarch11_sged_sigma.csv",
+                          note = "MLog-GARCH(1,1) under FS-skew GED (adds shape + skew); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"),
+      mloggarch11_sald = list(params = "fit_mloggarch11_sald_params.json", sigma = "fit_mloggarch11_sald_sigma.csv",
+                          note = "MLog-GARCH(1,1) under FS-skew ALD (adds P + skew); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"),
       fiegarch11_norm = list(params = "fit_fiegarch11_norm_params.json", sigma = "fit_fiegarch11_norm_sigma.csv",
                              note = "first Phase-4 long-memory fixture (fractionally-integrated EGARCH; fractional order d estimated, App. C.3 trunc L=n-1)"),
       fimegarch11_norm = list(params = "fit_fimegarch11_norm_params.json", sigma = "fit_fimegarch11_norm_sigma.csv",

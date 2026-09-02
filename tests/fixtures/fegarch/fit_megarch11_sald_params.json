@@ -1,0 +1,26 @@
+{
+  "model": "megarch",
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00048681450474422056,
+    "omega_sig": -8.982784425123203,
+    "phi1": 0.98147404977083752,
+    "kappa": -0.038305628379358081,
+    "gamma": 0.15931357232766452,
+    "P": 5,
+    "skew": 0.9747469607723358
+  },
+  "loglikelihood": 7585.2271148874315,
+  "aic": -6.0625816919099451,
+  "bic": -6.0462743630795481,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

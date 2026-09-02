@@ -238,13 +238,93 @@
         "params": "fit_loggarch11_norm_params.json",
         "sigma": "fit_loggarch11_norm_sigma.csv"
       },
+      "loggarch11_ged": {
+        "params": "fit_loggarch11_ged_params.json",
+        "sigma": "fit_loggarch11_ged_sigma.csv",
+        "note": "Log-GARCH(1,1) under conditional GED (adds a shape param); E[ln eta^2] centering (Type-II)"
+      },
+      "loggarch11_ald": {
+        "params": "fit_loggarch11_ald_params.json",
+        "sigma": "fit_loggarch11_ald_sigma.csv",
+        "note": "Log-GARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); E[ln eta^2] centering (Type-II)"
+      },
+      "loggarch11_snorm": {
+        "params": "fit_loggarch11_snorm_params.json",
+        "sigma": "fit_loggarch11_snorm_sigma.csv",
+        "note": "Log-GARCH(1,1) under FS-skew normal (adds a skew param); E[ln eta^2] centering (Type-II)"
+      },
+      "loggarch11_sstd": {
+        "params": "fit_loggarch11_sstd_params.json",
+        "sigma": "fit_loggarch11_sstd_sigma.csv",
+        "note": "Log-GARCH(1,1) under FS-skew Student-t (adds shape + skew); E[ln eta^2] centering (Type-II)"
+      },
+      "loggarch11_sged": {
+        "params": "fit_loggarch11_sged_params.json",
+        "sigma": "fit_loggarch11_sged_sigma.csv",
+        "note": "Log-GARCH(1,1) under FS-skew GED (adds shape + skew); E[ln eta^2] centering (Type-II)"
+      },
+      "loggarch11_sald": {
+        "params": "fit_loggarch11_sald_params.json",
+        "sigma": "fit_loggarch11_sald_sigma.csv",
+        "note": "Log-GARCH(1,1) under FS-skew ALD (adds P + skew); E[ln eta^2] centering (Type-II)"
+      },
       "megarch11_norm": {
         "params": "fit_megarch11_norm_params.json",
         "sigma": "fit_megarch11_norm_sigma.csv"
       },
+      "megarch11_ged": {
+        "params": "fit_megarch11_ged_params.json",
+        "sigma": "fit_megarch11_ged_sigma.csv",
+        "note": "MEGARCH(1,1) under conditional GED (adds a shape param); E|eta| centering"
+      },
+      "megarch11_ald": {
+        "params": "fit_megarch11_ald_params.json",
+        "sigma": "fit_megarch11_ald_sigma.csv",
+        "note": "MEGARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); E|eta| centering"
+      },
+      "megarch11_snorm": {
+        "params": "fit_megarch11_snorm_params.json",
+        "sigma": "fit_megarch11_snorm_sigma.csv",
+        "note": "MEGARCH(1,1) under FS-skew normal (adds a skew param); E|eta| centering"
+      },
+      "megarch11_sged": {
+        "params": "fit_megarch11_sged_params.json",
+        "sigma": "fit_megarch11_sged_sigma.csv",
+        "note": "MEGARCH(1,1) under FS-skew GED (adds shape + skew); E|eta| centering"
+      },
+      "megarch11_sald": {
+        "params": "fit_megarch11_sald_params.json",
+        "sigma": "fit_megarch11_sald_sigma.csv",
+        "note": "MEGARCH(1,1) under FS-skew ALD (adds P + skew); E|eta| centering"
+      },
       "mloggarch11_norm": {
         "params": "fit_mloggarch11_norm_params.json",
         "sigma": "fit_mloggarch11_norm_sigma.csv"
+      },
+      "mloggarch11_ged": {
+        "params": "fit_mloggarch11_ged_params.json",
+        "sigma": "fit_mloggarch11_ged_sigma.csv",
+        "note": "MLog-GARCH(1,1) under conditional GED (adds a shape param); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"
+      },
+      "mloggarch11_ald": {
+        "params": "fit_mloggarch11_ald_params.json",
+        "sigma": "fit_mloggarch11_ald_sigma.csv",
+        "note": "MLog-GARCH(1,1) under conditional ALD (P profiled over Prange=c(1,5)); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"
+      },
+      "mloggarch11_snorm": {
+        "params": "fit_mloggarch11_snorm_params.json",
+        "sigma": "fit_mloggarch11_snorm_sigma.csv",
+        "note": "MLog-GARCH(1,1) under FS-skew normal (adds a skew param); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"
+      },
+      "mloggarch11_sged": {
+        "params": "fit_mloggarch11_sged_params.json",
+        "sigma": "fit_mloggarch11_sged_sigma.csv",
+        "note": "MLog-GARCH(1,1) under FS-skew GED (adds shape + skew); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"
+      },
+      "mloggarch11_sald": {
+        "params": "fit_mloggarch11_sald_params.json",
+        "sigma": "fit_mloggarch11_sald_sigma.csv",
+        "note": "MLog-GARCH(1,1) under FS-skew ALD (adds P + skew); E[ln(|eta|+1)] centering (gamma ~1.8x MEGARCH)"
       },
       "fiegarch11_norm": {
         "params": "fit_fiegarch11_norm_params.json",
