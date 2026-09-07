@@ -155,13 +155,17 @@ MLog-GARCH    <code>(1, 0)</code>        <code>(1, 0)</code>        \( \zeta(\et
 <p><strong>Centering.</strong> \( \operatorname{E}[g(\eta)] = 0 \) (keeping :math:<code>\omega_\sigma =
 \operatorname{E}[\ln\sigma^2]</code>) needs each term centered. The <strong>asymmetry</strong> centering
 \( \operatorname{E}[g_{\mathrm{asy}}] \) is <strong>0 for symmetric</strong> innovations
-(\( g_{\mathrm{asy}} \) is odd, the density even) — nonzero only under the FS-skew wrapper
-(deferred). The <strong>magnitude</strong> centering is \( \operatorname{E}|\eta| \) (<code>abs_moment</code>) for
-EGARCH/MEGARCH (\( g_{\mathrm{mag}} = |\eta| \)), and \( \operatorname{E}[\ln(|\eta|+1)] \)
-(<code>mean_log_modulus</code>, a new distribution
-moment) for MLog-GARCH. Both are sourced from the distribution layer and passed into the recursion —
-never hard-coded. Only the normal is wired/validated; <code>std</code> / <code>ged</code> and the skewed variants are
-the documented follow-up.</p>
+(\( g_{\mathrm{asy}} \) is odd, the density even), and <strong>0 under the FS-skew wrapper too</strong> for
+EGARCH (\( g_{\mathrm{asy}} = \eta \), \( \operatorname{E}[\eta] = 0 \) by standardization). The
+<strong>magnitude</strong> centering is \( \operatorname{E}|\eta| \) (<code>abs_moment</code>) for EGARCH/MEGARCH
+(\( g_{\mathrm{mag}} = |\eta| \)), and \( \operatorname{E}[\ln(|\eta|+1)] \)
+(<code>mean_log_modulus</code>) for MLog-GARCH — both sourced from the distribution layer, never hard-coded.
+<strong>All eight distributions are wired</strong> (the EGF distribution infrastructure, Phase 5): the FS-skew
+wrapper's moments are by quadrature over its density, and for a jointly-estimated continuous shape
+the centering is re-computed from the <em>current</em> shape each optimizer iteration (per-iteration
+centering, via the QMLE <code>recursion_uses_dist_params</code> hook, with Nelder-Mead + a restart for the
+flat shape ridge). Validated on EGARCH against the five converging fixtures + known-truth for
+<code>std</code> / <code>sstd</code> (which fEGarch's own optimizer failed to fit).</p>
 
 <p><strong>Reported intercept &amp; pre-sample.</strong> <code>fEGarch</code> reports :math:<code>\omega_\sigma =
 \operatorname{E}[\ln\sigma_t^2]</code> (<code>omega_sig</code>); the recursion intercept :math:<code>\omega =
@@ -388,7 +392,7 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>, the on
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">megarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+        <span class="name">megarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">mean_signed_log_modulus</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
 
         
     </div>
@@ -407,6 +411,10 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>, the on
 The return series.</li>
 <li><strong>abs_moment</strong> (float):
 \( \operatorname{E}|\eta| \), the magnitude centering, from <code>abs_moment()</code> (keyword).</li>
+<li><strong>mean_signed_log_modulus</strong> (float, optional):
+\( \operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)] \), the modulus-log
+<strong>asymmetry</strong>
+centering (<code>0</code> for symmetric innovations, nonzero under skew). Default <code>0</code> (symmetric).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
@@ -468,7 +476,7 @@ Burn-in samples discarded (default 500).</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">mloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+        <span class="name">mloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">mean_signed_log_modulus</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
 
         
     </div>
@@ -488,6 +496,9 @@ The return series.</li>
 <li><strong>mean_log_modulus</strong> (float):
 \( \operatorname{E}[\ln(|\eta|+1)] \), the magnitude centering, from
 <code>mean_log_modulus()</code> (keyword-only).</li>
+<li><strong>mean_signed_log_modulus</strong> (float, optional):
+\( \operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)] \), the asymmetry centering
+(<code>0</code> for symmetric, nonzero under skew). Default <code>0</code> (symmetric).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>

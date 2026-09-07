@@ -215,8 +215,8 @@ def _run_loggarch_fit(
         dist_restart = tuple(float(p) for p in result.params[n_var:])
         restarted = quasi_max_likelihood(
             scaled,
-            recursion,
-            distribution,
+            recursion,  # type: ignore[arg-type]
+            distribution,  # type: ignore[arg-type]
             var_start=var_restart,
             dist_start=dist_restart,
             **kw,  # type: ignore[arg-type]

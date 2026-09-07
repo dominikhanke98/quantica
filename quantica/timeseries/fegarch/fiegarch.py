@@ -66,7 +66,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 from scipy import fft as sp_fft
 
-from quantica.timeseries.fegarch.distributions import get_distribution
+from quantica.timeseries.fegarch.distributions import (
+    AverageLaplace,
+    ConditionalDistribution,
+    FernandezSteelSkew,
+    get_distribution,
+)
 from quantica.timeseries.fegarch.egarch import (
     EGARCH_CONSTANTS,
     MEGARCH_CONSTANTS,
@@ -74,11 +79,18 @@ from quantica.timeseries.fegarch.egarch import (
     type1_news_impact,
 )
 from quantica.timeseries.fegarch.fracdiff import fracdiff_coeffs
-from quantica.timeseries.fegarch.garch import GarchFit
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
 from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
+    from quantica.timeseries.fegarch.qmle import QMLEResult
+
+# Nelder-Mead options for the shape-parameter FI-EGF fits (flat shape ridge + shape-dependent
+# centering + the fractional d), plus simplex-collapse restart controls (as the short-memory EGF).
+_SHAPE_OPTIONS: dict[str, object] = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
+_MAX_FIEGF_RESTARTS = 3
+_FIEGF_RESTART_TOL = 1e-6
 
 __all__ = [
     "fiegarch_recursion",
@@ -200,7 +212,11 @@ def fiegarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: f
 
 
 def fimegarch_recursion(
-    params: FloatArray, returns: FloatArray, *, abs_moment: float
+    params: FloatArray,
+    returns: FloatArray,
+    *,
+    abs_moment: float,
+    mean_signed_log_modulus: float = 0.0,
 ) -> FloatArray:
     r"""FIMEGARCH(1,d,1) conditional variance — FIEGARCH with the MEGARCH constant-set.
 
@@ -216,6 +232,10 @@ def fimegarch_recursion(
         The return series.
     abs_moment : float
         :math:`\operatorname{E}|\eta|`, the magnitude centering, from :meth:`abs_moment` (keyword).
+    mean_signed_log_modulus : float, optional
+        :math:`\operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)]`, the modulus-log
+        **asymmetry**
+        centering (``0`` for symmetric innovations, nonzero under skew). Default ``0``.
 
     Returns
     -------
@@ -223,12 +243,20 @@ def fimegarch_recursion(
         The conditional variances :math:`\sigma_t^2` (same MA(∞) pre-sample as FIEGARCH).
     """
     return _fiegarch_variance(
-        params, returns, constants=MEGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
+        params,
+        returns,
+        constants=MEGARCH_CONSTANTS,
+        mean_asy=mean_signed_log_modulus,
+        mean_mag=abs_moment,
     )
 
 
 def fimloggarch_recursion(
-    params: FloatArray, returns: FloatArray, *, mean_log_modulus: float
+    params: FloatArray,
+    returns: FloatArray,
+    *,
+    mean_log_modulus: float,
+    mean_signed_log_modulus: float = 0.0,
 ) -> FloatArray:
     r"""FIMLog-GARCH(1,d,1) conditional variance — FIEGARCH with the MLog-GARCH constant-set.
 
@@ -245,6 +273,9 @@ def fimloggarch_recursion(
     mean_log_modulus : float
         :math:`\operatorname{E}[\ln(|\eta|+1)]`, the magnitude centering, from
         :meth:`mean_log_modulus` (keyword-only).
+    mean_signed_log_modulus : float, optional
+        :math:`\operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)]`, the asymmetry centering
+        (``0`` for symmetric, nonzero under skew). Default ``0``.
 
     Returns
     -------
@@ -252,7 +283,11 @@ def fimloggarch_recursion(
         The conditional variances :math:`\sigma_t^2` (same MA(∞) pre-sample as FIEGARCH).
     """
     return _fiegarch_variance(
-        params, returns, constants=MLOGGARCH_CONSTANTS, mean_asy=0.0, mean_mag=mean_log_modulus
+        params,
+        returns,
+        constants=MLOGGARCH_CONSTANTS,
+        mean_asy=mean_signed_log_modulus,
+        mean_mag=mean_log_modulus,
     )
 
 
@@ -274,39 +309,161 @@ def _fit_fiegarch(
     n = y.size
     scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
     scaled = y / scale
-    distribution = get_distribution(cond_dist)
+    var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), 0.5, 0.0, 0.1, 0.3)
 
-    # Magnitude centering from the distribution layer; captured, not hard-coded.
-    if log_modulus_magnitude:
-        mean_mag = distribution.mean_log_modulus(distribution.param_start)
-    else:
-        mean_mag = distribution.abs_moment(distribution.param_start)
-
-    def recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
-        return _fiegarch_variance(
-            params, returns, constants=constants, mean_asy=0.0, mean_mag=mean_mag
+    if cond_dist in ("ald", "sald"):
+        return _fit_fiegarch_ald(
+            scaled,
+            scale,
+            n,
+            constants,
+            log_modulus_magnitude,
+            var_start,
+            skewed=cond_dist == "sald",
         )
 
-    var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), 0.5, 0.0, 0.1, 0.3)
-    var_bounds = (
-        (-10.0, 10.0),
-        (-50.0, 50.0),
-        (-0.9999, 0.9999),
-        (-5.0, 5.0),
-        (-5.0, 5.0),
-        (1e-6, 0.9999),  # d in (0, 1) -- NOT clamped at 0.5 (long memory extends to the unit root)
-    )
+    distribution = get_distribution(cond_dist)
+    result = _run_fiegarch_fit(scaled, distribution, constants, log_modulus_magnitude, var_start)
+    return _build_fiegarch_fit(result, cond_dist, scale, n, k=result.params.size)
 
+
+_FIEGARCH_BOUNDS = (
+    (-10.0, 10.0),
+    (-50.0, 50.0),
+    (-0.9999, 0.9999),
+    (-5.0, 5.0),
+    (-5.0, 5.0),
+    (1e-6, 0.9999),  # d in (0, 1) -- NOT clamped at 0.5 (long memory extends to the unit root)
+)
+
+
+def _fiegarch_centered_recursion(
+    distribution: ConditionalDistribution,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+) -> tuple[object, bool, str, dict[str, object] | None]:
+    """The FI-EGF recursion with the right magnitude + asymmetry centering for a distribution.
+
+    Mirrors the short-memory EGF: a continuous shape recomputes the centering moments from the
+    *current* shape each iteration (Nelder-Mead); ``norm`` / fixed-``P`` ALD use precomputed consts
+    (default L-BFGS-B), bit-identical. The magnitude is ``E[ln(|eta|+1)]`` (log-modulus models) or
+    ``E|eta|``; the asymmetry is the signed-log-modulus moment for the modulus-log-asymmetry models
+    (``M_asy = 1, p_asy = 0``) — ``0`` for symmetric, nonzero under skew — else ``0``.
+    """
+    moment = distribution.mean_log_modulus if log_modulus_magnitude else distribution.abs_moment
+    modulus_log_asy = constants[0] == 1.0 and constants[1] == 0.0
+
+    def _mean_asy(dist_params: tuple[float, ...] | None) -> float:
+        return distribution.mean_signed_log_modulus(dist_params) if modulus_log_asy else 0.0
+
+    if distribution.param_names:
+
+        def per_iter(
+            params: FloatArray, returns: FloatArray, dist_params: tuple[float, ...]
+        ) -> FloatArray:
+            return _fiegarch_variance(
+                params,
+                returns,
+                constants=constants,
+                mean_asy=_mean_asy(dist_params),
+                mean_mag=moment(dist_params),
+            )
+
+        return per_iter, True, "Nelder-Mead", _SHAPE_OPTIONS
+
+    mean_mag = moment(distribution.param_start)
+    mean_asy_const = _mean_asy(distribution.param_start)
+
+    def constant(params: FloatArray, returns: FloatArray) -> FloatArray:
+        return _fiegarch_variance(
+            params, returns, constants=constants, mean_asy=mean_asy_const, mean_mag=mean_mag
+        )
+
+    return constant, False, "L-BFGS-B", None
+
+
+def _run_fiegarch_fit(
+    scaled: FloatArray,
+    distribution: ConditionalDistribution,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+    var_start: tuple[float, ...],
+) -> QMLEResult:
+    """Fit an FI-EGF model under one distribution, restarting Nelder-Mead if the simplex stalls."""
+    recursion, uses_dist, method, options = _fiegarch_centered_recursion(
+        distribution, constants, log_modulus_magnitude
+    )
+    kw: dict[str, object] = {
+        "var_bounds": _FIEGARCH_BOUNDS,
+        "var_names": _VAR_NAMES,
+        "mean": True,
+        "method": method,
+        "options": options,
+        "recursion_uses_dist_params": uses_dist,
+    }
     result = quasi_max_likelihood(
         scaled,
-        recursion,
+        recursion,  # type: ignore[arg-type]
         distribution,
         var_start=var_start,
-        var_bounds=var_bounds,
-        var_names=_VAR_NAMES,
-        mean=True,
+        **kw,  # type: ignore[arg-type]
     )
+    if method != "Nelder-Mead":
+        return result
+    n_var = len(var_start)
+    for _ in range(_MAX_FIEGF_RESTARTS):
+        var_restart = tuple(float(p) for p in result.params[:n_var])
+        dist_restart = tuple(float(p) for p in result.params[n_var:])
+        restarted = quasi_max_likelihood(
+            scaled,
+            recursion,  # type: ignore[arg-type]
+            distribution,
+            var_start=var_restart,
+            dist_start=dist_restart,
+            **kw,  # type: ignore[arg-type]
+        )
+        if restarted.loglikelihood <= result.loglikelihood + _FIEGF_RESTART_TOL:
+            if restarted.loglikelihood > result.loglikelihood:
+                result = restarted
+            break
+        result = restarted
+    return result
 
+
+def _build_fiegarch_fit(
+    result: QMLEResult,
+    cond_dist: str,
+    scale: float,
+    n: int,
+    *,
+    k: int,
+    extra_params: dict[str, float] | None = None,
+    profile: tuple[tuple[int, float], ...] | None = None,
+) -> GarchFit:
+    """Assemble a :class:`GarchFit` from an FI-EGF result: undo the scaling and form AIC/BIC.
+
+    Parameters
+    ----------
+    result : QMLEResult
+        The fitted engine result on the rescaled returns.
+    cond_dist : str
+        The conditional-distribution code.
+    scale : float
+        The return scale divided out before fitting.
+    n : int
+        Number of observations.
+    k : int
+        Parameter count for the AIC/BIC penalty (includes the profiled ``P`` where one applies).
+    extra_params : dict of str to float, optional
+        Extra parameters not produced by the optimizer (the ALD's profiled ``P``).
+    profile : tuple of (int, float) or None, optional
+        The ALD ``(P, log-likelihood)`` grid, forwarded to :class:`GarchFit`.
+
+    Returns
+    -------
+    GarchFit
+        The fitted model in original units.
+    """
     # Undo the scaling: mu is multiplicative (~scale); omega_sig is a log-variance intercept, so it
     # shifts ADDITIVELY by ln(scale^2); phi1/kappa/gamma/d and shape parameters are scale-invariant.
     names = result.param_names
@@ -317,9 +474,10 @@ def _fit_fiegarch(
     std_errors_arr[0] *= scale  # additive shift on omega_sig leaves its SE unchanged
     params = {name: float(v) for name, v in zip(names, values, strict=True)}
     std_errors = {name: float(s) for name, s in zip(names, std_errors_arr, strict=True)}
+    if extra_params:
+        params.update(extra_params)
 
     loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
-    k = result.params.size
     aic = (2.0 * k - 2.0 * loglik) / n
     bic = (k * np.log(n) - 2.0 * loglik) / n
     conditional_volatility = np.sqrt(result.conditional_variance) * scale
@@ -334,6 +492,47 @@ def _fit_fiegarch(
         conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
         n_obs=n,
         converged=result.converged,
+        profile=profile,
+    )
+
+
+def _fit_fiegarch_ald(
+    scaled: FloatArray,
+    scale: float,
+    n: int,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+    var_start: tuple[float, ...],
+    *,
+    skewed: bool,
+) -> GarchFit:
+    """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for an FI-EGF model (ald / sald).
+
+    Each fixed-``P`` ALD has a constant magnitude centering; ``sald`` adds the FS ``skew``
+    (per-iteration). ``P`` never enters the optimizer but counts in the AIC/BIC penalty.
+    """
+    best: QMLEResult | None = None
+    best_p = 0
+    profile: list[tuple[int, float]] = []
+    for p in _ALD_PRANGE:
+        base = AverageLaplace(p=p)
+        distribution = FernandezSteelSkew(base) if skewed else base
+        result = _run_fiegarch_fit(
+            scaled, distribution, constants, log_modulus_magnitude, var_start
+        )
+        profile.append((p, float(result.loglikelihood - n * np.log(scale))))
+        if best is None or result.loglikelihood > best.loglikelihood:
+            best, best_p = result, p
+
+    assert best is not None  # _ALD_PRANGE is non-empty
+    return _build_fiegarch_fit(
+        best,
+        "sald" if skewed else "ald",
+        scale,
+        n,
+        k=best.params.size + 1,
+        extra_params={"P": float(best_p)},
+        profile=tuple(profile),
     )
 
 
@@ -436,11 +635,17 @@ def _sim_fiegarch(
         mean_mag = distribution.mean_log_modulus(dist_params)
     else:
         mean_mag = distribution.abs_moment(dist_params)
+    # FIMEGARCH/FIMLog-GARCH ((M_asy, p_asy) = (1, 0)) center g_asy on E[sgn(eta) ln(|eta|+1)]
+    # (0 for symmetric, nonzero under skew); FIEGARCH keeps 0. The sim matches the fit's centering.
+    modulus_log_asy = constants[0] == 1.0 and constants[1] == 0.0
+    mean_asy = distribution.mean_signed_log_modulus(dist_params) if modulus_log_asy else 0.0
     total = n + n_burn
     eta = distribution.sample(total, rng, dist_params)
     news = np.array(
         [
-            type1_news_impact(e, kappa, gamma, constants=constants, mean_asy=0.0, mean_mag=mean_mag)
+            type1_news_impact(
+                e, kappa, gamma, constants=constants, mean_asy=mean_asy, mean_mag=mean_mag
+            )
             for e in eta
         ],
         dtype=np.float64,

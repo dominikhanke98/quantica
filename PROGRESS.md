@@ -1547,6 +1547,38 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   §21 (+ §20 framing correction). Gate green. **COMPLETES the short-memory EGF family under all 8
   distributions. NOT merged — eighth commit of the distribution-breadth PR.**
 
+- **Step 46 — the long-memory EGF family (FIEGARCH/FIMEGARCH/FIMLog-GARCH/FILog-GARCH) under all 8
+  distributions, COMPLETING THE ENTIRE DISTRIBUTION BREADTH (branch `feat/fegarch-distributions`, NOT
+  merged).** Fixtures first: 28 fits, 22 converged (6 Type-I continuous-df failed fEGarch —
+  fiegarch/fimegarch/fimloggarch std/sstd; committed `3614e8d`). **True inheritance:** the FI models
+  reuse the four EGF centering moments + per-iteration centering *unchanged*, spliced into the Phase-4
+  `θ(B)` recursion, so the **reconstruction gate is machine-exact for all 22 by composition** (worst
+  `2.19e-10`; skewed Type-I `~1e-13` — the 4th moment flows through `θ(B)` with no FI-specific change).
+  **Type-I-fails/Type-II-converges split:** fEGarch failed all 3 Type-I FI models on std/sstd but
+  converged for the Type-II FILog-GARCH on the same laws → 3×5 + 7 = 22 fixtures. **Seam-centric
+  validation** (§14/§19): tight param-match only for the 9 well-identified cases (`|loglik|<1e-4`,
+  data-driven per-(model,dist) — fimloggarch ald dominates while sged is tight); dominate-or-tie for
+  the rest (Type-I sged/sald +3.8/+4.1; FILog-GARCH ridge 6/7 dominate +6..+45, ald ties within 0.76;
+  norm strictly-dominated fixture +120). **P-profiling discriminating test (the headline):**
+  FILog-GARCH×sald is the port's only interior-P fixture (`P=3`). STOPped and verified read-only that
+  P=4/P=5 are clean converged optima (scipy status=0, d interior, valid σ, loglik recomputed to 0.0),
+  reported, got the Option-1 go-ahead: our profiling reproduces fEGarch's P=3 loglik (7550.13) exactly
+  but selects **P=5** (the true monotone-concave max, 7556.80) and **dominates** the fixture — fEGarch's
+  interior P=3 was an **optimizer stall on the flat ridge** (§14 pattern on the discrete P-axis),
+  proving the P-profiling *compares* per-P likelihoods, not defaults to the boundary. **6 Type-I
+  known-truths all converge** (df=6 +skew=0.85, long-memory d=0.3), recover df/skew within 3·SE. γ tell
+  holds (FIMLog/FIMEGARCH γ ~1.85× every law); norm bit-identical for the 3 Type-I FI models. **Tests:
+  `test_fi_egf_family_distributions.py`.** **CI tiering (new `slow` marker):** the FI fit recursion is
+  O(n²) and each ald/sald fit 5× that via P-profiling (the sald P-profile alone ~20-40min, the full
+  sweep ~2-3h), so per-push CI runs the correctness proof — all 22 seams + γ + norm + one representative
+  fit per category (~5min) — while the exhaustive fit sweep + the P-profiling headline are `@pytest.mark.slow`
+  and run in a weekly/manual `slow` CI job (all verified green). Also fixed pre-existing latent mypy
+  drift (arg-type ignores displaced by ruff-format expansion) in egarch/loggarch/fiegarch/filoggarch —
+  uncaught because the branch never hit CI (CI runs on main only). Docs: spec-notes §22; CLAUDE.md §7/§11
+  + pyproject/ci.yml for the `slow` tier. Gate green (per-push tier + mypy + ruff + interrogate 100%).
+  **COMPLETES THE ENTIRE DISTRIBUTION BREADTH — every fEGarch model under all 8 distributions. NOT
+  merged — ninth commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at

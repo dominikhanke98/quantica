@@ -417,7 +417,11 @@ def _run_type1_fit(
         "recursion_uses_dist_params": uses_dist,
     }
     result = quasi_max_likelihood(
-        scaled, recursion, distribution, var_start=var_start, **kw  # type: ignore[arg-type]
+        scaled,
+        recursion,  # type: ignore[arg-type]
+        distribution,
+        var_start=var_start,
+        **kw,  # type: ignore[arg-type]
     )
     if method != "Nelder-Mead":
         return result
@@ -427,7 +431,7 @@ def _run_type1_fit(
         dist_restart = tuple(float(p) for p in result.params[n_var:])
         restarted = quasi_max_likelihood(
             scaled,
-            recursion,
+            recursion,  # type: ignore[arg-type]
             distribution,
             var_start=var_restart,
             dist_start=dist_restart,

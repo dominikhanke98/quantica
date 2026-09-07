@@ -1328,5 +1328,96 @@ short-memory EGF family (EGARCH/MEGARCH/MLog-GARCH/Log-GARCH) is complete under 
 
 ---
 
+## 22. The long-memory EGF family (FIEGARCH/FIMEGARCH/FIMLog-GARCH/FILog-GARCH) under all 8 distributions — RESOLVED (Phase 5), COMPLETING THE ENTIRE DISTRIBUTION BREADTH
+
+**Sources.** The EGF centering moments (§20–21) + the Phase-4 fractional recursion (WP 2026-04 §2.1
+Eqs. 4–6, App. C.3 Eq. 50; §2.1 Eqs. 10–13 for the Type-II fractional form). fEGarch source never
+consulted; validated against the 22 converging `fit_{fiegarch,fimegarch,fimloggarch,filoggarch}11_*`
+fixtures + known-truth for the 6 Type-I continuous-df failures. This is the **last layer** — every
+fEGarch model now runs under all eight distributions.
+
+### 22.1 True inheritance — the reconstruction gate machine-exact for all 22, no new mathematics
+
+The FI-EGF models reuse the **four EGF centering moments** and the per-iteration centering *unchanged*,
+spliced into the truncated-MA(∞) `θ(B)` recursion. So the reconstruction gate had nothing new to
+prove and it shows: at each fixture's params the recursion + the extracted centering moments reproduce
+the σ-series **machine-exactly for all 22** (worst `2.19e-10`, FILog-GARCH×sald; the Type-I
+skewed cases `~1e-13`, most `~1e-16`), purely by composition. The 4th moment (signed-log-modulus
+asymmetry) flows into FIMEGARCH/FIMLog-GARCH through `θ(B)` exactly as it did short-memory — confirmed
+by the skewed seams pinning without any FI-specific change. **This is the definition of inheritance:
+the correctness proof needed no new distribution code.**
+
+### 22.2 The Type-I-fails / Type-II-converges split (the fixture inventory)
+
+fEGarch's optimizer **failed the continuous-df fits for all three Type-I FI models**
+(fiegarch/fimegarch/fimloggarch × std/sstd — 6 cases) but **converged for the Type-II FILog-GARCH on
+the same std/sstd**. So FILog-GARCH has all 7 non-norm fixtures while the Type-I trio have 5 each —
+**22 fixtures = 3×5 + 7**. This extends the short-memory pattern (there only `loggarch` std failed):
+the Type-II log-square news `ln η²` gives a better-conditioned continuous-df surface than the Type-I
+`g(η) = κη + γ(|η|−E|η|)`, so the Type-II optimizer is more robust exactly where the Type-I one
+stalls. The 6 Type-I failures carry *no fixture* (none fabricated); known-truth at `df = 6`
+(+`skew = 0.85` for sstd) on a long-memory `d = 0.3` sim — **our optimizer converges on all 6** and
+recovers `df` (+`skew`) within `3·SE`.
+
+### 22.3 Seam-centric validation — dominate-or-tie, tight only where identified
+
+The fits are weakly identified on the **flat `d` + shape/skew ridge**, so — as in §14/§19 — the seam
+is the correctness proof and the *fits* **dominate-or-tie** the fixtures:
+
+- **Tight (9 cases, `|loglik dev| < 1e-4`):** fiegarch/fimegarch ×{ged, ald, snorm}, fimloggarch
+  ×{ged, snorm, sged}. Loglik `~0`, σ `≤ 3.6e-6`, γ matches, `P = 5` for the tight ald. The split is
+  genuinely per-(model, dist), **not** a clean "ged/snorm" rule (fimloggarch's *ald* dominates while
+  its *sged* is tight) — so the test data-drives the tight set from the fixtures, asserting a param
+  match *only* there.
+- **Dominates (Type-I, 6 cases):** fiegarch/fimegarch sged (`+3.8`), sald (`+0.4`/`+3.7`); fimloggarch
+  ald (`+0.9`), sald (`+4.1`). Fit reaches-or-beats; the profiled `P` may shift on the dominated ridge
+  (fiegarch sald `P=4` vs fixture 5) so `P` is not asserted.
+- **FILog-GARCH ridge (7 cases):** the near-common-root ridge — **6 of 7 strictly dominate** (`+6` to
+  `+45`: the §14 strictly-dominated-fixture pattern under distributions), and **ald ties within `0.76`**
+  below (comparable on the ridge). The **norm fixture is itself strictly dominated** (fEGarch's
+  `μ=−0.003` local optimum) — our fit dominates it by `+120`, asserted as domination, **not** a
+  regression.
+
+### 22.4 The P-profiling discriminating test — fEGarch's lone interior-P is an optimizer stall
+
+FILog-GARCH×sald is the **only fixture in the whole port where fEGarch selected an interior `P`**
+(`P = 3`, not the boundary `P = 5`) — the natural discriminating test for whether our ALD
+P-profiling *compares* per-`P` likelihoods or merely defaults to the boundary. Read-only verification
+(each `P` fit's scipy exit, params, σ-series):
+
+```
+P=1: 7521.67   P=2: 7541.13   P=3: 7550.13   P=4: 7554.35   P=5: 7556.80   → our max at P=5
+              Δ +19.47        +8.99          +4.22          +2.45
+```
+
+- **P=4/P=5 are clean converged optima:** `success=True, status=0` ("terminated successfully",
+  `nit=146/660`, not max-iter); `d≈0.305` interior, `φ₁≈0.389, ψ₁≈−0.645` well separated, nothing at
+  a bound; the P=5 σ-series is finite/positive (`[0.006, 0.026]`) and **recomputes loglik `7556.80`
+  from scratch to `0.0`** — no numerical inflation.
+- **Our P=3 fit reproduces fEGarch's P=3 exactly** (`7550.13` = the committed fixture) — we *can* land
+  their point, so this is not a different objective.
+- The profile is **smooth monotone-concave** (decelerating positive steps → a genuine boundary
+  maximum, no degenerate jump), so our profiling **selects `P = 5` and dominates** the fixture's `P = 3`
+  (`+6.67`).
+
+**Finding:** fEGarch's interior `P = 3` was an **optimizer stall on the flat ridge** — its per-`P`
+optimizer fit `P = 3` fine but landed its `P = 4/5` *below* `7550`, so its profile spuriously peaked
+at `P = 3`. Our more-robust per-`P` optimizer finds the true concave max at the boundary. This is the
+§14 strictly-dominated pattern **on the discrete P-axis**, and it *validates the P-profiling
+mechanism*: because our profiling reproduces fEGarch's value at each converged `P` and still moves off
+`P = 3`, the port's prior `P = 5` selections are genuine likelihood maxima, **not** an
+always-return-the-boundary artifact.
+
+### 22.5 The γ tell + closure
+
+The log-modulus magnitude tell carries into long memory: **FIMLog-GARCH `γ ≈ 1.85× FIMEGARCH's`**
+(`1.826–1.875` across every converging law — FIMEGARCH's `E|η|` gives `γ ≈ 0.17`, FIMLog-GARCH's
+compressed `E[ln(|η|+1)]` gives `≈ 0.32`). norm paths bit-identical for the three Type-I FI models.
+`test_fi_egf_family_distributions.py`. **This completes the entire distribution breadth: every
+fEGarch model (GARCH-family, EGF-family, and their FI variants) now runs and is validated under all
+eight conditional distributions.**
+
+---
+
 *Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)
 are implemented — always from the papers/manual, never the source.*

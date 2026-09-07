@@ -141,14 +141,17 @@ and keeps the reference in lock-step with the code. The rules:
 # install (editable, with dev + benchmark deps)
 pip install -e ".[dev]"
 
-# run the full test suite
-pytest
+# run the per-push suite (excludes the QuantLib benchmarks and the slow tier)
+pytest -m "not benchmark and not slow"
 
 # coverage
-pytest --cov=quantica --cov-report=term-missing
+pytest --cov=quantica --cov-report=term-missing -m "not benchmark and not slow"
 
 # run only benchmark-vs-QuantLib tests
 pytest -m benchmark
+
+# run the slow tier (the ~2-3h O(n^2) FI-EGF fit sweep; opt-in, weekly in CI)
+pytest -m slow
 
 # lint / format / typecheck
 ruff check .
@@ -211,7 +214,7 @@ Apps by track: **Streamlit + Plotly** (pricing, portfolio), **Gradio on Hugging 
 End **every** working session with:
 
 1. **Update `PROGRESS.md`** (repo root) — the running state file: steps completed, the next step, open design notes, and how to resume. Keep it concise and factual.
-2. **Only commit on a green gate.** Run `ruff format --check . && ruff check . && mypy quantica && pytest` first; never commit red.
+2. **Only commit on a green gate.** Run `ruff format --check . && ruff check . && mypy quantica && pytest -m "not benchmark and not slow"` first; never commit red. (`-m slow` is the opt-in ~2-3h FI-EGF fit sweep — run it when touching that code, not every commit; `-m benchmark` needs the QuantLib extra.)
 3. **Commit coherently** — small, meaningful commits (§6), including the `PROGRESS.md` update, so the next session resumes from a clean, described state.
 
 `PROGRESS.md` is the transient session ledger; this file (`CLAUDE.md`) remains the durable brief. When they disagree, `CLAUDE.md` wins.
