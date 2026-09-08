@@ -64,18 +64,26 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quantica.timeseries.fegarch.distributions import get_distribution
+from quantica.timeseries.fegarch.distributions import (
+    AverageLaplace,
+    FernandezSteelSkew,
+    get_distribution,
+)
 from quantica.timeseries.fegarch.figarch import (
     FIGARCH_PRESAMPLE,
     figarch_coefficients,
     figarch_variance_filter,
 )
-from quantica.timeseries.fegarch.garch import GarchFit
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
 from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
-    from quantica.timeseries.fegarch.qmle import VarianceRecursion
+    from quantica.timeseries.fegarch.qmle import QMLEResult, VarianceRecursion
+
+# Optimizer options for the derivative-free Nelder-Mead used on near-flat shape/skew ridges
+# (Student-t df -> inf, FS skew -> 1 on near-symmetric data), matching the GARCH shape-fit path.
+_SHAPE_OPTIONS: dict[str, object] = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
 
 __all__ = [
     "fiaparch_news",
@@ -162,7 +170,6 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
     n = y.size
     scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean/omega
     scaled = y / scale
-    distribution = get_distribution(cond_dist)
 
     # d-bound (1e-7, 0.9999999) must permit the boundary d approx 1 (high-beta1 series).
     var_names: tuple[str, ...]
@@ -201,6 +208,30 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
 
         recursion = _delta_fixed_recursion
 
+    # The ALD (and sALD) profiles its integer degree P over the grid; every other distribution's
+    # shape/skew parameters are estimated jointly by the engine.
+    if cond_dist in ("ald", "sald"):
+        return _fit_fi_power_ald(
+            scaled,
+            scale,
+            n,
+            recursion,
+            var_names,
+            var_start,
+            var_bounds,
+            delta_fixed,
+            skewed=cond_dist == "sald",
+        )
+
+    distribution = get_distribution(cond_dist)
+    # Near-flat shape/skew ridges stall L-BFGS-B, so shape-parameter fits use Nelder-Mead; the norm
+    # path (no shape parameter) keeps L-BFGS-B and stays bit-identical to the validated fixture.
+    if distribution.param_names:
+        method: str = "Nelder-Mead"
+        options: dict[str, object] | None = _SHAPE_OPTIONS
+    else:
+        method, options = "L-BFGS-B", None
+
     result = quasi_max_likelihood(
         scaled,
         recursion,
@@ -209,10 +240,51 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
         var_bounds=var_bounds,
         var_names=var_names,
         mean=True,
+        method=method,
+        options=options,
     )
+    return _build_fi_power_fit(result, cond_dist, scale, n, delta_fixed, k=result.params.size)
 
+
+def _build_fi_power_fit(
+    result: QMLEResult,
+    cond_dist: str,
+    scale: float,
+    n: int,
+    delta_fixed: float | None,
+    *,
+    k: int,
+    extra_params: dict[str, float] | None = None,
+    profile: tuple[tuple[int, float], ...] | None = None,
+) -> GarchFit:
+    """Assemble a :class:`GarchFit` from an FI-power QMLE result: undo the scaling and form AIC/BIC.
+
+    Parameters
+    ----------
+    result : QMLEResult
+        The fitted engine result on the rescaled returns.
+    cond_dist : str
+        The conditional-distribution code.
+    scale : float
+        The return scale divided out before fitting.
+    n : int
+        Number of observations.
+    delta_fixed : float or None
+        ``None`` for the free-delta FIAPARCH (``delta`` at index 5), else the fixed power.
+    k : int
+        Parameter count for the AIC/BIC penalty (includes the profiled ``P`` where one applies).
+    extra_params : dict of str to float, optional
+        Extra parameters not produced by the optimizer (the ALD's profiled ``P``).
+    profile : tuple of (int, float) or None, optional
+        The ALD ``(P, log-likelihood)`` grid, forwarded to :class:`GarchFit`.
+
+    Returns
+    -------
+    GarchFit
+        The fitted model in original units.
+    """
     # Undo the scaling: mu scales (~scale); omega is a sigma^delta intercept, so it scales by
-    # scale^delta; phi1/beta1/gamma/(delta)/d are scale-invariant.
+    # scale^delta; phi1/beta1/gamma/(delta)/d and any distribution shape/skew params are invariant.
     delta_hat = float(result.params[5]) if delta_fixed is None else float(delta_fixed)
     names = result.param_names
     values = np.asarray(result.params, dtype=np.float64).copy()
@@ -223,9 +295,10 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
     std_errors_arr[1] *= scale**delta_hat
     params = {name: float(v) for name, v in zip(names, values, strict=True)}
     std_errors = {name: float(s) for name, s in zip(names, std_errors_arr, strict=True)}
+    if extra_params:
+        params.update(extra_params)
 
     loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
-    k = result.params.size
     aic = (2.0 * k - 2.0 * loglik) / n
     bic = (k * np.log(n) - 2.0 * loglik) / n
     conditional_volatility = np.sqrt(result.conditional_variance) * scale
@@ -240,6 +313,61 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
         conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
         n_obs=n,
         converged=result.converged,
+        profile=profile,
+    )
+
+
+def _fit_fi_power_ald(
+    scaled: FloatArray,
+    scale: float,
+    n: int,
+    recursion: VarianceRecursion,
+    var_names: tuple[str, ...],
+    var_start: tuple[float, ...],
+    var_bounds: tuple[tuple[float, float], ...],
+    delta_fixed: float | None,
+    *,
+    skewed: bool,
+) -> GarchFit:
+    """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for the FI-power family (ald / sald).
+
+    Fit the continuous parameters at each fixed ``P`` (plus the FS ``skew`` for ``sald``), select
+    the best log-likelihood, and count ``P`` in the AIC/BIC penalty (``P`` never enters the
+    optimizer).
+    """
+    method = "Nelder-Mead" if skewed else "L-BFGS-B"
+    options = _SHAPE_OPTIONS if skewed else None
+    best: QMLEResult | None = None
+    best_p = 0
+    profile: list[tuple[int, float]] = []
+    for p in _ALD_PRANGE:
+        base = AverageLaplace(p=p)
+        distribution = FernandezSteelSkew(base) if skewed else base
+        result = quasi_max_likelihood(
+            scaled,
+            recursion,
+            distribution,
+            var_start=var_start,
+            var_bounds=var_bounds,
+            var_names=var_names,
+            mean=True,
+            method=method,
+            options=options,
+        )
+        profile.append((p, float(result.loglikelihood - n * np.log(scale))))
+        if best is None or result.loglikelihood > best.loglikelihood:
+            best, best_p = result, p
+
+    assert best is not None  # _ALD_PRANGE is non-empty
+    return _build_fi_power_fit(
+        best,
+        "sald" if skewed else "ald",
+        scale,
+        n,
+        delta_fixed,
+        k=best.params.size + 1,  # P is profiled, not optimized, but counts in the penalty
+        extra_params={"P": float(best_p)},
+        profile=tuple(profile),
     )
 
 

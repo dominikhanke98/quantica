@@ -52,13 +52,17 @@ with the modulus-log transform :math:`\zeta(\eta) = \operatorname{sgn}(\eta)\ln(
 **Centering.** :math:`\operatorname{E}[g(\eta)] = 0` (keeping :math:`\omega_\sigma =
 \operatorname{E}[\ln\sigma^2]`) needs each term centered. The **asymmetry** centering
 :math:`\operatorname{E}[g_{\mathrm{asy}}]` is **0 for symmetric** innovations
-(:math:`g_{\mathrm{asy}}` is odd, the density even) — nonzero only under the FS-skew wrapper
-(deferred). The **magnitude** centering is :math:`\operatorname{E}|\eta|` (``abs_moment``) for
-EGARCH/MEGARCH (:math:`g_{\mathrm{mag}} = |\eta|`), and :math:`\operatorname{E}[\ln(|\eta|+1)]`
-(``mean_log_modulus``, a new distribution
-moment) for MLog-GARCH. Both are sourced from the distribution layer and passed into the recursion —
-never hard-coded. Only the normal is wired/validated; ``std`` / ``ged`` and the skewed variants are
-the documented follow-up.
+(:math:`g_{\mathrm{asy}}` is odd, the density even), and **0 under the FS-skew wrapper too** for
+EGARCH (:math:`g_{\mathrm{asy}} = \eta`, :math:`\operatorname{E}[\eta] = 0` by standardization). The
+**magnitude** centering is :math:`\operatorname{E}|\eta|` (``abs_moment``) for EGARCH/MEGARCH
+(:math:`g_{\mathrm{mag}} = |\eta|`), and :math:`\operatorname{E}[\ln(|\eta|+1)]`
+(``mean_log_modulus``) for MLog-GARCH — both sourced from the distribution layer, never hard-coded.
+**All eight distributions are wired** (the EGF distribution infrastructure, Phase 5): the FS-skew
+wrapper's moments are by quadrature over its density, and for a jointly-estimated continuous shape
+the centering is re-computed from the *current* shape each optimizer iteration (per-iteration
+centering, via the QMLE ``recursion_uses_dist_params`` hook, with Nelder-Mead + a restart for the
+flat shape ridge). Validated on EGARCH against the five converging fixtures + known-truth for
+``std`` / ``sstd`` (which fEGarch's own optimizer failed to fit).
 
 **Reported intercept & pre-sample.** `fEGarch` reports :math:`\omega_\sigma =
 \operatorname{E}[\ln\sigma_t^2]` (``omega_sig``); the recursion intercept :math:`\omega =
@@ -75,12 +79,22 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quantica.timeseries.fegarch.distributions import get_distribution
-from quantica.timeseries.fegarch.garch import GarchFit
+from quantica.timeseries.fegarch.distributions import (
+    AverageLaplace,
+    ConditionalDistribution,
+    FernandezSteelSkew,
+    get_distribution,
+)
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
 from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
+    from quantica.timeseries.fegarch.qmle import QMLEResult
+
+# Optimizer options for the derivative-free Nelder-Mead used on the shape-parameter EGF fits (the
+# flat shape ridge plus the shape-dependent E[g(eta)] centering), matching the GARCH shape-fit path.
+_SHAPE_OPTIONS: dict[str, object] = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
 
 __all__ = [
     "EGARCH_CONSTANTS",
@@ -236,7 +250,13 @@ def egarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: flo
     )
 
 
-def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: float) -> FloatArray:
+def megarch_recursion(
+    params: FloatArray,
+    returns: FloatArray,
+    *,
+    abs_moment: float,
+    mean_signed_log_modulus: float = 0.0,
+) -> FloatArray:
     r"""MEGARCH(1,1) conditional variance (the ``(1,0,0,1)`` Type-I instance).
 
     Modulus-log asymmetry :math:`\zeta(\eta)` with the EGARCH magnitude :math:`|\eta|`.
@@ -249,6 +269,10 @@ def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: fl
         The return series.
     abs_moment : float
         :math:`\operatorname{E}|\eta|`, the magnitude centering, from :meth:`abs_moment` (keyword).
+    mean_signed_log_modulus : float, optional
+        :math:`\operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)]`, the modulus-log
+        **asymmetry**
+        centering (``0`` for symmetric innovations, nonzero under skew). Default ``0`` (symmetric).
 
     Returns
     -------
@@ -256,12 +280,20 @@ def megarch_recursion(params: FloatArray, returns: FloatArray, *, abs_moment: fl
         The conditional variances :math:`\sigma_t^2`.
     """
     return _type1_variance(
-        params, returns, constants=MEGARCH_CONSTANTS, mean_asy=0.0, mean_mag=abs_moment
+        params,
+        returns,
+        constants=MEGARCH_CONSTANTS,
+        mean_asy=mean_signed_log_modulus,
+        mean_mag=abs_moment,
     )
 
 
 def mloggarch_recursion(
-    params: FloatArray, returns: FloatArray, *, mean_log_modulus: float
+    params: FloatArray,
+    returns: FloatArray,
+    *,
+    mean_log_modulus: float,
+    mean_signed_log_modulus: float = 0.0,
 ) -> FloatArray:
     r"""MLog-GARCH(1,1) conditional variance (the ``(1,0,1,0)`` Type-I instance).
 
@@ -276,6 +308,9 @@ def mloggarch_recursion(
     mean_log_modulus : float
         :math:`\operatorname{E}[\ln(|\eta|+1)]`, the magnitude centering, from
         :meth:`mean_log_modulus` (keyword-only).
+    mean_signed_log_modulus : float, optional
+        :math:`\operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)]`, the asymmetry centering
+        (``0`` for symmetric, nonzero under skew). Default ``0`` (symmetric).
 
     Returns
     -------
@@ -283,49 +318,167 @@ def mloggarch_recursion(
         The conditional variances :math:`\sigma_t^2`.
     """
     return _type1_variance(
-        params, returns, constants=MLOGGARCH_CONSTANTS, mean_asy=0.0, mean_mag=mean_log_modulus
+        params,
+        returns,
+        constants=MLOGGARCH_CONSTANTS,
+        mean_asy=mean_signed_log_modulus,
+        mean_mag=mean_log_modulus,
     )
 
 
-def _fit_type1(
-    returns: FloatArray,
-    cond_dist: str,
-    *,
+_TYPE1_VAR_START = (0.9, 0.0, 0.1)  # phi1, kappa, gamma starts (mu, omega_sig set from the data)
+_MAX_TYPE1_RESTARTS = 3  # Nelder-Mead simplex-collapse restarts for the shape-parameter EGF fits
+_TYPE1_RESTART_TOL = 1e-6  # stop restarting when the scaled log-likelihood stops improving
+_TYPE1_VAR_BOUNDS = (
+    (-10.0, 10.0),
+    (-50.0, 50.0),
+    (-0.9999, 0.9999),
+    (-5.0, 5.0),
+    (-5.0, 5.0),
+)
+
+
+def _type1_centered_recursion(
+    distribution: ConditionalDistribution,
     constants: tuple[float, float, float, float],
     log_modulus_magnitude: bool,
-) -> GarchFit:
-    """Shared Type-I EGF QMLE fit for a given constant-set (norm-only validated)."""
-    y = np.asarray(returns, dtype=np.float64)
-    n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
-    scaled = y / scale
-    distribution = get_distribution(cond_dist)
+) -> tuple[object, bool, str, dict[str, object] | None]:
+    """Build the Type-I recursion with the right E[g(eta)] magnitude centering for a distribution.
 
-    # Centering moments from the distribution layer; captured, not hard-coded.
-    mean_asy = 0.0  # symmetric bases; nonzero only under the FS-skew wrapper (deferred)
-    if log_modulus_magnitude:
-        mean_mag = distribution.mean_log_modulus(distribution.param_start)
-    else:
-        mean_mag = distribution.abs_moment(distribution.param_start)
+    Returns ``(recursion, uses_dist_params, method, options)``. A distribution with shape parameters
+    re-computes the centering moments from the *current* shape each iteration (per-iteration
+    centering, Nelder-Mead); a shapeless distribution (``norm``, or a fixed-``P`` ALD) uses a
+    precomputed constant (L-BFGS-B), keeping the norm path bit-identical.
 
-    def recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
+    The **magnitude** centering is ``E|eta|`` (EGARCH/MEGARCH) or ``E[ln(|eta|+1)]`` (MLog-GARCH).
+    The **asymmetry** centering is ``0`` for EGARCH (``g_asy = eta``, ``E[eta] = 0`` even under
+    skew), but for the modulus-log-asymmetry models (MEGARCH/MLog-GARCH, ``M_asy=1, p_asy=0``) it is
+    the 4th
+    EGF moment ``E[sgn(eta) ln(|eta|+1)]`` (``mean_signed_log_modulus``) — ``0`` for symmetric
+    innovations but nonzero under skew, so it too recomputes per iteration.
+    """
+    moment = distribution.mean_log_modulus if log_modulus_magnitude else distribution.abs_moment
+    # g_asy = sgn(eta) ln(|eta|+1) when (M_asy, p_asy) = (1, 0); its centering is the signed
+    # modulus-log moment (0 for symmetric, nonzero under skew). EGARCH (0, 1) keeps mean_asy = 0.
+    modulus_log_asy = constants[0] == 1.0 and constants[1] == 0.0
+
+    def _mean_asy(dist_params: tuple[float, ...] | None) -> float:
+        return distribution.mean_signed_log_modulus(dist_params) if modulus_log_asy else 0.0
+
+    if distribution.param_names:
+
+        def per_iter(
+            params: FloatArray, returns: FloatArray, dist_params: tuple[float, ...]
+        ) -> FloatArray:
+            mean_mag = moment(dist_params)
+            return _type1_variance(
+                params,
+                returns,
+                constants=constants,
+                mean_asy=_mean_asy(dist_params),
+                mean_mag=mean_mag,
+            )
+
+        return per_iter, True, "Nelder-Mead", _SHAPE_OPTIONS
+
+    mean_mag = moment(distribution.param_start)  # precomputed constant (norm / fixed-P ALD)
+    mean_asy_const = _mean_asy(distribution.param_start)  # 0 for symmetric bases, hence norm
+
+    def constant(params: FloatArray, returns: FloatArray) -> FloatArray:
         return _type1_variance(
-            params, returns, constants=constants, mean_asy=mean_asy, mean_mag=mean_mag
+            params, returns, constants=constants, mean_asy=mean_asy_const, mean_mag=mean_mag
         )
 
-    var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), 0.9, 0.0, 0.1)
-    var_bounds = ((-10.0, 10.0), (-50.0, 50.0), (-0.9999, 0.9999), (-5.0, 5.0), (-5.0, 5.0))
+    return constant, False, "L-BFGS-B", None
 
+
+def _run_type1_fit(
+    scaled: FloatArray,
+    distribution: ConditionalDistribution,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+    var_start: tuple[float, ...],
+) -> QMLEResult:
+    """Fit a Type-I EGF model under one distribution, restarting Nelder-Mead if its simplex stalls.
+
+    The shape-parameter fits (Nelder-Mead over a flat shape ridge with a shape-dependent centering)
+    can converge prematurely on a collapsed simplex; restarting from the solution escapes that. The
+    ``norm`` / fixed-``P`` ALD path is gradient-based (L-BFGS-B) and needs no restart.
+    """
+    recursion, uses_dist, method, options = _type1_centered_recursion(
+        distribution, constants, log_modulus_magnitude
+    )
+    kw: dict[str, object] = {
+        "var_bounds": _TYPE1_VAR_BOUNDS,
+        "var_names": _VAR_NAMES,
+        "mean": True,
+        "method": method,
+        "options": options,
+        "recursion_uses_dist_params": uses_dist,
+    }
     result = quasi_max_likelihood(
         scaled,
-        recursion,
+        recursion,  # type: ignore[arg-type]
         distribution,
         var_start=var_start,
-        var_bounds=var_bounds,
-        var_names=_VAR_NAMES,
-        mean=True,
+        **kw,  # type: ignore[arg-type]
     )
+    if method != "Nelder-Mead":
+        return result
+    n_var = len(var_start)
+    for _ in range(_MAX_TYPE1_RESTARTS):
+        var_restart = tuple(float(p) for p in result.params[:n_var])
+        dist_restart = tuple(float(p) for p in result.params[n_var:])
+        restarted = quasi_max_likelihood(
+            scaled,
+            recursion,  # type: ignore[arg-type]
+            distribution,
+            var_start=var_restart,
+            dist_start=dist_restart,
+            **kw,  # type: ignore[arg-type]
+        )
+        if restarted.loglikelihood <= result.loglikelihood + _TYPE1_RESTART_TOL:
+            if restarted.loglikelihood > result.loglikelihood:
+                result = restarted
+            break
+        result = restarted
+    return result
 
+
+def _build_type1_fit(
+    result: QMLEResult,
+    cond_dist: str,
+    scale: float,
+    n: int,
+    *,
+    k: int,
+    extra_params: dict[str, float] | None = None,
+    profile: tuple[tuple[int, float], ...] | None = None,
+) -> GarchFit:
+    """Assemble a :class:`GarchFit` from a Type-I EGF result: undo the scaling and form AIC/BIC.
+
+    Parameters
+    ----------
+    result : QMLEResult
+        The fitted engine result on the rescaled returns.
+    cond_dist : str
+        The conditional-distribution code.
+    scale : float
+        The return scale divided out before fitting.
+    n : int
+        Number of observations.
+    k : int
+        Parameter count for the AIC/BIC penalty (includes the profiled ``P`` where one applies).
+    extra_params : dict of str to float, optional
+        Extra parameters not produced by the optimizer (the ALD's profiled ``P``).
+    profile : tuple of (int, float) or None, optional
+        The ALD ``(P, log-likelihood)`` grid, forwarded to :class:`GarchFit`.
+
+    Returns
+    -------
+    GarchFit
+        The fitted model in original units.
+    """
     # Undo the scaling: mu is multiplicative (~scale); omega_sig is a log-variance intercept, so it
     # shifts ADDITIVELY by ln(scale^2); phi1/kappa/gamma and shape parameters are scale-invariant.
     names = result.param_names
@@ -336,9 +489,10 @@ def _fit_type1(
     std_errors_arr[0] *= scale  # additive shift on omega_sig leaves its SE unchanged
     params = {name: float(v) for name, v in zip(names, values, strict=True)}
     std_errors = {name: float(s) for name, s in zip(names, std_errors_arr, strict=True)}
+    if extra_params:
+        params.update(extra_params)
 
     loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
-    k = result.params.size
     aic = (2.0 * k - 2.0 * loglik) / n
     bic = (k * np.log(n) - 2.0 * loglik) / n
     conditional_volatility = np.sqrt(result.conditional_variance) * scale
@@ -353,6 +507,83 @@ def _fit_type1(
         conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
         n_obs=n,
         converged=result.converged,
+        profile=profile,
+    )
+
+
+def _fit_type1(
+    returns: FloatArray,
+    cond_dist: str,
+    *,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+) -> GarchFit:
+    """Shared Type-I EGF QMLE fit under any conditional distribution (the EGF infrastructure).
+
+    The magnitude term is centered by the distribution's ``E[g(eta)]`` (``E|eta|`` for
+    EGARCH/MEGARCH, ``E[ln(|eta|+1)]`` for MLog-GARCH). For a continuous shape (std df, ged shape)
+    that centering is re-computed each optimizer iteration from the current shape; the ALD profiles
+    ``P`` over the grid;
+    norm keeps the precomputed constant, bit-identical.
+    """
+    y = np.asarray(returns, dtype=np.float64)
+    n = y.size
+    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
+    scaled = y / scale
+    var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), *_TYPE1_VAR_START)
+
+    if cond_dist in ("ald", "sald"):
+        return _fit_type1_ald(
+            scaled,
+            scale,
+            n,
+            constants,
+            log_modulus_magnitude,
+            var_start,
+            skewed=cond_dist == "sald",
+        )
+
+    distribution = get_distribution(cond_dist)
+    result = _run_type1_fit(scaled, distribution, constants, log_modulus_magnitude, var_start)
+    return _build_type1_fit(result, cond_dist, scale, n, k=result.params.size)
+
+
+def _fit_type1_ald(
+    scaled: FloatArray,
+    scale: float,
+    n: int,
+    constants: tuple[float, float, float, float],
+    log_modulus_magnitude: bool,
+    var_start: tuple[float, ...],
+    *,
+    skewed: bool,
+) -> GarchFit:
+    """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for a Type-I EGF model (ald / sald).
+
+    Each fixed-``P`` ALD has a constant magnitude centering (no continuous shape); ``sald`` adds the
+    FS ``skew`` (per-iteration centering, Nelder-Mead). ``P`` never enters the optimizer but counts
+    in the AIC/BIC penalty.
+    """
+    best: QMLEResult | None = None
+    best_p = 0
+    profile: list[tuple[int, float]] = []
+    for p in _ALD_PRANGE:
+        base = AverageLaplace(p=p)
+        distribution = FernandezSteelSkew(base) if skewed else base
+        result = _run_type1_fit(scaled, distribution, constants, log_modulus_magnitude, var_start)
+        profile.append((p, float(result.loglikelihood - n * np.log(scale))))
+        if best is None or result.loglikelihood > best.loglikelihood:
+            best, best_p = result, p
+
+    assert best is not None  # _ALD_PRANGE is non-empty
+    return _build_type1_fit(
+        best,
+        "sald" if skewed else "ald",
+        scale,
+        n,
+        k=best.params.size + 1,  # P is profiled, not optimized, but counts in the penalty
+        extra_params={"P": float(best_p)},
+        profile=tuple(profile),
     )
 
 
@@ -434,7 +665,11 @@ def _sim_type1(
         raise ValueError(f"require |phi1| < 1 for a stationary {model}(1,1)")
 
     distribution = get_distribution(cond_dist)
-    mean_asy = 0.0
+    # The modulus-log-asymmetry models (MEGARCH/MLog-GARCH, (M_asy, p_asy) = (1, 0)) center g_asy on
+    # E[sgn(eta) ln(|eta|+1)] (0 for symmetric, nonzero under skew); EGARCH keeps mean_asy = 0. The
+    # sim must use the SAME centering as the fit so known-truth recovers omega_sig under skew.
+    modulus_log_asy = constants[0] == 1.0 and constants[1] == 0.0
+    mean_asy = distribution.mean_signed_log_modulus(dist_params) if modulus_log_asy else 0.0
     if log_modulus_magnitude:
         mean_mag = distribution.mean_log_modulus(dist_params)
     else:

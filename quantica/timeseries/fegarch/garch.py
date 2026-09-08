@@ -37,8 +37,12 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quantica.timeseries.fegarch.distributions import get_distribution
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.distributions import (
+    AverageLaplace,
+    FernandezSteelSkew,
+    get_distribution,
+)
+from quantica.timeseries.fegarch.qmle import QMLEResult, quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
@@ -51,6 +55,11 @@ __all__ = [
 ]
 
 _VAR_NAMES = ("mu", "omega", "alpha", "beta")
+
+#: fEGarch's ``Prange = c(1, 5)`` for the ALD: the integer grid over which the polynomial-degree
+#: P is *profiled* (fit the continuous params at each fixed P, keep the best log-likelihood) rather
+#: than optimized continuously. P is discrete, so it never enters the inner QMLE optimizer.
+_ALD_PRANGE = (1, 2, 3, 4, 5)
 
 
 def garch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
@@ -103,6 +112,10 @@ class GarchFit:
         Number of observations.
     converged : bool
         Whether the optimizer reported success.
+    profile : tuple of (int, float) or None
+        Only for the ALD (whose degree ``P`` is profiled over an integer grid, not optimized): the
+        ``(P, log-likelihood)`` pairs from the grid search, so the profile shape and the selected
+        ``P`` are inspectable. ``None`` for continuous-shape distributions.
     """
 
     cond_dist: str
@@ -114,6 +127,7 @@ class GarchFit:
     conditional_volatility: FloatArray
     n_obs: int
     converged: bool
+    profile: tuple[tuple[int, float], ...] | None = None
 
 
 def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
@@ -136,11 +150,30 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     n = y.size
     scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude omega
     scaled = y / scale
-    distribution = get_distribution(cond_dist)
 
     variance = float(np.var(scaled, ddof=1))
     var_start = (float(np.mean(scaled)), variance * 0.05, 0.05, 0.90)
     var_bounds = ((-10.0, 10.0), (1e-8, 1e6), (0.0, 0.9999), (0.0, 0.9999))
+
+    # The ALD's degree P is a discrete construction parameter that fEGarch *profiles* over an
+    # integer grid (it never enters the continuous optimizer); every other distribution's shape
+    # parameters are estimated jointly by the QMLE engine. These are structurally different fits.
+    # ``sald`` is the compound case: the same P-grid, with the FS ``skew`` fit jointly at each P.
+    if cond_dist in ("ald", "sald"):
+        return _fit_garch_ald(scaled, scale, n, var_start, var_bounds, skewed=cond_dist == "sald")
+
+    distribution = get_distribution(cond_dist)
+
+    # Distribution shape parameters can lie on a near-flat likelihood ridge (e.g. Student-t df on
+    # near-normal data, where the MLE is df -> infinity): L-BFGS-B's projected-gradient step stalls
+    # there and stops far short, so the shape-parameter fits use derivative-free Nelder-Mead, which
+    # climbs the flat ridge to the boundary. The norm path (no shape parameter) keeps L-BFGS-B, so
+    # it stays bit-identical to the validated Phase-1 fixture.
+    if distribution.param_names:
+        method: str = "Nelder-Mead"
+        options: dict[str, object] | None = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
+    else:
+        method, options = "L-BFGS-B", None
 
     result = quasi_max_likelihood(
         scaled,
@@ -150,19 +183,59 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         var_bounds=var_bounds,
         var_names=_VAR_NAMES,
         mean=True,
+        method=method,
+        options=options,
     )
+    return _garch_fit_from_result(result, cond_dist, scale, n, k=result.params.size)
 
+
+def _garch_fit_from_result(
+    result: QMLEResult,
+    cond_dist: str,
+    scale: float,
+    n: int,
+    *,
+    k: int,
+    extra_params: dict[str, float] | None = None,
+    profile: tuple[tuple[int, float], ...] | None = None,
+) -> GarchFit:
+    """Assemble a :class:`GarchFit` from a QMLE result: undo the scaling and form AIC/BIC.
+
+    Parameters
+    ----------
+    result : QmleResult
+        The fitted engine result on the rescaled returns.
+    cond_dist : str
+        The conditional-distribution code.
+    scale : float
+        The return scale that was divided out before fitting.
+    n : int
+        Number of observations.
+    k : int
+        Parameter count for the AIC/BIC penalty (includes a profiled degree where one applies).
+    extra_params : dict of str to float, optional
+        Extra parameters not produced by the optimizer (e.g. the ALD's profiled ``P``).
+    profile : tuple of (int, float) or None, optional
+        The ALD's ``(P, log-likelihood)`` grid, forwarded to :class:`GarchFit`.
+
+    Returns
+    -------
+    GarchFit
+        The fitted model in original units.
+    """
+    n_shape = len(result.param_names) - len(_VAR_NAMES)
     # Undo the scaling: mu ~ scale, omega ~ scale^2, alpha/beta and shape params invariant.
-    factors = np.array([scale, scale**2, 1.0, 1.0] + [1.0] * len(distribution.param_names))
+    factors = np.array([scale, scale**2, 1.0, 1.0] + [1.0] * n_shape)
     values = result.params * factors
     names = result.param_names
     params = {name: float(v) for name, v in zip(names, values, strict=True)}
     std_errors = {
         name: float(se * f) for name, se, f in zip(names, result.std_errors, factors, strict=True)
     }
+    if extra_params:
+        params.update(extra_params)
 
-    loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
-    k = result.params.size
+    loglik = result.loglikelihood - n * np.log(scale)
     aic = (2.0 * k - 2.0 * loglik) / n
     bic = (k * np.log(n) - 2.0 * loglik) / n
     conditional_volatility = np.sqrt(result.conditional_variance) * scale
@@ -177,6 +250,81 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         conditional_volatility=np.asarray(conditional_volatility, dtype=np.float64),
         n_obs=n,
         converged=result.converged,
+        profile=profile,
+    )
+
+
+def _fit_garch_ald(
+    scaled: FloatArray,
+    scale: float,
+    n: int,
+    var_start: tuple[float, ...],
+    var_bounds: tuple[tuple[float, float], ...],
+    *,
+    skewed: bool = False,
+) -> GarchFit:
+    """Fit GARCH(1,1)/ALD (or /sALD) by profiling the degree ``P`` over fEGarch's grid ``Prange``.
+
+    For each fixed ``P`` in :data:`_ALD_PRANGE` the continuous parameters are fit at that ``P``, and
+    the ``P`` with the highest log-likelihood is selected. ``P`` never enters the continuous
+    optimizer but *is* counted in the AIC/BIC penalty (``k``), matching fEGarch. For ``ald`` the
+    inner fit is just ``(mu, omega, alpha, beta)`` (a fixed-shape ALD, so gradient-based L-BFGS-B,
+    ``k = 5``). For ``sald`` the Fernández-Steel ``skew`` rides in the inner vector too — the
+    compound P-grid x continuous-skew case — fit by Nelder-Mead (flat skew ridge near 1), ``k = 6``.
+
+    Parameters
+    ----------
+    scaled : ndarray
+        The rescaled return series.
+    scale : float
+        The scale divided out.
+    n : int
+        Number of observations.
+    var_start, var_bounds : tuple
+        Starts and bounds for the four continuous parameters.
+    skewed : bool, optional
+        If ``True`` fit the skewed ``sald`` (FS skew fit jointly at each ``P``); else plain ``ald``.
+
+    Returns
+    -------
+    GarchFit
+        The best-``P`` fit, carrying the full ``(P, log-likelihood)`` profile.
+    """
+    method = "Nelder-Mead" if skewed else "L-BFGS-B"
+    options: dict[str, object] | None = (
+        {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10} if skewed else None
+    )
+    best: QMLEResult | None = None
+    best_p = 0
+    profile: list[tuple[int, float]] = []
+    for p in _ALD_PRANGE:
+        base = AverageLaplace(p=p)
+        distribution = FernandezSteelSkew(base) if skewed else base
+        result = quasi_max_likelihood(
+            scaled,
+            garch_recursion,
+            distribution,
+            var_start=var_start,
+            var_bounds=var_bounds,
+            var_names=_VAR_NAMES,
+            mean=True,
+            method=method,
+            options=options,
+        )
+        profile.append((p, float(result.loglikelihood - n * np.log(scale))))
+        if best is None or result.loglikelihood > best.loglikelihood:
+            best, best_p = result, p
+
+    assert best is not None  # _ALD_PRANGE is non-empty
+    # P is profiled, not optimized, but fEGarch counts it in the penalty: k = continuous_params + 1.
+    return _garch_fit_from_result(
+        best,
+        "sald" if skewed else "ald",
+        scale,
+        n,
+        k=best.params.size + 1,
+        extra_params={"P": float(best_p)},
+        profile=tuple(profile),
     )
 
 

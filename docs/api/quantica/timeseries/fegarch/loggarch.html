@@ -106,8 +106,10 @@ reported separately. There is <strong>no asymmetry term</strong> — Type-II is 
 <em>log</em>-moment, unlike EGARCH's \( \operatorname{E}|\eta| \). It is sourced from the Phase-0
 distribution layer's <code>mean_log_sq()</code> (<code>norm</code> → :math:<code>\psi(\tfrac12) + \ln 2 = -\gamma_E -
 \ln 2 \approx -1.2703628</code>) and passed into the recursion as a captured value — never hard-coded (the
-same seam as EGARCH's \( \operatorname{E}|\eta| \)). Only the normal is wired and validated here;
-jointly-estimated-shape distributions (<code>std</code> / <code>ged</code>) and the skewed variants are deferred.</p>
+same seam as EGARCH's \( \operatorname{E}|\eta| \)). <strong>All eight distributions are wired</strong> (Phase
+5): a jointly-estimated continuous shape recomputes <code>mean_log_sq</code> from the <em>current</em> shape each
+iteration (per-iteration centering) and the ALD profiles <code>P</code>; on the flat ridge the fit reaches or
+beats each fixture (validated by the machine-exact seam, not a param-by-param match).</p>
 
 <p><strong>Pre-sample conditioning (confirmed against the fixture, machine precision).</strong> Per WP 2026-04
 App. C.3 — exactly as for EGARCH — the pre-sample \( \xi \) history is zero and

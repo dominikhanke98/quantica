@@ -83,6 +83,9 @@
                         <li>
                                 <a class="variable" href="#GarchFit.converged">converged</a>
                         </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.profile">profile</a>
+                        </li>
                 </ul>
 
             </li>
@@ -180,6 +183,10 @@ The fitted conditional standard-deviation series \( \sigma_t \).</li>
 Number of observations.</li>
 <li><strong>converged</strong> (bool):
 Whether the optimizer reported success.</li>
+<li><strong>profile</strong> (tuple of (int, float) or None):
+Only for the ALD (whose degree <code>P</code> is profiled over an integer grid, not optimized): the
+<code>(P, log-likelihood)</code> pairs from the grid search, so the profile shape and the selected
+<code>P</code> are inspectable. <code>None</code> for continuous-shape distributions.</li>
 </ul>
 </div>
 
@@ -187,7 +194,7 @@ Whether the optimizer reported success.</li>
                             <div id="GarchFit.__init__" class="classattr">
                                 <div class="attr function">
             
-        <span class="name">GarchFit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">std_errors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">aic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">bic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">conditional_volatility</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span></span>)</span>
+        <span class="name">GarchFit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">std_errors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">aic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">bic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">conditional_volatility</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span>,</span><span class="param">	<span class="n">profile</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
         
     </div>
@@ -291,6 +298,18 @@ Whether the optimizer reported success.</li>
         
     </div>
     <a class="headerlink" href="#GarchFit.converged"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.profile" class="classattr">
+                                <div class="attr variable">
+            <span class="name">profile</span><span class="annotation">: tuple[tuple[int, float], ...] | None</span>        =
+<span class="default_value">None</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.profile"></a>
     
     
 

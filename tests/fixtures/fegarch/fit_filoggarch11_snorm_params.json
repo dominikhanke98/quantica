@@ -1,0 +1,25 @@
+{
+  "model": "filoggarch",
+  "cond_dist": "snorm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "n-1",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": -0.0014735729148881245,
+    "omega_sig": -8.9251949926403356,
+    "phi1": 0.17232638041250534,
+    "psi1": -0.37184997516803675,
+    "d": 0.23632860364849811,
+    "skew": 0.99120455869308399
+  },
+  "loglikelihood": 7516.310527567759,
+  "aic": -6.0082484220542076,
+  "bic": -5.9942707116281522,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

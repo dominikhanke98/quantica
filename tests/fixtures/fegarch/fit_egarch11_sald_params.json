@@ -1,0 +1,26 @@
+{
+  "model": "egarch",
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00048591440928684221,
+    "omega_sig": -8.9832144303923904,
+    "phi1": 0.98155721835476195,
+    "kappa": -0.025061829501611309,
+    "gamma": 0.15900325108231919,
+    "P": 5,
+    "skew": 0.97427242772845157
+  },
+  "loglikelihood": 7585.3544080124911,
+  "aic": -6.0626835264099928,
+  "bic": -6.0463761975795958,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

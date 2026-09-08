@@ -160,6 +160,7 @@ pythonpath = ["."]
 addopts = "-ra --strict-markers"
 markers = [
     "benchmark: cross-checks against QuantLib (requires the 'benchmark' extra; run with -m benchmark).",
+    "slow: expensive fits excluded from per-push CI (e.g. the O(n^2) FI-EGF fit sweep); run with -m slow.",
 ]
 
 [tool.coverage.run]

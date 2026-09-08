@@ -209,21 +209,24 @@ def test_filoggarch_sim_is_stationary_and_positive() -> None:
     assert abs(np.mean(np.log(sigma**2)) - (-8.8)) < 0.5
 
 
-def test_filoggarch_non_norm_is_deferred() -> None:
-    """FILog-GARCH under non-norm is deferred: xi needs mean_log_sq (only norm, as MLog-GARCH)."""
-    with pytest.raises(NotImplementedError):
-        filoggarch_sim(
-            100,
-            omega_sig=-8.8,
-            phi1=0.4,
-            psi1=-0.5,
-            d=0.3,
-            cond_dist="std",
-            dist_params=(6.0,),
-            rng=np.random.default_rng(3),
-        )
-    with pytest.raises(NotImplementedError):
-        get_distribution("std").mean_log_sq((6.0,))
+def test_filoggarch_non_norm_supported() -> None:
+    """FILog-GARCH under non-norm now runs: its ``mean_log_sq`` centering is implemented (EGF).
+
+    Structural inheritance of the EGF distribution infrastructure (fixture-validated on EGARCH).
+    """
+    returns, sigma = filoggarch_sim(
+        100,
+        omega_sig=-8.8,
+        phi1=0.4,
+        psi1=-0.5,
+        d=0.3,
+        cond_dist="std",
+        dist_params=(6.0,),
+        rng=np.random.default_rng(3),
+    )
+    assert returns.shape == sigma.shape == (100,)
+    assert np.all(sigma > 0.0)
+    assert np.isfinite(get_distribution("std").mean_log_sq((6.0,)))  # the centering is available
 
 
 def test_filoggarch_sim_rejects_bad_inputs() -> None:

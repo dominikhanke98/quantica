@@ -1,0 +1,27 @@
+{
+  "model": "figjr",
+  "cond_dist": "sstd",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00043509340397640956,
+    "omega": 9.7489895081120894e-06,
+    "phi1": 0.17888751523542937,
+    "beta1": 0.76933268149705025,
+    "gamma": 0.087328127502538724,
+    "d": 0.68812546002943031,
+    "df": 340.74914483143544,
+    "skew": 0.9841326686407319
+  },
+  "loglikelihood": 7597.6043169416716,
+  "aic": -6.0716834535533373,
+  "bic": -6.053046506318597,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

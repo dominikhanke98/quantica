@@ -1386,6 +1386,199 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   refined the claim from "non-converged" to "strictly-dominated local optimum" (commit `e4685b9`) and
   strengthened the test to assert domination from every sensible start.**
 
+- **Step 39 — fEGarch distribution-breadth, part 1: the joint shape-parameter QMLE path, proven on
+  GARCH×std (branch `feat/fegarch-distributions`, NOT merged).** The first non-normal conditional law
+  fit end-to-end. Fixtures first: `generate_fixtures.R` extended to fit GARCH(1,1) under all seven
+  non-norm dists (std/ged/ald/snorm/sstd/sged/sald), 14 files committed (`test(fegarch): add GARCH(1,1)
+  fit fixtures under the 7 non-norm distributions`); all shape/skew params sit at their normal limits
+  on the Gaussian data (std `df=341.89`, sstd `df=340.8, skew=0.986`; ald/sald `P=5` at the boundary).
+  **The engine needed no change** — `quasi_max_likelihood` already appends `dist.param_start`/`bounds`
+  to the fitted vector and splits var/dist params, so `fit_garch(cond_dist="std")` yields
+  `(mu, omega, alpha, beta, nu)`. Two seams surfaced: (a) StudentT's `nu` upper bound raised to `1e6`
+  (the MLE is `ν→∞` on near-normal data); (b) L-BFGS-B **stalls** on the flat `nu` ridge (stops below
+  the fixture), so **shape-parameter fits switch to derivative-free Nelder-Mead** — the norm path keeps
+  L-BFGS-B and stays **bit-identical** (`<1e-8`). **Seam machine-exact:** at fEGarch's params (incl.
+  `df=341.89`) σ reproduces to ~1e-17 and the std loglik to ~1e-10. **Effective-challenge finding (same
+  pattern as §14):** the std fixture (`df=341.89, loglik=7600.83`) is **strictly dominated** — 0.28
+  below the GARCH×norm optimum `7601.11`, since std nests norm as `ν→∞`; fEGarch's optimizer stopped
+  short of the `ν=∞` limit. Our Nelder-Mead fit climbs to the `nu` bound and reaches `7601.10996` (≥ the
+  fixture, within ~1e-3 of the normal supremum). **Identification-structured validation:** var-params
+  tight (`mu 0.09%`, `omega 0.66%`, `alpha 0.08%, beta 0.02%`); `nu` by regime only (`>100`, NOT
+  param-exact against the dominated `df`; its SE is non-finite — flat likelihood — so only the
+  well-identified SEs asserted finite); σ-vs-fixture at the ridge level (`~1.5e-5` abs, the df-wobble),
+  the tight σ proof being the seam. Reduction anchor: `std.logpdf(z, ν=1e6)→norm.logpdf` (`<1e-3`).
+  Known-truth: simulate GARCH×std `df=6` (identified) → `nu=6.01` (SE 0.36, `|dev|/SE=0.03`), sharply
+  recovered — contrast the near-normal fixture. **Tests (`test_garch_std.py`, 6):** seam-exact,
+  fixture-match (var tight / `nu` regime / σ ridge-level), `test_std_fit_dominates_the_sub_optimal_
+  fegarch_optimum`, norm-path-unchanged, `df→∞`-recovers-norm, known-truth `df=6`. Docs: spec-notes §15.
+  Gate green. **NOT merged — first commit of the distribution-breadth PR.**
+
+- **Step 40 — fEGarch distribution-breadth, part 2: GARCH×ged (continuous shape) + GARCH×ald (the
+  P-profiling fork) (branch `feat/fegarch-distributions`, NOT merged).** The two structurally-different
+  follow-ups to GARCH×std. **GED reuses the §15 machinery verbatim — no code change** — but is the
+  *contrast* regime: its shape is **sharply identified** (`shape=2.15`, SE 0.10, a genuine interior
+  peak), so the whole fit incl. the shape reproduces the fixture to machine order (shape rel 2.8e-7,
+  loglik 5e-10, σ 3.5e-8), like norm. No dominated-reference issue: GED nests norm at shape=2 and 2.15
+  is a real finite-sample improvement, so the fixture loglik 7602.31 sits legitimately *above* norm
+  7601.11 (just confirm we reach it). Reduction: `ged.logpdf(z,shape=2)→norm.logpdf` (3.5e-15).
+  Known-truth shape=1.2 → `nu=1.21` (`|dev|/SE=0.48`). So std/ged bracket the two identification
+  regimes of the same continuous path: flat ridge (std, nu-by-regime) vs sharp peak (ged, nu-exact).
+  **ALD is the new mechanism — the discrete integer-grid P-profiling fork.** P is NOT a QMLE param
+  (`AverageLaplace.param_names=()`, P a construction attribute); fEGarch profiles it over `Prange=c(1,5)`.
+  `fit_garch(ald)` takes a new outer-grid-search branch (`_fit_garch_ald`): for each P∈{1..5} fit the 4
+  continuous params at fixed P (L-BFGS-B, no ridge), pick the best loglik; the `(P,loglik)` grid is
+  surfaced on `GarchFit.profile` (new field). **AIC/BIC count P (k=5)** though it's profiled — confirmed
+  (k=5 gives aic −6.06632, k=4 doesn't). Profile monotone `P1 7547 → P5 7587.90`, peaks at the boundary
+  P=5 = the fixture's selection (empirical confirmation of the profiling convention; source never read).
+  **Honest misfit (documented):** even at P=5 the ALD is ~13 loglik below norm — fat-tailed family, wrong
+  for Gaussian data, which is *why* it pins at the boundary. Seam machine-exact at P=5 (σ 7e-18, loglik
+  0). Known-truth: in-grid P=2 (drawing ALD(2) innovations directly) → interior profile max, recovers
+  P=2 + continuous (beta within 0.3%). Refactor: extracted `_garch_fit_from_result`; norm/std bit-identical.
+  **Tests: `test_garch_ged.py` (5), `test_garch_ald.py` (7).** Docs: spec-notes §16. Gate green (1300+
+  pass). **NOT merged — second commit of the distribution-breadth PR.**
+
+- **Step 41 — fEGarch distribution-breadth, part 3: the four skewed dists snorm/sstd/sged/sald,
+  COMPLETING THE GARCH SET (all 8) (branch `feat/fegarch-distributions`, NOT merged).** The
+  Fernández–Steel `skew` param joins the joint fit. **`xi`↔`skew` reconcile:** the FS wrapper's math
+  variable is ξ and `s=ξ` applied directly (Phase-2 finding), so the public param was **renamed
+  `xi`→`skew`** (`param_names` boundary) to match fEGarch's argument + the fixtures; name-only, nothing
+  depended on the old name (test_distributions uses positional tuples). **Mechanism reuse:** snorm/sstd/
+  sged need NO new code (non-empty `param_names` → existing joint Nelder-Mead path). **sald is the
+  compound case** — continuous skew INSIDE, profiled P grid OUTSIDE — so `_fit_garch_ald` generalized
+  (`skewed=` flag): per P build `FernandezSteelSkew(AverageLaplace(p=P))`, fit `{…,skew}` jointly
+  (Nelder-Mead), select best P; AIC/BIC count BOTH P and skew (`k=6`; snorm `k=5`) — confirmed to ~1e-13.
+  **Identification: three sharp, one dominated.** snorm/sged/sald reproduce fixtures incl. skew to ~1e-6,
+  each legitimately ≥ its symmetric base (snorm 7601.21>norm, sged 7602.35>ged, sald 7588.13>ald); skew<1
+  (left). **sstd is dominated** (inherits std's flat nu ridge): fixture 7600.93 < norm 7601.11, our fit
+  climbs nu→bound to snorm's 7601.21, beating it +0.28 (std pattern) — seam-exact at fixture params, nu by
+  regime, skew still identified. **Reductions machine-exact (FS proof):** snorm@skew=1→norm, sstd→std,
+  sged→ged, sald→ald all 0.0e+00. **Known-truth:** GARCH×sstd skew=0.85,df=6 → skew=0.847 (|dev|/SE=0.32),
+  nu=5.8 — positive control. **Tests: `test_garch_skewed.py` (11).** Docs: spec-notes §17. Gate green.
+  **The GARCH distribution set is COMPLETE — all 8 conditional laws fit + validated. NOT merged — third
+  commit of the distribution-breadth PR.**
+
+- **Step 42 — fEGarch distribution-breadth, part 4: GJR-GARCH/TGARCH/APARCH under the 7 non-norm
+  distributions, the compressed inheritance build (branch `feat/fegarch-distributions`, NOT merged).**
+  First the 21 R fixtures (committed `b8614f1`); then the compressed build — pure *composition* of two
+  proven layers (the three recursions on norm §4 + the distribution machinery on GARCH×8), so **no spec
+  extraction**. **Reconstruction gate first (go/no-go):** naive full-series reconstruction gives only
+  ~1e-7 σ/~1e-5 loglik, but that is NOT a distribution interaction — it's identical for norm and is the
+  asymmetric family's known presample-seed discrepancy (§4). Seeding σ[0] from the fixture (isolating the
+  recursion FORM, as the Phase-1 norm test does) makes the gate **machine-exact for all 21**: σ[1:] worst
+  1.73e-17, loglik worst 4.39e-10 → composition clean, no surprise interaction, GO. **Machinery reuse
+  wholesale:** `_fit_aparch_family` got the same Nelder-Mead-shape branch + `_ALD_PRANGE` P-profiling
+  (generalized to `_fit_aparch_ald` for ald AND compound sald) + `GarchFit.profile`; the one
+  family-specific piece is the δ-dependent unscaling (`omega~scale^δ`, extracted to `_build_asym_fit`).
+  GJR/TGARCH add gamma1; APARCH adds gamma1+delta — the 7-param (×std) and **8-param** (×sstd) compounds.
+  **Identification-structured (same as GARCH×8):** identified ged/ald/snorm/sged/sald reproduce fixtures
+  (loglik ~1e-5, σ ~2e-7 presample floor, shape/skew ~1e-6); **δ interior 2.24–2.47** co-estimated with
+  the shape; **P=5** selected every model; **std/sstd dominated** (fixture below the norm/snorm sibling,
+  our fit climbs df to reach the sibling optimum, +0.28). skew→1→base reductions <1e-9 per model×dist.
+  **8-param known-truth (the key positive control):** APARCH×sstd simulated with δ=1.6, df=6, skew=0.85
+  recovers ALL of δ (|dev|/SE 0.12–0.39), df (1.28–1.45), skew (0.19–0.35). **Tests:
+  `test_asymmetric_distributions.py` (73).** Docs: spec-notes §18. Gate green. **Completes the
+  short-memory variance-recursion family (GARCH/GJR/TGARCH/APARCH) under all 8 distributions. NOT
+  merged — fifth commit of the distribution-breadth PR.**
+
+- **Step 43 — fEGarch distribution-breadth, part 5: FIGARCH/FIAPARCH/FITGARCH/FIGJR under the 7
+  non-norm distributions, the FI compressed build (branch `feat/fegarch-distributions`, NOT merged).**
+  First the 28 R fixtures (committed `83adf13`); then the compressed build — composition of the FI
+  recursions (proven on norm §11-13) + the distribution machinery (GARCH×8), so **no spec extraction**.
+  **Reconstruction gate machine-exact for all 28** (σ[1:] worst 1.4e-16, loglik 1.4e-10): FIGARCH
+  direct (exact 50-term presample), the δ-power family fixture-seeded (documented presample offset §12,
+  same as norm). **Machinery reuse:** `fit_figarch` and `_fit_fi_power` got the Nelder-Mead-shape branch
+  + `_ALD_PRANGE` P-profiling (extracted `_figarch_fit_from_result`/`_fit_figarch_ald` and
+  `_build_fi_power_fit`/`_fit_fi_power_ald`); only unscaling differs (figarch omega~scale², δ-power
+  omega~scale^δ). FIGARCH adds d; FIAPARCH adds gamma+delta+d (**9-param ×sstd**); FITGARCH/FIGJR
+  gamma+d (δ fixed). **Headline — tail-absorbs-persistence d-shift:** Conrad-Haag floor d≥β₁−φ₁ pins
+  d→1 under norm/ged/snorm/sged/ald/sald, but heavy tails (std/sstd) let β₁ drop → d interior (fiaparch
+  0.72/0.71, fitgarch 0.91/0.64, figarch sstd 0.54); per-fixture d-tolerance (boundary vs interior).
+  delta (fiaparch) ~1.5-1.7, below short-memory ~2.4 (d carries the persistence). **Seam-centric
+  effective-challenge:** the d-boundary is a flat ridge; for std/sstd our fit STRICTLY DOMINATES every
+  fixture (df→∞ AND d→boundary; fitgarch×sstd +3.83), a few ald/sald boundary cases land slightly lower
+  (worst −0.31, our optimizer's weak-id). So the seam is the proof; the fit reaches-or-beats the fixture
+  (std/sstd domination asserted; tight match only for interior-d figarch/figjr×ged). skew→1→base <1e-9.
+  **9-param known-truth (widest joint fit in the port):** FIAPARCH×sstd δ=1.5,d=0.35,df=6,skew=0.85
+  recovers ALL four substitutable params (|dev|/SE ≤1.5). **Tests: `test_fi_distributions.py` (83).**
+  Docs: spec-notes §19. Gate green. **Completes the FI variance-recursion family under all 8
+  distributions. NOT merged — sixth commit of the distribution-breadth PR.**
+
+- **Step 44 — the EGF distribution infrastructure (skew-wrapper moments + per-iteration centering),
+  proven on EGARCH (branch `feat/fegarch-distributions`, NOT merged).** Fixtures first: EGARCH under 5
+  non-norm laws (std/sstd FAILED fEGarch's optimizer — committed `f93b8a6`). Then a two-stage build
+  (spec-extraction reported + STOPped, then this build). Unlike the variance-recursion families, EGF
+  breadth is NEW MECHANISM: `g(η)`'s centering `E[g(η)]` is distribution-dependent (`E|η|`
+  EGARCH/MEGARCH, `E[ln(|η|+1)]` MLog-GARCH). **(1) Skew-wrapper moments** — `abs_moment`/`mean_log_sq`/
+  `mean_log_modulus` on the FS wrapper (+ the missing base log-moments std/ged/ald) by adaptive
+  quadrature over `f_skew` (`_moment_by_quadrature`, split at 0 for the ln z² singularity); anchor:
+  skew=1→base moment `<1e-9` for all three, per skewed dist. **(2) Per-iteration centering** — new QMLE
+  hook `recursion_uses_dist_params`: the recursion gets `dist_params` and re-computes `E[g(η)]` from
+  the CURRENT shape each iteration (E|η|(df): df=3→0.637…∞→0.798). Shape fits use Nelder-Mead **+ a
+  restart** (flat ridge collapses the simplex — snorm first landed 1.10 loglik below its fixture, one
+  restart → 0.000); ald profiles P; norm keeps the constant + L-BFGS-B, bit-identical (megarch/mloggarch
+  norm unchanged). Refactored `_fit_type1` (extracted `_type1_centered_recursion`/`_run_type1_fit`/
+  `_build_type1_fit`/`_fit_type1_ald`). **Validation:** seam machine-exact (5 dists, ged/ald ~1e-15,
+  skewed ~1e-13); all 5 fixtures match (loglik 3e-10–2e-5, σ ~1e-7, P=5). **κ/γ shift explained by E|η|:**
+  ald/sald E|η|=0.781 (−2.1% vs norm) → largest κ/γ re-fit (κ −6%, γ +1%); ged/snorm E|η|≈norm → minimal.
+  **Robustness finding:** fEGarch's optimizer FAILED egarch×std/sstd; ours (Nelder-Mead+restart+stable
+  closed-form E|η|(df)) CONVERGES — known-truth df=6 recovers df (std) + df & skew (sstd). No fixture
+  fabricated. **Tests: `test_egarch_distributions.py` (25).** Docs: spec-notes §20. Gate green. **The EGF
+  distribution infrastructure is proven on EGARCH; MEGARCH/MLog-GARCH/Log-GARCH + all FI-EGF variants
+  inherit it. NOT merged — seventh commit of the distribution-breadth PR.**
+
+- **Step 45 — the 4th EGF moment + MEGARCH/MLog-GARCH/Log-GARCH under all 8 distributions, COMPLETING
+  the short-memory EGF family (branch `feat/fegarch-distributions`, NOT merged).** Fixtures first: 21
+  fits, 16 converged (5 continuous-df failed fEGarch — megarch/mloggarch std/sstd, loggarch std —
+  committed `421e59b`). The compressed build's reconstruction gate CAUGHT a 4th EGF moment EGARCH could
+  not exercise: the modulus-log **asymmetry** centering E[sgn(η)·ln(|η|+1)] (odd-function, 0 for
+  symmetric, nonzero under skew) — megarch/mloggarch skewed missed at ~1e-6 while symmetric + Log-GARCH
+  + EGARCH were exact. STOPped, reported, got go-ahead, then built the fix: `mean_signed_log_modulus`
+  on the base (returns 0.0) + FS wrapper (quadrature), wired as `mean_asy` for the two
+  modulus-log-asymmetry models (per-iteration for continuous shape, in fit AND sim). Odd-function
+  anchor: →0 at skew=1, exactly 0 for symmetric bases. Also upgraded loggarch.py's fit path
+  (per-iteration mean_log_sq + ald P-profiling + restart; it was still constant-centering, off by up to
+  14 loglik). **Gate machine-exact for all 16** (megarch/mloggarch skewed now ~4e-17). **Validation:**
+  megarch/mloggarch tight (loglik ~1e-10, σ ~1e-8, P=5); **γ tell holds under distributions**
+  (MLog/MEGARCH γ ~1.80× every law); **Log-GARCH ridge** → fit reaches-or-beats fixture (ald +1.3,
+  sstd +4.9 dominate; seam-centric like §14/§19). norm bit-identical. **5 known-truths all converge**
+  (df=6 +skew=0.85) — robustness extended; the loggarch std-fails/sstd-converges split confirms
+  flat-ridge starting-point solver-fragility. The full EGF centering-moment set is now 4 (abs, log-sq,
+  log-modulus, signed-log-modulus). **Tests: `test_egf_family_distributions.py` (46).** Docs: spec-notes
+  §21 (+ §20 framing correction). Gate green. **COMPLETES the short-memory EGF family under all 8
+  distributions. NOT merged — eighth commit of the distribution-breadth PR.**
+
+- **Step 46 — the long-memory EGF family (FIEGARCH/FIMEGARCH/FIMLog-GARCH/FILog-GARCH) under all 8
+  distributions, COMPLETING THE ENTIRE DISTRIBUTION BREADTH (branch `feat/fegarch-distributions`, NOT
+  merged).** Fixtures first: 28 fits, 22 converged (6 Type-I continuous-df failed fEGarch —
+  fiegarch/fimegarch/fimloggarch std/sstd; committed `3614e8d`). **True inheritance:** the FI models
+  reuse the four EGF centering moments + per-iteration centering *unchanged*, spliced into the Phase-4
+  `θ(B)` recursion, so the **reconstruction gate is machine-exact for all 22 by composition** (worst
+  `2.19e-10`; skewed Type-I `~1e-13` — the 4th moment flows through `θ(B)` with no FI-specific change).
+  **Type-I-fails/Type-II-converges split:** fEGarch failed all 3 Type-I FI models on std/sstd but
+  converged for the Type-II FILog-GARCH on the same laws → 3×5 + 7 = 22 fixtures. **Seam-centric
+  validation** (§14/§19): tight param-match only for the 9 well-identified cases (`|loglik|<1e-4`,
+  data-driven per-(model,dist) — fimloggarch ald dominates while sged is tight); dominate-or-tie for
+  the rest (Type-I sged/sald +3.8/+4.1; FILog-GARCH ridge 6/7 dominate +6..+45, ald ties within 0.76;
+  norm strictly-dominated fixture +120). **P-profiling discriminating test (the headline):**
+  FILog-GARCH×sald is the port's only interior-P fixture (`P=3`). STOPped and verified read-only that
+  P=4/P=5 are clean converged optima (scipy status=0, d interior, valid σ, loglik recomputed to 0.0),
+  reported, got the Option-1 go-ahead: our profiling reproduces fEGarch's P=3 loglik (7550.13) exactly
+  but selects **P=5** (the true monotone-concave max, 7556.80) and **dominates** the fixture — fEGarch's
+  interior P=3 was an **optimizer stall on the flat ridge** (§14 pattern on the discrete P-axis),
+  proving the P-profiling *compares* per-P likelihoods, not defaults to the boundary. **6 Type-I
+  known-truths all converge** (df=6 +skew=0.85, long-memory d=0.3), recover df/skew within 3·SE. γ tell
+  holds (FIMLog/FIMEGARCH γ ~1.85× every law); norm bit-identical for the 3 Type-I FI models. **Tests:
+  `test_fi_egf_family_distributions.py`.** **CI tiering (new `slow` marker):** the FI fit recursion is
+  O(n²) and each ald/sald fit 5× that via P-profiling (the sald P-profile alone ~20-40min, the full
+  sweep ~2-3h), so per-push CI runs the correctness proof — all 22 seams + γ + norm + one representative
+  fit per category (~5min) — while the exhaustive fit sweep + the P-profiling headline are `@pytest.mark.slow`
+  and run in a weekly/manual `slow` CI job (all verified green). Also fixed pre-existing latent mypy
+  drift (arg-type ignores displaced by ruff-format expansion) in egarch/loggarch/fiegarch/filoggarch —
+  uncaught because the branch never hit CI (CI runs on main only). Docs: spec-notes §22; CLAUDE.md §7/§11
+  + pyproject/ci.yml for the `slow` tier. Gate green (per-push tier + mypy + ruff + interrogate 100%).
+  **COMPLETES THE ENTIRE DISTRIBUTION BREADTH — every fEGarch model under all 8 distributions. NOT
+  merged — ninth commit of the distribution-breadth PR.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at

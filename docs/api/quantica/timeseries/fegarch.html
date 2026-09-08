@@ -96,6 +96,12 @@
                         <li>
                                 <a class="function" href="#AverageLaplace.abs_moment">abs_moment</a>
                         </li>
+                        <li>
+                                <a class="function" href="#AverageLaplace.mean_log_sq">mean_log_sq</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#AverageLaplace.mean_log_modulus">mean_log_modulus</a>
+                        </li>
                 </ul>
 
             </li>
@@ -138,6 +144,9 @@
                         <li>
                                 <a class="function" href="#ConditionalDistribution.mean_log_modulus">mean_log_modulus</a>
                         </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a>
+                        </li>
                 </ul>
 
             </li>
@@ -167,6 +176,18 @@
                         </li>
                         <li>
                                 <a class="function" href="#FernandezSteelSkew.ppf">ppf</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.abs_moment">abs_moment</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.mean_log_sq">mean_log_sq</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.mean_log_modulus">mean_log_modulus</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#FernandezSteelSkew.mean_signed_log_modulus">mean_signed_log_modulus</a>
                         </li>
                 </ul>
 
@@ -204,6 +225,9 @@
                         <li>
                                 <a class="variable" href="#GarchFit.converged">converged</a>
                         </li>
+                        <li>
+                                <a class="variable" href="#GarchFit.profile">profile</a>
+                        </li>
                 </ul>
 
             </li>
@@ -233,6 +257,12 @@
                         </li>
                         <li>
                                 <a class="function" href="#GeneralizedError.abs_moment">abs_moment</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#GeneralizedError.mean_log_sq">mean_log_sq</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#GeneralizedError.mean_log_modulus">mean_log_modulus</a>
                         </li>
                 </ul>
 
@@ -323,6 +353,12 @@
                         </li>
                         <li>
                                 <a class="function" href="#StudentT.abs_moment">abs_moment</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StudentT.mean_log_sq">mean_log_sq</a>
+                        </li>
+                        <li>
+                                <a class="function" href="#StudentT.mean_log_modulus">mean_log_modulus</a>
                         </li>
                 </ul>
 
@@ -875,6 +911,36 @@ kurtosis); <code>a(1)</code> feeds the Fernández--Steel skew standardization.</
 
 
                             </div>
+                            <div id="AverageLaplace.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] \) by quadrature (no closed form).</p>
+</div>
+
+
+                            </div>
+                            <div id="AverageLaplace.mean_log_modulus" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_modulus</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#AverageLaplace.mean_log_modulus"></a>
+    
+            <div class="docstring"><p>Modulus-log moment \( E[\ln(|z| + 1)] \) by quadrature.</p>
+</div>
+
+
+                            </div>
                             <div class="inherited">
                                 <h5>Inherited Members</h5>
                                 <dl>
@@ -884,8 +950,7 @@ kurtosis); <code>a(1)</code> feeds the Fernández--Steel skew standardization.</
                 <dd id="AverageLaplace.param_start" class="variable"><a href="#ConditionalDistribution.param_start">param_start</a></dd>
                 <dd id="AverageLaplace.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="AverageLaplace.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
-                <dd id="AverageLaplace.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
-                <dd id="AverageLaplace.mean_log_modulus" class="function"><a href="#ConditionalDistribution.mean_log_modulus">mean_log_modulus</a></dd>
+                <dd id="AverageLaplace.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
 
             </div>
                                 </dl>
@@ -1060,9 +1125,9 @@ Sensible starting values for each shape parameter.</li>
     
             <div class="docstring"><p>First absolute moment \( E|z| \) of the standardized innovation.</p>
 
-<p>Needed by the EGARCH-family \( g(\eta) \) centering (and the Fernández-Steel skew).
-The symmetric bases override this; the skewed variants do <strong>not</strong> expose it yet (that is the
-documented Phase-2 follow-up), so the base implementation raises.</p>
+<p>Needed by the EGARCH-family \( g(\eta) \) centering (and the Fernández-Steel skew). The
+symmetric bases override this in closed form and the FS-skew wrapper by quadrature; the bare
+base (no such distribution exists in the registry) raises.</p>
 </div>
 
 
@@ -1080,9 +1145,9 @@ documented Phase-2 follow-up), so the base implementation raises.</p>
             <div class="docstring"><p>Log-square moment \( E[\ln z^2] \) of the standardized innovation.</p>
 
 <p>The Type-II EGF (Log-GARCH) centers its news impact on \( \xi = \ln z^2 - E[\ln z^2] \),
-so — unlike EGARCH's \( E|z| \) — it needs this <em>log</em>-moment. Only <code>norm</code> overrides it
-here (closed form); <code>std</code> / <code>ged</code> / <code>ald</code> and the skewed variants are the documented
-Phase-2 follow-up (only the normal Log-GARCH is validated), so the base raises.</p>
+so — unlike EGARCH's \( E|z| \) — it needs this <em>log</em>-moment. <code>norm</code> has a closed form;
+<code>std</code> / <code>ged</code> / <code>ald</code> and the FS-skew variants compute it by quadrature (Phase 5); the
+bare base raises.</p>
 </div>
 
 
@@ -1100,10 +1165,33 @@ Phase-2 follow-up (only the normal Log-GARCH is validated), so the base raises.<
             <div class="docstring"><p>Modulus-log moment \( E[\ln(|z| + 1)] \) of the standardized innovation.</p>
 
 <p>The modulus Type-I EGF models (MLog-GARCH) center their magnitude term on this moment of the
-John-Draper (1980) modulus-log transform, rather than EGARCH/MEGARCH's \( E|z| \). Only
-<code>norm</code> overrides it here (numerically, by quadrature — no elementary closed form);
-<code>std</code> / <code>ged</code> / <code>ald</code> and the skewed variants are the documented follow-up, so the
+John-Draper (1980) modulus-log transform, rather than EGARCH/MEGARCH's \( E|z| \). Every
+base and the FS-skew wrapper compute it by quadrature (no elementary closed form); the bare
 base raises.</p>
+</div>
+
+
+                            </div>
+                            <div id="ConditionalDistribution.mean_signed_log_modulus" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_signed_log_modulus</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.mean_signed_log_modulus"></a>
+    
+            <div class="docstring"><p>Signed modulus-log moment \( E[\operatorname{sgn}(z)\ln(|z|+1)] \) (4th EGF moment).</p>
+
+<p>The <strong>asymmetry</strong> centering \( E[g_{\mathrm{asy}}] \) for the modulus-log-asymmetry Type-I
+models (MEGARCH, MLog-GARCH), whose :math:<code>g_{\mathrm{asy}}(z) = \operatorname{sgn}(z)
+\ln(|z|+1)</code> is odd. For <strong>every symmetric base</strong> the integrand is odd, the density even, so
+this vanishes <strong>exactly</strong> — the base returns <code>0.0</code>. The Fernández-Steel skew wrapper (an
+asymmetric density) overrides it by quadrature, where it is small but nonzero and must be
+centred out; it reduces back to <code>0</code> at <code>skew = 1</code> (the odd-function anchor). EGARCH's
+\( g_{\mathrm{asy}} = z \) uses \( E[z] = 0 \) instead, and Log-GARCH (Type-II) has no
+asymmetry term, so neither needs this moment.</p>
 </div>
 
 
@@ -1131,10 +1219,12 @@ These are the fEGarch standardization constants — WP 2026-04 App. C.1 Eqs. 38-
 \( s = \xi \) (\( C_E = \mu \), \( C_V = \sigma \)); at \( \xi = 1 \), \( C_E = 0 \)
 and \( C_V = 1 \), so it reduces exactly to the base.</p>
 
-<p>The <code>xi</code> parameter is fEGarch's <code>skew</code> argument <strong>directly</strong> (no reparameterization):
-confirmed against the fixtures, <code>skew &lt; 1</code> gives a left-skew and <code>skew &gt; 1</code> a right-skew.
-(Fernández &amp; Steel 1998 introduced the density split; the mean-0/variance-1 constants above are
-algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)</p>
+<p>The skew parameter is fEGarch's <code>skew</code> argument <strong>directly</strong> (no reparameterization): the
+split uses \( s = \xi \), so it is <strong>exposed under the name <code>skew</code></strong> (the internal math
+variable is still \( \xi \)). Confirmed against the fixtures, <code>skew &lt; 1</code> gives a left-skew
+and <code>skew &gt; 1</code> a right-skew. (Fernández &amp; Steel 1998 introduced the density split; the
+mean-0/variance-1 constants above are algebraically the Lambert-Laurent form and equal App. C.1
+Eqs. 39--40.)</p>
 </div>
 
 
@@ -1243,15 +1333,80 @@ algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)</p>
 
 
                             </div>
+                            <div id="FernandezSteelSkew.abs_moment" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">abs_moment</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.abs_moment"></a>
+    
+            <div class="docstring"><p>First absolute moment \( E|z| \) of the <em>skewed</em> law, by quadrature over <code>f_skew</code>.</p>
+
+<p>The EGARCH/MEGARCH magnitude centering under a skewed innovation. Reduces to the base
+<code><a href="#FernandezSteelSkew.abs_moment">abs_moment</a></code> at <code>skew = 1</code> (the correctness anchor). Unlike the symmetric bases (closed
+form) this has no elementary form because of the mean-shift <code>mu_FS</code> inside the <code>|.|</code>.</p>
+</div>
+
+
+                            </div>
+                            <div id="FernandezSteelSkew.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] \) of the skewed law, by quadrature over f_skew.</p>
+</div>
+
+
+                            </div>
+                            <div id="FernandezSteelSkew.mean_log_modulus" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_modulus</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.mean_log_modulus"></a>
+    
+            <div class="docstring"><p>Modulus-log moment \( E[\ln(|z| + 1)] \) of the skewed law, by quadrature.</p>
+</div>
+
+
+                            </div>
+                            <div id="FernandezSteelSkew.mean_signed_log_modulus" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_signed_log_modulus</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FernandezSteelSkew.mean_signed_log_modulus"></a>
+    
+            <div class="docstring"><p>Signed modulus-log moment \( E[\operatorname{sgn}(z)\ln(|z|+1)] \) of the skewed law.</p>
+
+<p>The MEGARCH/MLog-GARCH asymmetry centering. Nonzero because the skewed density is skew;
+reduces to <code>0</code> at <code>skew = 1</code> (the odd-function anchor), unlike the symmetric bases where
+it is identically <code>0</code>.</p>
+</div>
+
+
+                            </div>
                             <div class="inherited">
                                 <h5>Inherited Members</h5>
                                 <dl>
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="FernandezSteelSkew.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="FernandezSteelSkew.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
-                <dd id="FernandezSteelSkew.abs_moment" class="function"><a href="#ConditionalDistribution.abs_moment">abs_moment</a></dd>
-                <dd id="FernandezSteelSkew.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
-                <dd id="FernandezSteelSkew.mean_log_modulus" class="function"><a href="#ConditionalDistribution.mean_log_modulus">mean_log_modulus</a></dd>
 
             </div>
                                 </dl>
@@ -1290,6 +1445,10 @@ The fitted conditional standard-deviation series \( \sigma_t \).</li>
 Number of observations.</li>
 <li><strong>converged</strong> (bool):
 Whether the optimizer reported success.</li>
+<li><strong>profile</strong> (tuple of (int, float) or None):
+Only for the ALD (whose degree <code>P</code> is profiled over an integer grid, not optimized): the
+<code>(P, log-likelihood)</code> pairs from the grid search, so the profile shape and the selected
+<code>P</code> are inspectable. <code>None</code> for continuous-shape distributions.</li>
 </ul>
 </div>
 
@@ -1297,7 +1456,7 @@ Whether the optimizer reported success.</li>
                             <div id="GarchFit.__init__" class="classattr">
                                 <div class="attr function">
             
-        <span class="name">GarchFit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">std_errors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">aic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">bic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">conditional_volatility</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span></span>)</span>
+        <span class="name">GarchFit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">params</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">std_errors</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">aic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">bic</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">conditional_volatility</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">converged</span><span class="p">:</span> <span class="nb">bool</span>,</span><span class="param">	<span class="n">profile</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span>)</span>
 
         
     </div>
@@ -1401,6 +1560,18 @@ Whether the optimizer reported success.</li>
         
     </div>
     <a class="headerlink" href="#GarchFit.converged"></a>
+    
+    
+
+                            </div>
+                            <div id="GarchFit.profile" class="classattr">
+                                <div class="attr variable">
+            <span class="name">profile</span><span class="annotation">: tuple[tuple[int, float], ...] | None</span>        =
+<span class="default_value">None</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GarchFit.profile"></a>
     
     
 
@@ -1533,14 +1704,43 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
 
 
                             </div>
+                            <div id="GeneralizedError.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] \) by quadrature (shape-dependent, no closed form).</p>
+</div>
+
+
+                            </div>
+                            <div id="GeneralizedError.mean_log_modulus" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_modulus</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#GeneralizedError.mean_log_modulus"></a>
+    
+            <div class="docstring"><p>Modulus-log moment \( E[\ln(|z| + 1)] \) by quadrature (shape-dependent).</p>
+</div>
+
+
+                            </div>
                             <div class="inherited">
                                 <h5>Inherited Members</h5>
                                 <dl>
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="GeneralizedError.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="GeneralizedError.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
-                <dd id="GeneralizedError.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
-                <dd id="GeneralizedError.mean_log_modulus" class="function"><a href="#ConditionalDistribution.mean_log_modulus">mean_log_modulus</a></dd>
+                <dd id="GeneralizedError.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
 
             </div>
                                 </dl>
@@ -1677,6 +1877,7 @@ evaluated numerically: \( E[\ln(|z|+1)] = 2\int_0^\infty \ln(z+1)\,\phi(z)\,dz \
                 <dd id="Normal.param_start" class="variable"><a href="#ConditionalDistribution.param_start">param_start</a></dd>
                 <dd id="Normal.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="Normal.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="Normal.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
 
             </div>
                                 </dl>
@@ -1866,7 +2067,7 @@ Whether the optimizer reported success.</li>
                             <div id="StudentT.param_bounds" class="classattr">
                                 <div class="attr variable">
             <span class="name">param_bounds</span>        =
-<span class="default_value">((2.05, 100.0),)</span>
+<span class="default_value">((2.05, 1000000.0),)</span>
 
         
     </div>
@@ -1947,14 +2148,43 @@ Whether the optimizer reported success.</li>
 
 
                             </div>
+                            <div id="StudentT.mean_log_sq" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_sq</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.mean_log_sq"></a>
+    
+            <div class="docstring"><p>Log-square moment \( E[\ln z^2] \) by quadrature (shape-dependent, no closed form).</p>
+</div>
+
+
+                            </div>
+                            <div id="StudentT.mean_log_modulus" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">mean_log_modulus</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#StudentT.mean_log_modulus"></a>
+    
+            <div class="docstring"><p>Modulus-log moment \( E[\ln(|z| + 1)] \) by quadrature (shape-dependent).</p>
+</div>
+
+
+                            </div>
                             <div class="inherited">
                                 <h5>Inherited Members</h5>
                                 <dl>
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="StudentT.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="StudentT.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
-                <dd id="StudentT.mean_log_sq" class="function"><a href="#ConditionalDistribution.mean_log_sq">mean_log_sq</a></dd>
-                <dd id="StudentT.mean_log_modulus" class="function"><a href="#ConditionalDistribution.mean_log_modulus">mean_log_modulus</a></dd>
+                <dd id="StudentT.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
 
             </div>
                                 </dl>
@@ -2723,7 +2953,7 @@ Burn-in samples discarded (default 500).</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">fimegarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+        <span class="name">fimegarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">mean_signed_log_modulus</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
 
         
     </div>
@@ -2744,6 +2974,10 @@ the same long-memory \( \theta(B) \) recursion.</p>
 The return series.</li>
 <li><strong>abs_moment</strong> (float):
 \( \operatorname{E}|\eta| \), the magnitude centering, from <code>abs_moment()</code> (keyword).</li>
+<li><strong>mean_signed_log_modulus</strong> (float, optional):
+\( \operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)] \), the modulus-log
+<strong>asymmetry</strong>
+centering (<code>0</code> for symmetric innovations, nonzero under skew). Default <code>0</code>.</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
@@ -2807,7 +3041,7 @@ Burn-in samples discarded (default 500).</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">fimloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+        <span class="name">fimloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">mean_signed_log_modulus</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
 
         
     </div>
@@ -2829,6 +3063,9 @@ The return series.</li>
 <li><strong>mean_log_modulus</strong> (float):
 \( \operatorname{E}[\ln(|\eta|+1)] \), the magnitude centering, from
 <code>mean_log_modulus()</code> (keyword-only).</li>
+<li><strong>mean_signed_log_modulus</strong> (float, optional):
+\( \operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)] \), the asymmetry centering
+(<code>0</code> for symmetric, nonzero under skew). Default <code>0</code>.</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
@@ -3825,7 +4062,7 @@ Burn-in samples discarded so the recursion forgets its start (default 500).</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">megarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+        <span class="name">megarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">abs_moment</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">mean_signed_log_modulus</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
 
         
     </div>
@@ -3844,6 +4081,10 @@ Burn-in samples discarded so the recursion forgets its start (default 500).</li>
 The return series.</li>
 <li><strong>abs_moment</strong> (float):
 \( \operatorname{E}|\eta| \), the magnitude centering, from <code>abs_moment()</code> (keyword).</li>
+<li><strong>mean_signed_log_modulus</strong> (float, optional):
+\( \operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)] \), the modulus-log
+<strong>asymmetry</strong>
+centering (<code>0</code> for symmetric innovations, nonzero under skew). Default <code>0</code> (symmetric).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
@@ -3905,7 +4146,7 @@ Burn-in samples discarded (default 500).</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">mloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+        <span class="name">mloggarch_recursion</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">params</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_log_modulus</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">mean_signed_log_modulus</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
 
         
     </div>
@@ -3925,6 +4166,9 @@ The return series.</li>
 <li><strong>mean_log_modulus</strong> (float):
 \( \operatorname{E}[\ln(|\eta|+1)] \), the magnitude centering, from
 <code>mean_log_modulus()</code> (keyword-only).</li>
+<li><strong>mean_signed_log_modulus</strong> (float, optional):
+\( \operatorname{E}[\operatorname{sgn}(\eta)\ln(|\eta|+1)] \), the asymmetry centering
+(<code>0</code> for symmetric, nonzero under skew). Default <code>0</code> (symmetric).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
@@ -3987,7 +4231,7 @@ Burn-in samples discarded (default 500).</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;L-BFGS-B&#39;</span>,</span><span class="param">	<span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
+        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;L-BFGS-B&#39;</span>,</span><span class="param">	<span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">recursion_uses_dist_params</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
 
         
     </div>
@@ -4025,6 +4269,10 @@ residual (default <code>False</code>, i.e. mean-zero).</li>
 near-common-root Log-GARCH ridge — use a derivative-free method such as <code>"Nelder-Mead"</code>.</li>
 <li><strong>options</strong> (dict, optional):
 Extra <code>options</code> for <code>scipy.optimize.minimize()</code> (e.g. tighter simplex tolerances).</li>
+<li><strong>recursion_uses_dist_params</strong> (bool, optional):
+When <code>True</code> the recursion is called <code>variance_recursion(var_params, returns,
+dist_params)</code> so it can re-compute a distribution-dependent term (the EGF <code>E[g(eta)]</code>
+centering) from the current shape each iteration; default <code>False</code> (var_params only).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>

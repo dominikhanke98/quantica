@@ -43,9 +43,48 @@ import numpy as np
 from scipy import integrate, special, stats
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
     from quantica.core.types import FloatArray
+
+# Number of subdivisions for the moment quadratures; ample for the smooth standardized densities.
+_MOMENT_QUAD_LIMIT = 200
+
+
+def _moment_by_quadrature(
+    logpdf: Callable[[FloatArray, Sequence[float] | None], FloatArray],
+    params: Sequence[float] | None,
+    g: Callable[[float], float],
+) -> float:
+    r"""The moment :math:`E[g(z)] = \int g(z) f(z)\,dz` by adaptive quadrature over a density.
+
+    The uniform path for the EGF centering moments that have no elementary closed form (the
+    log-transforms, and every moment of the Fernández-Steel skew). The integral is split at ``0`` so
+    the ``g = ln z^2`` singularity sits at an integration endpoint (quadrature skips evaluating it).
+
+    Parameters
+    ----------
+    logpdf : callable
+        The distribution's ``logpdf(z, params)`` (vectorized; called on 1-element arrays here).
+    params : sequence of float or None
+        The shape parameters passed through to ``logpdf``.
+    g : callable
+        The scalar moment kernel (e.g. ``abs`` for :math:`E|z|`).
+
+    Returns
+    -------
+    float
+        The moment :math:`E[g(z)]`.
+    """
+
+    def integrand(z: float) -> float:
+        density = float(np.exp(logpdf(np.array([z], dtype=np.float64), params)[0]))
+        return g(z) * density
+
+    lower, _ = integrate.quad(integrand, -np.inf, 0.0, limit=_MOMENT_QUAD_LIMIT)
+    upper, _ = integrate.quad(integrand, 0.0, np.inf, limit=_MOMENT_QUAD_LIMIT)
+    return float(lower + upper)
+
 
 __all__ = [
     "DISTRIBUTIONS",
@@ -117,9 +156,9 @@ class ConditionalDistribution(ABC):
     def abs_moment(self, params: Sequence[float] | None = None) -> float:
         r"""First absolute moment :math:`E|z|` of the standardized innovation.
 
-        Needed by the EGARCH-family :math:`g(\eta)` centering (and the Fernández-Steel skew).
-        The symmetric bases override this; the skewed variants do **not** expose it yet (that is the
-        documented Phase-2 follow-up), so the base implementation raises.
+        Needed by the EGARCH-family :math:`g(\eta)` centering (and the Fernández-Steel skew). The
+        symmetric bases override this in closed form and the FS-skew wrapper by quadrature; the bare
+        base (no such distribution exists in the registry) raises.
         """
         raise NotImplementedError(f"{self.name} does not expose abs_moment (E|z|)")
 
@@ -127,9 +166,9 @@ class ConditionalDistribution(ABC):
         r"""Log-square moment :math:`E[\ln z^2]` of the standardized innovation.
 
         The Type-II EGF (Log-GARCH) centers its news impact on :math:`\xi = \ln z^2 - E[\ln z^2]`,
-        so — unlike EGARCH's :math:`E|z|` — it needs this *log*-moment. Only ``norm`` overrides it
-        here (closed form); ``std`` / ``ged`` / ``ald`` and the skewed variants are the documented
-        Phase-2 follow-up (only the normal Log-GARCH is validated), so the base raises.
+        so — unlike EGARCH's :math:`E|z|` — it needs this *log*-moment. ``norm`` has a closed form;
+        ``std`` / ``ged`` / ``ald`` and the FS-skew variants compute it by quadrature (Phase 5); the
+        bare base raises.
         """
         raise NotImplementedError(f"{self.name} does not expose mean_log_sq (E[ln z^2])")
 
@@ -137,12 +176,26 @@ class ConditionalDistribution(ABC):
         r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` of the standardized innovation.
 
         The modulus Type-I EGF models (MLog-GARCH) center their magnitude term on this moment of the
-        John-Draper (1980) modulus-log transform, rather than EGARCH/MEGARCH's :math:`E|z|`. Only
-        ``norm`` overrides it here (numerically, by quadrature — no elementary closed form);
-        ``std`` / ``ged`` / ``ald`` and the skewed variants are the documented follow-up, so the
+        John-Draper (1980) modulus-log transform, rather than EGARCH/MEGARCH's :math:`E|z|`. Every
+        base and the FS-skew wrapper compute it by quadrature (no elementary closed form); the bare
         base raises.
         """
         raise NotImplementedError(f"{self.name} does not expose mean_log_modulus (E[ln(|z|+1)])")
+
+    def mean_signed_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Signed modulus-log moment :math:`E[\operatorname{sgn}(z)\ln(|z|+1)]` (4th EGF moment).
+
+        The **asymmetry** centering :math:`E[g_{\mathrm{asy}}]` for the modulus-log-asymmetry Type-I
+        models (MEGARCH, MLog-GARCH), whose :math:`g_{\mathrm{asy}}(z) = \operatorname{sgn}(z)
+        \ln(|z|+1)` is odd. For **every symmetric base** the integrand is odd, the density even, so
+        this vanishes **exactly** — the base returns ``0.0``. The Fernández-Steel skew wrapper (an
+        asymmetric density) overrides it by quadrature, where it is small but nonzero and must be
+        centred out; it reduces back to ``0`` at ``skew = 1`` (the odd-function anchor). EGARCH's
+        :math:`g_{\mathrm{asy}} = z` uses :math:`E[z] = 0` instead, and Log-GARCH (Type-II) has no
+        asymmetry term, so neither needs this moment.
+        """
+        self._params(params)  # validate the shape-parameter arity
+        return 0.0
 
 
 # --------------------------------------------------------------------------- #
@@ -207,7 +260,10 @@ class StudentT(ConditionalDistribution):
 
     name = "std"
     param_names = ("nu",)
-    param_bounds = ((2.05, 100.0),)
+    # Upper bound is large: the df is unbounded above (the normal is the nu -> inf limit), and real
+    # fits can land in the hundreds when the data has near-normal tails. Do NOT cap it low or that
+    # normal limit is unreachable (fEGarch fits nu ~ 341 on the Gaussian-simulated series).
+    param_bounds = ((2.05, 1.0e6),)
     param_start = (8.0,)
 
     def logpdf(self, z: FloatArray, params: Sequence[float] | None = None) -> FloatArray:
@@ -235,6 +291,16 @@ class StudentT(ConditionalDistribution):
         (nu,) = self._params(params)
         log_val = special.gammaln((nu + 1.0) / 2.0) - special.gammaln(nu / 2.0)
         return float(2.0 * np.sqrt(nu - 2.0) * np.exp(log_val) / (np.sqrt(np.pi) * (nu - 1.0)))
+
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` by quadrature (shape-dependent, no closed form)."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` by quadrature (shape-dependent)."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
 
 
 class GeneralizedError(ConditionalDistribution):
@@ -281,6 +347,16 @@ class GeneralizedError(ConditionalDistribution):
             special.gammaln(1.0 / nu) + special.gammaln(3.0 / nu)
         )
         return float(np.exp(log_val))
+
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` by quadrature (shape-dependent, no closed form)."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` by quadrature (shape-dependent)."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
 
 
 _ALD_PPF_BRACKET = 40.0  # standardized-quantile bracket for the numeric inversion
@@ -376,6 +452,16 @@ class AverageLaplace(ConditionalDistribution):
         self._params(params)
         return self.absolute_moment(1)
 
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` by quadrature (no closed form)."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` by quadrature."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
+
 
 # --------------------------------------------------------------------------- #
 # Fernández-Steel skew wrapper
@@ -398,16 +484,20 @@ class FernandezSteelSkew(ConditionalDistribution):
     :math:`s = \xi` (:math:`C_E = \mu`, :math:`C_V = \sigma`); at :math:`\xi = 1`, :math:`C_E = 0`
     and :math:`C_V = 1`, so it reduces exactly to the base.
 
-    The ``xi`` parameter is fEGarch's ``skew`` argument **directly** (no reparameterization):
-    confirmed against the fixtures, ``skew < 1`` gives a left-skew and ``skew > 1`` a right-skew.
-    (Fernández & Steel 1998 introduced the density split; the mean-0/variance-1 constants above are
-    algebraically the Lambert-Laurent form and equal App. C.1 Eqs. 39--40.)
+    The skew parameter is fEGarch's ``skew`` argument **directly** (no reparameterization): the
+    split uses :math:`s = \xi`, so it is **exposed under the name ``skew``** (the internal math
+    variable is still :math:`\xi`). Confirmed against the fixtures, ``skew < 1`` gives a left-skew
+    and ``skew > 1`` a right-skew. (Fernández & Steel 1998 introduced the density split; the
+    mean-0/variance-1 constants above are algebraically the Lambert-Laurent form and equal App. C.1
+    Eqs. 39--40.)
     """
 
     def __init__(self, base: _SymmetricBase) -> None:
         self._base = base
         self.name = "s" + base.name
-        self.param_names = (*base.param_names, "xi")
+        # fEGarch's argument is ``skew`` (= xi applied directly), so the public parameter is named
+        # ``skew`` to match the fixtures; the equations/local variables keep the symbol xi.
+        self.param_names = (*base.param_names, "skew")
         self.param_bounds = (*base.param_bounds, (0.1, 10.0))
         self.param_start = (*base.param_start, 1.0)
 
@@ -455,6 +545,36 @@ class FernandezSteelSkew(ConditionalDistribution):
         upper = xi * self._base.ppf(0.5 + (p * (xi2 + 1.0) - 1.0) / (2.0 * xi2), base_params)
         a = np.where(p <= p0, lower, upper)
         return np.asarray((a - mu) / sigma, dtype=np.float64)
+
+    def abs_moment(self, params: Sequence[float] | None = None) -> float:
+        r"""First absolute moment :math:`E|z|` of the *skewed* law, by quadrature over ``f_skew``.
+
+        The EGARCH/MEGARCH magnitude centering under a skewed innovation. Reduces to the base
+        ``abs_moment`` at ``skew = 1`` (the correctness anchor). Unlike the symmetric bases (closed
+        form) this has no elementary form because of the mean-shift ``mu_FS`` inside the ``|.|``.
+        """
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: abs(z))
+
+    def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
+        r"""Log-square moment :math:`E[\ln z^2]` of the skewed law, by quadrature over f_skew."""
+        return _moment_by_quadrature(self.logpdf, self._params(params), lambda z: np.log(z * z))
+
+    def mean_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Modulus-log moment :math:`E[\ln(|z| + 1)]` of the skewed law, by quadrature."""
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.log(abs(z) + 1.0)
+        )
+
+    def mean_signed_log_modulus(self, params: Sequence[float] | None = None) -> float:
+        r"""Signed modulus-log moment :math:`E[\operatorname{sgn}(z)\ln(|z|+1)]` of the skewed law.
+
+        The MEGARCH/MLog-GARCH asymmetry centering. Nonzero because the skewed density is skew;
+        reduces to ``0`` at ``skew = 1`` (the odd-function anchor), unlike the symmetric bases where
+        it is identically ``0``.
+        """
+        return _moment_by_quadrature(
+            self.logpdf, self._params(params), lambda z: np.sign(z) * np.log(abs(z) + 1.0)
+        )
 
 
 # --------------------------------------------------------------------------- #

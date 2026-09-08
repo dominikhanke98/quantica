@@ -1,0 +1,25 @@
+{
+  "model": "loggarch",
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00045702666151356341,
+    "omega_sig": -8.984611946081154,
+    "phi1": 0.98778831360905517,
+    "psi1": -0.95391242690572264,
+    "P": 5,
+    "skew": 0.96760224697613428
+  },
+  "loglikelihood": 7565.7493130424764,
+  "aic": -6.0477994504339811,
+  "bic": -6.0338217400079257,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
