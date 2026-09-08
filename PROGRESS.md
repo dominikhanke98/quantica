@@ -1579,6 +1579,44 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   **COMPLETES THE ENTIRE DISTRIBUTION BREADTH — every fEGarch model under all 8 distributions. NOT
   merged — ninth commit of the distribution-breadth PR.**
 
+- **Step 47 — fEGarch DISTRIBUTION BREADTH COMPLETE + MERGED to `main` (PR #20, merge commit
+  `b80f997`).** The 13-commit `feat/fegarch-distributions` arc merged via merge commit (history
+  preserved, not squashed) after the **first full Linux CI pass** (run #110, green on py3.11 **and**
+  py3.12 — the first environment where mypy runs unblocked, since local Windows mypy DLLs are
+  policy-blocked). Branch deleted (local + remote). **Every fEGarch model now runs and is validated
+  under all 8 conditional distributions** — norm/std/ged/ald and their four Fernández–Steel skewed
+  counterparts (snorm/sstd/sged/sald): the GARCH family (GARCH/GJR/TGARCH/APARCH), their FI variants
+  (FIGARCH/FIAPARCH/FITGARCH/FIGJR), the full EGF family (EGARCH/MEGARCH/MLog-GARCH/Log-GARCH), and the
+  long-memory FI-EGF family (FIEGARCH/FIMEGARCH/FIMLog-GARCH/FILog-GARCH). Clean-room throughout
+  (CLAUDE.md §12): specified from the published maths + cited papers, validated against committed
+  fEGarch OUTPUT fixtures, never the source; `quantica` stays MIT.
+  - **Structure delivered.** *Joint shape-parameter QMLE* — a continuous shape (Student-t ν, GED
+    shape) estimated jointly with the variance params via a per-iteration hook + Nelder-Mead/restart
+    on the flat shape ridge; the Fernández–Steel `skew`; the ALD's discrete integer `P` by
+    outer-grid profiling (`Prange=1..5`, counts in AIC/BIC); and their **compounds up to the 9-param
+    FIAPARCH×sstd** (μ, ω, φ, β, γ, δ, d, ν, skew). *The four-moment EGF centering set* —
+    `abs_moment` (E|η|), `mean_log_sq` (E[ln η²]), `mean_log_modulus` (E[ln(|η|+1)]), and
+    `mean_signed_log_modulus` (E[sgn(η)ln(|η|+1)], the modulus-log **asymmetry**) — computed on the
+    FS-skew wrapper by quadrature and **recomputed per optimizer iteration** from the current shape.
+    *Two-tier CI gate* — per-push correctness proof (reconstruction seams + one representative fit per
+    category) + a `slow` scheduled/dispatch tier for the O(n²) FI-EGF fit sweep + P-profiling.
+  - **Effective-challenge findings (the model-validation narrative).** (1) **The interior-P was
+    fEGarch's optimizer stall:** FILog-GARCH×sald is the port's only fixture where fEGarch picked an
+    interior `P=3`; our per-P profiling reproduces that P=3 loglik exactly (7550.13) yet finds the
+    true monotone-concave maximum at the boundary `P=5` (7556.80) — the §14 strictly-dominated pattern
+    now on the **discrete P-axis**, proving our profiling compares per-P likelihoods rather than
+    defaulting to the boundary. (2) **Our optimizer converges where fEGarch's failed:** the
+    continuous-df Type-I EGF/FI-EGF fits (std/sstd) that fEGarch's solver could not fit are recovered
+    by known-truth (df≈6 within 3·SE) — a Type-I-fails/Type-II-converges split. (3) **Tail-absorbs-
+    persistence d-shift:** in the FI variants the fractional `d` absorbs the near-unit-root
+    persistence (φ₁ drops, d rises), a reparameterization visible across the FI fixtures.
+  - **Port status.** The fEGarch reimplementation is now **complete in core machinery (Phases 0–4:
+    distributions + QMLE, GARCH family, EGARCH/EGF family, fractional differencing + FI/FI-EGF) plus
+    the full distribution breadth.** What remains is **extension, not core**: Phase 5 — dual mean
+    (ARMA/FARIMA-in-mean, GARCH-in-mean); Phase 6 — forecasting / risk / backtesting (tie-back to the
+    risk pillar); optional Phase 7 — semiparametric. These are new capability, not gaps in the
+    distribution matrix.
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
