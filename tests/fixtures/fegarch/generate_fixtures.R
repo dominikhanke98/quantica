@@ -162,7 +162,7 @@ cat(sprintf("  low-persist series: n=%d mean=%.2e sd=%.4f (alpha+beta=%.2f)\n",
 
 fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none",
                          input = "synthetic_returns.csv", n_obs = length(returns),
-                         seed = SIM_SEED) {
+                         seed = SIM_SEED, mean_orders = NULL) {
   # `trunc` records the truncation policy metadata: "none" for the short-memory models (default),
   # and the long-memory default L = n-1 (WP171 App. C.3) for the fractionally-integrated ones.
   # `input`/`n_obs`/`seed` default to the main synthetic series but can name a different input
@@ -179,6 +179,9 @@ fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none",
     loglikelihood = as.numeric(llhood(fit)),
     aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
     fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+  # Dual-mean fits record the ARMA mean orders c(P,Q); appended last so every pre-existing
+  # (variance-only, mean_orders = NULL) fixture's JSON is byte-identical.
+  if (!is.null(mean_orders)) meta$mean_orders <- as.integer(mean_orders)
   write_json(meta, file.path(OUTDIR, sprintf("fit_%s_params.json", name)))
   write_series_csv(sigma(fit), file.path(OUTDIR, sprintf("fit_%s_sigma.csv", name)), "sigma")
   cat(sprintf("  fit %-14s loglik=%.4f\n", name, as.numeric(llhood(fit))))
@@ -573,6 +576,28 @@ for (m in fi_dist_models) {
   }
 }
 
+# --- Phase-5 dual mean: ARMA(P,Q)-GARCH(1,1) (the FIRST dual mean+variance fits) --------------------
+# The mean equation is set via mean_spec(orders = c(P, Q)) passed to garch()'s `meanspec` argument.
+# garch() is DATA-FIRST -- garch(rt, orders, cond_dist, meanspec, ...) -- confirmed via args(garch) and
+# args(mean_spec) (mean_spec(orders = c(0,0), long_memo = FALSE, include_mean = TRUE)); NOT guessed.
+# include_mean = TRUE (the default) keeps the unconditional mean mu ALONGSIDE the ARMA terms -- the
+# review item is how the AR/MA mean parameters appear in the joint pars() vector next to the variance
+# params {omega, alpha, beta} and mu (all jointly estimated). cat_pars prints the full joint vector;
+# fit_and_dump records the ARMA orders as mean_orders. Each fit is tryCatch-wrapped (never partial).
+# All cond_dist = "norm": ARMA(1,0) (AR-only), ARMA(0,1) (MA-only), ARMA(1,1) (the AR+MA target).
+for (mo in list(c(1L, 0L), c(0L, 1L), c(1L, 1L))) {
+  P <- mo[1]; Q <- mo[2]
+  nm <- sprintf("arma%d%d_garch11_norm", P, Q)
+  tryCatch({
+    dfit <- garch(returns, orders = c(1, 1), cond_dist = "norm",
+                  meanspec = mean_spec(orders = c(P, Q)), parallel = FALSE)
+    cat(sprintf("  %s pars:", nm), paste(names(pars(dfit)), collapse = ", "), "\n")
+    cat_pars(dfit)
+    fit_and_dump(dfit, nm, "garch", "norm", mean_orders = c(P, Q))
+  }, error = function(e) cat(sprintf("  ERROR %s:", nm), conditionMessage(e),
+                            "| exists('mean_spec') =", exists("mean_spec"), "\n"))
+}
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -837,6 +862,12 @@ manifest <- list(
                           note = "FILog-GARCH(1,d,1) under FS-skew GED (adds shape + skew); EGF LM (trunc n-1), fractional d"),
       filoggarch11_sald = list(params = "fit_filoggarch11_sald_params.json", sigma = "fit_filoggarch11_sald_sigma.csv",
                           note = "FILog-GARCH(1,d,1) under FS-skew ALD (adds P + skew); EGF LM (trunc n-1), fractional d"),
+      arma10_garch11_norm = list(params = "fit_arma10_garch11_norm_params.json", sigma = "fit_arma10_garch11_norm_sigma.csv",
+                          note = "Phase-5 dual mean: AR(1) mean + GARCH(1,1) variance under norm; mean_spec(orders=c(1,0)); mean_orders in the JSON; the AR mean param appears in the joint pars() vector alongside mu and {omega, alpha, beta}"),
+      arma01_garch11_norm = list(params = "fit_arma01_garch11_norm_params.json", sigma = "fit_arma01_garch11_norm_sigma.csv",
+                          note = "Phase-5 dual mean: MA(1) mean + GARCH(1,1) variance under norm; mean_spec(orders=c(0,1)); the MA mean param appears in the joint pars() vector alongside mu and {omega, alpha, beta}"),
+      arma11_garch11_norm = list(params = "fit_arma11_garch11_norm_params.json", sigma = "fit_arma11_garch11_norm_sigma.csv",
+                          note = "Phase-5 dual mean (the target): full ARMA(1,1) mean + GARCH(1,1) variance under norm; mean_spec(orders=c(1,1)); AR + MA mean params jointly estimated with mu and the variance {omega, alpha, beta}"),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",
