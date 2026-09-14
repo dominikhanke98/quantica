@@ -1419,5 +1419,68 @@ eight conditional distributions.**
 
 ---
 
-*Add further specification derivations here as later phases (the dual mean, forecasting/risk tie-back)
-are implemented — always from the papers/manual, never the source.*
+## 23. ARMA-in-mean × GARCH(1,1): the joint mean+variance QMLE (Phase 5 start) — RESOLVED
+
+**Sources.** WP 2026-04 §2.2.2, Eqs. 19–22 (the FARIMA-in-mean structure; here the `D = 0`
+ARMA(P,Q) case). fEGarch source never consulted; validated against the committed
+`fit_arma{10,01,11}_garch11_norm_*` OUTPUT fixtures. **The first non-constant mean** — genuinely new
+machinery (every prior model used a constant mean μ).
+
+### 23.1 The mean recursion + the coupling
+
+From Eq. 22 at `D = 0`, the conditional mean and mean-residual are
+`μ_t = μ + Σ_i β_i (y_{t-i} − μ) + Σ_j α_j r_{t-j}`, `r_t = y_t − μ_t` — for ARMA(1,1),
+`μ_t = μ + β₁(y_{t-1} − μ) + α₁ r_{t-1}`, mapping **`ar1 = β₁`** (AR, on the lagged demeaned level)
+and **`ma1 = α₁`** (MA, on the lagged residual). ARMA(1,0) drops α₁; ARMA(0,1) drops β₁. The
+**mean-residuals `r_t` then feed the *existing* GARCH(1,1) variance recursion** (the extracted
+`_garch_variance` core) in place of the constant-mean `(y − μ)` — the variance recursion is
+**unchanged**, only its input residual series changes. Joint QMLE: one likelihood over
+`{mu, ar1, ma1, omega, alpha, beta}` (mean block first; `alpha/beta` = fEGarch's `phi1/beta1`), each
+candidate giving `μ_t → r_t → σ_t → ℓ(y_t, μ_t, σ_t)`. The engine (`quasi_max_likelihood`) gained a
+`mean_recursion` hook: when present it computes `resid = mean_recursion(var_params, y)`, feeds those
+to the variance recursion, and standardizes `z = resid/σ` — a **mean-block extension**, not a rebuild.
+
+**Mean pre-sample (conditional convention).** `(y_{t-i} − μ)` and `r_{t-j}` are `0` for `t ≤ 0`
+(so `μ_1 = μ`). This reproduces fEGarch's `r_t` **machine-identically for every t** past the seed —
+proven: at the fixture's own params + its implied `σ₀²` the reconstruction pins to **6.9e-18**.
+
+### 23.2 The σ₀² seed — a documented bounded limit (FIAPARCH §19 precedent)
+
+The seam is machine-exact, but the **fitted** dual case needs a `σ₀²` seed. The exact fEGarch
+dual-case seed is an **internal preliminary-residual quantity** — the implied `P0 = 1.5885e-04` has a
+**non-standard effective denominator ≈ n−1.4**, strictly between `Var(r, ddof=1)` and `Var(r, ddof=0)`,
+matching **no** published-math estimator (a full sweep tried centered/uncentered SS over n, n−1, n−2;
+dropped-presample windows; 50-step warmups; the unconditional — none pinned; §12 forbids
+reverse-engineering the internal residual from source). Per the FIAPARCH bounded-limit-seed precedent
+(§19), the build uses the **reduction-consistent analog `σ₀² = ω + (α+β)·Var(r, ddof=1)`** and
+documents the residual as a **decaying seed transient** (`~1e-6` at `t=0`, decaying at `≈β` per step to
+machine-zero by `t≈200`, bounded `< 1e-5`). At ARMA(0,0) `r = y − μ` so `Var(r) = Var(y)` and the seed
+collapses **exactly** to the pure-GARCH seed.
+
+### 23.3 Validation — seam-exact separate from the bounded fit; the ARMA(1,1) domination
+
+- **Seam machine-exact (all 3):** recursion + coupling reproduce σ to `6.9e-18` at the fixture's own
+  σ₀² — the correctness proof, asserted separately from the fit.
+- **Fitted match:** ARMA(1,0)/(0,1) are **identified** (a lone AR or MA term) and match tightly —
+  loglik `< 1e-3` (the bounded-seed loglik effect), variance block tight (`< 5e-3` rel), the lone
+  `ar1`/`ma1` recovers fEGarch's value (`~1e-5`), σ `< 1e-5`.
+- **ARMA(1,1) is near-common-root:** on mean-less data the AR and MA roots nearly cancel (the mean is
+  ≈ constant either way), so the mean block sits on a flat ridge where **fEGarch's Hessian fails**.
+  Our optimizer **dominates** (loglik **+0.063** above the fixture) at a different `(ar1, ma1)`
+  (`−0.107, +0.136` vs fEGarch's `+0.048, −0.021`) — Nelder-Mead and L-BFGS-B agree, so it is a true
+  higher optimum, not an optimizer artifact. Validated by **loglik-dominates + the variance block**,
+  **not** a mean-parameter match (the §14/§21 weak-identification pattern, now on the ARMA mean). No
+  SE assertion (fEGarch reports none; the ridge is flat).
+- **Reduction anchor:** ARMA(0,0) reproduces `fit_garch` **exactly** (loglik `0.0`, σ `0.0`) — the
+  mean recursion generalizes the constant-mean case without perturbing it.
+- **Known-truth:** a simulated ARMA(1,1)-GARCH with **identified** `ar1 = 0.5, ma1 = 0.3` recovers all
+  of `ar1/ma1/α/β` within `1·SE` — the positive control that the mean estimation works when the data
+  carries genuine mean dynamics (separate from the weakly-identified synthetic fixture).
+
+`test_arma_mean.py` (13 tests). **This proves ARMA-in-mean;** FARIMA-in-mean (the fractional operator
+in the mean, `D ≠ 0`) and GARCH-in-mean (σ → mean coupling) follow, reusing this mean-block hook.
+
+---
+
+*Add further specification derivations here as later phases (FARIMA-in-mean, GARCH-in-mean,
+forecasting/risk tie-back) are implemented — always from the papers/manual, never the source.*

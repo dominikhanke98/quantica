@@ -1617,6 +1617,30 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
     risk pillar); optional Phase 7 — semiparametric. These are new capability, not gaps in the
     distribution matrix.
 
+- **Step 48 — Phase 5 start: ARMA-in-mean × GARCH(1,1), the first non-constant-mean (dual
+  mean+variance) fit (branch `feat/fegarch-dual-mean`, NOT merged).** Fixtures first (committed
+  `2c9118a`): ARMA(1,0)/(0,1)/(1,1) × GARCH(1,1)/norm via `garch(returns, orders=c(1,1),
+  meanspec=mean_spec(orders=c(P,Q)))` (data-first meanspec arg, confirmed via `args()`); joint pars
+  `{mu, ar1[, ma1], omega, phi1, beta1}`, mean block first, μ present alongside the ARMA terms. Then
+  the build: a new **mean-block** for the QMLE. Mean recursion (WP §2.2.2 Eq. 22, D=0): `μ_t = μ +
+  ar1·(y_{t-1}−μ) + ma1·r_{t-1}`, `r_t = y_t−μ_t` (conditional 0 pre-sample), reproducing fEGarch's
+  `r_t` machine-exactly. **Coupling reuses the existing GARCH variance recursion** (extracted
+  `_garch_variance` core) fed the mean-residuals `r_t` — not a rebuild; `quasi_max_likelihood` gained
+  a `mean_recursion` hook (residuals → variance recursion → z=r/σ). **σ₀² seed = bounded limit**
+  (FIAPARCH §19 precedent): `ω+(α+β)·Var(r,ddof=1)` — fEGarch's exact seed is an internal
+  preliminary-residual quantity (non-standard denominator ≈ n−1.4, no published-math form; §12
+  forbids probing source), leaving a decaying seed transient (~1e-6 at t=0 → machine-zero by t≈200,
+  bounded <1e-5). **Validation (seam-exact separate from the bounded fit):** seam machine-exact for
+  all 3 (6.9e-18 at the fixture's own σ₀²); ARMA(1,0)/(0,1) identified → loglik/variance/ar1/ma1
+  tight; **ARMA(1,1) near-common-root** (AR/MA roots cancel on mean-less data) → our fit **dominates**
+  fEGarch's fixture by +0.063 loglik at a different (ar1,ma1), variance block tight, no param/SE
+  assert (§14/§21 weak-id pattern on the mean); ARMA(0,0) reduces to `fit_garch` exactly (0.0);
+  **known-truth** ar1=0.5/ma1=0.3 recovers within 1·SE (positive control). New: `mean.py`
+  (`arma_mean_residuals`, `fit_arma_garch`), `MeanRecursion` protocol. **Tests:
+  `test_arma_mean.py` (13).** Docs: spec-notes §23. Gate green. **Proves ARMA-in-mean; FARIMA-in-mean
+  (fractional operator in the mean) and GARCH-in-mean (σ→mean) follow, reusing the mean-block hook.
+  NOT merged.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
