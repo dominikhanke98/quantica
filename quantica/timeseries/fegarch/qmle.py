@@ -87,8 +87,8 @@ class VarianceRecursion(Protocol):
     values for admissible parameters.
     """
 
-    def __call__(self, params: FloatArray, returns: FloatArray) -> FloatArray:
-        """Return the conditional-variance path for ``params`` on ``returns``."""
+    def __call__(self, params: FloatArray, returns: FloatArray, /) -> FloatArray:
+        """Return the conditional-variance path for ``params`` on ``returns`` (positional-only)."""
         ...
 
 
@@ -101,8 +101,8 @@ class MeanRecursion(Protocol):
     the standardized innovation :math:`z_t = r_t/\\sigma_t` in the joint likelihood.
     """
 
-    def __call__(self, params: FloatArray, returns: FloatArray) -> FloatArray:
-        """Return the mean-residual series :math:`r_t` for ``params`` on ``returns``."""
+    def __call__(self, params: FloatArray, returns: FloatArray, /) -> FloatArray:
+        """Return the mean-residual series :math:`r_t` for ``params`` on ``returns`` (pos-only)."""
         ...
 
 
