@@ -639,5 +639,15 @@
     "sigma": "fit_arma11_garch11_norm_sigma.csv",
     "note": "Phase-5 dual mean (the target): full ARMA(1,1) mean + GARCH(1,1) variance under norm; mean_spec(orders=c(1,1)); AR + MA mean params jointly estimated with mu and the variance {omega, alpha, beta}"
   },
+  "farima0d0_garch11_norm": {
+    "params": "fit_farima0d0_garch11_norm_params.json",
+    "sigma": "fit_farima0d0_garch11_norm_sigma.csv",
+    "note": "Phase-5 FARIMA-in-mean: pure fractional mean (1-B)^D + GARCH(1,1) under norm; mean_spec(orders=c(0,0), long_memo=TRUE); the fractional mean order D (capital, no variance d here) appears in the joint pars() vector alongside mu and {omega, phi1, beta1}; D estimates near 0 (no mean long-memory in the data)"
+  },
+  "farima1d1_garch11_norm": {
+    "params": "fit_farima1d1_garch11_norm_params.json",
+    "sigma": "fit_farima1d1_garch11_norm_sigma.csv",
+    "note": "Phase-5 FARIMA-in-mean (the target): full FARIMA(1,d,1) mean + GARCH(1,1) under norm; mean_spec(orders=c(1,1), long_memo=TRUE); joint pars {mu, ar1, ma1, D, omega, phi1, beta1} -- the fractional mean D alongside the ARMA mean terms and the variance block; D near 0 (reduction-to-ARMA-mean anchor)"
+  },
   "pending_fixtures": "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family (FIGARCH/FIAPARCH/FITGARCH/FIGJR), and the Type-II FILog-GARCH. The distributions-breadth step has advanced: GARCH(1,1) AND the asymmetric short-memory family (GJR-GARCH/TGARCH/APARCH) are now fitted under all seven non-normal distributions (std/ged/ald/snorm/sstd/sged/sald). Later phases need more fixtures: the EGARCH-family + long-memory models under the seven non-normal distributions; dual-mean (ARMA/FARIMA) fits (Phase 5); and forecasts / VaR-ES (Phase 6). Extend this script and re-run when those models are implemented."
 }

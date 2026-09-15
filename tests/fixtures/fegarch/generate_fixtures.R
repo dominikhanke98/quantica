@@ -162,7 +162,7 @@ cat(sprintf("  low-persist series: n=%d mean=%.2e sd=%.4f (alpha+beta=%.2f)\n",
 
 fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none",
                          input = "synthetic_returns.csv", n_obs = length(returns),
-                         seed = SIM_SEED, mean_orders = NULL) {
+                         seed = SIM_SEED, mean_orders = NULL, mean_long_memo = FALSE) {
   # `trunc` records the truncation policy metadata: "none" for the short-memory models (default),
   # and the long-memory default L = n-1 (WP171 App. C.3) for the fractionally-integrated ones.
   # `input`/`n_obs`/`seed` default to the main synthetic series but can name a different input
@@ -180,8 +180,10 @@ fit_and_dump <- function(fit, name, model, cond_dist, trunc = "none",
     aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
     fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
   # Dual-mean fits record the ARMA mean orders c(P,Q); appended last so every pre-existing
-  # (variance-only, mean_orders = NULL) fixture's JSON is byte-identical.
+  # (variance-only, mean_orders = NULL) fixture's JSON is byte-identical. mean_long_memo flags the
+  # FARIMA fractional-mean case (long_memo = TRUE, so the fitted vector carries the mean order `D`).
   if (!is.null(mean_orders)) meta$mean_orders <- as.integer(mean_orders)
+  if (mean_long_memo) meta$mean_long_memo <- TRUE
   write_json(meta, file.path(OUTDIR, sprintf("fit_%s_params.json", name)))
   write_series_csv(sigma(fit), file.path(OUTDIR, sprintf("fit_%s_sigma.csv", name)), "sigma")
   cat(sprintf("  fit %-14s loglik=%.4f\n", name, as.numeric(llhood(fit))))
@@ -598,6 +600,28 @@ for (mo in list(c(1L, 0L), c(0L, 1L), c(1L, 1L))) {
                             "| exists('mean_spec') =", exists("mean_spec"), "\n"))
 }
 
+# --- Phase-5 dual mean: FARIMA(P,d,Q)-GARCH(1,1) (fractional-mean D != 0 extension) -----------------
+# long_memo = TRUE in mean_spec() switches on the fractional differencing operator (1-B)^D in the
+# MEAN (confirmed via args(mean_spec): mean_spec(orders, long_memo = FALSE, include_mean = TRUE)); the
+# fitted mean order is reported as `D` (capital, distinct from any variance d -- none here, since
+# paired with plain GARCH, so `D` is unambiguous). D lands after the ARMA terms and before the
+# variance block in pars(): {mu, [ar1, ma1], D, omega, phi1, beta1}. The review item is where D lands
+# -- the synthetic series has NO mean long-memory, so D estimates near 0 (the reduction-to-ARMA-mean
+# anchor). FARIMA(0,d,0) isolates the (1-B)^D operator; FARIMA(1,d,1) is the full fractional ARMA
+# mean. Named fit_farima{P}d{Q}_garch11_norm (the `d` in the name marks the fractional-D mean).
+for (mo in list(c(0L, 0L), c(1L, 1L))) {
+  P <- mo[1]; Q <- mo[2]
+  nm <- sprintf("farima%dd%d_garch11_norm", P, Q)
+  tryCatch({
+    ffit <- garch(returns, orders = c(1, 1), cond_dist = "norm",
+                  meanspec = mean_spec(orders = c(P, Q), long_memo = TRUE), parallel = FALSE)
+    cat(sprintf("  %s pars:", nm), paste(names(pars(ffit)), collapse = ", "), "\n")
+    cat_pars(ffit)
+    fit_and_dump(ffit, nm, "garch", "norm", mean_orders = c(P, Q), mean_long_memo = TRUE)
+  }, error = function(e) cat(sprintf("  ERROR %s:", nm), conditionMessage(e),
+                            "| exists('mean_spec') =", exists("mean_spec"), "\n"))
+}
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -868,6 +892,10 @@ manifest <- list(
                           note = "Phase-5 dual mean: MA(1) mean + GARCH(1,1) variance under norm; mean_spec(orders=c(0,1)); the MA mean param appears in the joint pars() vector alongside mu and {omega, alpha, beta}"),
       arma11_garch11_norm = list(params = "fit_arma11_garch11_norm_params.json", sigma = "fit_arma11_garch11_norm_sigma.csv",
                           note = "Phase-5 dual mean (the target): full ARMA(1,1) mean + GARCH(1,1) variance under norm; mean_spec(orders=c(1,1)); AR + MA mean params jointly estimated with mu and the variance {omega, alpha, beta}"),
+      farima0d0_garch11_norm = list(params = "fit_farima0d0_garch11_norm_params.json", sigma = "fit_farima0d0_garch11_norm_sigma.csv",
+                          note = "Phase-5 FARIMA-in-mean: pure fractional mean (1-B)^D + GARCH(1,1) under norm; mean_spec(orders=c(0,0), long_memo=TRUE); the fractional mean order D (capital, no variance d here) appears in the joint pars() vector alongside mu and {omega, phi1, beta1}; D estimates near 0 (no mean long-memory in the data)"),
+      farima1d1_garch11_norm = list(params = "fit_farima1d1_garch11_norm_params.json", sigma = "fit_farima1d1_garch11_norm_sigma.csv",
+                          note = "Phase-5 FARIMA-in-mean (the target): full FARIMA(1,d,1) mean + GARCH(1,1) under norm; mean_spec(orders=c(1,1), long_memo=TRUE); joint pars {mu, ar1, ma1, D, omega, phi1, beta1} -- the fractional mean D alongside the ARMA mean terms and the variance block; D near 0 (reduction-to-ARMA-mean anchor)"),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",
