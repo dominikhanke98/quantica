@@ -54,7 +54,13 @@
                     <a class="function" href="#arma_mean_residuals">arma_mean_residuals</a>
             </li>
             <li>
+                    <a class="function" href="#farima_mean_residuals">farima_mean_residuals</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_arma_garch">fit_arma_garch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_farima_garch">fit_farima_garch</a>
             </li>
     </ul>
 
@@ -72,19 +78,22 @@
                     <h1 class="modulename">
 <a href="./../../../quantica.html">quantica</a><wbr>.<a href="./../../timeseries.html">timeseries</a><wbr>.<a href="./../fegarch.html">fegarch</a><wbr>.mean    </h1>
 
-                        <div class="docstring"><p>ARMA-in-mean dual fits: a non-constant (ARMA) conditional mean jointly with a GARCH variance.</p>
+                        <div class="docstring"><p>ARMA- and FARIMA-in-mean dual fits: a non-constant conditional mean + a GARCH variance.</p>
 
 <div class="alert note">
 
 <p><strong>Clean-room (CLAUDE.md §12).</strong> Independent reimplementation from the published mathematics
-(WP 2026-04 §2.2.2, Eqs. 19-22 — the FARIMA-in-mean structure, here the <code>D = 0</code> ARMA case),
-<strong>never</strong> the <code>fEGarch</code> source. Validated against committed <code>fEGarch</code> OUTPUT fixtures.</p>
+(WP 2026-04 §2.2.2, Eqs. 19-22 — the FARIMA-in-mean structure; Eq. 22 is the <code>D = 0</code> ARMA
+case, Eq. 21 the <code>D &gt; 0</code> fractional-mean case), <strong>never</strong> the <code>fEGarch</code> source. Validated
+against committed <code>fEGarch</code> OUTPUT fixtures.</p>
 
 </div>
 
-<p>The first <strong>dual mean+variance</strong> model of Phase 5: the conditional mean is an ARMA(P, Q) recursion
-(P, Q in {0, 1}) instead of the constant \( \mu \), estimated <strong>jointly</strong> with the GARCH(1,1)
-variance in one likelihood. WP 2026-04 Eq. 22 (<code>D = 0</code>) gives the mean as</p>
+<p>The Phase-5 <strong>dual mean+variance</strong> models: the conditional mean is an ARMA(P, Q) or FARIMA(P, d, Q)
+recursion (P, Q in {0, 1}) instead of the constant \( \mu \), estimated <strong>jointly</strong> with the
+GARCH(1,1) variance in one likelihood. <code><a href="#fit_arma_garch">fit_arma_garch()</a></code> is the <code>D = 0</code> (short-memory) case;
+<code><a href="#fit_farima_garch">fit_farima_garch()</a></code> adds the fractional-mean order <code>D</code> via the <code>(1-B)^D</code> operator (below).
+WP 2026-04 Eq. 22 (<code>D = 0</code>) gives the mean as</p>
 
 <p>$$y_t - \mu = \sum_{i=1}^{P} \beta_i (y_{t-i} - \mu) + \sum_{j=1}^{Q} \alpha_j r_{t-j} + r_t,$$</p>
 
@@ -98,6 +107,16 @@ variance in one likelihood. WP 2026-04 Eq. 22 (<code>D = 0</code>) gives the mea
 then drive the <strong>existing</strong> GARCH(1,1) variance recursion
 (<code>~quantica.timeseries.fegarch.garch._garch_variance()</code>) in place of the constant-mean residual
 \( (y - \mu) \) — the variance recursion is unchanged, only its input residual series changes.</p>
+
+<p><strong>FARIMA (<code>D &gt; 0</code>) — the fractional mean.</strong> WP 2026-04 Eq. 21 is
+\( \beta(B)(1-B)^D (y_t - \mu) = \alpha(B) r_t \): the demeaned series is <strong>fractionally
+differenced</strong> by \( D \) before the ARMA recursion. So \( x_t = (1-B)^D (y_t - \mu) \) (the
+Phase-3 <code>~<a href="../fegarch.html#fracdiff_coeffs">quantica.timeseries.fegarch.fracdiff_coeffs()</a></code> at <strong>+D</strong> — the <em>same</em> operator the
+variance FI models use at <strong>-d</strong> for integration — truncated at <strong>full history</strong> <code>L = n-1</code>, App.
+C.3, <em>not</em> the variance recursion's <code>presample = 50</code>), then :math:<code>r_t = x_t - \beta_1 x_{t-1} -
+\alpha_1 r_{t-1}</code>. At \( D = 0 \) the operator is the identity, so \( x = y - \mu \) and FARIMA
+reduces <strong>exactly</strong> to ARMA-in-mean. The reconstruction gate pins <code>6.9e-18</code> (farima1d1) /
+<code>1.4e-17</code> (farima0d0) at the fixture's own \( \sigma_0^2 \).</p>
 
 <p><strong>Mean pre-sample (the conditional convention).</strong> \( (y_{t-i} - \mu) \) and \( r_{t-j} \) are
 <code>0</code> for \( t \le 0 \), so \( \mu_1 = \mu \) and \( r_1 = y_1 - \mu \). This conditional
@@ -142,7 +161,8 @@ estimation is validated to recover genuine dynamics by a known-truth simulation 
     
             <div class="docstring"><p>Mean-residuals \( r_t = y_t - \mu_t \) of an ARMA(1,1)-in-mean recursion (WP Eq. 22, D=0).</p>
 
-<p>\( \mu_t = \mu + \text{ar1}\,(y_{t-1}-\mu) + \text{ma1}\,r_{t-1} \), with the conditional
+<p>\( \mu_t = \mu + \text{ar1}\,(y_{t-1}-\mu) + \text{ma1}\,r_{t-1} \), i.e.
+\( r_t = (y_t-\mu) - \text{ar1}\,(y_{t-1}-\mu) - \text{ma1}\,r_{t-1} \), with the conditional
 pre-sample \( (y_0-\mu) = r_0 = 0 \) (so \( \mu_1 = \mu \)). ARMA(1,0) sets <code>ma1 = 0</code>;
 ARMA(0,1) sets <code>ar1 = 0</code>; ARMA(0,0) (both <code>0</code>) returns exactly \( y - \mu \).</p>
 
@@ -157,6 +177,50 @@ The unconditional mean \( \mu \).</li>
 The AR(1) coefficient \( \beta_1 \) (default <code>0</code>).</li>
 <li><strong>ma1</strong> (float, optional):
 The MA(1) coefficient \( \alpha_1 \) (default <code>0</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The mean-residuals \( r_t \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="farima_mean_residuals">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">farima_mean_residuals</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">ar1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">ma1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">d_mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#farima_mean_residuals"></a>
+    
+            <div class="docstring"><p>Mean-residuals of a FARIMA(1,d,1)-in-mean recursion (WP Eq. 21, D>0).</p>
+
+<p>\( \beta(B)(1-B)^D (y_t-\mu) = \alpha(B) r_t \): fractionally-difference the demeaned series
+by <code>d_mean</code> (\( = D \)), then run the ARMA recursion on the result --
+\( x_t = (1-B)^D (y_t-\mu) \), \( r_t = x_t - \text{ar1}\,x_{t-1} - \text{ma1}\,r_{t-1} \),
+\( \mu_t = y_t - r_t \). \( (1-B)^D \) is the Phase-3
+<code>~<a href="../fegarch.html#fracdiff_coeffs">quantica.timeseries.fegarch.fracdiff_coeffs()</a></code> at <strong>+D</strong> (differencing -- the same
+operator the variance FI models use at <strong>-d</strong> for integration), truncated at <strong>full history</strong>
+<code>L = n-1</code> (App. C.3; the mean's own convention, <em>not</em> the variance's <code>presample = 50</code>), zero
+pre-sample. At <code>d_mean = 0</code> the operator is identity (<code>fracdiff_coeffs(0) = [1, 0, ...]</code>) so
+<code>x = y - mu</code> and this reduces <strong>exactly</strong> to <code><a href="#arma_mean_residuals">arma_mean_residuals()</a></code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series \( y_t \).</li>
+<li><strong>mu</strong> (float):
+The unconditional mean \( \mu \).</li>
+<li><strong>ar1, ma1</strong> (float, optional):
+The AR(1) \( \beta_1 \) and MA(1) \( \alpha_1 \) coefficients (default <code>0</code>).</li>
+<li><strong>d_mean</strong> (float, optional):
+The fractional mean order \( D \) of \( (1-B)^D \) (default <code>0</code> -> ARMA-in-mean).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>
@@ -205,6 +269,57 @@ need discrete-<code>P</code> profiling and are not supported for the dual fit ye
 <li><strong>GarchFit</strong>: Estimates <code>mu</code>, <code>ar1</code>/<code>ma1</code> (as present), <code>omega, alpha, beta</code> (fEGarch's
 <code>phi1</code>/<code>beta1</code>), the log-likelihood, per-observation AIC/BIC, and the conditional-SD
 series.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>mean_orders</code> are outside <code>{0, 1}</code>.</li>
+<li><strong>NotImplementedError</strong>: If <code>cond_dist</code> is <code>"ald"</code> or <code>"sald"</code> (discrete-P profiling, deferred).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_farima_garch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_farima_garch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_orders</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="../fegarch.html#GarchFit">quantica.timeseries.fegarch.GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_farima_garch"></a>
+    
+            <div class="docstring"><p>Fit FARIMA(P,d,Q)-in-mean with a GARCH(1,1) variance jointly by QMLE (P, Q in {0, 1}).</p>
+
+<p>The <code>D != 0</code> fractional-mean extension of <code><a href="#fit_arma_garch">fit_arma_garch()</a></code>: the mean block gains the
+fractional differencing order <code>D</code> (\( (1-B)^D \) on the demeaned series, full-history
+<code>L = n-1</code>), estimated <strong>jointly</strong> with \( {\mu, \text{ar1}, \text{ma1}} \) and the
+variance block \( {\omega, \alpha, \beta} \). Each candidate vector gives
+\( \mu_t \to r_t = y_t-\mu_t \to \sigma_t \) (the existing GARCH recursion on \( r_t \)). It
+reuses the <code>mean_recursion</code> hook, the Phase-3 fracdiff engine, and the GARCH coupling; the
+only new step is the fractional differencing ahead of the proven ARMA recursion.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>mean_orders</strong> (tuple of (int, int), optional):
+The ARMA mean orders <code>(P, Q)</code> with <code>P, Q in {0, 1}</code> (default <code>(1, 1)</code>); the fractional
+<code>D</code> is always present. <code>(0, 0)</code> is the pure fractional mean (<code>D</code> only, no AR/MA).</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>, the validated one). <code>"ald"</code>/<code>"sald"</code>
+need discrete-<code>P</code> profiling and are not supported for the dual fit yet.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu</code>, <code>ar1</code>/<code>ma1</code> (as present), <code>D</code> (fractional mean order),
+<code>omega, alpha, beta</code> (fEGarch's <code>phi1</code>/<code>beta1</code>), the log-likelihood, per-observation
+AIC/BIC, and the conditional-SD series.</li>
 </ul>
 
 <h6 id="raises">Raises</h6>

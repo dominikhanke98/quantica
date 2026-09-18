@@ -1641,6 +1641,28 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   (fractional operator in the mean) and GARCH-in-mean (σ→mean) follow, reusing the mean-block hook.
   NOT merged.**
 
+- **Step 49 — Phase 5: FARIMA-in-mean × GARCH(1,1), the D≠0 fractional mean (branch
+  `feat/fegarch-dual-mean`, NOT merged).** Fixtures first (committed `b18421f`): FARIMA(0,d,0) and
+  FARIMA(1,d,1) × GARCH(1,1)/norm via `mean_spec(orders=c(P,Q), long_memo=TRUE)` — `long_memo` is the
+  fractional-D switch; the mean order is reported as `D` (capital, after the ARMA terms, before the
+  variance block). The build: **ARMA-in-mean (§23) + the Phase-3 fracdiff operator in the mean** — the
+  tightest pass yet, every other piece already proven. Fractional-mean recursion (WP §2.2.2 Eq. 21):
+  `w=y−μ`, `x=(1−B)^D w` via `fracdiff_coeffs(+D)` at **full history L=n−1** (differencing; the same
+  operator the variance FI models use at −d for integration), then the §23 ARMA recursion on `x`;
+  reuses the `mean_recursion` hook + GARCH coupling. **Mean truncation = n−1 (App C.3), distinct from
+  the variance's presample=50** — resolved empirically by farima0d0 (D=0.006: n−1 pins 1.4e-17,
+  50/100 miss ~5-8e-6). σ₀² seed = the ARMA-in-mean bounded-limit (Var(r,ddof=1)). **New(`mean.py`):**
+  `farima_mean_residuals`, `fit_farima_garch`, `_arma_from_innovations` (shared ARMA core). **Fit uses
+  Nelder-Mead** (not L-BFGS-B): the fractional-D + near-common-root ARMA ridge is stiff/multimodal and
+  L-BFGS-B stalls at a dominated point (−0.038); NM reaches the true optimum. **Validation:** seam
+  machine-exact both (6.9e-18/1.4e-17 at the fixture's σ₀²); farima0d0's pure D **identified**
+  (recovers fixture D=0.006045); **farima1d1's ARMA terms MATCH the fixture** (ar1=−0.107/ma1=+0.136,
+  D≈0) — the corroboration that fEGarch's FARIMA optimizer reached the §23 dominating optimum its
+  plain-ARMA optimizer missed; reductions exact (fracdiff(0)=identity → FARIMA(D=0)==ARMA to 0.0;
+  FARIMA(0,d,0) D=0 → constant mean); known-truth D=0.3 recovers (1.25·SE). **Tests:
+  `test_farima_mean.py` (9).** Docs: spec-notes §24. Gate green. **Completes FARIMA-in-mean; only
+  GARCH-in-mean remains in Phase 5's mean models. NOT merged.**
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at

@@ -1482,5 +1482,70 @@ in the mean, `D ≠ 0`) and GARCH-in-mean (σ → mean coupling) follow, reusing
 
 ---
 
-*Add further specification derivations here as later phases (FARIMA-in-mean, GARCH-in-mean,
-forecasting/risk tie-back) are implemented — always from the papers/manual, never the source.*
+## 24. FARIMA-in-mean × GARCH(1,1): the fractional mean (D ≠ 0) — RESOLVED (Phase 5)
+
+**Sources.** WP 2026-04 §2.2.2 Eq. 21: `β(B)(1−B)^D(y_t−μ) = α(B)r_t` — the `D > 0` case of the
+ARMA-in-mean structure (§23). fEGarch source never consulted; validated against the committed
+`fit_farima{0d0,1d1}11_garch11_norm_*` fixtures. **The tightest spec pass yet** — FARIMA-in-mean is
+ARMA-in-mean (§23) + the Phase-3 fracdiff operator in the mean; every other piece is already proven.
+
+### 24.1 The fractional-mean recursion
+
+The demeaned series is **fractionally differenced by D before the ARMA recursion**: with
+`w_t = y_t − μ`, `x_t = (1−B)^D w_t` (the Phase-3 `fracdiff_coeffs` at **+D** — the *same* operator
+the variance FI models use at **−d** for integration, sign flipped to differencing — full-history,
+0 pre-sample), then the §23 ARMA recursion on `x`: `r_t = x_t − ar1·x_{t-1} − ma1·r_{t-1}`,
+`μ_t = y_t − r_t`. Mapping `{mu, ar1, ma1, D}` → `{μ, β₁, α₁, D}`. It **reuses** the `mean_recursion`
+hook, the ARMA-in-mean recursion, and the GARCH coupling — the *only* new step is the
+`(1−B)^D`-of-the-demeaned-series ahead of the ARMA loop. Param vector
+`{mu, [ar1, ma1], D, omega, phi1, beta1}` (D in the mean block, after the ARMA terms, before the
+variance block; scale-invariant).
+
+**Mean truncation = full history L = n−1 (App. C.3), NOT the variance's `presample = 50`.** Resolved
+empirically by farima0d0 (D = 0.006, large enough to discriminate): the fracdiff at full history pins
+the seam to `1.4e-17`, while truncating it at 50/100 misses by `~5–8e-6`. The mean's `(1−B)^D` runs
+over the whole history like the EGF FI *variance* models — a distinct convention from the
+variance-recursion `presample = 50`, recorded separately. (The fixture `"trunc":"none"` field
+describes the *variance* side only.)
+
+### 24.2 Reconstruction gate + the bounded seed (inherited from §23)
+
+At the fixture's params + its **implied σ₀²** the fractional-mean recursion reproduces σ to
+**6.9e-18 (farima1d1) / 1.4e-17 (farima0d0)** — the fracdiff + ARMA + coupling are exactly fEGarch's.
+The σ₀² seed is the **same bounded-limit** as ARMA-in-mean (fEGarch's exact dual seed is an internal
+preliminary-residual quantity, no published-math form; §12): the `ω + (α+β)·Var(r, ddof=1)` analog
+leaves a decaying transient (`< 1e-5`, machine-zero tail).
+
+### 24.3 The stiff fractional-D ridge — Nelder-Mead, not L-BFGS-B
+
+Unlike short-memory ARMA-in-mean (which kept L-BFGS-B for norm), the fractional D together with the
+near-common-root ARMA terms forms a **stiff, near-flat, multimodal** ridge: L-BFGS-B's projected
+gradient **stalls** at a dominated local point from a cold start (farima1d1: loglik `−0.038` below the
+fixture, `ar1=+0.014, ma1=+0.014`), while **Nelder-Mead navigates it to the true optimum**
+(`ar1=−0.107, ma1=+0.136`, tied to the fixture within the bounded-seed `~1e-4`). So `fit_farima_garch`
+uses Nelder-Mead for every distribution.
+
+### 24.4 Validation, reductions, corroboration, identification
+
+- **Seam machine-exact** (both) — asserted separately from the fit.
+- **Fitted match:** farima0d0's **pure fractional D is identified** — it recovers the fixture's
+  `D = 0.006045` (to `~1e-6`), loglik/variance/σ tight. farima1d1's **ARMA terms match the fixture**
+  (`ar1=−0.107, ma1=+0.136`) with `D ≈ 0` — the **corroboration** that fEGarch's own FARIMA optimizer
+  (with the extra D dimension) reached the near-common-root **dominating** optimum its plain-ARMA
+  optimizer missed (the point our §23 ARMA(1,1) build beat the `arma11` fixture at, `+0.063`). So,
+  unlike the dominated `arma11` fixture, the `farima1d1` fixture is at the good optimum and our fit
+  matches it.
+- **Reductions:** `(1−B)^0 = identity` (`fracdiff_coeffs(0) = [1,0,…]`), so FARIMA(D=0) == ARMA-in-mean
+  **exactly** (`0.0`); FARIMA(0,d,0) at D=0 is the constant mean `y − μ`.
+- **Known-truth:** a simulated FARIMA(0,d,0)-GARCH with identified `D = 0.3` recovers `D` (1.25·SE),
+  α, β — the positive control that fractional-mean estimation works under genuine mean long-memory.
+- **Identification:** on the mean-less synthetic data D lands near-zero (0.006 / ~0) on a flat ridge,
+  weakly identified like the mean-less ar1/ma1; the build validates D by regime + the seam.
+
+`test_farima_mean.py`. **FARIMA-in-mean is complete; only GARCH-in-mean (σ → mean coupling) remains in
+Phase 5's mean models.**
+
+---
+
+*Add further specification derivations here as later phases (GARCH-in-mean, forecasting/risk
+tie-back) are implemented — always from the papers/manual, never the source.*
