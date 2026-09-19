@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from quantica.timeseries.fegarch.distributions import ConditionalDistribution
 
 __all__ = [
+    "MeanRecursion",
     "QMLEResult",
     "VarianceRecursion",
     "initial_variance",
@@ -86,8 +87,22 @@ class VarianceRecursion(Protocol):
     values for admissible parameters.
     """
 
-    def __call__(self, params: FloatArray, returns: FloatArray) -> FloatArray:
-        """Return the conditional-variance path for ``params`` on ``returns``."""
+    def __call__(self, params: FloatArray, returns: FloatArray, /) -> FloatArray:
+        """Return the conditional-variance path for ``params`` on ``returns`` (positional-only)."""
+        ...
+
+
+class MeanRecursion(Protocol):
+    """A conditional-mean model: parameters + data → the mean-residual series.
+
+    The callable receives the full parameter vector (mean block first) and the raw return series and
+    returns the residuals :math:`r_t = y_t - \\mu_t`, where :math:`\\mu_t` is the conditional mean
+    (e.g. the ARMA-in-mean recursion). These residuals both drive the variance recursion and form
+    the standardized innovation :math:`z_t = r_t/\\sigma_t` in the joint likelihood.
+    """
+
+    def __call__(self, params: FloatArray, returns: FloatArray, /) -> FloatArray:
+        """Return the mean-residual series :math:`r_t` for ``params`` on ``returns`` (pos-only)."""
         ...
 
 
@@ -160,6 +175,7 @@ def quasi_max_likelihood(
     method: str = "L-BFGS-B",
     options: dict[str, object] | None = None,
     recursion_uses_dist_params: bool = False,
+    mean_recursion: MeanRecursion | None = None,
 ) -> QMLEResult:
     r"""Fit a conditional-variance model by quasi-maximum likelihood.
 
@@ -196,6 +212,15 @@ def quasi_max_likelihood(
         When ``True`` the recursion is called ``variance_recursion(var_params, returns,
         dist_params)`` so it can re-compute a distribution-dependent term (the EGF ``E[g(eta)]``
         centering) from the current shape each iteration; default ``False`` (var_params only).
+    mean_recursion : MeanRecursion, optional
+        A **non-constant mean** model (the ARMA/FARIMA-in-mean block). When given, per candidate
+        vector the engine computes the mean residuals ``resid = mean_recursion(var_params, y)``,
+        feeds **those residuals** to ``variance_recursion(var_params, resid)``, and forms the
+        standardized innovation ``z = resid / sigma`` — so the mean parameters are estimated
+        **jointly** with the variance/shape parameters in the one likelihood. Default ``None``: the
+        constant-mean path (``resid = y - var_params[0]`` when ``mean=True``, else ``y``). Mutually
+        exclusive with ``recursion_uses_dist_params`` (the current mean-block models are norm-path,
+        whose variance recursion does not consume shape parameters).
 
     Returns
     -------
@@ -217,21 +242,32 @@ def quasi_max_likelihood(
     start = np.array([*var_start, *d_start], dtype=np.float64)
     bounds = [*var_bounds, *d_bounds]
 
-    def _recursion(var_params: FloatArray, dist_params: tuple[float, ...]) -> FloatArray:
+    def _sigma2_and_resid(
+        var_params: FloatArray, dist_params: tuple[float, ...]
+    ) -> tuple[FloatArray, FloatArray]:
+        # Returns (sigma_t^2, residuals) so the variance input and the likelihood's standardized
+        # innovation stay consistent. With a mean_recursion the residuals are the ARMA residuals r_t
+        # (fed to the variance recursion); otherwise r_t = y - mu (constant mean) or y.
+        if mean_recursion is not None:
+            resid = np.asarray(mean_recursion(var_params, y), dtype=np.float64)
+            sigma2 = np.asarray(variance_recursion(var_params, resid), dtype=np.float64)
+            return sigma2, resid
         # EGF centering re-computes E[g(eta)] from the CURRENT shape each iteration, so those
         # recursions receive dist_params too; every other recursion depends only on var_params.
         if recursion_uses_dist_params:
-            return np.asarray(variance_recursion(var_params, y, dist_params), dtype=np.float64)  # type: ignore[call-arg]
-        return np.asarray(variance_recursion(var_params, y), dtype=np.float64)
+            sigma2 = np.asarray(variance_recursion(var_params, y, dist_params), dtype=np.float64)  # type: ignore[call-arg]
+        else:
+            sigma2 = np.asarray(variance_recursion(var_params, y), dtype=np.float64)
+        resid = (y - var_params[0]) if mean else y
+        return sigma2, np.asarray(resid, dtype=np.float64)
 
     def negative_loglik(theta: FloatArray) -> float:
         var_params = theta[:n_var]
         dist_params = tuple(float(p) for p in theta[n_var:])
-        sigma2 = _recursion(var_params, dist_params)
+        sigma2, residuals = _sigma2_and_resid(var_params, dist_params)
         if not np.all(np.isfinite(sigma2)) or np.any(sigma2 <= 0.0):
             return 1e10
         sigma = np.sqrt(sigma2)
-        residuals = y - var_params[0] if mean else y
         z = residuals / sigma
         loglik = np.sum(-np.log(sigma) + distribution.logpdf(z, dist_params))
         return float(-loglik) if np.isfinite(loglik) else 1e10
@@ -248,7 +284,7 @@ def quasi_max_likelihood(
         vcov = np.full((theta.size, theta.size), np.nan)
         std_errors = np.full(theta.size, np.nan)
 
-    sigma2 = _recursion(theta[:n_var], tuple(float(p) for p in theta[n_var:]))
+    sigma2, _resid = _sigma2_and_resid(theta[:n_var], tuple(float(p) for p in theta[n_var:]))
     return QMLEResult(
         params=theta,
         param_names=(*var_names, *distribution.param_names),

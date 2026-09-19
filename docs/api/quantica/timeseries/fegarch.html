@@ -268,6 +268,15 @@
 
             </li>
             <li>
+                    <a class="class" href="#MeanRecursion">MeanRecursion</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#MeanRecursion.__init__">MeanRecursion</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#Normal">Normal</a>
                             <ul class="memberlist">
                         <li>
@@ -379,10 +388,16 @@
                     <a class="function" href="#aparch_sim">aparch_sim</a>
             </li>
             <li>
+                    <a class="function" href="#arma_mean_residuals">arma_mean_residuals</a>
+            </li>
+            <li>
                     <a class="function" href="#egarch_recursion">egarch_recursion</a>
             </li>
             <li>
                     <a class="function" href="#egarch_sim">egarch_sim</a>
+            </li>
+            <li>
+                    <a class="function" href="#farima_mean_residuals">farima_mean_residuals</a>
             </li>
             <li>
                     <a class="function" href="#fiaparch_news">fiaparch_news</a>
@@ -442,7 +457,13 @@
                     <a class="function" href="#fit_aparch">fit_aparch</a>
             </li>
             <li>
+                    <a class="function" href="#fit_arma_garch">fit_arma_garch</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_egarch">fit_egarch</a>
+            </li>
+            <li>
+                    <a class="function" href="#fit_farima_garch">fit_farima_garch</a>
             </li>
             <li>
                     <a class="function" href="#fit_fiaparch">fit_fiaparch</a>
@@ -1746,6 +1767,38 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
                                 </dl>
                             </div>
                 </section>
+                <section id="MeanRecursion">
+                    <div class="attr class">
+            
+    <span class="def">class</span>
+    <span class="name">MeanRecursion</span><wbr>(<span class="base">typing.Protocol</span>):
+
+        
+    </div>
+    <a class="headerlink" href="#MeanRecursion"></a>
+    
+            <div class="docstring"><p>A conditional-mean model: parameters + data → the mean-residual series.</p>
+
+<p>The callable receives the full parameter vector (mean block first) and the raw return series and
+returns the residuals \( r_t = y_t - \mu_t \), where \( \mu_t \) is the conditional mean
+(e.g. the ARMA-in-mean recursion). These residuals both drive the variance recursion and form
+the standardized innovation \( z_t = r_t/\sigma_t \) in the joint likelihood.</p>
+</div>
+
+
+                            <div id="MeanRecursion.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">MeanRecursion</span><span class="signature pdoc-code condensed">(<span class="param"><span class="o">*</span><span class="n">args</span>, </span><span class="param"><span class="o">**</span><span class="n">kwargs</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MeanRecursion.__init__"></a>
+    
+    
+
+                            </div>
+                </section>
                 <section id="Normal">
                     <div class="attr class">
             
@@ -2300,6 +2353,45 @@ non-stationary.</li>
 
 
                 </section>
+                <section id="arma_mean_residuals">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">arma_mean_residuals</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">ar1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">ma1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#arma_mean_residuals"></a>
+    
+            <div class="docstring"><p>Mean-residuals \( r_t = y_t - \mu_t \) of an ARMA(1,1)-in-mean recursion (WP Eq. 22, D=0).</p>
+
+<p>\( \mu_t = \mu + \text{ar1}\,(y_{t-1}-\mu) + \text{ma1}\,r_{t-1} \), i.e.
+\( r_t = (y_t-\mu) - \text{ar1}\,(y_{t-1}-\mu) - \text{ma1}\,r_{t-1} \), with the conditional
+pre-sample \( (y_0-\mu) = r_0 = 0 \) (so \( \mu_1 = \mu \)). ARMA(1,0) sets <code>ma1 = 0</code>;
+ARMA(0,1) sets <code>ar1 = 0</code>; ARMA(0,0) (both <code>0</code>) returns exactly \( y - \mu \).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series \( y_t \).</li>
+<li><strong>mu</strong> (float):
+The unconditional mean \( \mu \).</li>
+<li><strong>ar1</strong> (float, optional):
+The AR(1) coefficient \( \beta_1 \) (default <code>0</code>).</li>
+<li><strong>ma1</strong> (float, optional):
+The MA(1) coefficient \( \alpha_1 \) (default <code>0</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The mean-residuals \( r_t \).</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="egarch_recursion">
                     <div class="attr function">
             
@@ -2376,6 +2468,50 @@ Burn-in samples discarded so the recursion forgets its start (default 500).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi1| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="farima_mean_residuals">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">farima_mean_residuals</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">ar1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">ma1</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>,</span><span class="param">	<span class="n">d_mean</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#farima_mean_residuals"></a>
+    
+            <div class="docstring"><p>Mean-residuals of a FARIMA(1,d,1)-in-mean recursion (WP Eq. 21, D>0).</p>
+
+<p>\( \beta(B)(1-B)^D (y_t-\mu) = \alpha(B) r_t \): fractionally-difference the demeaned series
+by <code>d_mean</code> (\( = D \)), then run the ARMA recursion on the result --
+\( x_t = (1-B)^D (y_t-\mu) \), \( r_t = x_t - \text{ar1}\,x_{t-1} - \text{ma1}\,r_{t-1} \),
+\( \mu_t = y_t - r_t \). \( (1-B)^D \) is the Phase-3
+<code>~<a href="#fracdiff_coeffs">quantica.timeseries.fegarch.fracdiff_coeffs()</a></code> at <strong>+D</strong> (differencing -- the same
+operator the variance FI models use at <strong>-d</strong> for integration), truncated at <strong>full history</strong>
+<code>L = n-1</code> (App. C.3; the mean's own convention, <em>not</em> the variance's <code>presample = 50</code>), zero
+pre-sample. At <code>d_mean = 0</code> the operator is identity (<code>fracdiff_coeffs(0) = [1, 0, ...]</code>) so
+<code>x = y - mu</code> and this reduces <strong>exactly</strong> to <code><a href="#arma_mean_residuals">arma_mean_residuals()</a></code>.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series \( y_t \).</li>
+<li><strong>mu</strong> (float):
+The unconditional mean \( \mu \).</li>
+<li><strong>ar1, ma1</strong> (float, optional):
+The AR(1) \( \beta_1 \) and MA(1) \( \alpha_1 \) coefficients (default <code>0</code>).</li>
+<li><strong>d_mean</strong> (float, optional):
+The fractional mean order \( D \) of \( (1-B)^D \) (default <code>0</code> -> ARMA-in-mean).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The mean-residuals \( r_t \).</li>
 </ul>
 </div>
 
@@ -3157,6 +3293,55 @@ per-observation AIC/BIC, and the conditional-volatility series.</li>
 
 
                 </section>
+                <section id="fit_arma_garch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_arma_garch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_orders</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_arma_garch"></a>
+    
+            <div class="docstring"><p>Fit ARMA(P,Q)-in-mean with a GARCH(1,1) variance jointly by QMLE (P, Q in {0, 1}).</p>
+
+<p>The mean block \( {\mu, \text{ar1}, \text{ma1}} \) and the variance block
+\( {\omega, \alpha, \beta} \) are estimated <strong>together</strong> in one likelihood: each candidate
+vector gives \( \mu_t \to r_t = y_t-\mu_t \to \sigma_t \) (the existing GARCH recursion on
+\( r_t \)) \( \to \ell(y_t, \mu_t, \sigma_t) \).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>mean_orders</strong> (tuple of (int, int), optional):
+The ARMA mean orders <code>(P, Q)</code> with <code>P, Q in {0, 1}</code> (default <code>(1, 1)</code>): <code>(1, 0)</code>
+AR-only, <code>(0, 1)</code> MA-only, <code>(1, 1)</code> the full ARMA(1,1) mean. <code>(0, 0)</code> reduces to a
+constant mean (use <code>~<a href="#fit_garch">quantica.timeseries.fegarch.fit_garch()</a></code>).</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>, the validated one). <code>"ald"</code>/<code>"sald"</code>
+need discrete-<code>P</code> profiling and are not supported for the dual fit yet.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu</code>, <code>ar1</code>/<code>ma1</code> (as present), <code>omega, alpha, beta</code> (fEGarch's
+<code>phi1</code>/<code>beta1</code>), the log-likelihood, per-observation AIC/BIC, and the conditional-SD
+series.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>mean_orders</code> are outside <code>{0, 1}</code>.</li>
+<li><strong>NotImplementedError</strong>: If <code>cond_dist</code> is <code>"ald"</code> or <code>"sald"</code> (discrete-P profiling, deferred).</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fit_egarch">
                     <div class="attr function">
             
@@ -3183,6 +3368,57 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>, the on
 <ul>
 <li><strong>GarchFit</strong>: Estimates <code>mu, omega_sig, phi1, kappa, gamma</code>, log-likelihood, per-observation AIC/BIC,
 and the conditional-volatility series (original return units).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="fit_farima_garch">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_farima_garch</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">mean_orders</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span></span><span class="return-annotation">) -> <span class="n"><a href="#GarchFit">GarchFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_farima_garch"></a>
+    
+            <div class="docstring"><p>Fit FARIMA(P,d,Q)-in-mean with a GARCH(1,1) variance jointly by QMLE (P, Q in {0, 1}).</p>
+
+<p>The <code>D != 0</code> fractional-mean extension of <code><a href="#fit_arma_garch">fit_arma_garch()</a></code>: the mean block gains the
+fractional differencing order <code>D</code> (\( (1-B)^D \) on the demeaned series, full-history
+<code>L = n-1</code>), estimated <strong>jointly</strong> with \( {\mu, \text{ar1}, \text{ma1}} \) and the
+variance block \( {\omega, \alpha, \beta} \). Each candidate vector gives
+\( \mu_t \to r_t = y_t-\mu_t \to \sigma_t \) (the existing GARCH recursion on \( r_t \)). It
+reuses the <code>mean_recursion</code> hook, the Phase-3 fracdiff engine, and the GARCH coupling; the
+only new step is the fractional differencing ahead of the proven ARMA recursion.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series.</li>
+<li><strong>mean_orders</strong> (tuple of (int, int), optional):
+The ARMA mean orders <code>(P, Q)</code> with <code>P, Q in {0, 1}</code> (default <code>(1, 1)</code>); the fractional
+<code>D</code> is always present. <code>(0, 0)</code> is the pure fractional mean (<code>D</code> only, no AR/MA).</li>
+<li><strong>cond_dist</strong> (str, optional):
+Conditional-distribution code (default <code>"norm"</code>, the validated one). <code>"ald"</code>/<code>"sald"</code>
+need discrete-<code>P</code> profiling and are not supported for the dual fit yet.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GarchFit</strong>: Estimates <code>mu</code>, <code>ar1</code>/<code>ma1</code> (as present), <code>D</code> (fractional mean order),
+<code>omega, alpha, beta</code> (fEGarch's <code>phi1</code>/<code>beta1</code>), the log-likelihood, per-observation
+AIC/BIC, and the conditional-SD series.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>mean_orders</code> are outside <code>{0, 1}</code>.</li>
+<li><strong>NotImplementedError</strong>: If <code>cond_dist</code> is <code>"ald"</code> or <code>"sald"</code> (discrete-P profiling, deferred).</li>
 </ul>
 </div>
 
@@ -4231,7 +4467,7 @@ Burn-in samples discarded (default 500).</li>
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;L-BFGS-B&#39;</span>,</span><span class="param">	<span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">recursion_uses_dist_params</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
+        <span class="name">quasi_max_likelihood</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">variance_recursion</span><span class="p">:</span> <span class="n"><a href="#VarianceRecursion">VarianceRecursion</a></span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">var_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">var_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>,</span><span class="param">	<span class="n">dist_start</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">dist_bounds</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">mean</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;L-BFGS-B&#39;</span>,</span><span class="param">	<span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">recursion_uses_dist_params</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>,</span><span class="param">	<span class="n">mean_recursion</span><span class="p">:</span> <span class="n"><a href="#MeanRecursion">MeanRecursion</a></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#QMLEResult">QMLEResult</a></span>:</span></span>
 
         
     </div>
@@ -4273,6 +4509,15 @@ Extra <code>options</code> for <code>scipy.optimize.minimize()</code> (e.g. tigh
 When <code>True</code> the recursion is called <code>variance_recursion(var_params, returns,
 dist_params)</code> so it can re-compute a distribution-dependent term (the EGF <code>E[g(eta)]</code>
 centering) from the current shape each iteration; default <code>False</code> (var_params only).</li>
+<li><strong>mean_recursion</strong> (MeanRecursion, optional):
+A <strong>non-constant mean</strong> model (the ARMA/FARIMA-in-mean block). When given, per candidate
+vector the engine computes the mean residuals <code>resid = mean_recursion(var_params, y)</code>,
+feeds <strong>those residuals</strong> to <code>variance_recursion(var_params, resid)</code>, and forms the
+standardized innovation <code>z = resid / sigma</code> — so the mean parameters are estimated
+<strong>jointly</strong> with the variance/shape parameters in the one likelihood. Default <code>None</code>: the
+constant-mean path (<code>resid = y - var_params[0]</code> when <code>mean=True</code>, else <code>y</code>). Mutually
+exclusive with <code>recursion_uses_dist_params</code> (the current mean-block models are norm-path,
+whose variance recursion does not consume shape parameters).</li>
 </ul>
 
 <h6 id="returns">Returns</h6>

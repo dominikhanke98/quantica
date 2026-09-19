@@ -199,7 +199,14 @@ from quantica.timeseries.fegarch.filoggarch import (
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
 from quantica.timeseries.fegarch.loggarch import fit_loggarch, loggarch_recursion, loggarch_sim
+from quantica.timeseries.fegarch.mean import (
+    arma_mean_residuals,
+    farima_mean_residuals,
+    fit_arma_garch,
+    fit_farima_garch,
+)
 from quantica.timeseries.fegarch.qmle import (
+    MeanRecursion,
     QMLEResult,
     VarianceRecursion,
     initial_variance,
@@ -217,14 +224,17 @@ __all__ = [
     "FernandezSteelSkew",
     "GarchFit",
     "GeneralizedError",
+    "MeanRecursion",
     "Normal",
     "QMLEResult",
     "StudentT",
     "VarianceRecursion",
     "aparch_recursion",
     "aparch_sim",
+    "arma_mean_residuals",
     "egarch_recursion",
     "egarch_sim",
+    "farima_mean_residuals",
     "fiaparch_news",
     "fiaparch_recursion",
     "fiaparch_sim",
@@ -244,7 +254,9 @@ __all__ = [
     "fimloggarch_recursion",
     "fimloggarch_sim",
     "fit_aparch",
+    "fit_arma_garch",
     "fit_egarch",
+    "fit_farima_garch",
     "fit_fiaparch",
     "fit_fiegarch",
     "fit_figarch",

@@ -62,6 +62,43 @@ _VAR_NAMES = ("mu", "omega", "alpha", "beta")
 _ALD_PRANGE = (1, 2, 3, 4, 5)
 
 
+def _garch_variance(
+    resid: FloatArray, omega: float, alpha: float, beta: float, presample: float
+) -> FloatArray:
+    r"""The GARCH(1,1) variance recursion on given residuals + a pre-sample seed.
+
+    The shared core :math:`\sigma_t^2 = \omega + \alpha\varepsilon_{t-1}^2 + \beta\sigma_{t-1}^2`,
+    seeded with :math:`\sigma_0^2 = \omega + (\alpha+\beta)\cdot\text{presample}` (i.e.
+    :math:`\sigma_0^2 = \varepsilon_0^2 = \sigma_{-1}^2 = \text{presample}`). Extracted so the
+    constant-mean path (:func:`garch_recursion`, ``presample = Var(returns)``) and the
+    ARMA-in-mean dual fit (:func:`~quantica.timeseries.fegarch.fit_arma_garch`, fed the ARMA
+    mean-residuals with ``presample = Var(residuals)``) share **one** variance recursion rather
+    than duplicating it.
+
+    Parameters
+    ----------
+    resid : ndarray, shape (T,)
+        The residual series :math:`\varepsilon_t` driving the recursion (:math:`y-\mu` for a
+        constant mean; the ARMA mean-residuals :math:`r_t` for the dual fit).
+    omega, alpha, beta : float
+        The GARCH(1,1) variance parameters.
+    presample : float
+        The pre-sample seed :math:`\sigma_0^2 = \varepsilon_0^2 = \sigma_{-1}^2` (the unbiased
+        sample variance of the residual-generating series).
+
+    Returns
+    -------
+    ndarray, shape (T,)
+        The conditional variances :math:`\sigma_t^2`.
+    """
+    eps = np.asarray(resid, dtype=np.float64)
+    sigma2 = np.empty(eps.size, dtype=np.float64)
+    sigma2[0] = omega + (alpha + beta) * presample
+    for t in range(1, eps.size):
+        sigma2[t] = omega + alpha * eps[t - 1] ** 2 + beta * sigma2[t - 1]
+    return sigma2
+
+
 def garch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
     r"""The GARCH(1,1) conditional-variance path :math:`\sigma_t^2` (a QMLE ``VarianceRecursion``).
 
@@ -80,13 +117,8 @@ def garch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
     """
     mu, omega, alpha, beta = (float(p) for p in params)
     y = np.asarray(returns, dtype=np.float64)
-    resid = y - mu
-    presample = float(np.var(y, ddof=1))  # sigma_0^2 = eps_0^2, mean-invariant
-    sigma2 = np.empty(y.size, dtype=np.float64)
-    sigma2[0] = omega + alpha * presample + beta * presample
-    for t in range(1, y.size):
-        sigma2[t] = omega + alpha * resid[t - 1] ** 2 + beta * sigma2[t - 1]
-    return sigma2
+    # sigma_0^2 = eps_0^2 = Var(y); mean-invariant, so Var(y) = Var(y - mu).
+    return _garch_variance(y - mu, omega, alpha, beta, float(np.var(y, ddof=1)))
 
 
 @dataclass(frozen=True)
@@ -198,6 +230,7 @@ def _garch_fit_from_result(
     k: int,
     extra_params: dict[str, float] | None = None,
     profile: tuple[tuple[int, float], ...] | None = None,
+    factors: FloatArray | None = None,
 ) -> GarchFit:
     """Assemble a :class:`GarchFit` from a QMLE result: undo the scaling and form AIC/BIC.
 
@@ -217,15 +250,21 @@ def _garch_fit_from_result(
         Extra parameters not produced by the optimizer (e.g. the ALD's profiled ``P``).
     profile : tuple of (int, float) or None, optional
         The ALD's ``(P, log-likelihood)`` grid, forwarded to :class:`GarchFit`.
+    factors : ndarray or None, optional
+        Per-parameter scale-unwind factors aligned with ``result.params`` (default ``None`` uses the
+        constant-mean GARCH layout ``[scale, scale^2, 1, 1, ...shape]``). The ARMA-in-mean dual fit
+        passes an explicit vector because its layout interleaves the scale-invariant ``ar1``/``ma1``
+        mean coefficients between ``mu`` (``~scale``) and ``omega`` (``~scale^2``).
 
     Returns
     -------
     GarchFit
         The fitted model in original units.
     """
-    n_shape = len(result.param_names) - len(_VAR_NAMES)
-    # Undo the scaling: mu ~ scale, omega ~ scale^2, alpha/beta and shape params invariant.
-    factors = np.array([scale, scale**2, 1.0, 1.0] + [1.0] * n_shape)
+    if factors is None:
+        n_shape = len(result.param_names) - len(_VAR_NAMES)
+        # Undo the scaling: mu ~ scale, omega ~ scale^2, alpha/beta and shape params invariant.
+        factors = np.array([scale, scale**2, 1.0, 1.0] + [1.0] * n_shape)
     values = result.params * factors
     names = result.param_names
     params = {name: float(v) for name, v in zip(names, values, strict=True)}
