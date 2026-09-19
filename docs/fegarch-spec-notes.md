@@ -1547,5 +1547,46 @@ Phase 5's mean models.**
 
 ---
 
-*Add further specification derivations here as later phases (GARCH-in-mean, forecasting/risk
-tie-back) are implemented — always from the papers/manual, never the source.*
+## 25. Scope finding: fEGarch has NO GARCH-in-mean — dual-mean = ARMA + FARIMA only — RESOLVED (Phase 5)
+
+**Reconnaissance for the planned "GARCH-in-mean (garchm)" model established that it does not exist in
+fEGarch.** fEGarch's dual-mean modelling is **ARMA-in-mean (§23) + FARIMA-in-mean (§24) only**; there
+is **no σ→mean coupling** (no GARCH-M / risk-premium / in-mean λ) anywhere in the package. Phase 5's
+dual-mean layer is therefore **complete at two mean models, not three.** This corrects the
+port-roadmap's "GARCH-in-mean (garchm)" line, which assumed `garchm_estim` meant *in-mean*.
+
+**The `m` in `garchm_estim` is "Models", not "in-mean".** The reference-manual help (a permitted §12
+input — documented interface/math, not source) titles it *"General GARCH-Type Model Estimation"* and
+describes it as a **wrapper/selector** to *"fit any of the additional short- or long-memory
+GARCH-type models … aside from those of the extended EGARCH family"* via
+`model = {garch, gjrgarch, tgarch, aparch, figarch, figjrgarch, fitgarch, fiaparch}`, with a
+`meanspec=` for the ARMA/FARIMA mean. It adds no in-mean term.
+
+**Evidence (all from public interface / output, never source):**
+- `garchm_estim(returns)` (defaults) returns a plain `fEGarch_fit_garch`: pars `{mu, omega, phi1,
+  beta1}`, **loglik 7601.11 = the `garch11_norm` fixture exactly**, and **constant `cmeans`**
+  (`0.000548` ∀t → the conditional mean does not depend on σ_t). No λ in any of the 17 object slots.
+  This alone is decisive: the "GARCH-M" wrapper produces an ordinary GARCH fit.
+- `mean_spec` documents only `β(B)(1−B)^D(y_t−μ) = α(B)r_t` (ARMA for `D=0`, FARIMA for `D∈(0,0.5)`) —
+  the exact structure of §23/§24. No in-mean argument exists (`in_mean` / `inmean` / `garch_in_mean` /
+  `gim` are all rejected by `mean_spec()`).
+- `ls("package:fEGarch")` matching `garchm|in_?mean|estim|mean_spec` returns only `garchm_estim`,
+  `mean_spec`, `mean_spec_methods` — no in-mean / risk-premium function in the package.
+
+**Clean-room consequence (§12).** The port implements only what the reference contains and validates
+against its OUTPUT. Since fEGarch has no GARCH-in-mean, there is nothing to port and no OUTPUT fixture
+to capture — building an in-mean term would mean fabricating a fixture from a self-authored R model,
+which §12 forbids. GARCH-in-mean (Engle–Lilien–Robins 1987) could later be an **original** extension
+validated by known-truth only, but that is out of the fEGarch-port scope.
+
+*Belt-and-suspenders:* the `ls()` export scan was run while the R/fEGarch DLL load was intermittently
+blocked by the Windows application-control policy; it should be re-confirmed once that clears. The
+`garchm_estim(returns) → plain garch (garch11_norm loglik, constant cmeans)` result, however, rendered
+cleanly and is decisive on its own.
+
+**Phase 5 (dual mean) is complete: ARMA-in-mean + FARIMA-in-mean, both fixture-validated and CI-green.**
+
+---
+
+*Add further specification derivations here as later phases (forecasting/risk tie-back, optional
+semiparametric) are implemented — always from the papers/manual, never the source.*
