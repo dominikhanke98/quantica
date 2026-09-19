@@ -1663,6 +1663,34 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
   `test_farima_mean.py` (9).** Docs: spec-notes §24. Gate green. **Completes FARIMA-in-mean; only
   GARCH-in-mean remains in Phase 5's mean models. NOT merged.**
 
+- **Step 50 — Phase 5 DUAL MEAN COMPLETE + MERGED to `main` (PR #21, merge commit `ffc2ede`).** The
+  6-commit `feat/fegarch-dual-mean` arc (ARMA fixtures→build, the positional-only mypy fix, FARIMA
+  fixtures→build, the scope-finding doc) merged via merge commit (history preserved) after CI green on
+  py3.11+py3.12 (run #119). Branch deleted (local+remote). **fEGarch's dual-mean modelling is
+  ARMA-in-mean + FARIMA-in-mean — two mean models, both fixture-validated and CI-green.** The joint
+  mean+variance QMLE runs via the `mean_recursion` hook on `quasi_max_likelihood` (a mean-block
+  extension, not a rebuild): μ_t → r_t = y_t−μ_t → the existing GARCH variance recursion on r_t → the
+  likelihood. Mean recursion `r_t = x_t − ar1·x_{t-1} − ma1·r_{t-1}` on `x = (1−B)^D(y−μ)` — the
+  fractional mean uses **full n−1 truncation** (App C.3), distinct from the variance recursion's
+  `presample=50`; the σ₀² seed is the **bounded-limit** (Var(r,ddof=1)), the FIAPARCH §19 precedent
+  (fEGarch's exact dual seed is an internal preliminary-residual quantity, no published-math form).
+  - **Scope finding (§25): fEGarch has NO GARCH-in-mean.** Reconnaissance for the planned "garchm"
+    established `garchm_estim` is a general GARCH-type model *selector* (the "m"=Models; returns plain
+    garch fits — `garchm_estim(returns)` = garch11_norm loglik 7601.11, constant cmeans, no λ),
+    `mean_spec` is ARMA/FARIMA-only, and the export scan finds no in-mean function. Per §12 (port only
+    what the reference contains, validate against its OUTPUT), there is no third mean model to build —
+    **Phase 5 is complete at two mean models, not three.** Corrects the roadmap's "GARCH-in-mean
+    (garchm)" line. (GARCH-M, Engle–Lilien–Robins 1987, could be an *original* known-truth-only
+    extension later, out of the fEGarch-port scope.)
+  - **ARMA(1,1) domination corroborated:** fEGarch's own FARIMA(1,d,1) optimizer (with the extra D
+    dimension) independently reached `ar1=−0.108/ma1=+0.137` — the near-common-root dominating optimum
+    our ARMA(1,1) build found and that beat the (dominated) `arma11` fixture by +0.063.
+  - **Port status.** The fEGarch reimplementation is now **complete in all model machinery (Phases
+    0–4) + the full distribution breadth (all 8 laws) + dual mean (ARMA/FARIMA-in-mean).** What remains
+    is **Phase 6** — forecasting / risk / backtesting (largely a tie-back to the existing risk pillar:
+    VaR/ES, Kupiec/Christoffersen/Acerbi–Székely) — and **optional Phase 7** — the semiparametric
+    (nonparametric scale-function) extension. No core model machinery remains.
+
 ## Next — optional depth only (planned scope is done)
 
 **All three pillars are complete, merged to `main`, and the app is live at
