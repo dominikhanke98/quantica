@@ -1588,5 +1588,40 @@ cleanly and is decisive on its own.
 
 ---
 
+## 26. Platform-sensitive ALD ridges: `fimegarch ald` + `filoggarch ald` re-classified — RESOLVED
+
+**The weekly slow tier went red on Linux with two FI-EGF ALD fit-match failures that pass on
+Windows.** Root cause: the **ALD (integer-P) fits sit on flat / multimodal near-common-root ridges**
+where the *fitted* loglik is platform-FP-dependent (the optimizer's LAPACK/BLAS trajectory differs
+Windows↔Linux), while the **reconstruction seam is machine-exact on both platforms**. This is the
+established weak-identification taxonomy (§14/§19/§21), not a regression — the fix is **correct
+re-classification with platform-robust bounds**, not tolerance-widening-to-green.
+
+**Multi-start diagnosis (Windows).** For `filoggarch ald` at the fixture's `P = 5`, fits from
+sensible starts land at converged optima spanning **~7522–7555.7**: the data-driven default start
+reaches **7555.74** (the good basin, near the fixture's 7556.5), but other sensible starts land
+7549.8, 7553.8, 7546.1, … The likelihood surface is **genuinely multimodal**. So Linux landing
+**7548.9** from the *same* default start is **platform-FP basin selection** — a benign different
+basin, not a convergence failure (Linux converges; the good basin exists and is reachable). For
+`fimegarch ald`, the fit reaches the fixture optimum on both platforms (Windows dev `~5e-7`, Linux
+`~1.8e-4`) — a platform-FP tie at the `1e-4` level.
+
+**Re-classification (test-only, low-risk):**
+- `fimegarch ald`: moved out of the **tight** set (mis-classified) into **dominate-or-tie**. The seam
+  stays the tight, platform-invariant correctness proof; the fit floor is a cross-platform-robust
+  `fixture − 1e-2` (the strong Type-I dominators are `+3…+4`, so this only affects the near-zero tie).
+- `filoggarch ald`: kept in the FILog-GARCH ridge test, but its ald branch bound widened from the
+  Windows-calibrated `−1.0` to a **multimodal-ridge band `fixture − 12`** — wide enough to tolerate
+  the platform-FP basin spread (Windows −0.76, Linux −7.6) while still rejecting non-convergence to a
+  genuinely poor basin (e.g. the ~7436 dominated local optimum). The seam
+  (`test_filoggarch_seam_is_machine_exact[ald]`, machine-exact both platforms) is the correctness
+  proof; the fit is validated as a converged ridge optimum, **not** a fixture-loglik match.
+
+**Principle:** on a flat/multimodal ridge the *seam* is the platform-invariant correctness assertion;
+the *fit-match* bound is derived from the ridge's actual cross-platform behavior, never one platform's
+calibration. `fiegarch ald` stays tight — it matches the fixture to `<1e-4` on both platforms.
+
+---
+
 *Add further specification derivations here as later phases (forecasting/risk tie-back, optional
 semiparametric) are implemented — always from the papers/manual, never the source.*
