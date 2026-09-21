@@ -60,7 +60,9 @@ __all__ = [
     "BaselZone",
     "ChristoffersenResult",
     "KupiecResult",
+    "VaRESBacktest",
     "acerbi_szekely",
+    "backtest_return_forecasts",
     "basel_traffic_light",
     "christoffersen_cc",
     "christoffersen_independence",
@@ -344,6 +346,101 @@ def acerbi_szekely(
 
     return AcerbiSzekelyResult(
         statistic=statistic, p_value=p_value, method=method, n_exceptions=n_exceptions
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Return-space adapter: run the full suite on quantile forecasts
+# --------------------------------------------------------------------------- #
+
+
+@dataclass(frozen=True)
+class VaRESBacktest:
+    """The full VaR/ES backtest suite for one confidence level over a window.
+
+    Bundles the four VaR/ES backtests so a set of return-space forecasts (e.g. an fEGarch
+    ``measure_risk`` output) can be run through the risk pillar in one call.
+
+    Attributes
+    ----------
+    level : float
+        The confidence level :math:`\\alpha`.
+    n_obs, n_exceptions : int
+        The window length and the number of VaR exceptions.
+    kupiec : KupiecResult
+        Unconditional-coverage (proportion-of-failures) test.
+    independence, conditional_coverage : ChristoffersenResult
+        The Christoffersen independence and joint conditional-coverage tests.
+    basel : BaselResult
+        The Basel traffic-light zone and capital add-on.
+    es : AcerbiSzekelyResult
+        The Acerbi--Székely Expected-Shortfall backtest.
+    """
+
+    level: float
+    n_obs: int
+    n_exceptions: int
+    kupiec: KupiecResult
+    independence: ChristoffersenResult
+    conditional_coverage: ChristoffersenResult
+    basel: BaselResult
+    es: AcerbiSzekelyResult
+
+
+def backtest_return_forecasts(
+    realized_returns: FloatArray,
+    var_forecasts: FloatArray,
+    es_forecasts: FloatArray,
+    level: float,
+    *,
+    es_method: str = "Z2",
+    null_returns: FloatArray | None = None,
+) -> VaRESBacktest:
+    r"""Run the full VaR/ES suite on **return-space** quantile forecasts.
+
+    A thin sign-mapping adapter over the loss-space backtests: the pillar's convention is that an
+    exception is a **loss** exceeding the VaR, whereas conditional-quantile models (e.g. an fEGarch
+    ``measure_risk`` output) report VaR/ES as **negative return thresholds**. The map is
+    ``losses = -returns``, ``var = -var_forecasts``, ``es = -es_forecasts``; then
+    :func:`exceptions` / :func:`kupiec_pof` / :func:`christoffersen_independence` /
+    :func:`christoffersen_cc` / :func:`basel_traffic_light` / :func:`acerbi_szekely` are the
+    existing functions unchanged (no new backtest mathematics).
+
+    Parameters
+    ----------
+    realized_returns : ndarray, shape (T,)
+        The realized returns over the backtest window.
+    var_forecasts, es_forecasts : ndarray, shape (T,)
+        The return-space VaR/ES forecasts aligned with ``realized_returns`` (negative thresholds).
+    level : float
+        The confidence level :math:`\alpha`.
+    es_method : {"Z2", "Z1"}, optional
+        The Acerbi--Székely statistic (default ``"Z2"``, unconditional).
+    null_returns : ndarray, optional
+        Shape ``(n_sims, T)`` of returns simulated under the predictive model, for the ES p-value
+        (sign-mapped to losses internally); ``None`` (default) reports the ES statistic only.
+
+    Returns
+    -------
+    VaRESBacktest
+        The four backtests for this level over the window.
+    """
+    losses = -np.asarray(realized_returns, dtype=np.float64)
+    var = -np.asarray(var_forecasts, dtype=np.float64)
+    es = -np.asarray(es_forecasts, dtype=np.float64)
+    hits = exceptions(losses, var)
+    n_obs = int(hits.size)
+    n_exceptions = int(hits.sum())
+    null_losses = None if null_returns is None else -np.asarray(null_returns, dtype=np.float64)
+    return VaRESBacktest(
+        level=level,
+        n_obs=n_obs,
+        n_exceptions=n_exceptions,
+        kupiec=kupiec_pof(n_exceptions, n_obs, level),
+        independence=christoffersen_independence(hits),
+        conditional_coverage=christoffersen_cc(hits, level),
+        basel=basel_traffic_light(n_exceptions, n_obs=n_obs, level=level),
+        es=acerbi_szekely(losses, var, es, level, method=es_method, null_losses=null_losses),
     )
 
 

@@ -168,7 +168,43 @@
 
             </li>
             <li>
+                    <a class="class" href="#VaRESBacktest">VaRESBacktest</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#VaRESBacktest.__init__">VaRESBacktest</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.level">level</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.n_obs">n_obs</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.n_exceptions">n_exceptions</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.kupiec">kupiec</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.independence">independence</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.conditional_coverage">conditional_coverage</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.basel">basel</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#VaRESBacktest.es">es</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="function" href="#acerbi_szekely">acerbi_szekely</a>
+            </li>
+            <li>
+                    <a class="function" href="#backtest_return_forecasts">backtest_return_forecasts</a>
             </li>
             <li>
                     <a class="function" href="#basel_traffic_light">basel_traffic_light</a>
@@ -646,6 +682,142 @@ correct model; a small value rejects ES adequacy.</p>
 
                             </div>
                 </section>
+                <section id="VaRESBacktest">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">VaRESBacktest</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest"></a>
+    
+            <div class="docstring"><p>The full VaR/ES backtest suite for one confidence level over a window.</p>
+
+<p>Bundles the four VaR/ES backtests so a set of return-space forecasts (e.g. an fEGarch
+<code>measure_risk</code> output) can be run through the risk pillar in one call.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>level</strong> (float):
+The confidence level \( \alpha \).</li>
+<li><strong>n_obs, n_exceptions</strong> (int):
+The window length and the number of VaR exceptions.</li>
+<li><strong>kupiec</strong> (KupiecResult):
+Unconditional-coverage (proportion-of-failures) test.</li>
+<li><strong>independence, conditional_coverage</strong> (ChristoffersenResult):
+The Christoffersen independence and joint conditional-coverage tests.</li>
+<li><strong>basel</strong> (BaselResult):
+The Basel traffic-light zone and capital add-on.</li>
+<li><strong>es</strong> (AcerbiSzekelyResult):
+The Acerbi--Székely Expected-Shortfall backtest.</li>
+</ul>
+</div>
+
+
+                            <div id="VaRESBacktest.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">VaRESBacktest</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">n_obs</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">n_exceptions</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">kupiec</span><span class="p">:</span> <span class="n"><a href="#KupiecResult">KupiecResult</a></span>,</span><span class="param">	<span class="n">independence</span><span class="p">:</span> <span class="n"><a href="#ChristoffersenResult">ChristoffersenResult</a></span>,</span><span class="param">	<span class="n">conditional_coverage</span><span class="p">:</span> <span class="n"><a href="#ChristoffersenResult">ChristoffersenResult</a></span>,</span><span class="param">	<span class="n">basel</span><span class="p">:</span> <span class="n"><a href="#BaselResult">BaselResult</a></span>,</span><span class="param">	<span class="n">es</span><span class="p">:</span> <span class="n"><a href="#AcerbiSzekelyResult">AcerbiSzekelyResult</a></span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.level" class="classattr">
+                                <div class="attr variable">
+            <span class="name">level</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.level"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.n_obs" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_obs</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.n_obs"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.n_exceptions" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_exceptions</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.n_exceptions"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.kupiec" class="classattr">
+                                <div class="attr variable">
+            <span class="name">kupiec</span><span class="annotation">: <a href="#KupiecResult">KupiecResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.kupiec"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.independence" class="classattr">
+                                <div class="attr variable">
+            <span class="name">independence</span><span class="annotation">: <a href="#ChristoffersenResult">ChristoffersenResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.independence"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.conditional_coverage" class="classattr">
+                                <div class="attr variable">
+            <span class="name">conditional_coverage</span><span class="annotation">: <a href="#ChristoffersenResult">ChristoffersenResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.conditional_coverage"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.basel" class="classattr">
+                                <div class="attr variable">
+            <span class="name">basel</span><span class="annotation">: <a href="#BaselResult">BaselResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.basel"></a>
+    
+    
+
+                            </div>
+                            <div id="VaRESBacktest.es" class="classattr">
+                                <div class="attr variable">
+            <span class="name">es</span><span class="annotation">: <a href="#AcerbiSzekelyResult">AcerbiSzekelyResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#VaRESBacktest.es"></a>
+    
+    
+
+                            </div>
+                </section>
                 <section id="acerbi_szekely">
                     <div class="attr function">
             
@@ -676,6 +848,51 @@ Shape <code>(n_sims, T)</code> of losses simulated under the <em>predictive</em>
 (i.e. under \( H_0 \)). When given, the p-value is the fraction of null
 statistics at least as large as the realised one (ES not elicitable → the
 null is obtained by simulation, not a closed form).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="backtest_return_forecasts">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">backtest_return_forecasts</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">realized_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">var_forecasts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">es_forecasts</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">level</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">es_method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;Z2&#39;</span>,</span><span class="param">	<span class="n">null_returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#VaRESBacktest">VaRESBacktest</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#backtest_return_forecasts"></a>
+    
+            <div class="docstring"><p>Run the full VaR/ES suite on <strong>return-space</strong> quantile forecasts.</p>
+
+<p>A thin sign-mapping adapter over the loss-space backtests: the pillar's convention is that an
+exception is a <strong>loss</strong> exceeding the VaR, whereas conditional-quantile models (e.g. an fEGarch
+<code>measure_risk</code> output) report VaR/ES as <strong>negative return thresholds</strong>. The map is
+<code>losses = -returns</code>, <code>var = -var_forecasts</code>, <code>es = -es_forecasts</code>; then
+<code><a href="#exceptions">exceptions()</a></code> / <code><a href="#kupiec_pof">kupiec_pof()</a></code> / <code><a href="#christoffersen_independence">christoffersen_independence()</a></code> /
+<code><a href="#christoffersen_cc">christoffersen_cc()</a></code> / <code><a href="#basel_traffic_light">basel_traffic_light()</a></code> / <code><a href="#acerbi_szekely">acerbi_szekely()</a></code> are the
+existing functions unchanged (no new backtest mathematics).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>realized_returns</strong> (ndarray, shape (T,)):
+The realized returns over the backtest window.</li>
+<li><strong>var_forecasts, es_forecasts</strong> (ndarray, shape (T,)):
+The return-space VaR/ES forecasts aligned with <code>realized_returns</code> (negative thresholds).</li>
+<li><strong>level</strong> (float):
+The confidence level \( \alpha \).</li>
+<li><strong>es_method</strong> ({"Z2", "Z1"}, optional):
+The Acerbi--Székely statistic (default <code>"Z2"</code>, unconditional).</li>
+<li><strong>null_returns</strong> (ndarray, optional):
+Shape <code>(n_sims, T)</code> of returns simulated under the predictive model, for the ES p-value
+(sign-mapped to losses internally); <code>None</code> (default) reports the ES statistic only.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>VaRESBacktest</strong>: The four backtests for this level over the window.</li>
 </ul>
 </div>
 

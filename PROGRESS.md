@@ -189,6 +189,25 @@ then follows:** FIEGARCH / FIMEGARCH / FIMLog-GARCH extend the **generalized Typ
 `g_asy`/`g_mag` transformation composed with `(1−L)^d`); FIGARCH / FIAPARCH / FITGARCH / FIGJR extend
 the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root ridge.
 
+**Phase 5 (dual mean) COMPLETE + MERGED** (ARMA-in-mean PR #21, FARIMA-in-mean; scope finding: fEGarch
+has **no** GARCH-in-mean, so the dual mean is ARMA + FARIMA only — `docs/fegarch-spec-notes.md`
+§23–§25). **Phase 6 (forecasting + VaR/ES + risk-pillar tie-back) — CORE COMPLETE on
+`feat/fegarch-forecasting`** (pushed for CI; NOT merged). The forecast→VaR/ES→backtest arc, validated
+against the `forecast_garch11_norm_*` fixture: `predict_roll` (no-refit rolling one-step forecast) is
+the existing `garch_recursion` continued past the training window — **σ̂ reconstruction machine-exact
+6.939e-18, no bounded limit** (the long training window decays the pre-sample transient before the
+test region; the seed is irrelevant); the new `ConditionalDistribution.expected_shortfall` (ES_η =
+integral of the existing `ppf`, closed-form normal `−φ(Φ⁻¹(1−α))/(1−α)`, quadrature for the other 7 —
+norm ES 0.975=−2.337803 / 0.99=−2.665214); `measure_risk` assembles VaR/ES (WP171 Eqs. 61–62,
+`μ̂+σ̂·q_η` / `μ̂+σ̂·ES_η`) matching the fixture to **~1e-6** (NOT machine-exact — the residual is
+`σ̂·(q_scipy−q_R)`, the R↔SciPy quantile-implementation difference, tol 3e-6, documented); and
+`quantica/risk/backtest.py` gained `backtest_return_forecasts` — a **sign-map adapter** (losses=−r,
+var=−VaR, es=−ES) feeding the *existing* Kupiec/Christoffersen/Basel/Acerbi-Székely (no new backtest
+math; the exception count is asserted vs a hand computation to catch a sign flip). **Coherence
+demonstration** (fEGarch forecasts through the risk pillar, 250 days): 0.99 → 1 exc, Kupiec p=0.278,
+green Basel, AS Z2=−0.65; 0.975 → 3 exc, green. Spec: `docs/fegarch-spec-notes.md` §27. **Deferred
+(flagged, not built):** residual diagnostics (Ljung–Box / sign-bias / goodness-of-fit) — a follow-up.
+
 ## Completed
 
 - **Project skeleton** — packaging (`pyproject.toml`), ruff + mypy + pytest
