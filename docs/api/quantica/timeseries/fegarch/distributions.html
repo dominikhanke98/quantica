@@ -131,6 +131,9 @@
                         <li>
                                 <a class="function" href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a>
                         </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a>
+                        </li>
                 </ul>
 
             </li>
@@ -236,6 +239,9 @@
                         <li>
                                 <a class="function" href="#Normal.mean_log_modulus">mean_log_modulus</a>
                         </li>
+                        <li>
+                                <a class="function" href="#Normal.expected_shortfall">expected_shortfall</a>
+                        </li>
                 </ul>
 
             </li>
@@ -320,7 +326,10 @@ variance 1 (WP 2026-04 App. C.1 Eqs. 38--41), so \( \xi = 1 \) recovers the symm
 </ul>
 
 <p>Each distribution exposes <code>logpdf</code> / <code>pdf</code> / <code>cdf</code> / <code>ppf</code> and a seeded <code>sample</code> (drawn by
-inverse-CDF so it is deterministic and consistent with <code>ppf</code>). The ALD form and the skew
+inverse-CDF so it is deterministic and consistent with <code>ppf</code>), plus the EGF centering moments and
+<code>expected_shortfall</code> — the standardized lower-tail ES the Phase-6 risk layer scales into a
+conditional ES forecast (an integral of the existing <code>ppf</code>, closed-form for the normal). The ALD
+form and the skew
 convention are <strong>locked against the committed fEGarch fixtures</strong>; see <code>docs/fegarch-spec-notes.md</code>
 for the equation-level derivations.</p>
 
@@ -538,6 +547,7 @@ kurtosis); <code>a(1)</code> feeds the Fernández--Steel skew standardization.</
                 <dd id="AverageLaplace.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="AverageLaplace.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="AverageLaplace.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
+                <dd id="AverageLaplace.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>
@@ -783,6 +793,58 @@ asymmetry term, so neither needs this moment.</p>
 
 
                             </div>
+                            <div id="ConditionalDistribution.expected_shortfall" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">expected_shortfall</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">level</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.expected_shortfall"></a>
+    
+            <div class="docstring"><p>Standardized lower-tail Expected Shortfall \( \mathrm{ES}_\eta(\alpha) \).</p>
+
+<p>The standardized-innovation ES that the fEGarch risk layer scales and shifts into a
+conditional ES forecast (:math:<code>\mathrm{ES}_\alpha = \hat\mu_t + \hat\sigma_t\,
+\mathrm{ES}_\eta(\alpha)</code>, WP171 Eqs. 61--62):</p>
+
+<p>$$\mathrm{ES}_\eta(\alpha) = \frac{1}{1-\alpha}\int_\alpha^1 F^{-1}(1-x)\,dx
+= \frac{1}{1-\alpha}\int_0^{1-\alpha} F^{-1}(u)\,du
+= \operatorname{E}!\left[z \mid z \le q_\eta(1-\alpha)\right],$$</p>
+
+<p>i.e. the mean of the standardized innovation in its lower \( (1-\alpha) \) tail (a
+<strong>negative</strong> number). This base implementation is the <code>z</code>-space quadrature
+\( (1-\alpha)^{-1}\int_{-\infty}^{q} z\,f(z)\,dz \) with \( q = F^{-1}(1-\alpha) \) the
+existing <code><a href="#ConditionalDistribution.ppf">ppf()</a></code> — an integral of the <em>existing</em> density/quantile, not new quantile math
+(the same quadrature pattern as the moment helpers). <code><a href="#Normal">Normal</a></code> overrides it with the
+closed form; every other base and the Fernández-Steel skew inherit this quadrature.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>level</strong> (float):
+The ES confidence level \( \alpha \in (0, 1) \) (e.g. <code>0.975</code>); the tail mass is
+\( 1-\alpha \).</li>
+<li><strong>params</strong> (sequence of float or None, optional):
+The distribution's shape parameters (default <code><a href="#ConditionalDistribution.param_start">param_start</a></code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The standardized lower-tail ES \( \mathrm{ES}_\eta(\alpha) \) (negative).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>level</code> is not strictly between 0 and 1.</li>
+</ul>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="FernandezSteelSkew">
                     <div class="attr class">
@@ -994,6 +1056,7 @@ it is identically <code>0</code>.</p>
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="FernandezSteelSkew.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="FernandezSteelSkew.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="FernandezSteelSkew.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>
@@ -1163,6 +1226,7 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
                                 <dd id="GeneralizedError.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="GeneralizedError.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="GeneralizedError.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
+                <dd id="GeneralizedError.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>
@@ -1286,6 +1350,26 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
 
 <p>For \( z \sim N(0,1) \) this Gaussian integral has no elementary closed form, so it is
 evaluated numerically: \( E[\ln(|z|+1)] = 2\int_0^\infty \ln(z+1)\,\phi(z)\,dz \).</p>
+</div>
+
+
+                            </div>
+                            <div id="Normal.expected_shortfall" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">expected_shortfall</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">level</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.expected_shortfall"></a>
+    
+            <div class="docstring"><p>Standardized normal ES \( -\phi(\Phi^{-1}(1-\alpha))/(1-\alpha) \) (closed form).</p>
+
+<p>Since \( \int_{-\infty}^{q} z\,\phi(z)\,dz = -\phi(q) \), the base ES quadrature has the
+elementary form \( \mathrm{ES}_\eta(\alpha) = -\phi(q)/(1-\alpha) \) with
+\( q = \Phi^{-1}(1-\alpha) \); e.g. \( -2.337803 \) at \( \alpha = 0.975 \) and
+\( -2.665214 \) at \( \alpha = 0.99 \).</p>
 </div>
 
 
@@ -1469,6 +1553,7 @@ evaluated numerically: \( E[\ln(|z|+1)] = 2\int_0^\infty \ln(z+1)\,\phi(z)\,dz \
                                 <dd id="StudentT.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="StudentT.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="StudentT.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
+                <dd id="StudentT.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>

@@ -1623,5 +1623,98 @@ calibration. `fiegarch ald` stays tight — it matches the fixture to `<1e-4` on
 
 ---
 
-*Add further specification derivations here as later phases (forecasting/risk tie-back, optional
-semiparametric) are implemented — always from the papers/manual, never the source.*
+## 27. Forecasting + VaR/ES + the risk-pillar backtest tie-back (Phase 6 core) — RESOLVED
+
+**Phase 6 is the forecast→VaR/ES→backtest arc, and it is almost entirely *tie-back*: one small new
+distribution helper, one thin recursion wrapper, and a sign-mapped hand-off into the existing
+`quantica/risk/backtest.py`.** Validated against the committed `forecast_garch11_norm_*` fixture (a
+GARCH(1,1)/norm fit with `n_test=250` held out, then `predict_roll(refit_after=NULL)` and
+`measure_risk` at 0.975/0.99). Clean-room (§12): specified from the manual's `predict_roll` /
+`measure_risk` help + WP171 Eqs. 61–62, validated against OUTPUT fixtures only.
+
+### 27.1 The no-refit rolling forecast — the existing recursion continued (machine-exact, no bounded limit)
+
+`predict_roll(refit_after = NULL)` is **one fixed training model iterated forward**: the parameters
+are frozen at the training fit and the conditional-variance recursion is continued past the training
+window over the *realized* test returns. For a constant-mean GARCH this is **exactly the existing
+`garch_recursion`** run over the full series with the training parameters, keeping the last
+`n_test` values — `predict_roll` is a thin wrapper, no new recursion. The mean is the constant
+fitted μ (plain GARCH), so `cmeans` is constant (σ-only forecast).
+
+**The train-then-continue seed is a non-issue here — no bounded limit (contrast §19/§23).** The
+reconstruction gate confirms `max|σ̂ − fixture| = 6.939e-18` for *every* reasonable training seed
+(Var of the 2250 training returns, Var of the full 2500, ddof=0 vs 1 — all identical to machine
+precision). The reason: the 2250-obs training window decays the pre-sample transient (β^2250 ≈ 0)
+to nothing **before** the test region, and the forecast is the *tail* past that transient. So unlike
+the FIAPARCH σ₀ (§19) or the dual-mean σ₀² (§23) — which are early-index bounded limits — the
+rolling σ̂ is *machine-exact*, and there is no new seed convention to pin.
+
+### 27.2 The standardized-ES helper — the one genuinely new piece (an integral of the existing ppf)
+
+`measure_risk` needs the standardized innovation's lower-tail ES, which the Phase-0 distribution
+layer did not expose (it had `ppf` but no ES). Added `ConditionalDistribution.expected_shortfall`:
+
+```
+ES_η(α) = (1−α)⁻¹ ∫_α¹ F⁻¹(1−x) dx = (1−α)⁻¹ ∫_0^{1−α} F⁻¹(u) du = E[z | z ≤ q_η(1−α)]
+```
+
+Implemented, in the moment-helper pattern, as the `z`-space quadrature
+`(1−α)⁻¹ ∫_{−∞}^{q} z f(z) dz` with `q = ppf(1−α)` (stable — a fixed upper limit and the existing
+pdf, avoiding the ppf's endpoint singularity). This is **an integral of the existing ppf/pdf, not
+new quantile math**. The normal gets the closed form `−φ(Φ⁻¹(1−α))/(1−α)`; every other base and the
+Fernández-Steel skew inherit the quadrature. Pinned sanity: **ES_norm(0.975) = −2.337803**,
+**ES_norm(0.99) = −2.665214** (closed form == base quadrature to 1e-9); `ES_η < q_η < 0` for all 8
+distributions; the skew ES reduces to the base ES at `skew = 1` (the odd-function anchor).
+
+### 27.3 The VaR/ES assembly — ~1e-6, the R↔SciPy quantile difference (documented, not machine-exact)
+
+`measure_risk` (WP171 Eqs. 61–62): `VaR_α(t) = μ̂_t + σ̂_t·q_η(1−α)`,
+`ES_α(t) = μ̂_t + σ̂_t·ES_η(α)`, with `q_η` the existing `ppf` and `ES_η` the new helper — return-space
+thresholds (losses negative, matching fEGarch). Reconstruction vs the fixture:
+
+| level | max\|VaR−fix\| | max\|ES−fix\| |
+|------:|---------------:|--------------:|
+| 0.975 | 1.36e-08 | 6.25e-08 |
+| 0.99  | 1.57e-07 | 9.74e-07 |
+
+**Not machine-exact — and the residual is fully explained.** σ̂ is machine-exact (§27.1) and μ̂ is
+exact, so `VaR−fix = σ̂·(q_scipy − q_R)`: the only moving part is the standardized quantile, computed
+by SciPy at test time vs R's `qnorm` frozen in the fixture. With σ̂ ≈ 0.01 the ~1e-6 band is a
+~1e-4-relative quantile-implementation difference — deterministic and platform-stable. The test tol
+is `3e-6` (comfortably above the observed 9.7e-7), documented as the R↔SciPy quantile difference.
+
+### 27.4 The backtest tie-back — sign map into the existing pillar (no new backtest math)
+
+`quantica/risk/backtest.py` is loss-space (an exception is a **loss** exceeding the VaR); fEGarch's
+forecasts are **return-space negative thresholds**. The adapter `backtest_return_forecasts` applies
+the sign map `losses = −returns`, `var = −VaR`, `es = −ES` and calls the *existing* `exceptions` /
+`kupiec_pof` / `christoffersen_independence` / `christoffersen_cc` / `basel_traffic_light` /
+`acerbi_szekely` unchanged. **The sign map is asserted explicitly** (a flipped sign silently inverts
+exceptions): the exception count is checked against the hand computation `#{r_t < VaR_t}`, and a
+deliberately mis-signed count is asserted to differ.
+
+**The coherence demonstration — fEGarch forecasts through the risk-pillar backtests** (on the fixture
+forecasts, 250 test days):
+
+| level | exceptions (exp.) | Kupiec p | Christoffersen cc p | Basel | Acerbi–Székely Z2 |
+|------:|:-----------------:|:--------:|:-------------------:|:-----:|:-----------------:|
+| 0.975 | 3 (6.3) | 0.144 | 0.023 | green | −0.547 |
+| 0.99  | 1 (2.5) | 0.278 | 0.553 | green | −0.650 |
+
+Both levels: green Basel zone, Kupiec non-reject (slightly conservative — fewer exceptions than
+expected on this benign synthetic series), negative AS statistic (realized tail losses *below* the
+predicted ES → no ES under-estimation). The 0.975 cc p=0.023 is the independence term reacting to the
+small-count clustering pattern, not a coverage failure. **This is the cross-pillar payoff: the
+fEGarch time-series forecasts validate cleanly through the independent risk-pillar backtests.**
+
+**Deferred (optional-new, flagged not built):** residual diagnostics — Ljung–Box on standardized
+residuals, sign-bias, distributional goodness-of-fit — are **not** part of the core
+forecast→VaR/ES→backtest arc and are absent from the risk pillar; a follow-up if wanted.
+
+**Phase 6 core is complete: rolling forecast + VaR/ES + the risk-pillar tie-back, fixture-validated
+and CI-green.**
+
+---
+
+*Add further specification derivations here as later phases (optional semiparametric, residual
+diagnostics) are implemented — always from the papers/manual, never the source.*

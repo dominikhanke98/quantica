@@ -147,6 +147,9 @@
                         <li>
                                 <a class="function" href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a>
                         </li>
+                        <li>
+                                <a class="function" href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a>
+                        </li>
                 </ul>
 
             </li>
@@ -300,6 +303,9 @@
                         <li>
                                 <a class="function" href="#Normal.mean_log_modulus">mean_log_modulus</a>
                         </li>
+                        <li>
+                                <a class="function" href="#Normal.expected_shortfall">expected_shortfall</a>
+                        </li>
                 </ul>
 
             </li>
@@ -332,6 +338,42 @@
                         </li>
                         <li>
                                 <a class="variable" href="#QMLEResult.converged">converged</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#RiskForecast">RiskForecast</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#RiskForecast.__init__">RiskForecast</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RiskForecast.levels">levels</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RiskForecast.var">var</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RiskForecast.es">es</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#RollingForecast">RollingForecast</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#RollingForecast.__init__">RollingForecast</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RollingForecast.sigma">sigma</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RollingForecast.cmeans">cmeans</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#RollingForecast.n_test">n_test</a>
                         </li>
                 </ul>
 
@@ -544,6 +586,9 @@
                     <a class="function" href="#loggarch_sim">loggarch_sim</a>
             </li>
             <li>
+                    <a class="function" href="#measure_risk">measure_risk</a>
+            </li>
+            <li>
                     <a class="function" href="#megarch_recursion">megarch_recursion</a>
             </li>
             <li>
@@ -554,6 +599,9 @@
             </li>
             <li>
                     <a class="function" href="#mloggarch_sim">mloggarch_sim</a>
+            </li>
+            <li>
+                    <a class="function" href="#predict_roll">predict_roll</a>
             </li>
             <li>
                     <a class="function" href="#quasi_max_likelihood">quasi_max_likelihood</a>
@@ -716,8 +764,22 @@ optimum, and an independent clean-room fit reaches a ~+120-higher log-likelihood
 sensible start.</li>
 </ul>
 
-<p><strong>Phase 4 is complete</strong> — all eight fractionally-integrated models. The dual mean and the
-forecasting/risk tie-back arrive in later phases — see <code>docs/fegarch-port-roadmap.md</code>.</p>
+<p><strong>Phase 5 — the dual mean</strong> (complete): ARMA-in-mean and FARIMA-in-mean fits couple a mean
+recursion to the GARCH variance in one joint QMLE (<code>~<a href="fegarch/mean.html">quantica.timeseries.fegarch.mean</a></code>,
+<code>~<a href="#fit_arma_garch">quantica.timeseries.fegarch.fit_arma_garch()</a></code> /
+<code>~<a href="#fit_farima_garch">quantica.timeseries.fegarch.fit_farima_garch()</a></code>); fEGarch has no GARCH-in-mean, so the dual
+mean is ARMA + FARIMA only.</p>
+
+<p><strong>Phase 6 — forecasting + risk tie-back</strong> (core complete): the no-refit rolling one-step forecast
+(<code>~<a href="fegarch/forecast.html">quantica.timeseries.fegarch.forecast</a></code>, <code>~<a href="#predict_roll">quantica.timeseries.fegarch.predict_roll()</a></code>) is
+the existing variance recursion continued past the training window (train-then-continue seed
+machine-exact, no bounded limit); <code>~<a href="#measure_risk">quantica.timeseries.fegarch.measure_risk()</a></code> assembles
+conditional VaR/ES (WP171 Eqs. 61--62) from the rolling \( \hat\sigma_t \) / \( \hat\mu_t \),
+the tail quantile (the existing <code>ppf()</code>) and the new standardized
+<code>~<a href="#ConditionalDistribution.expected_shortfall">quantica.timeseries.fegarch.ConditionalDistribution.expected_shortfall()</a></code>. The return-space
+forecasts sign-map into the existing risk-pillar backtests via
+<code>~<a href="../risk.html#backtest_return_forecasts">quantica.risk.backtest.backtest_return_forecasts()</a></code> (Kupiec / Christoffersen / Basel /
+Acerbi--Székely) — the cross-pillar coherence demonstration. See <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -972,6 +1034,7 @@ kurtosis); <code>a(1)</code> feeds the Fernández--Steel skew standardization.</
                 <dd id="AverageLaplace.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="AverageLaplace.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="AverageLaplace.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
+                <dd id="AverageLaplace.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>
@@ -1217,6 +1280,58 @@ asymmetry term, so neither needs this moment.</p>
 
 
                             </div>
+                            <div id="ConditionalDistribution.expected_shortfall" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">expected_shortfall</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">level</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#ConditionalDistribution.expected_shortfall"></a>
+    
+            <div class="docstring"><p>Standardized lower-tail Expected Shortfall \( \mathrm{ES}_\eta(\alpha) \).</p>
+
+<p>The standardized-innovation ES that the fEGarch risk layer scales and shifts into a
+conditional ES forecast (:math:<code>\mathrm{ES}_\alpha = \hat\mu_t + \hat\sigma_t\,
+\mathrm{ES}_\eta(\alpha)</code>, WP171 Eqs. 61--62):</p>
+
+<p>$$\mathrm{ES}_\eta(\alpha) = \frac{1}{1-\alpha}\int_\alpha^1 F^{-1}(1-x)\,dx
+= \frac{1}{1-\alpha}\int_0^{1-\alpha} F^{-1}(u)\,du
+= \operatorname{E}!\left[z \mid z \le q_\eta(1-\alpha)\right],$$</p>
+
+<p>i.e. the mean of the standardized innovation in its lower \( (1-\alpha) \) tail (a
+<strong>negative</strong> number). This base implementation is the <code>z</code>-space quadrature
+\( (1-\alpha)^{-1}\int_{-\infty}^{q} z\,f(z)\,dz \) with \( q = F^{-1}(1-\alpha) \) the
+existing <code><a href="#ConditionalDistribution.ppf">ppf()</a></code> — an integral of the <em>existing</em> density/quantile, not new quantile math
+(the same quadrature pattern as the moment helpers). <code><a href="#Normal">Normal</a></code> overrides it with the
+closed form; every other base and the Fernández-Steel skew inherit this quadrature.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>level</strong> (float):
+The ES confidence level \( \alpha \in (0, 1) \) (e.g. <code>0.975</code>); the tail mass is
+\( 1-\alpha \).</li>
+<li><strong>params</strong> (sequence of float or None, optional):
+The distribution's shape parameters (default <code><a href="#ConditionalDistribution.param_start">param_start</a></code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The standardized lower-tail ES \( \mathrm{ES}_\eta(\alpha) \) (negative).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>level</code> is not strictly between 0 and 1.</li>
+</ul>
+</div>
+
+
+                            </div>
                 </section>
                 <section id="FernandezSteelSkew">
                     <div class="attr class">
@@ -1428,6 +1543,7 @@ it is identically <code>0</code>.</p>
                                     <div><dt><a href="#ConditionalDistribution">ConditionalDistribution</a></dt>
                                 <dd id="FernandezSteelSkew.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="FernandezSteelSkew.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
+                <dd id="FernandezSteelSkew.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>
@@ -1762,6 +1878,7 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
                                 <dd id="GeneralizedError.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="GeneralizedError.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="GeneralizedError.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
+                <dd id="GeneralizedError.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>
@@ -1921,6 +2038,26 @@ evaluated numerically: \( E[\ln(|z|+1)] = 2\int_0^\infty \ln(z+1)\,\phi(z)\,dz \
 
 
                             </div>
+                            <div id="Normal.expected_shortfall" class="classattr">
+                                <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">expected_shortfall</span><span class="signature pdoc-code condensed">(<span class="param"><span class="bp">self</span>, </span><span class="param"><span class="n">level</span><span class="p">:</span> <span class="nb">float</span>, </span><span class="param"><span class="n">params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#Normal.expected_shortfall"></a>
+    
+            <div class="docstring"><p>Standardized normal ES \( -\phi(\Phi^{-1}(1-\alpha))/(1-\alpha) \) (closed form).</p>
+
+<p>Since \( \int_{-\infty}^{q} z\,\phi(z)\,dz = -\phi(q) \), the base ES quadrature has the
+elementary form \( \mathrm{ES}_\eta(\alpha) = -\phi(q)/(1-\alpha) \) with
+\( q = \Phi^{-1}(1-\alpha) \); e.g. \( -2.337803 \) at \( \alpha = 0.975 \) and
+\( -2.665214 \) at \( \alpha = 0.99 \).</p>
+</div>
+
+
+                            </div>
                             <div class="inherited">
                                 <h5>Inherited Members</h5>
                                 <dl>
@@ -2069,6 +2206,154 @@ Whether the optimizer reported success.</li>
         
     </div>
     <a class="headerlink" href="#QMLEResult.converged"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="RiskForecast">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">RiskForecast</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#RiskForecast"></a>
+    
+            <div class="docstring"><p>Conditional VaR/ES forecasts over the test window, one series per confidence level.</p>
+
+<p>The values are <strong>return-space</strong> thresholds: losses carry a negative sign (fEGarch's
+convention), so e.g. a 97.5% VaR is a negative number. Sign-mapped into the loss-space
+backtests by <code>~<a href="../risk.html#backtest_return_forecasts">quantica.risk.backtest.backtest_return_forecasts()</a></code>.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>levels</strong> (tuple of float):
+The confidence levels \( \alpha \) (e.g. <code>(0.975, 0.99)</code>).</li>
+<li><strong>var</strong> (dict of float to ndarray):
+Value-at-Risk series keyed by level, each shape <code>(n_test,)</code>.</li>
+<li><strong>es</strong> (dict of float to ndarray):
+Expected-Shortfall series keyed by level, each shape <code>(n_test,)</code>.</li>
+</ul>
+</div>
+
+
+                            <div id="RiskForecast.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">RiskForecast</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">levels</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>,</span><span class="param">	<span class="n">var</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>,</span><span class="param">	<span class="n">es</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskForecast.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="RiskForecast.levels" class="classattr">
+                                <div class="attr variable">
+            <span class="name">levels</span><span class="annotation">: tuple[float, ...]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskForecast.levels"></a>
+    
+    
+
+                            </div>
+                            <div id="RiskForecast.var" class="classattr">
+                                <div class="attr variable">
+            <span class="name">var</span><span class="annotation">: dict[float, numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskForecast.var"></a>
+    
+    
+
+                            </div>
+                            <div id="RiskForecast.es" class="classattr">
+                                <div class="attr variable">
+            <span class="name">es</span><span class="annotation">: dict[float, numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RiskForecast.es"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="RollingForecast">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">RollingForecast</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#RollingForecast"></a>
+    
+            <div class="docstring"><p>A no-refit rolling one-step forecast over a held-out test window.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>sigma</strong> (ndarray, shape (n_test,)):
+The rolling one-step conditional standard deviations \( \hat\sigma_t \).</li>
+<li><strong>cmeans</strong> (ndarray, shape (n_test,)):
+The rolling one-step conditional means \( \hat\mu_t \) (constant for a plain GARCH).</li>
+<li><strong>n_test</strong> (int):
+The number of held-out test points forecast.</li>
+</ul>
+</div>
+
+
+                            <div id="RollingForecast.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">RollingForecast</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">sigma</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">cmeans</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_test</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RollingForecast.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="RollingForecast.sigma" class="classattr">
+                                <div class="attr variable">
+            <span class="name">sigma</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RollingForecast.sigma"></a>
+    
+    
+
+                            </div>
+                            <div id="RollingForecast.cmeans" class="classattr">
+                                <div class="attr variable">
+            <span class="name">cmeans</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RollingForecast.cmeans"></a>
+    
+    
+
+                            </div>
+                            <div id="RollingForecast.n_test" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_test</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#RollingForecast.n_test"></a>
     
     
 
@@ -2238,6 +2523,7 @@ Whether the optimizer reported success.</li>
                                 <dd id="StudentT.pdf" class="function"><a href="#ConditionalDistribution.pdf">pdf</a></dd>
                 <dd id="StudentT.sample" class="function"><a href="#ConditionalDistribution.sample">sample</a></dd>
                 <dd id="StudentT.mean_signed_log_modulus" class="function"><a href="#ConditionalDistribution.mean_signed_log_modulus">mean_signed_log_modulus</a></dd>
+                <dd id="StudentT.expected_shortfall" class="function"><a href="#ConditionalDistribution.expected_shortfall">expected_shortfall</a></dd>
 
             </div>
                                 </dl>
@@ -4294,6 +4580,45 @@ Burn-in samples discarded so the recursion forgets its start (default 500).</li>
 
 
                 </section>
+                <section id="measure_risk">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">measure_risk</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">forecast</span><span class="p">:</span> <span class="n"><a href="#RollingForecast">RollingForecast</a></span>,</span><span class="param">	<span class="n">fit</span><span class="p">:</span> <span class="n"><a href="#GarchFit">GarchFit</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">levels</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">0.975</span><span class="p">,</span> <span class="mf">0.99</span><span class="p">)</span></span><span class="return-annotation">) -> <span class="n"><a href="#RiskForecast">RiskForecast</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#measure_risk"></a>
+    
+            <div class="docstring"><p>Assemble conditional VaR/ES from a rolling forecast (WP171 Eqs. 61--62).</p>
+
+<p>For each level \( \alpha \), :math:<code>\mathrm{VaR}_\alpha(t) = \hat\mu_t + \hat\sigma_t\,
+q_\eta(1-\alpha)</code> and :math:<code>\mathrm{ES}_\alpha(t) = \hat\mu_t + \hat\sigma_t\,
+\mathrm{ES}_\eta(\alpha)</code>, where \( q_\eta = F^{-1}(1-\alpha) \) is the fitted distribution's
+<code>ppf()</code> and \( \mathrm{ES}_\eta \) its
+<code>~<a href="#ConditionalDistribution.expected_shortfall">quantica.timeseries.fegarch.ConditionalDistribution.expected_shortfall()</a></code>. The outputs
+are return-space thresholds (losses negative), matching the fEGarch fixtures.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>forecast</strong> (RollingForecast):
+The rolling \( \hat\sigma_t \) / \( \hat\mu_t \) from <code><a href="#predict_roll">predict_roll()</a></code>.</li>
+<li><strong>fit</strong> (GarchFit):
+The fitted model — supplies the conditional distribution and its shape parameters.</li>
+<li><strong>levels</strong> (sequence of float, optional):
+The confidence levels \( \alpha \) (default <code>(0.975, 0.99)</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>RiskForecast</strong>: The VaR and ES series, one per level.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="megarch_recursion">
                     <div class="attr function">
             
@@ -4458,6 +4783,52 @@ Burn-in samples discarded (default 500).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi1| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="predict_roll">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">predict_roll</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">fit</span><span class="p">:</span> <span class="n"><a href="#GarchFit">GarchFit</a></span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">n_test</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#RollingForecast">RollingForecast</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#predict_roll"></a>
+    
+            <div class="docstring"><p>No-refit rolling one-step forecast of \( \hat\sigma_t \) / \( \hat\mu_t \).</p>
+
+<p>Freezes the parameters at the training <code>fit</code> and continues the GARCH variance recursion past
+the training window over the realized test returns — equivalently, runs
+<code>~<a href="#garch_recursion">quantica.timeseries.fegarch.garch_recursion()</a></code> with the training parameters over the
+<strong>full</strong> <code>returns</code> series and keeps the last <code>n_test</code> values (the train-then-continue seed
+is machine-exact for any reasonable training seed; see the module docstring). The mean is the
+constant fitted \( \mu \) (plain GARCH), so \( \hat\mu_t \) is a constant series.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>fit</strong> (GarchFit):
+A GARCH(1,1) fit on the <strong>training</strong> window (its <code>params</code> supply <code>mu, omega, alpha,
+beta</code> and <code>n_obs</code> the training length).</li>
+<li><strong>returns</strong> (ndarray, shape (n_train + n_test,)):
+The full return series — the training returns followed by the realized test returns.</li>
+<li><strong>n_test</strong> (int, optional):
+The number of test points to forecast (default <code>len(returns) - fit.n_obs</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>RollingForecast</strong>: The rolling \( \hat\sigma_t \) / \( \hat\mu_t \) over the <code>n_test</code> test points.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n_test</code> is not positive or exceeds the series length.</li>
 </ul>
 </div>
 

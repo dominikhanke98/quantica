@@ -116,8 +116,22 @@ r"""fEGarch clean-room port — an independent reimplementation of the fEGarch m
   optimum, and an independent clean-room fit reaches a ~+120-higher log-likelihood from every
   sensible start.
 
-**Phase 4 is complete** — all eight fractionally-integrated models. The dual mean and the
-forecasting/risk tie-back arrive in later phases — see ``docs/fegarch-port-roadmap.md``.
+**Phase 5 — the dual mean** (complete): ARMA-in-mean and FARIMA-in-mean fits couple a mean
+recursion to the GARCH variance in one joint QMLE (:mod:`~quantica.timeseries.fegarch.mean`,
+:func:`~quantica.timeseries.fegarch.fit_arma_garch` /
+:func:`~quantica.timeseries.fegarch.fit_farima_garch`); fEGarch has no GARCH-in-mean, so the dual
+mean is ARMA + FARIMA only.
+
+**Phase 6 — forecasting + risk tie-back** (core complete): the no-refit rolling one-step forecast
+(:mod:`~quantica.timeseries.fegarch.forecast`, :func:`~quantica.timeseries.fegarch.predict_roll`) is
+the existing variance recursion continued past the training window (train-then-continue seed
+machine-exact, no bounded limit); :func:`~quantica.timeseries.fegarch.measure_risk` assembles
+conditional VaR/ES (WP171 Eqs. 61--62) from the rolling :math:`\hat\sigma_t` / :math:`\hat\mu_t`,
+the tail quantile (the existing :meth:`ppf`) and the new standardized
+:meth:`~quantica.timeseries.fegarch.ConditionalDistribution.expected_shortfall`. The return-space
+forecasts sign-map into the existing risk-pillar backtests via
+:func:`~quantica.risk.backtest.backtest_return_forecasts` (Kupiec / Christoffersen / Basel /
+Acerbi--Székely) — the cross-pillar coherence demonstration. See ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -196,6 +210,12 @@ from quantica.timeseries.fegarch.filoggarch import (
     filoggarch_sim,
     fit_filoggarch,
 )
+from quantica.timeseries.fegarch.forecast import (
+    RiskForecast,
+    RollingForecast,
+    measure_risk,
+    predict_roll,
+)
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, fit_garch, garch_recursion, garch_sim
 from quantica.timeseries.fegarch.loggarch import fit_loggarch, loggarch_recursion, loggarch_sim
@@ -227,6 +247,8 @@ __all__ = [
     "MeanRecursion",
     "Normal",
     "QMLEResult",
+    "RiskForecast",
+    "RollingForecast",
     "StudentT",
     "VarianceRecursion",
     "aparch_recursion",
@@ -283,10 +305,12 @@ __all__ = [
     "initial_variance",
     "loggarch_recursion",
     "loggarch_sim",
+    "measure_risk",
     "megarch_recursion",
     "megarch_sim",
     "mloggarch_recursion",
     "mloggarch_sim",
+    "predict_roll",
     "quasi_max_likelihood",
     "tgarch_recursion",
     "tgarch_sim",

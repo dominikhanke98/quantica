@@ -622,6 +622,58 @@ for (mo in list(c(0L, 0L), c(1L, 1L))) {
                             "| exists('mean_spec') =", exists("mean_spec"), "\n"))
 }
 
+# --- Phase-6 forecasting: rolling one-step forecasts (predict_roll) + VaR/ES (measure_risk) --------
+# The first forecasting fixture. Fit GARCH(1,1)/norm reserving the LAST n_test=250 obs (WP171 §4
+# default), then predict_roll with NO refit (refit_after=NULL) -> rolling one-step forecasts of
+# sigma-hat / mu-hat over the 250 test points -- one fixed model iterated forward (the pure forward
+# GARCH volatility recursion on the realized test returns). Confirmed via args()/help:
+# predict_roll(object, step_size=1, refit_after=NULL, ...) -> S4 'fEGarch_forecast' with @sigt (250
+# sigma-hat), @cmeans (250 mu-hat), @model; measure_risk(fcast, measure=c("VaR","ES"),
+# level=c(0.975,0.99)) -> 'fEGarch_risk' @measures$VaR / $ES (losses negative in sign). mu-hat is
+# constant (plain GARCH constant mean) -> the forecast is sigma-only here. The training fit (2250
+# obs) differs from the full-sample garch11_norm fit (250 obs held out).
+N_TEST_FC <- 250L
+write_matrix_csv <- function(cols, path, headers) {  # cols: list of equal-length numeric vectors
+  m <- do.call(cbind, cols)
+  lines <- apply(m, 1, function(r) paste(sprintf("%.17g", r), collapse = ","))
+  writeLines(c(paste(headers, collapse = ","), lines), path)
+}
+tryCatch({
+  fc_fit <- garch(returns, orders = c(1, 1), cond_dist = "norm", n_test = N_TEST_FC, parallel = FALSE)
+  fcast <- predict_roll(fc_fit, refit_after = NULL, parallel = FALSE)
+  p <- pars(fc_fit); ic <- inf_criteria(fc_fit)
+  params <- as.list(as.numeric(p)); names(params) <- names(p)
+  meta <- list(
+    model = "garch", cond_dist = "norm", orders = c(1L, 1L),
+    presample = 50L, trunc = "none", mean_included = TRUE,
+    n_obs = length(returns) - N_TEST_FC, n_forecast = N_TEST_FC, refit_after = "none",
+    input = "synthetic_returns.csv", parallel = FALSE, seed = SIM_SEED,
+    params = params,
+    loglikelihood = as.numeric(llhood(fc_fit)),
+    aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
+    fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+  write_json(meta, file.path(OUTDIR, "forecast_garch11_norm_params.json"))
+  write_series_csv(as.numeric(fcast@sigt),
+                   file.path(OUTDIR, "forecast_garch11_norm_roll_sigma.csv"), "sigma")
+  write_series_csv(as.numeric(fcast@cmeans),
+                   file.path(OUTDIR, "forecast_garch11_norm_roll_cmeans.csv"), "cmeans")
+  cat("  forecast garch11_norm predict_roll: n_forecast =", length(fcast@sigt),
+      " mu-hat sd =", sd(as.numeric(fcast@cmeans)), "(constant if 0)\n")
+  cat("    training pars:", paste(sprintf("%s=%.7g", names(p), as.numeric(p)), collapse = ", "), "\n")
+  cat("    first 10 sigma-hat:",
+      paste(sprintf("%.7g", head(as.numeric(fcast@sigt), 10)), collapse = ", "), "\n")
+  risk <- measure_risk(fcast, measure = c("VaR", "ES"), level = c(0.975, 0.99))
+  m <- risk@measures
+  write_matrix_csv(
+    list(as.numeric(m$VaR[["VaR0.975"]]), as.numeric(m$VaR[["VaR0.99"]]),
+         as.numeric(m$ES[["ES0.975"]]), as.numeric(m$ES[["ES0.99"]])),
+    file.path(OUTDIR, "forecast_garch11_norm_var_es.csv"),
+    c("var_0.975", "var_0.99", "es_0.975", "es_0.99"))
+  cat("    VaR/ES: first VaR0.975 =", sprintf("%.7g", as.numeric(m$VaR[["VaR0.975"]])[1]),
+      " ES0.975 =", sprintf("%.7g", as.numeric(m$ES[["ES0.975"]])[1]), "\n")
+}, error = function(e) cat("  ERROR forecast garch11_norm:", conditionMessage(e),
+                          "| exists('predict_roll') =", exists("predict_roll"), "\n"))
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -896,6 +948,10 @@ manifest <- list(
                           note = "Phase-5 FARIMA-in-mean: pure fractional mean (1-B)^D + GARCH(1,1) under norm; mean_spec(orders=c(0,0), long_memo=TRUE); the fractional mean order D (capital, no variance d here) appears in the joint pars() vector alongside mu and {omega, phi1, beta1}; D estimates near 0 (no mean long-memory in the data)"),
       farima1d1_garch11_norm = list(params = "fit_farima1d1_garch11_norm_params.json", sigma = "fit_farima1d1_garch11_norm_sigma.csv",
                           note = "Phase-5 FARIMA-in-mean (the target): full FARIMA(1,d,1) mean + GARCH(1,1) under norm; mean_spec(orders=c(1,1), long_memo=TRUE); joint pars {mu, ar1, ma1, D, omega, phi1, beta1} -- the fractional mean D alongside the ARMA mean terms and the variance block; D near 0 (reduction-to-ARMA-mean anchor)"),
+      forecast_garch11_norm_roll = list(params = "forecast_garch11_norm_params.json",
+                          sigma = "forecast_garch11_norm_roll_sigma.csv", cmeans = "forecast_garch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_garch11_norm_var_es.csv",
+                          note = "Phase-6 forecasting: GARCH(1,1)/norm fit with n_test=250 held out, then predict_roll(refit_after=NULL) -> rolling one-step sigma-hat (roll_sigma) + mu-hat (roll_cmeans, constant) over the 250 test points (one fixed model iterated forward, the pure forward GARCH variance recursion on realized test returns); measure_risk -> VaR/ES at 0.975 & 0.99 (var_es, losses negative). params JSON holds the TRAINING fit (2250 obs), distinct from the full-sample garch11_norm. The backtests in quantica/risk/backtest.py consume these forecasts."),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",

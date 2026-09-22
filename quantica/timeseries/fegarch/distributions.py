@@ -20,7 +20,10 @@ convention, so the conditional variance carries the whole scale):
   :math:`\xi` is fEGarch's ``skew`` argument directly (validated against the fixtures).
 
 Each distribution exposes ``logpdf`` / ``pdf`` / ``cdf`` / ``ppf`` and a seeded ``sample`` (drawn by
-inverse-CDF so it is deterministic and consistent with ``ppf``). The ALD form and the skew
+inverse-CDF so it is deterministic and consistent with ``ppf``), plus the EGF centering moments and
+``expected_shortfall`` — the standardized lower-tail ES the Phase-6 risk layer scales into a
+conditional ES forecast (an integral of the existing ``ppf``, closed-form for the normal). The ALD
+form and the skew
 convention are **locked against the committed fEGarch fixtures**; see ``docs/fegarch-spec-notes.md``
 for the equation-level derivations.
 
@@ -197,6 +200,55 @@ class ConditionalDistribution(ABC):
         self._params(params)  # validate the shape-parameter arity
         return 0.0
 
+    def expected_shortfall(self, level: float, params: Sequence[float] | None = None) -> float:
+        r"""Standardized lower-tail Expected Shortfall :math:`\mathrm{ES}_\eta(\alpha)`.
+
+        The standardized-innovation ES that the fEGarch risk layer scales and shifts into a
+        conditional ES forecast (:math:`\mathrm{ES}_\alpha = \hat\mu_t + \hat\sigma_t\,
+        \mathrm{ES}_\eta(\alpha)`, WP171 Eqs. 61--62):
+
+        .. math::
+
+            \mathrm{ES}_\eta(\alpha) = \frac{1}{1-\alpha}\int_\alpha^1 F^{-1}(1-x)\,dx
+            = \frac{1}{1-\alpha}\int_0^{1-\alpha} F^{-1}(u)\,du
+            = \operatorname{E}\!\left[z \mid z \le q_\eta(1-\alpha)\right],
+
+        i.e. the mean of the standardized innovation in its lower :math:`(1-\alpha)` tail (a
+        **negative** number). This base implementation is the ``z``-space quadrature
+        :math:`(1-\alpha)^{-1}\int_{-\infty}^{q} z\,f(z)\,dz` with :math:`q = F^{-1}(1-\alpha)` the
+        existing :meth:`ppf` — an integral of the *existing* density/quantile, not new quantile math
+        (the same quadrature pattern as the moment helpers). ``Normal`` overrides it with the
+        closed form; every other base and the Fernández-Steel skew inherit this quadrature.
+
+        Parameters
+        ----------
+        level : float
+            The ES confidence level :math:`\alpha \in (0, 1)` (e.g. ``0.975``); the tail mass is
+            :math:`1-\alpha`.
+        params : sequence of float or None, optional
+            The distribution's shape parameters (default ``param_start``).
+
+        Returns
+        -------
+        float
+            The standardized lower-tail ES :math:`\mathrm{ES}_\eta(\alpha)` (negative).
+
+        Raises
+        ------
+        ValueError
+            If ``level`` is not strictly between 0 and 1.
+        """
+        if not 0.0 < level < 1.0:
+            raise ValueError(f"level must be in (0, 1), got {level}")
+        tail = 1.0 - level
+        q = float(self.ppf(np.array([tail], dtype=np.float64), params)[0])
+
+        def integrand(z: float) -> float:
+            return z * float(self.pdf(np.array([z], dtype=np.float64), params)[0])
+
+        integral, _ = integrate.quad(integrand, -np.inf, q, limit=_MOMENT_QUAD_LIMIT)
+        return float(integral / tail)
+
 
 # --------------------------------------------------------------------------- #
 # Symmetric bases
@@ -247,6 +299,21 @@ class Normal(ConditionalDistribution):
         self._params(params)
         value, _ = integrate.quad(lambda z: 2.0 * np.log(z + 1.0) * stats.norm.pdf(z), 0.0, np.inf)
         return float(value)
+
+    def expected_shortfall(self, level: float, params: Sequence[float] | None = None) -> float:
+        r"""Standardized normal ES :math:`-\phi(\Phi^{-1}(1-\alpha))/(1-\alpha)` (closed form).
+
+        Since :math:`\int_{-\infty}^{q} z\,\phi(z)\,dz = -\phi(q)`, the base ES quadrature has the
+        elementary form :math:`\mathrm{ES}_\eta(\alpha) = -\phi(q)/(1-\alpha)` with
+        :math:`q = \Phi^{-1}(1-\alpha)`; e.g. :math:`-2.337803` at :math:`\alpha = 0.975` and
+        :math:`-2.665214` at :math:`\alpha = 0.99`.
+        """
+        self._params(params)
+        if not 0.0 < level < 1.0:
+            raise ValueError(f"level must be in (0, 1), got {level}")
+        tail = 1.0 - level
+        q = np.array([float(special.ndtri(tail))], dtype=np.float64)
+        return float(-self.pdf(q)[0] / tail)
 
 
 class StudentT(ConditionalDistribution):
