@@ -191,8 +191,8 @@ the short-memory recursions; FILog-GARCH inherits Log-GARCH's near-common-root r
 
 **Phase 5 (dual mean) COMPLETE + MERGED** (ARMA-in-mean PR #21, FARIMA-in-mean; scope finding: fEGarch
 has **no** GARCH-in-mean, so the dual mean is ARMA + FARIMA only — `docs/fegarch-spec-notes.md`
-§23–§25). **Phase 6 (forecasting + VaR/ES + risk-pillar tie-back) — CORE COMPLETE on
-`feat/fegarch-forecasting`** (pushed for CI; NOT merged). The forecast→VaR/ES→backtest arc, validated
+§23–§25). **Phase 6 (forecasting + VaR/ES + risk-pillar tie-back) — CORE COMPLETE + MERGED**
+(PR #23 → `main` `a4c5629`, CI green on py3.11/3.12). The forecast→VaR/ES→backtest arc, validated
 against the `forecast_garch11_norm_*` fixture: `predict_roll` (no-refit rolling one-step forecast) is
 the existing `garch_recursion` continued past the training window — **σ̂ reconstruction machine-exact
 6.939e-18, no bounded limit** (the long training window decays the pre-sample transient before the
@@ -206,7 +206,12 @@ var=−VaR, es=−ES) feeding the *existing* Kupiec/Christoffersen/Basel/Acerbi-
 math; the exception count is asserted vs a hand computation to catch a sign flip). **Coherence
 demonstration** (fEGarch forecasts through the risk pillar, 250 days): 0.99 → 1 exc, Kupiec p=0.278,
 green Basel, AS Z2=−0.65; 0.975 → 3 exc, green. Spec: `docs/fegarch-spec-notes.md` §27. **Deferred
-(flagged, not built):** residual diagnostics (Ljung–Box / sign-bias / goodness-of-fit) — a follow-up.
+(flagged, not built):** residual diagnostics (Ljung–Box / sign-bias / goodness-of-fit) — optional-new;
+and the remaining forecasting-breadth extensions (other models, the refit path, non-constant μ̂ for the
+dual-mean models) all build on this proven core. **The fEGarch port is now complete through
+forecasting + VaR/ES backtesting** — the modelling, the full distribution breadth, the dual mean, and
+the risk-pillar tie-back are all done; what remains is forecasting-breadth extensions + optional
+residual diagnostics + optional Phase 7 (semiparametric local-polynomial scale).
 
 ## Completed
 
