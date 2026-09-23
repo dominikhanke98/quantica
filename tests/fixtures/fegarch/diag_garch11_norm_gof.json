@@ -1,0 +1,24 @@
+{
+  "model": "garch",
+  "cond_dist": "norm",
+  "orders": [1, 1],
+  "mean_included": true,
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {"mu": 0.000547638549568196, "omega": 3.0399680748376895e-06, "phi1": 0.082581880124025384, "beta1": 0.89731321565857014},
+  "std_residual": "etat = (rt - cmeans) / sigt (mean=-0.0055843096684106723, sd=0.9999720779629625)",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)",
+  "test": "adjusted_pearson_goodness_of_fit",
+  "statistic_exposed": false,
+  "returns_columns": ["n_bins", "df", "pval"],
+  "pit": "u_t = F_eta(etat) with F_eta the fitted conditional CDF (standard normal here)",
+  "binning": "equal-probability bins on [0,1]; Pearson chi-square of observed vs n/n_bins expected; df = n_bins - 1",
+  "rows": [
+    {"n_bins": 20, "df": 19, "pval": 0.091102541535010073},
+    {"n_bins": 30, "df": 29, "pval": 0.21496788687929702},
+    {"n_bins": 40, "df": 39, "pval": 0.2054012654862486},
+    {"n_bins": 50, "df": 49, "pval": 0.14919531864582058}
+  ]
+}
