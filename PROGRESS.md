@@ -207,7 +207,7 @@ math; the exception count is asserted vs a hand computation to catch a sign flip
 demonstration** (fEGarch forecasts through the risk pillar, 250 days): 0.99 → 1 exc, Kupiec p=0.278,
 green Basel, AS Z2=−0.65; 0.975 → 3 exc, green. Spec: `docs/fegarch-spec-notes.md` §27.
 
-**Phase 6 diagnostics — BUILT on `feat/fegarch-diagnostics`** (pushed for CI; NOT merged). The
+**Phase 6 diagnostics — COMPLETE + MERGED** (PR #24 → `main` `d30c975`, CI green on py3.11/3.12). The
 post-estimation residual fit-tests (`quantica/timeseries/fegarch/diagnostics.py`), validated against
 the `diag_garch11_norm_*` fixtures, all on the standardized residuals `ẑ = (r−μ̂)/σ̂` and reproducing
 fEGarch's p-values to **~1e-14** (machine-exact residuals → the match tests the null-distribution CDF,
@@ -218,12 +218,16 @@ adj_df 0; (2) `sign_bias_test` — Engle-Ng (1993), regress `ẑ²` on `{1, S⁻
 **size terms use the RAW residual ε̂** (not `ẑ`) and the **joint is the LM `m·R²`~χ²₃** (NOT the F-test
 — the fixture distinguishes: LM 0.6232 vs F 0.6236); (3) `goodness_of_fit_test` — PIT Pearson χ² on
 `u=F_η(ẑ)`, equal-prob bins, **df=n_bins−1** (params not subtracted); bundled by `fit_test_suite`.
-Spec: `docs/fegarch-spec-notes.md` §28. **Convention finding:** fEGarch exposes only p-values (+ lag /
-n_bins / df), never the raw statistics — so validation reproduces p-values. **The fEGarch port is now
+Spec: `docs/fegarch-spec-notes.md` §28. **Clean-room note (the payoff):** fEGarch exposes only
+p-values (+ lag / n_bins / df), never the raw statistics — so validation reproduces the p-values, and
+because the residuals are machine-exact, doing so **pinned two conventions the raw statistics would
+have hidden**, each locked by a discriminating test: the sign-bias size regressors use the RAW residual
+ε̂ (not standardized `ẑ`), and the joint is an LM test (not F — 0.6232 vs 0.6236 discriminated it); the
+weighted-LB fixture likewise rejected the classic χ² Ljung-Box form. **The fEGarch port is now
 complete through forecasting + VaR/ES backtesting + diagnostics** — the modelling, the full
 distribution breadth, the dual mean, the risk-pillar tie-back, and the residual diagnostics are all
-done; only multi-step `predict` (roadmap Phase 6) and optional Phase 7 (semiparametric
-local-polynomial scale) remain open.
+done; on the roadmap only **multi-step `predict`** (Phase 6) remains open, plus optional Phase 7
+(semiparametric local-polynomial scale).
 
 ## Completed
 
