@@ -131,7 +131,14 @@ the tail quantile (the existing :meth:`ppf`) and the new standardized
 :meth:`~quantica.timeseries.fegarch.ConditionalDistribution.expected_shortfall`. The return-space
 forecasts sign-map into the existing risk-pillar backtests via
 :func:`~quantica.risk.backtest.backtest_return_forecasts` (Kupiec / Christoffersen / Basel /
-Acerbi--Székely) — the cross-pillar coherence demonstration. See ``docs/fegarch-port-roadmap.md``.
+Acerbi--Székely) — the cross-pillar coherence demonstration. The **post-estimation residual
+diagnostics** (:mod:`~quantica.timeseries.fegarch.diagnostics`) complete the phase: the weighted
+Ljung-Box test (:func:`~quantica.timeseries.fegarch.weighted_ljung_box`, Fisher-Gallagher 2012 Gamma
+approximation, on the simple and squared standardized residuals), the Engle-Ng sign-bias test
+(:func:`~quantica.timeseries.fegarch.sign_bias_test`), and the PIT Pearson goodness-of-fit test
+(:func:`~quantica.timeseries.fegarch.goodness_of_fit_test`), bundled by
+:func:`~quantica.timeseries.fegarch.fit_test_suite` — reproducing fEGarch's p-values to machine
+precision. See ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -146,6 +153,17 @@ from quantica.timeseries.fegarch.asymmetric import (
     gjr_sim,
     tgarch_recursion,
     tgarch_sim,
+)
+from quantica.timeseries.fegarch.diagnostics import (
+    FitTestSuite,
+    GoodnessOfFitResult,
+    LjungBoxResult,
+    SignBiasResult,
+    fit_test_suite,
+    goodness_of_fit_test,
+    sign_bias_test,
+    standardized_residuals,
+    weighted_ljung_box,
 )
 from quantica.timeseries.fegarch.distributions import (
     DISTRIBUTIONS,
@@ -242,13 +260,17 @@ __all__ = [
     "AverageLaplace",
     "ConditionalDistribution",
     "FernandezSteelSkew",
+    "FitTestSuite",
     "GarchFit",
     "GeneralizedError",
+    "GoodnessOfFitResult",
+    "LjungBoxResult",
     "MeanRecursion",
     "Normal",
     "QMLEResult",
     "RiskForecast",
     "RollingForecast",
+    "SignBiasResult",
     "StudentT",
     "VarianceRecursion",
     "aparch_recursion",
@@ -292,6 +314,7 @@ __all__ = [
     "fit_loggarch",
     "fit_megarch",
     "fit_mloggarch",
+    "fit_test_suite",
     "fit_tgarch",
     "fitgarch_recursion",
     "fitgarch_sim",
@@ -302,6 +325,7 @@ __all__ = [
     "get_distribution",
     "gjr_recursion",
     "gjr_sim",
+    "goodness_of_fit_test",
     "initial_variance",
     "loggarch_recursion",
     "loggarch_sim",
@@ -312,8 +336,11 @@ __all__ = [
     "mloggarch_sim",
     "predict_roll",
     "quasi_max_likelihood",
+    "sign_bias_test",
+    "standardized_residuals",
     "tgarch_recursion",
     "tgarch_sim",
     "theta_coefficients",
     "type1_news_impact",
+    "weighted_ljung_box",
 ]

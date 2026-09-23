@@ -205,13 +205,25 @@ norm ES 0.975=−2.337803 / 0.99=−2.665214); `measure_risk` assembles VaR/ES (
 var=−VaR, es=−ES) feeding the *existing* Kupiec/Christoffersen/Basel/Acerbi-Székely (no new backtest
 math; the exception count is asserted vs a hand computation to catch a sign flip). **Coherence
 demonstration** (fEGarch forecasts through the risk pillar, 250 days): 0.99 → 1 exc, Kupiec p=0.278,
-green Basel, AS Z2=−0.65; 0.975 → 3 exc, green. Spec: `docs/fegarch-spec-notes.md` §27. **Deferred
-(flagged, not built):** residual diagnostics (Ljung–Box / sign-bias / goodness-of-fit) — optional-new;
-and the remaining forecasting-breadth extensions (other models, the refit path, non-constant μ̂ for the
-dual-mean models) all build on this proven core. **The fEGarch port is now complete through
-forecasting + VaR/ES backtesting** — the modelling, the full distribution breadth, the dual mean, and
-the risk-pillar tie-back are all done; what remains is forecasting-breadth extensions + optional
-residual diagnostics + optional Phase 7 (semiparametric local-polynomial scale).
+green Basel, AS Z2=−0.65; 0.975 → 3 exc, green. Spec: `docs/fegarch-spec-notes.md` §27.
+
+**Phase 6 diagnostics — BUILT on `feat/fegarch-diagnostics`** (pushed for CI; NOT merged). The
+post-estimation residual fit-tests (`quantica/timeseries/fegarch/diagnostics.py`), validated against
+the `diag_garch11_norm_*` fixtures, all on the standardized residuals `ẑ = (r−μ̂)/σ̂` and reproducing
+fEGarch's p-values to **~1e-14** (machine-exact residuals → the match tests the null-distribution CDF,
+which scipy computes identically to R — the anticipated R↔scipy tolerance never bit): (1)
+`weighted_ljung_box` — the **weighted** portmanteau (Fisher-Gallagher 2012, linearly-decreasing
+weights, **Gamma-approx null**, NOT classic χ²), on simple (level) + squared (volatility) residuals,
+adj_df 0; (2) `sign_bias_test` — Engle-Ng (1993), regress `ẑ²` on `{1, S⁻, S⁻·ε̂, S⁺·ε̂}` where the
+**size terms use the RAW residual ε̂** (not `ẑ`) and the **joint is the LM `m·R²`~χ²₃** (NOT the F-test
+— the fixture distinguishes: LM 0.6232 vs F 0.6236); (3) `goodness_of_fit_test` — PIT Pearson χ² on
+`u=F_η(ẑ)`, equal-prob bins, **df=n_bins−1** (params not subtracted); bundled by `fit_test_suite`.
+Spec: `docs/fegarch-spec-notes.md` §28. **Convention finding:** fEGarch exposes only p-values (+ lag /
+n_bins / df), never the raw statistics — so validation reproduces p-values. **The fEGarch port is now
+complete through forecasting + VaR/ES backtesting + diagnostics** — the modelling, the full
+distribution breadth, the dual mean, the risk-pillar tie-back, and the residual diagnostics are all
+done; only multi-step `predict` (roadmap Phase 6) and optional Phase 7 (semiparametric
+local-polynomial scale) remain open.
 
 ## Completed
 

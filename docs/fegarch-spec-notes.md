@@ -1716,5 +1716,69 @@ and CI-green.**
 
 ---
 
-*Add further specification derivations here as later phases (optional semiparametric, residual
-diagnostics) are implemented — always from the papers/manual, never the source.*
+## 28. Post-estimation residual diagnostics (Ljung-Box / sign-bias / GoF) — RESOLVED (Phase 6)
+
+**The three fit-tests fEGarch reports on a fitted model, reproduced clean-room from the published
+mathematics and validated against the committed `diag_garch11_norm_*` fixtures.** All operate on the
+standardized residuals `ẑ_t = (r_t − μ̂)/σ̂_t` (machine-exact via the Phase-1 GARCH recursion), and —
+the load-bearing convention — **fEGarch exposes only p-values** (the LB lag `m`, the GoF `n_bins`/`df`
+alongside), never the raw statistics. So validation reproduces the *p-values*; since the residuals are
+machine-exact, the match tests the null-distribution computation itself. **All three reproduce to
+~1e-14** — scipy's Gamma / χ² / Student-t CDFs agree with R's to machine precision, so the anticipated
+R↔scipy distribution-function tolerance never bit (contrast the VaR/ES ~1e-6 quantile gap, §27).
+
+### 28.1 Weighted Ljung-Box — Fisher-Gallagher, NOT classic (the one with a non-standard null)
+
+fEGarch's `ljung_box_test` is the **weighted** portmanteau (Fisher & Gallagher 2012), *not* the
+classic equal-weight Ljung-Box (1978). For each max-lag `m` the statistic uses linearly-decreasing
+weights `w_k = (m+1−k)/m`:
+
+```
+Q_W(m) = n(n+2) Σ_{k=1}^m w_k · ρ̂_k² / (n−k)
+```
+
+with the null from a **Gamma approximation** to the weighted sum of χ²₁ terms (a weighted sum of
+χ²₁ is *not* χ²), shape/scale (the WeightedPortTest reference form; `fitdf` = df correction):
+
+```
+α = (¾)(m+1)²m / (2m²+3m+1 − 6·m·fitdf),   β = (⅔)(2m²+3m+1 − 6·m·fitdf) / (m(m+1)),   p = P(Γ(α,β) > Q_W)
+```
+
+At `fitdf=0` these are exactly the moment-matched Gamma of `Σ w_k χ²₁` (Σw=(m+1)/2, Σw²=(m+1)(2m+1)/(6m)).
+Run on the **simple** residuals `ẑ` (remaining mean autocorrelation, `fitdf` = #ARMA mean params = 0 for
+plain GARCH) and the **squared** residuals `ẑ²` (remaining volatility autocorrelation, `fitdf=0`).
+`ρ̂_k` is the biased (divide-by-`n`), mean-corrected ACF (R's `acf`). **The fixture catches the
+classic-vs-weighted error**: the classic χ²₂₀ p-value differs from the fixture by >1e-3, while the
+Gamma-weighted form matches to **3.9e-15** (simple) / **1.3e-15** (squared).
+
+### 28.2 Sign-bias — Engle-Ng, raw-ε size terms, joint = LM (both pinned by the fixture)
+
+`sign_bias_test` is the Engle-Ng (1993) OLS regression of `ẑ_t²` on lagged sign/size regressors. The
+**two conventions the fixture pins** (neither the obvious default):
+
+1. **The size regressors use the RAW residual `ε̂ = r − μ̂` (= ẑ·σ̂), not the standardized `ẑ`.** With
+   `ẑ`-size regressors the negative/positive-size p-values are 0.71/0.88; with `ε̂`-size they are
+   0.818/0.824 — the fixture. (The sign indicators are the same, `sign(ε̂)=sign(ẑ)`.)
+   ```
+   ẑ_t² = b0 + b1·S⁻_{t−1} + b2·S⁻_{t−1}·ε̂_{t−1} + b3·S⁺_{t−1}·ε̂_{t−1} + e_t,   S⁻=1{ẑ<0}, S⁺=1−S⁻
+   ```
+2. **The joint test is the LM statistic `m·R² ~ χ²₃`, NOT the OLS F-test.** LM reproduces the fixture
+   (0.62320) to **1.3e-14**; the F-test gives 0.62360 — off by 4e-4, so the fixture p-value cleanly
+   distinguishes them. The three individual tests are two-sided OLS t-tests (df = m−4), reproducing to
+   ~2e-14.
+
+### 28.3 Goodness-of-fit — PIT Pearson χ², df = n_bins − 1 (params NOT subtracted)
+
+`goodn_of_fit_test` is a Pearson χ² on the probability integral transform `u_t = F_η(ẑ_t)` (Φ for
+norm — reusing the Phase-0 distribution CDF) binned into **equal-probability** bins on [0,1]:
+`χ² = Σ (O_i − n/n_bins)² / (n/n_bins)`, referred to χ² with **`df = n_bins − 1`** — the estimated
+parameters are **not** subtracted (the fixture's `20→19`, `30→29`, … confirm it; "adjusted Pearson" is
+the PIT/equal-prob-bin construction, not a df reduction). Reproduces the four rows to **3.9e-16**.
+
+**Phase 6 is now complete except multi-step `predict` (roadmap): forecasting + VaR/ES + the risk
+tie-back (§27) and the residual diagnostics (§28), all fixture-validated and CI-green.**
+
+---
+
+*Add further specification derivations here as later phases (optional semiparametric, multi-step
+forecasting) are implemented — always from the papers/manual, never the source.*

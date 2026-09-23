@@ -196,6 +196,27 @@
 
             </li>
             <li>
+                    <a class="class" href="#FitTestSuite">FitTestSuite</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#FitTestSuite.__init__">FitTestSuite</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FitTestSuite.ljung_box_simple">ljung_box_simple</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FitTestSuite.ljung_box_squared">ljung_box_squared</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FitTestSuite.sign_bias">sign_bias</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#FitTestSuite.goodness_of_fit">goodness_of_fit</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#GarchFit">GarchFit</a>
                             <ul class="memberlist">
                         <li>
@@ -266,6 +287,42 @@
                         </li>
                         <li>
                                 <a class="function" href="#GeneralizedError.mean_log_modulus">mean_log_modulus</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#GoodnessOfFitResult">GoodnessOfFitResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#GoodnessOfFitResult.__init__">GoodnessOfFitResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GoodnessOfFitResult.n_bins">n_bins</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GoodnessOfFitResult.dof">dof</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#GoodnessOfFitResult.pvalue">pvalue</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#LjungBoxResult">LjungBoxResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#LjungBoxResult.__init__">LjungBoxResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#LjungBoxResult.lags">lags</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#LjungBoxResult.pvalue">pvalue</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#LjungBoxResult.fitdf">fitdf</a>
                         </li>
                 </ul>
 
@@ -374,6 +431,27 @@
                         </li>
                         <li>
                                 <a class="variable" href="#RollingForecast.n_test">n_test</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
+                    <a class="class" href="#SignBiasResult">SignBiasResult</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#SignBiasResult.__init__">SignBiasResult</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SignBiasResult.sign_bias_pvalue">sign_bias_pvalue</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SignBiasResult.negative_size_pvalue">negative_size_pvalue</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SignBiasResult.positive_size_pvalue">positive_size_pvalue</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SignBiasResult.joint_pvalue">joint_pvalue</a>
                         </li>
                 </ul>
 
@@ -547,6 +625,9 @@
                     <a class="function" href="#fit_mloggarch">fit_mloggarch</a>
             </li>
             <li>
+                    <a class="function" href="#fit_test_suite">fit_test_suite</a>
+            </li>
+            <li>
                     <a class="function" href="#fit_tgarch">fit_tgarch</a>
             </li>
             <li>
@@ -575,6 +656,9 @@
             </li>
             <li>
                     <a class="function" href="#gjr_sim">gjr_sim</a>
+            </li>
+            <li>
+                    <a class="function" href="#goodness_of_fit_test">goodness_of_fit_test</a>
             </li>
             <li>
                     <a class="function" href="#initial_variance">initial_variance</a>
@@ -607,6 +691,12 @@
                     <a class="function" href="#quasi_max_likelihood">quasi_max_likelihood</a>
             </li>
             <li>
+                    <a class="function" href="#sign_bias_test">sign_bias_test</a>
+            </li>
+            <li>
+                    <a class="function" href="#standardized_residuals">standardized_residuals</a>
+            </li>
+            <li>
                     <a class="function" href="#tgarch_recursion">tgarch_recursion</a>
             </li>
             <li>
@@ -617,6 +707,9 @@
             </li>
             <li>
                     <a class="function" href="#type1_news_impact">type1_news_impact</a>
+            </li>
+            <li>
+                    <a class="function" href="#weighted_ljung_box">weighted_ljung_box</a>
             </li>
     </ul>
 
@@ -779,7 +872,14 @@ the tail quantile (the existing <code>ppf()</code>) and the new standardized
 <code>~<a href="#ConditionalDistribution.expected_shortfall">quantica.timeseries.fegarch.ConditionalDistribution.expected_shortfall()</a></code>. The return-space
 forecasts sign-map into the existing risk-pillar backtests via
 <code>~<a href="../risk.html#backtest_return_forecasts">quantica.risk.backtest.backtest_return_forecasts()</a></code> (Kupiec / Christoffersen / Basel /
-Acerbi--Székely) — the cross-pillar coherence demonstration. See <code>docs/fegarch-port-roadmap.md</code>.</p>
+Acerbi--Székely) — the cross-pillar coherence demonstration. The <strong>post-estimation residual
+diagnostics</strong> (<code>~<a href="fegarch/diagnostics.html">quantica.timeseries.fegarch.diagnostics</a></code>) complete the phase: the weighted
+Ljung-Box test (<code>~<a href="#weighted_ljung_box">quantica.timeseries.fegarch.weighted_ljung_box()</a></code>, Fisher-Gallagher 2012 Gamma
+approximation, on the simple and squared standardized residuals), the Engle-Ng sign-bias test
+(<code>~<a href="#sign_bias_test">quantica.timeseries.fegarch.sign_bias_test()</a></code>), and the PIT Pearson goodness-of-fit test
+(<code>~<a href="#goodness_of_fit_test">quantica.timeseries.fegarch.goodness_of_fit_test()</a></code>), bundled by
+<code>~<a href="#fit_test_suite">quantica.timeseries.fegarch.fit_test_suite()</a></code> — reproducing fEGarch's p-values to machine
+precision. See <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -1549,6 +1649,78 @@ it is identically <code>0</code>.</p>
                                 </dl>
                             </div>
                 </section>
+                <section id="FitTestSuite">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">FitTestSuite</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#FitTestSuite"></a>
+    
+            <div class="docstring"><p>The bundled post-estimation fit-tests (mirrors fEGarch's <code><a href="#fit_test_suite">fit_test_suite</a></code>).</p>
+</div>
+
+
+                            <div id="FitTestSuite.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">FitTestSuite</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">ljung_box_simple</span><span class="p">:</span> <span class="n"><a href="#LjungBoxResult">LjungBoxResult</a></span>,</span><span class="param">	<span class="n">ljung_box_squared</span><span class="p">:</span> <span class="n"><a href="#LjungBoxResult">LjungBoxResult</a></span>,</span><span class="param">	<span class="n">sign_bias</span><span class="p">:</span> <span class="n"><a href="#SignBiasResult">SignBiasResult</a></span>,</span><span class="param">	<span class="n">goodness_of_fit</span><span class="p">:</span> <span class="n"><a href="#GoodnessOfFitResult">GoodnessOfFitResult</a></span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#FitTestSuite.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="FitTestSuite.ljung_box_simple" class="classattr">
+                                <div class="attr variable">
+            <span class="name">ljung_box_simple</span><span class="annotation">: <a href="#LjungBoxResult">LjungBoxResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FitTestSuite.ljung_box_simple"></a>
+    
+    
+
+                            </div>
+                            <div id="FitTestSuite.ljung_box_squared" class="classattr">
+                                <div class="attr variable">
+            <span class="name">ljung_box_squared</span><span class="annotation">: <a href="#LjungBoxResult">LjungBoxResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FitTestSuite.ljung_box_squared"></a>
+    
+    
+
+                            </div>
+                            <div id="FitTestSuite.sign_bias" class="classattr">
+                                <div class="attr variable">
+            <span class="name">sign_bias</span><span class="annotation">: <a href="#SignBiasResult">SignBiasResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FitTestSuite.sign_bias"></a>
+    
+    
+
+                            </div>
+                            <div id="FitTestSuite.goodness_of_fit" class="classattr">
+                                <div class="attr variable">
+            <span class="name">goodness_of_fit</span><span class="annotation">: <a href="#GoodnessOfFitResult">GoodnessOfFitResult</a></span>
+
+        
+    </div>
+    <a class="headerlink" href="#FitTestSuite.goodness_of_fit"></a>
+    
+    
+
+                            </div>
+                </section>
                 <section id="GarchFit">
                     <div class="attr class">
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
@@ -1882,6 +2054,151 @@ normal, \( \nu &lt; 2 \) is heavier-tailed, \( \nu &gt; 2 \) thinner. Implemente
 
             </div>
                                 </dl>
+                            </div>
+                </section>
+                <section id="GoodnessOfFitResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">GoodnessOfFitResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#GoodnessOfFitResult"></a>
+    
+            <div class="docstring"><p>Adjusted Pearson goodness-of-fit p-values across bin counts.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>n_bins</strong> (ndarray of int):
+The bin counts tested.</li>
+<li><strong>dof</strong> (ndarray of int):
+The degrees of freedom for each (<code>n_bins - 1</code>).</li>
+<li><strong>pvalue</strong> (ndarray):
+The Pearson \( \chi^2 \) p-value at each bin count.</li>
+</ul>
+</div>
+
+
+                            <div id="GoodnessOfFitResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">GoodnessOfFitResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">n_bins</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">dof</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">pvalue</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GoodnessOfFitResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="GoodnessOfFitResult.n_bins" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_bins</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GoodnessOfFitResult.n_bins"></a>
+    
+    
+
+                            </div>
+                            <div id="GoodnessOfFitResult.dof" class="classattr">
+                                <div class="attr variable">
+            <span class="name">dof</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GoodnessOfFitResult.dof"></a>
+    
+    
+
+                            </div>
+                            <div id="GoodnessOfFitResult.pvalue" class="classattr">
+                                <div class="attr variable">
+            <span class="name">pvalue</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#GoodnessOfFitResult.pvalue"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="LjungBoxResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">LjungBoxResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#LjungBoxResult"></a>
+    
+            <div class="docstring"><p>Weighted Ljung-Box p-values across lags <code>1..m_max</code>.</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>lags</strong> (ndarray of int):
+The maximum lags \( m = 1, \dots, m_{\max} \).</li>
+<li><strong>pvalue</strong> (ndarray):
+The weighted-portmanteau p-value at each lag (Gamma approximation).</li>
+<li><strong>fitdf</strong> (int):
+The degrees-of-freedom adjustment applied (fitted mean-ARMA parameters for the simple
+residuals; 0 for the squared residuals).</li>
+</ul>
+</div>
+
+
+                            <div id="LjungBoxResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">LjungBoxResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">lags</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">pvalue</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">fitdf</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LjungBoxResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="LjungBoxResult.lags" class="classattr">
+                                <div class="attr variable">
+            <span class="name">lags</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LjungBoxResult.lags"></a>
+    
+    
+
+                            </div>
+                            <div id="LjungBoxResult.pvalue" class="classattr">
+                                <div class="attr variable">
+            <span class="name">pvalue</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LjungBoxResult.pvalue"></a>
+    
+    
+
+                            </div>
+                            <div id="LjungBoxResult.fitdf" class="classattr">
+                                <div class="attr variable">
+            <span class="name">fitdf</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#LjungBoxResult.fitdf"></a>
+    
+    
+
                             </div>
                 </section>
                 <section id="MeanRecursion">
@@ -2354,6 +2671,78 @@ The number of held-out test points forecast.</li>
         
     </div>
     <a class="headerlink" href="#RollingForecast.n_test"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="SignBiasResult">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">SignBiasResult</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#SignBiasResult"></a>
+    
+            <div class="docstring"><p>Engle-Ng sign-bias test p-values (all two-sided / upper-tail as appropriate).</p>
+</div>
+
+
+                            <div id="SignBiasResult.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">SignBiasResult</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">sign_bias_pvalue</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">negative_size_pvalue</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">positive_size_pvalue</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">joint_pvalue</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SignBiasResult.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="SignBiasResult.sign_bias_pvalue" class="classattr">
+                                <div class="attr variable">
+            <span class="name">sign_bias_pvalue</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SignBiasResult.sign_bias_pvalue"></a>
+    
+    
+
+                            </div>
+                            <div id="SignBiasResult.negative_size_pvalue" class="classattr">
+                                <div class="attr variable">
+            <span class="name">negative_size_pvalue</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SignBiasResult.negative_size_pvalue"></a>
+    
+    
+
+                            </div>
+                            <div id="SignBiasResult.positive_size_pvalue" class="classattr">
+                                <div class="attr variable">
+            <span class="name">positive_size_pvalue</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SignBiasResult.positive_size_pvalue"></a>
+    
+    
+
+                            </div>
+                            <div id="SignBiasResult.joint_pvalue" class="classattr">
+                                <div class="attr variable">
+            <span class="name">joint_pvalue</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SignBiasResult.joint_pvalue"></a>
     
     
 
@@ -4113,6 +4502,46 @@ One of the eight fEGarch distribution codes (default <code>"norm"</code>, the on
 
 
                 </section>
+                <section id="fit_test_suite">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">fit_test_suite</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">fit</span><span class="p">:</span> <span class="n"><a href="#GarchFit">GarchFit</a></span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">m_max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span>,</span><span class="param">	<span class="n">n_bins</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span></span><span class="return-annotation">) -> <span class="n"><a href="#FitTestSuite">FitTestSuite</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#fit_test_suite"></a>
+    
+            <div class="docstring"><p>The bundled post-estimation fit-tests for a fitted model (mirrors fEGarch's suite).</p>
+
+<p>Computes the standardized residuals \( \hat z_t \) and the raw residuals
+\( \hat\varepsilon_t \) from <code>fit</code> and runs: the weighted Ljung-Box on \( \hat z_t \)
+(simple; <code>fitdf</code> = number of fitted mean-ARMA params, 0 for the constant mean) and on
+\( \hat z_t^2 \) (squared; <code>fitdf = 0</code>); the Engle-Ng sign-bias test; and the PIT Pearson
+goodness-of-fit test under the fitted conditional distribution.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>fit</strong> (GarchFit):
+The fitted model.</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series the model was fit on.</li>
+<li><strong>m_max</strong> (int, optional):
+The maximum lag for the Ljung-Box tests (default 20).</li>
+<li><strong>n_bins</strong> (sequence of int, optional):
+The bin counts for the goodness-of-fit test (default <code>(20, 30, 40, 50)</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>FitTestSuite</strong>: The Ljung-Box (simple + squared), sign-bias, and goodness-of-fit results.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="fit_tgarch">
                     <div class="attr function">
             
@@ -4460,6 +4889,46 @@ Burn-in samples discarded (default 500).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive, <code>|gamma1| &gt;= 1</code>, or the process is non-stationary.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="goodness_of_fit_test">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">goodness_of_fit_test</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">std_resid</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">distribution</span><span class="p">:</span> <span class="n"><a href="#ConditionalDistribution">ConditionalDistribution</a></span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">dist_params</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">n_bins</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span></span><span class="return-annotation">) -> <span class="n"><a href="#GoodnessOfFitResult">GoodnessOfFitResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#goodness_of_fit_test"></a>
+    
+            <div class="docstring"><p>Adjusted Pearson \( \chi^2 \) goodness-of-fit on the PIT of the standardized residuals.</p>
+
+<p>The probability integral transform \( u_t = F_\eta(\hat z_t) \) under the fitted conditional
+distribution is binned into <code>n_bins</code> <strong>equal-probability</strong> bins on \( [0, 1] \); the Pearson
+statistic \( \sum_i (O_i - E_i)^2 / E_i \) with \( E_i = n / n_{\text{bins}} \) is referred
+to \( \chi^2 \) with \( \mathrm{df} = n_{\text{bins}} - 1 \) — the estimated parameters are
+<strong>not</strong> subtracted (matching fEGarch).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>std_resid</strong> (ndarray, shape (T,)):
+The standardized residuals \( \hat z_t \).</li>
+<li><strong>distribution</strong> (ConditionalDistribution):
+The fitted conditional distribution providing the CDF \( F_\eta \) for the PIT.</li>
+<li><strong>dist_params</strong> (sequence of float or None, optional):
+The distribution's shape parameters (default <code>None</code> uses its <code>param_start</code>).</li>
+<li><strong>n_bins</strong> (sequence of int, optional):
+The bin counts to test (default <code>(20, 30, 40, 50)</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>GoodnessOfFitResult</strong>: The bin counts, degrees of freedom, and p-values.</li>
 </ul>
 </div>
 
@@ -4906,6 +5375,95 @@ whose variance recursion does not consume shape parameters).</li>
 
 
                 </section>
+                <section id="sign_bias_test">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">sign_bias_test</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">std_resid</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">residuals</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n"><a href="#SignBiasResult">SignBiasResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#sign_bias_test"></a>
+    
+            <div class="docstring"><p>Engle-Ng (1993) sign-bias test for remaining asymmetry in the standardized residuals.</p>
+
+<p>OLS regression of the squared standardized residuals on a constant and three lagged
+sign/signed-size regressors,</p>
+
+<p>$$\hat z_t^2 = b_0 + b_1 S^-_{t-1} + b_2 S^-_{t-1}\hat\varepsilon_{t-1}
+             + b_3 S^+_{t-1}\hat\varepsilon_{t-1} + e_t,$$</p>
+
+<p>where \( S^-_t = \mathbf 1{\hat z_t &lt; 0} \), \( S^+_t = 1 - S^-_t \), and the <strong>size</strong>
+regressors use the <em>raw</em> model residual \( \hat\varepsilon \) (not the standardized
+\( \hat z \)). The three coefficient two-sided t-tests give the sign-bias, negative-size-bias
+and positive-size-bias p-values; the <strong>joint</strong> test is the Lagrange-multiplier statistic
+\( n R^2 \sim \chi^2_3 \) (not the F-test — the fixture distinguishes them).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>std_resid</strong> (ndarray, shape (T,)):
+The standardized residuals \( \hat z_t \).</li>
+<li><strong>residuals</strong> (ndarray, shape (T,)):
+The raw model residuals \( \hat\varepsilon_t = r_t - \hat\mu_t \) (:math:<code>= \hat z_t
+\hat\sigma_t</code>), aligned with <code>std_resid</code>.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>SignBiasResult</strong>: The three individual p-values and the joint LM p-value.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>std_resid</code> and <code>residuals</code> differ in length or are too short.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="standardized_residuals">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">standardized_residuals</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">fit</span><span class="p">:</span> <span class="n"><a href="#GarchFit">GarchFit</a></span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#standardized_residuals"></a>
+    
+            <div class="docstring"><p>The standardized residuals \( \hat z_t = (r_t - \hat\mu_t)/\hat\sigma_t \) of a fit.</p>
+
+<p>For the constant-mean GARCH the conditional mean is the fitted \( \mu \), so
+\( \hat z_t = (r_t - \mu)/\hat\sigma_t \) with \( \hat\sigma_t \) the fitted
+conditional-volatility series.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>fit</strong> (GarchFit):
+The fitted model (supplies \( \mu \) and the conditional-volatility series).</li>
+<li><strong>returns</strong> (ndarray, shape (T,)):
+The return series the model was fit on.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (T,)</strong>: The standardized residuals.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>returns</code> and the fitted conditional-volatility series differ in length.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="tgarch_recursion">
                     <div class="attr function">
             
@@ -5053,6 +5611,62 @@ The centering moments \( \operatorname{E}[g_{\mathrm{asy}}] \) (0 for symmetric)
 
 <ul>
 <li><strong>float</strong>: The news-impact value \( g(\eta) \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="weighted_ljung_box">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">weighted_ljung_box</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">x</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">m_max</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span>,</span><span class="param">	<span class="n">fitdf</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span></span><span class="return-annotation">) -> <span class="n"><a href="#LjungBoxResult">LjungBoxResult</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#weighted_ljung_box"></a>
+    
+            <div class="docstring"><p>Weighted Ljung-Box portmanteau test (Fisher &amp; Gallagher 2012), p-values for <code>1..m_max</code>.</p>
+
+<p>For each maximum lag \( m \), the weighted statistic (linearly-decreasing weights
+\( w_k = (m+1-k)/m \), Fisher-Gallagher 2012)</p>
+
+<p>$$Q_W(m) = n(n+2) \sum_{k=1}^{m} w_k\, \frac{\hat\rho_k^2}{n-k}$$</p>
+
+<p>is referred to a <strong>Gamma approximation</strong> of the weighted sum of \( \chi^2_1 \) terms — with an
+optional degrees-of-freedom correction <code>fitdf</code> for estimated parameters — via the shape and
+scale</p>
+
+<p>$$\alpha = \frac{\tfrac34 (m+1)^2 m}{2m^2 + 3m + 1 - 6\,m\,\mathrm{fitdf}}, \qquad
+\beta  = \frac{\tfrac23 (2m^2 + 3m + 1 - 6\,m\,\mathrm{fitdf})}{m(m+1)},$$</p>
+
+<p>and \( p = P(\mathrm{Gamma}(\alpha,\beta) &gt; Q_W(m)) \). At <code>fitdf = 0</code> the parameters reduce
+to the moment-matched Gamma of \( \sum_k w_k \chi^2_{1} \). This is <strong>not</strong> the classic
+equal-weight Ljung-Box with a \( \chi^2 \) null.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>x</strong> (ndarray, shape (T,)):
+The series to test — the standardized residuals (mean autocorrelation) or their squares
+(volatility autocorrelation).</li>
+<li><strong>m_max</strong> (int, optional):
+The maximum lag; p-values are returned for \( m = 1, \dots, m_{\max} \) (default 20).</li>
+<li><strong>fitdf</strong> (int, optional):
+Degrees-of-freedom correction for estimated parameters (default 0): for the simple
+residuals the number of fitted mean-ARMA parameters, for the squared residuals 0.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>LjungBoxResult</strong>: The lags, the Gamma p-values, and <code>fitdf</code>.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>m_max</code> is not positive, or <code>fitdf</code> makes a Gamma parameter non-positive.</li>
 </ul>
 </div>
 
