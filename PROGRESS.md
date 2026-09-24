@@ -225,8 +225,8 @@ have hidden**, each locked by a discriminating test: the sign-bias size regresso
 ε̂ (not standardized `ẑ`), and the joint is an LM test (not F — 0.6232 vs 0.6236 discriminated it); the
 weighted-LB fixture likewise rejected the classic χ² Ljung-Box form.
 
-**Phase 6 multi-step `predict` — BUILT on `feat/fegarch-predict-multistep`** (pushed for CI; NOT
-merged), **completing roadmap Phase 6**. `predict(fit, returns, n_ahead)` (`quantica/…/forecast.py`)
+**Phase 6 multi-step `predict` — COMPLETE + MERGED** (PR #25 → `main` `5b3bf50`, CI green on
+py3.11/3.12), **completing roadmap Phase 6**. `predict(fit, returns, n_ahead)` (`quantica/…/forecast.py`)
 is the multi-step point forecast, distinct from `predict_roll` (one-step rolling): the **naive
 iterated forecast** — iterate the fitted recursion forward with each future news term replaced by its
 expectation. Validated against `predict_{garch,egarch}11_norm_h{10,50}`: **GARCH is unbiased** —
@@ -236,13 +236,18 @@ biased-by-construction** — iterate `ln σ²` with future `g(η)=0`, report `ex
 **1.7e-17 / 1.9e-17**, converging to `exp(ω_σ/2)=0.011349 = exp(E[ln σ²]/2) ≠ E[σ]` (the Jensen gap).
 **Clean-room choice:** we reproduce fEGarch's biased iterate and do NOT bias-correct (a correction
 would be original work, not a port). Seam asserted: `predict` h=1 σ̂ == `predict_roll` first σ̂
-bit-for-bit. μ̂ constant (dual-mean multi-step mean deferred). Spec: `docs/fegarch-spec-notes.md` §29.
+bit-for-bit; a test locks the EGARCH biased limit. μ̂ constant (dual-mean multi-step mean deferred);
+unsupported families raise `NotImplementedError`. Spec: `docs/fegarch-spec-notes.md` §29.
 
-**The fEGarch port is now complete through the entire roadmap Phase 6** — modelling, full distribution
-breadth, dual mean, forecasting (`predict` + `predict_roll`), VaR/ES + backtest tie-back, and residual
-diagnostics are all done and fixture-validated. **Only optional Phase 7 (semiparametric
-local-polynomial scale) remains**, plus deferred breadth (other-distribution / dual-mean / asymmetric-FI
-multi-step forecasting) that reuses this proven core.
+**ROADMAP PHASE 6 IS COMPLETE — and the fEGarch clean-room port is complete through the entire required
+roadmap.** All fixture-validated: modelling (short-memory, EGF, fractional/long-memory), the full
+eight-distribution breadth, the dual mean (ARMA/FARIMA), forecasting (`predict` + `predict_roll`),
+VaR/ES + the risk-pillar backtest tie-back (Kupiec/Christoffersen/Basel/Acerbi-Székely), and the
+residual diagnostics (weighted Ljung-Box / sign-bias / GoF). **What remains is explicitly OPTIONAL:**
+(1) **Phase 7 — semiparametric local-polynomial scale** (an add-on, not required); (2) **deferred
+forecasting breadth** — multi-step `predict` for the other distributions / the dual-mean (non-constant
+μ̂) / the asymmetric-FI families: the pattern is proven and these are pure inheritance (reuse the same
+iterate-forward-with-expected-news core), pending only their OUTPUT fixtures. Nothing required is open.
 
 ## Completed
 
