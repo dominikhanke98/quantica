@@ -125,7 +125,12 @@ mean is ARMA + FARIMA only.
 **Phase 6 — forecasting + risk tie-back** (core complete): the no-refit rolling one-step forecast
 (:mod:`~quantica.timeseries.fegarch.forecast`, :func:`~quantica.timeseries.fegarch.predict_roll`) is
 the existing variance recursion continued past the training window (train-then-continue seed
-machine-exact, no bounded limit); :func:`~quantica.timeseries.fegarch.measure_risk` assembles
+machine-exact, no bounded limit); :func:`~quantica.timeseries.fegarch.predict` is the multi-step
+(``n_ahead``) point forecast — the naive iterated forecast (future news = its expectation), unbiased
+for GARCH (converges to :math:`\omega/(1-\alpha-\beta)`) and biased-by-construction for EGARCH
+(iterates :math:`\ln\sigma^2` with future :math:`g(\eta)=0`, converging to
+:math:`\exp(\omega_\sigma/2)`), reproducing fEGarch's forecast rather than correcting it;
+:func:`~quantica.timeseries.fegarch.measure_risk` assembles
 conditional VaR/ES (WP171 Eqs. 61--62) from the rolling :math:`\hat\sigma_t` / :math:`\hat\mu_t`,
 the tail quantile (the existing :meth:`ppf`) and the new standardized
 :meth:`~quantica.timeseries.fegarch.ConditionalDistribution.expected_shortfall`. The return-space
@@ -229,9 +234,11 @@ from quantica.timeseries.fegarch.filoggarch import (
     fit_filoggarch,
 )
 from quantica.timeseries.fegarch.forecast import (
+    MultiStepForecast,
     RiskForecast,
     RollingForecast,
     measure_risk,
+    predict,
     predict_roll,
 )
 from quantica.timeseries.fegarch.fracdiff import fracdiff, fracdiff_coeffs
@@ -266,6 +273,7 @@ __all__ = [
     "GoodnessOfFitResult",
     "LjungBoxResult",
     "MeanRecursion",
+    "MultiStepForecast",
     "Normal",
     "QMLEResult",
     "RiskForecast",
@@ -334,6 +342,7 @@ __all__ = [
     "megarch_sim",
     "mloggarch_recursion",
     "mloggarch_sim",
+    "predict",
     "predict_roll",
     "quasi_max_likelihood",
     "sign_bias_test",
