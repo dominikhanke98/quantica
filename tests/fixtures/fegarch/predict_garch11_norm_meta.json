@@ -1,0 +1,8 @@
+{
+  "model": "garch", "cond_dist": "norm", "orders": [1, 1],
+  "n_obs_train": 2250, "n_test": 250, "input": "synthetic_returns.csv", "seed": 20240715,
+  "fit_params": {"mu": 0.00046025742512393551, "omega": 3.5366357485528214e-06, "phi1": 0.085775362865527852, "beta1": 0.89112230664216308},
+  "unconditional_variance": 0.00015308567028465801, "unconditional_sigma": 0.012372779408227482,
+  "note": "predict(n.ahead=h) multi-step point forecast from the TRAINING end; sigt/cmeans length h; same training fit as forecast_garch11_norm (predict_roll).",
+  "fegarch_version": "1.0.6", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

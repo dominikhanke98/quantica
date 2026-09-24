@@ -1,0 +1,7 @@
+{
+  "model": "egarch", "cond_dist": "norm", "orders": [1, 1],
+  "n_obs": 2500, "input": "synthetic_returns.csv", "seed": 20240715,
+  "fit_params": {"mu": 0.00047540138825135991, "omega_sig": -8.9572540218179153, "phi1": 0.98271342472839762, "kappa": -0.023493796627416137, "gamma": 0.15727060264446852},
+  "note": "predict(n.ahead=h) multi-step point forecast for the Type-I EGF (EGARCH) log-variance recursion; sigt/cmeans length h; full-sample fit (matches fit_egarch11_norm). The EGF multi-step is the paper-flagged E[exp(g(eta))] bias case -- fixture reveals what predict actually computes.",
+  "fegarch_version": "1.0.6", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
