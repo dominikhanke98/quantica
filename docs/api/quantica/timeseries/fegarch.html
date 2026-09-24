@@ -337,6 +337,24 @@
 
             </li>
             <li>
+                    <a class="class" href="#MultiStepForecast">MultiStepForecast</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#MultiStepForecast.__init__">MultiStepForecast</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MultiStepForecast.sigma">sigma</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MultiStepForecast.cmeans">cmeans</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#MultiStepForecast.n_ahead">n_ahead</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#Normal">Normal</a>
                             <ul class="memberlist">
                         <li>
@@ -685,6 +703,9 @@
                     <a class="function" href="#mloggarch_sim">mloggarch_sim</a>
             </li>
             <li>
+                    <a class="function" href="#predict">predict</a>
+            </li>
+            <li>
                     <a class="function" href="#predict_roll">predict_roll</a>
             </li>
             <li>
@@ -866,7 +887,12 @@ mean is ARMA + FARIMA only.</p>
 <p><strong>Phase 6 — forecasting + risk tie-back</strong> (core complete): the no-refit rolling one-step forecast
 (<code>~<a href="fegarch/forecast.html">quantica.timeseries.fegarch.forecast</a></code>, <code>~<a href="#predict_roll">quantica.timeseries.fegarch.predict_roll()</a></code>) is
 the existing variance recursion continued past the training window (train-then-continue seed
-machine-exact, no bounded limit); <code>~<a href="#measure_risk">quantica.timeseries.fegarch.measure_risk()</a></code> assembles
+machine-exact, no bounded limit); <code>~<a href="#predict">quantica.timeseries.fegarch.predict()</a></code> is the multi-step
+(<code>n_ahead</code>) point forecast — the naive iterated forecast (future news = its expectation), unbiased
+for GARCH (converges to \( \omega/(1-\alpha-\beta) \)) and biased-by-construction for EGARCH
+(iterates \( \ln\sigma^2 \) with future \( g(\eta)=0 \), converging to
+\( \exp(\omega_\sigma/2) \)), reproducing fEGarch's forecast rather than correcting it;
+<code>~<a href="#measure_risk">quantica.timeseries.fegarch.measure_risk()</a></code> assembles
 conditional VaR/ES (WP171 Eqs. 61--62) from the rolling \( \hat\sigma_t \) / \( \hat\mu_t \),
 the tail quantile (the existing <code>ppf()</code>) and the new standardized
 <code>~<a href="#ConditionalDistribution.expected_shortfall">quantica.timeseries.fegarch.ConditionalDistribution.expected_shortfall()</a></code>. The return-space
@@ -2228,6 +2254,82 @@ the standardized innovation \( z_t = r_t/\sigma_t \) in the joint likelihood.</p
         
     </div>
     <a class="headerlink" href="#MeanRecursion.__init__"></a>
+    
+    
+
+                            </div>
+                </section>
+                <section id="MultiStepForecast">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">MultiStepForecast</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#MultiStepForecast"></a>
+    
+            <div class="docstring"><p>A multi-step (<code><a href="#MultiStepForecast.n_ahead">n_ahead</a></code>) point forecast over a fixed horizon from the fitted-sample end.</p>
+
+<p>Distinct from <code><a href="#RollingForecast">RollingForecast</a></code> (one-step rolling over held-out data): this is the pure
+\( h \)-step-ahead forecast, \( h = 1, \dots, n_{\text{ahead}} \).</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>sigma</strong> (ndarray, shape (n_ahead,)):
+The \( h \)-step-ahead conditional standard-deviation forecasts \( \hat\sigma_{n+h} \).</li>
+<li><strong>cmeans</strong> (ndarray, shape (n_ahead,)):
+The \( h \)-step-ahead conditional-mean forecasts (constant for a plain constant-mean
+model).</li>
+<li><strong>n_ahead</strong> (int):
+The forecast horizon.</li>
+</ul>
+</div>
+
+
+                            <div id="MultiStepForecast.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">MultiStepForecast</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">sigma</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">cmeans</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">n_ahead</span><span class="p">:</span> <span class="nb">int</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MultiStepForecast.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="MultiStepForecast.sigma" class="classattr">
+                                <div class="attr variable">
+            <span class="name">sigma</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MultiStepForecast.sigma"></a>
+    
+    
+
+                            </div>
+                            <div id="MultiStepForecast.cmeans" class="classattr">
+                                <div class="attr variable">
+            <span class="name">cmeans</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MultiStepForecast.cmeans"></a>
+    
+    
+
+                            </div>
+                            <div id="MultiStepForecast.n_ahead" class="classattr">
+                                <div class="attr variable">
+            <span class="name">n_ahead</span><span class="annotation">: int</span>
+
+        
+    </div>
+    <a class="headerlink" href="#MultiStepForecast.n_ahead"></a>
     
     
 
@@ -5252,6 +5354,77 @@ Burn-in samples discarded (default 500).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If <code>n</code> is not positive or <code>|phi1| &gt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="predict">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">predict</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">fit</span><span class="p">:</span> <span class="n"><a href="#GarchFit">GarchFit</a></span>,</span><span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">n_ahead</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span></span><span class="return-annotation">) -> <span class="n"><a href="#MultiStepForecast">MultiStepForecast</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#predict"></a>
+    
+            <div class="docstring"><p>Multi-step (<code>n_ahead</code>) point forecast — the naive iterated forecast fEGarch ships.</p>
+
+<p>Iterates the fitted recursion forward from the fitted-sample-end state, replacing each future
+news term by its expectation (the <code><a href="#predict">predict</a></code> mechanism, distinct from <code><a href="#predict_roll">predict_roll()</a></code>'s
+one-step rolling). Two families are supported, both reproducing the committed fixtures to
+machine precision:</p>
+
+<ul>
+<li><strong>Variance-recursion GARCH(1,1)</strong> (params <code>mu, omega, alpha, beta</code>): the standard iterated
+forecast \( \hat\sigma_{n+h}^2 = \omega + (\alpha+\beta)\hat\sigma_{n+h-1}^2 \) for
+\( h \ge 2 \) (the future \( \varepsilon_{n+h-1}^2 \to \) its expectation
+\( \hat\sigma_{n+h-1}^2 \)); \( h = 1 \) uses the realized \( \varepsilon_n \). It is
+<strong>unbiased</strong> and converges to the unconditional variance \( \omega/(1-\alpha-\beta) \).</li>
+<li><strong>Type-I EGF (EGARCH)</strong> (params <code>mu, omega_sig, phi1, kappa, gamma</code>): iterate the
+log-variance with the future news \( g(\eta) = 0 \) (its expectation by construction),
+\( \ln\hat\sigma_{n+h}^2 = \omega + \phi_1\ln\hat\sigma_{n+h-1}^2 \) for \( h \ge 2 \)
+(\( h = 1 \) uses the realized \( \eta_n \) through :math:<code>g(\eta_n) = \kappa\eta_n +
+\gamma(|\eta_n| - \operatorname{E}|z|)</code>) and report
+\( \hat\sigma = \exp(\ln\hat\sigma^2/2) \). This is the <strong>naive/biased</strong> iterate fEGarch
+ships: \( \hat\sigma \) converges to
+\( \exp(\operatorname{E}[\ln\sigma^2]/2) = \exp(\omega_\sigma/2) \), <strong>not</strong>
+\( \operatorname{E}[\sigma_{n+h}] \) (the Jensen / \( \operatorname{E}[e^{g/2}] \) gap is
+left in). This reproduces fEGarch's flagged-biased multi-step forecast and — per the
+clean-room brief — is deliberately <strong>not</strong> bias-corrected (a correction would be original
+work, not a port).</li>
+</ul>
+
+<p>The mean forecast is the constant fitted \( \mu \) (constant-mean models; the dual-mean
+multi-step mean is deferred with the other dual-mean forecasting). <code><a href="#predict">predict</a></code> at \( h = 1 \)
+equals <code><a href="#predict_roll">predict_roll()</a></code>'s first \( \hat\sigma \) (the same one-step-ahead value).</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>fit</strong> (GarchFit):
+The fitted model (its <code>params</code>, <code>conditional_volatility</code> end-state and <code>n_obs</code> seed
+the iterate). The family is inferred from the parameter names.</li>
+<li><strong>returns</strong> (ndarray):
+The return series the model was fit on; only the fitted window <code>returns[:fit.n_obs]</code> is
+used (its last value supplies the realized \( h = 1 \) news).</li>
+<li><strong>n_ahead</strong> (int, optional):
+The forecast horizon (default 10).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>MultiStepForecast</strong>: The \( \hat\sigma \) / \( \hat\mu \) forecasts over <code>n_ahead</code> steps.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>n_ahead</code> is not positive, or the fitted window is empty.</li>
+<li><strong>NotImplementedError</strong>: If the fit is not a supported family (multi-step for the asymmetric/power, fractionally
+integrated and MEGARCH/MLog-GARCH models is deferred until their fixtures exist).</li>
 </ul>
 </div>
 

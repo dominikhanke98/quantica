@@ -1780,5 +1780,57 @@ tie-back (§27) and the residual diagnostics (§28), all fixture-validated and C
 
 ---
 
-*Add further specification derivations here as later phases (optional semiparametric, multi-step
-forecasting) are implemented — always from the papers/manual, never the source.*
+## 29. Multi-step `predict` (n_ahead point forecast) — RESOLVED (Phase 6, completing the roadmap)
+
+**`predict(n.ahead=h)` is the multi-step point forecast — distinct from `predict_roll` (one-step
+rolling, §27).** The reconstruction established fEGarch's `predict` is the **naive iterated forecast**:
+iterate the fitted recursion forward from the fitted-sample-end state, replacing each *future* news
+term by its expectation. Validated against the committed fixtures (`predict_garch11_norm_h{10,50}`,
+`predict_egarch11_norm_h{10,50}`), machine-exact for both. The build reuses the existing recursions'
+forward step; no new mathematics.
+
+### 29.1 GARCH (variance recursion) — unbiased iterated forecast, converges to ω/(1−α−β)
+
+`σ̂²_{n+h} = ω + (α+β)·σ̂²_{n+h-1}` for `h≥2` (the future `ε²_{n+h-1}` → its expectation
+`σ̂²_{n+h-1}`); `h=1` uses the realized `ε_n = r_n−μ` and the fitted `σ²_n`. Reconstructed from the
+training-end state (the same GARCH(1,1)/norm training fit as `predict_roll`) it reproduces fEGarch's
+`sigt` to **1.7e-18 (h10) / 6.9e-18 (h50)** — machine-exact. It **converges to the unconditional
+variance** `ω/(1−α−β)=1.531e-4` (σ_∞=0.012373); at h=2000 σ̂²=1.531e-4 exactly, monotonically
+approaching (α+β=0.977, so ~0.977^h — slow: h=50 σ̂=0.011873 not yet converged). **No bias issue** —
+the GARCH variance forecast is linear in the news, hence unbiased. This generalises to the
+asymmetric/power (APARCH-family: future `(|ε|−γε)^δ` → its `E[(|z|−γz)^δ]` moment) and FI
+(θ-weights iterated) variance-recursion models, but only GARCH has a committed fixture, so the build
+scopes the validated case and defers the rest.
+
+### 29.2 EGARCH (EGF log-variance) — biased-by-construction, converges to exp(ω_σ/2) ≠ E[σ]
+
+`ln σ̂²_{n+h} = ω + φ₁·ln σ̂²_{n+h-1}` for `h≥2` (the future `g(η)=0` by construction, since
+`E[g(η)]=0`); `h=1` uses the realized `η_n` through `g(η_n)=κη_n+γ(|η_n|−E|z|)`; report
+`σ̂ = exp(ln σ̂²/2)`. This **naive iterate** reproduces fEGarch's `sigt` to **1.7e-17 (h10) /
+1.9e-17 (h50)** — machine-exact. **The consequence is the paper-flagged bias:** σ̂ converges to
+`exp(E[ln σ²]/2) = exp(ω_σ/2) = 0.011349` (confirmed at h=4000), **not** `E[σ_{n+h}]` — the Jensen /
+`E[exp(g/2)]` term is left in. `exp(ln σ̂²/2)` is a biased estimator of `E[σ]` for `h≥2`.
+
+**Clean-room faithfulness (the deliberate choice):** fEGarch ships the naive/biased iterate, so the
+port **reproduces it exactly and does NOT bias-correct**. A Jensen/`E[exp(g/2)]` correction would be
+an *original contribution*, not a port — building it would break the "reproduce fEGarch's output"
+discipline (§12). The bias is documented (here + the `predict` docstring + the manifest note), not
+silently corrected. (h≥2 is identical across all Type-I EGF — EGARCH/MEGARCH/MLog-GARCH — since g=0;
+only the h=1 g-form differs, so MEGARCH/MLog multi-step is deferred until their fixtures exist.)
+
+### 29.3 The predict / predict_roll h=1 seam + the mean
+
+`predict` at `h=1` equals `predict_roll`'s first σ̂ **bit-for-bit** (both are the one-step-ahead
+forecast from the same fitted state; asserted in the tests). The mean forecast is the constant fitted
+μ (constant-mean models); the dual-mean multi-step mean (iterating the ARMA/FARIMA mean forward) is
+deferred with the other dual-mean forecasting, since the committed fixtures are constant-mean.
+
+**Roadmap Phase 6 is COMPLETE:** `predict` (§29) + `predict_roll` + VaR/ES (§27) + the backtest
+tie-back (§27) + the residual diagnostics (§28). Only optional Phase 7 (semiparametric
+local-polynomial scale) remains.
+
+---
+
+*Add further specification derivations here if optional Phase 7 (semiparametric) or the deferred
+breadth (other-distribution / dual-mean / asymmetric-FI multi-step) is implemented — always from the
+papers/manual, never the source.*
