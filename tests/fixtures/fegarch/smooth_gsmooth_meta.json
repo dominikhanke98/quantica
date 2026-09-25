@@ -1,0 +1,12 @@
+{
+  "method": "gsmooth (smoots local-polynomial regression, fixed bandwidth)",
+  "input": "synthetic_returns.csv",
+  "transform": "w_t = log((y_t - mean(y))^2)  (log-squared demeaned returns; the semiparametric scale)",
+  "n": 2500, "bandwidth_b": 0.14999999999999999, "derivative_v": 0,
+  "poly_orders_p": [1, 3],
+  "kernel_mu": {"0": "uniform", "1": "epanechnikov", "2": "bisquare", "3": "triweight"},
+  "boundary_bb": {"0": "fixed bandwidth on one side (possible large bandwidth on the other)", "1": "k-nearest-neighbour"},
+  "returns": "gsmooth() -> list(ye=trend m_hat, orig, ws=weight matrix, res, v,p,mu,b,bb,n); fixtures store ye",
+  "window_2mb_plus_1": 751,
+  "smoots_version": "1.1.4", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
