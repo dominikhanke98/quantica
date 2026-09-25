@@ -1831,6 +1831,59 @@ local-polynomial scale) remains.
 
 ---
 
-*Add further specification derivations here if optional Phase 7 (semiparametric) or the deferred
-breadth (other-distribution / dual-mean / asymmetric-FI multi-step) is implemented — always from the
+## 30. Local-polynomial regression — the semiparametric scale core (Phase 7, sub-build 1) — RESOLVED
+
+**Phase 7 (optional semiparametric scale) sub-build 1: the deterministic local-polynomial regression
+at a given bandwidth** — the `smoots::gsmooth` core, which fEGarch's `use_nonpar` path smooths the
+log-squared demeaned returns `w̃_t = ln[(y_t − ȳ)²]` with to obtain the nonparametric scale. Built
+clean-room from Feng-Gries-Fritz (2020) + Beran-Feng (2002) (in `literature/`), validated against the
+committed `smooth_gsmooth_*` OUTPUT fixtures — **never** the smoots/esemifar Rcpp source (§12 applies
+to them as to fEGarch). `quantica/timeseries/fegarch/semiparam.py::local_poly`.
+
+### 30.1 The estimator (machine-exact against gsmooth)
+
+`y_t = m(x_t) + ε_t` on the equidistant grid `x_t = t/n`. With `m = ⌊n·b⌋` the bandwidth in points
+(b=0.15, n=2500 → m=375, window 2m+1=751), at each `t` fit a degree-`p` polynomial in the **index
+offset** `d_i = i − t` by weighted least squares with kernel weights `K(d_i/s)`, and take the fitted
+**intercept** as `m̂(x_t)` (v=0). The intercept is invariant to rescaling the design, so the raw index
+offset is used (no x-grid rescaling needed for m̂). `p − v` odd → p ∈ {1, 3} (local-linear, local-cubic
+— the two `locpol_spec` orders). The whole thing is the linear smoother `m̂ = W·y`; the returned
+`gsmooth$ws` [751×751] matrix (OUTPUT, inspected — not source) is exactly these boundary weight rows,
+and confirmed the conventions below.
+
+### 30.2 The pinned conventions (each derived from the OUTPUT, not guessed)
+
+- **Kernels (mu):** the `(1−u²)^mu` family on [−1,1] — mu=0 uniform, 1 Epanechnikov ¾(1−u²), 2 bisquare
+  15/16(1−u²)², 3 triweight 35/32(1−u²)³ (matching `locpol_spec` kernel_order). The normalization
+  cancels in the WLS, so the unnormalized `(1−u²)^mu` is used.
+- **Kernel scale:** `s = max_i|d_i| + 1` — pinned by the interior (u=(i−t)/(m+1) gave 1.07e-14 vs
+  m→1.7e-3 and m+0.5→8.5e-4). So the window-edge points get a *small nonzero* weight (`K(m/(m+1)) > 0`),
+  not zero. Interior s = m+1; the same rule adapts at the boundary (below).
+- **Boundary (bb):** near the ends the symmetric window runs off the data. **`"fixed"` (smoots bb=0)**
+  truncates to `[max(0,t−m), min(n−1,t+m)]` — fewer points, fixed bandwidth (s stays m+1 since
+  max offset = m). **`"knn"` (smoots bb=1, default)** shifts the window inward to keep 2m+1 points
+  (k-nearest-neighbour), and the scale widens to `s = max(t−lo, hi−t) + 1` (the larger half-width). The
+  unified rule `s = max half-width + 1` covers both. Interior rows are identical for the two; only the
+  boundary rows differ — the discriminating test (`test_boundary_only_affects_the_ends`) asserts this.
+- **`locpol_spec` extend/shorten ↔ fixed/knn:** deferred to **sub-build 3** (the semiparametric wiring);
+  sub-build 1 matches smoots' `bb` directly (both validated).
+
+### 30.3 Validation — machine-exact, deterministic WLS
+
+All 16 (p, mu, bb) fixtures reproduce machine-exactly: **worst 2.01e-12** overall, p=1 worst
+**1.6e-13**, p=3 worst **2.01e-12**. Interior is always ~1e-14; the p=3 boundary loosens to ~1e-12 —
+pure **floating-point summation order** in the cubic Vandermonde normal equations, not a convention
+gap (documented). Sanity: mu=0 (uniform) + p=1 interior = the symmetric-window mean (local-linear with
+even weights); the four normalized kernels integrate to 1. This determinism is load-bearing because
+**sub-build 2 (the iterative-plug-in bandwidth) calls `local_poly` repeatedly** — the core had to be
+machine-exact first.
+
+**Phase 7 remaining:** sub-build 2 (IPI data-driven bandwidth — `msmooth`/`tsmooth` short-memory,
+`tsmoothlm`/`dsmoothlm` long-memory) and sub-build 3 (the `fEGarch(use_nonpar=TRUE)` end-to-end wiring
++ the extend/shorten ↔ fixed/knn mapping). Papers present, packages installed (recon §-prior).
+
+---
+
+*Add further specification derivations here as the remaining Phase 7 sub-builds (IPI bandwidth,
+semiparametric wiring) or the deferred forecasting breadth are implemented — always from the
 papers/manual, never the source.*

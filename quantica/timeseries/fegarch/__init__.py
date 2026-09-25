@@ -143,7 +143,15 @@ approximation, on the simple and squared standardized residuals), the Engle-Ng s
 (:func:`~quantica.timeseries.fegarch.sign_bias_test`), and the PIT Pearson goodness-of-fit test
 (:func:`~quantica.timeseries.fegarch.goodness_of_fit_test`), bundled by
 :func:`~quantica.timeseries.fegarch.fit_test_suite` — reproducing fEGarch's p-values to machine
-precision. See ``docs/fegarch-port-roadmap.md``.
+precision.
+
+**Phase 7 — semiparametric scale** (optional; in progress). The deterministic **local-polynomial
+regression** (:mod:`~quantica.timeseries.fegarch.semiparam`,
+:func:`~quantica.timeseries.fegarch.local_poly`) is the scale-estimation core (sub-build 1): a
+weighted-least-squares local polynomial at a *given* bandwidth (kernels :data:`KERNELS`
+:math:`(1-u^2)^\mu`, boundary ``fixed``/``knn``), reproducing ``smoots::gsmooth`` machine-exactly.
+The data-driven (iterative-plug-in) bandwidth and the semiparametric wiring into the EGARCH family
+are the next sub-builds. See ``docs/fegarch-port-roadmap.md``.
 """
 
 from __future__ import annotations
@@ -257,11 +265,13 @@ from quantica.timeseries.fegarch.qmle import (
     initial_variance,
     quasi_max_likelihood,
 )
+from quantica.timeseries.fegarch.semiparam import KERNELS, local_poly
 
 __all__ = [
     "DISTRIBUTIONS",
     "EGARCH_CONSTANTS",
     "FIGARCH_PRESAMPLE",
+    "KERNELS",
     "MEGARCH_CONSTANTS",
     "MLOGGARCH_CONSTANTS",
     "AverageLaplace",
@@ -335,6 +345,7 @@ __all__ = [
     "gjr_sim",
     "goodness_of_fit_test",
     "initial_variance",
+    "local_poly",
     "loggarch_recursion",
     "loggarch_sim",
     "measure_risk",

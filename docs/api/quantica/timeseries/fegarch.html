@@ -64,6 +64,9 @@
                     <a class="variable" href="#FIGARCH_PRESAMPLE">FIGARCH_PRESAMPLE</a>
             </li>
             <li>
+                    <a class="variable" href="#KERNELS">KERNELS</a>
+            </li>
+            <li>
                     <a class="variable" href="#MEGARCH_CONSTANTS">MEGARCH_CONSTANTS</a>
             </li>
             <li>
@@ -682,6 +685,9 @@
                     <a class="function" href="#initial_variance">initial_variance</a>
             </li>
             <li>
+                    <a class="function" href="#local_poly">local_poly</a>
+            </li>
+            <li>
                     <a class="function" href="#loggarch_recursion">loggarch_recursion</a>
             </li>
             <li>
@@ -905,7 +911,15 @@ approximation, on the simple and squared standardized residuals), the Engle-Ng s
 (<code>~<a href="#sign_bias_test">quantica.timeseries.fegarch.sign_bias_test()</a></code>), and the PIT Pearson goodness-of-fit test
 (<code>~<a href="#goodness_of_fit_test">quantica.timeseries.fegarch.goodness_of_fit_test()</a></code>), bundled by
 <code>~<a href="#fit_test_suite">quantica.timeseries.fegarch.fit_test_suite()</a></code> — reproducing fEGarch's p-values to machine
-precision. See <code>docs/fegarch-port-roadmap.md</code>.</p>
+precision.</p>
+
+<p><strong>Phase 7 — semiparametric scale</strong> (optional; in progress). The deterministic <strong>local-polynomial
+regression</strong> (<code>~<a href="fegarch/semiparam.html">quantica.timeseries.fegarch.semiparam</a></code>,
+<code>~<a href="#local_poly">quantica.timeseries.fegarch.local_poly()</a></code>) is the scale-estimation core (sub-build 1): a
+weighted-least-squares local polynomial at a <em>given</em> bandwidth (kernels <code><a href="#KERNELS">KERNELS</a></code>
+\( (1-u^2)^\mu \), boundary <code>fixed</code>/<code>knn</code>), reproducing <code>smoots::gsmooth</code> machine-exactly.
+The data-driven (iterative-plug-in) bandwidth and the semiparametric wiring into the EGARCH family
+are the next sub-builds. See <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -945,6 +959,18 @@ precision. See <code>docs/fegarch-port-roadmap.md</code>.</p>
         
     </div>
     <a class="headerlink" href="#FIGARCH_PRESAMPLE"></a>
+    
+    
+
+                </section>
+                <section id="KERNELS">
+                    <div class="attr variable">
+            <span class="name">KERNELS</span>        =
+<span class="default_value">{0: &#39;uniform&#39;, 1: &#39;epanechnikov&#39;, 2: &#39;bisquare&#39;, 3: &#39;triweight&#39;}</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KERNELS"></a>
     
     
 
@@ -5059,6 +5085,59 @@ The (mean-zero) return series.</li>
 
 <ul>
 <li><strong>float</strong>: The sample variance, used to condition the variance recursion's pre-sample state.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="local_poly">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">local_poly</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>,</span><span class="param">	<span class="n">boundary</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;fixed&#39;</span><span class="p">,</span> <span class="s1">&#39;knn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;knn&#39;</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#local_poly"></a>
+    
+            <div class="docstring"><p>Local-polynomial trend estimate \( \hat m(x_t) \) at a fixed bandwidth (<code>gsmooth</code> core).</p>
+
+<p>Weighted-least-squares local-polynomial regression of <code>y</code> on the rescaled equidistant time
+grid, returning the fitted trend (\( v = 0 \)). See the module docstring for the estimator,
+kernels and boundary conventions; this reproduces <code>smoots::gsmooth(y, v=0, p, mu, b, bb)</code>
+machine-exactly.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>y</strong> (ndarray, shape (n,)):
+The equidistant series to smooth (e.g. the log-squared demeaned returns for the scale).</li>
+<li><strong>p</strong> (int, optional):
+The local polynomial degree; <code>p</code> must be odd (<code>p - v</code> odd with \( v = 0 \)). Default
+3.</li>
+<li><strong>mu</strong> (int, optional):
+The kernel smoothness order — a key of <code><a href="#KERNELS">KERNELS</a></code> (0 uniform, 1 Epanechnikov, 2
+bisquare, 3 triweight). Default 1.</li>
+<li><strong>bandwidth</strong> (float, optional):
+The relative bandwidth \( b \in (0, 0.5) \); the bandwidth in points is
+\( m = \lfloor n b \rfloor \). Default 0.15.</li>
+<li><strong>boundary</strong> ({"fixed", "knn"}, optional):
+The boundary rule: <code>"fixed"</code> (smoots <code>bb=0</code>) truncates the window; <code>"knn"</code> (smoots
+<code>bb=1</code>, the default) keeps \( 2m+1 \) nearest points.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n,)</strong>: The local-polynomial trend estimate \( \hat m(x_t) \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>p</code> is not a positive odd integer, <code>mu</code> is not a supported kernel order,
+<code>bandwidth</code> is not in <code>(0, 0.5)</code>, or the series is too short for the window (<code>n &lt; 2m +
+1</code>).</li>
 </ul>
 </div>
 
