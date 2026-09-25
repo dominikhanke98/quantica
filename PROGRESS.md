@@ -249,6 +249,22 @@ forecasting breadth** — multi-step `predict` for the other distributions / the
 μ̂) / the asymmetric-FI families: the pattern is proven and these are pure inheritance (reuse the same
 iterate-forward-with-expected-news core), pending only their OUTPUT fixtures. Nothing required is open.
 
+**Phase 7 (optional semiparametric scale) sub-build 1 — local-polynomial regression — BUILT on
+`feat/fegarch-semiparam`** (pushed for CI; NOT merged). Recon confirmed feasibility: the papers
+(Feng-Gries-Fritz 2020, Beran-Feng 2002 SEMIFAR, Letmathe-Beran-Feng esemifar + manual) are in
+`literature/`, and smoots 1.1.4 / esemifar 2.0.1 / fEGarch's `locpol_spec`+`use_nonpar` path are all
+installed. `quantica/timeseries/fegarch/semiparam.py::local_poly(y, p, mu, bandwidth, boundary)` — the
+deterministic WLS local-polynomial trend estimator at a GIVEN bandwidth (the scale-estimation core;
+fEGarch smooths `w̃_t = ln[(y−ȳ)²]` with it). Reproduces `smoots::gsmooth` **machine-exactly** across
+all 16 (p∈{1,3} × mu∈{0,1,2,3} × bb∈{0,1}) fixtures — worst **2.0e-12** (p=3 boundary FP-summation
+order; p=1 worst 1.6e-13; interior ~1e-14). Conventions pinned from the OUTPUT (incl. the returned
+`ws` weight matrix, not source): kernels `(1−u²)^mu`, scale `s = max|offset|+1` (=m+1 interior),
+boundary `fixed` (bb=0, truncate) vs `knn` (bb=1, keep 2m+1) — the `locpol_spec` extend/shorten ↔
+fixed/knn mapping is deferred to sub-build 3. Spec: `docs/fegarch-spec-notes.md` §30. **Next on this
+branch:** sub-build 2 (IPI data-driven bandwidth — calls `local_poly` repeatedly, hence the
+machine-exact-first discipline) → sub-build 3 (`use_nonpar` end-to-end wiring). Clean-room (§12): built
+from the papers, validated against smoots OUTPUT, never its Rcpp source.
+
 ## Completed
 
 - **Project skeleton** — packaging (`pyproject.toml`), ruff + mypy + pytest
