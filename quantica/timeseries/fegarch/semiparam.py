@@ -178,7 +178,7 @@ def local_poly(
         design = np.vander(offset, p + 1, increasing=True)
         weighted = design.T * weights
         out[t] = np.linalg.solve(weighted @ design, weighted @ values[lo : hi + 1])[v]
-    return out * derivative_factor
+    return np.asarray(out * derivative_factor, dtype=np.float64)
 
 
 def integrated_squared_derivative(
@@ -238,7 +238,10 @@ def integrated_squared_derivative(
     n = mk.size
     x = (np.arange(1, n + 1, dtype=np.float64)) / n
     mask = (x >= cb) & (x <= db)
-    return float(np.trapezoid(mk[mask] ** 2, x[mask]))
+    xs = x[mask]
+    sq = mk[mask] ** 2
+    # Trapezoidal rule, written explicitly (numpy-version-agnostic: avoids trapz/trapezoid naming).
+    return float(np.sum(0.5 * (sq[1:] + sq[:-1]) * np.diff(xs)))
 
 
 def bartlett_variance_factor(residuals: FloatArray, *, window: int) -> float:
