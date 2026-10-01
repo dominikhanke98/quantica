@@ -19,7 +19,12 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-from quantica.timeseries.fegarch import KERNELS, local_poly
+from quantica.timeseries.fegarch import (
+    KERNELS,
+    bartlett_variance_factor,
+    integrated_squared_derivative,
+    local_poly,
+)
 
 _FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "fegarch"
 
@@ -119,7 +124,7 @@ def test_epanechnikov_kernel_integrates_to_one() -> None:
 def test_local_poly_rejects_bad_args() -> None:
     """Invalid p (even/non-positive), mu, bandwidth and boundary are rejected."""
     series = _series()
-    with pytest.raises(ValueError, match="odd"):
+    with pytest.raises(ValueError, match="p >= v"):
         local_poly(series, p=2)
     with pytest.raises(ValueError, match="mu"):
         local_poly(series, p=1, mu=5)
@@ -127,3 +132,79 @@ def test_local_poly_rejects_bad_args() -> None:
         local_poly(series, p=1, bandwidth=0.6)
     with pytest.raises(ValueError, match="boundary"):
         local_poly(series, p=1, boundary="extend")  # type: ignore[arg-type]
+
+
+# --------------------------------------------------------------------------- #
+# Phase-7 sub-build 2 machine-exact components: derivative local-poly + SM c_f
+# --------------------------------------------------------------------------- #
+
+
+def _deriv_meta() -> dict:  # type: ignore[type-arg]
+    """The derivative-smoother fixture metadata (bandwidth, mu)."""
+    return json.loads((_FIXTURE_DIR / "smooth_deriv_meta.json").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    ("v", "p", "bb", "tol"),
+    [(2, 3, 1, 1e-7), (2, 3, 0, 1e-7), (4, 5, 1, 1e-2)],
+)
+def test_local_poly_derivative_matches_gsmooth(v: int, p: int, bb: int, tol: float) -> None:
+    """local_poly(v=k) = beta[v]*v!*n^v reproduces smoots::gsmooth(v=k); n^v amplifies FP error."""
+    b = _deriv_meta()["bandwidth_b"]
+    mk = local_poly(_series(), v=v, p=p, mu=1, bandwidth=b, boundary=_BB[bb])
+    fixture = np.loadtxt(_FIXTURE_DIR / f"smooth_deriv_v{v}_p{p}_bb{bb}.csv", skiprows=1)
+    # n^v (= n^2, n^4) amplifies the ~1e-15 relative WLS error; relative agreement stays ~1e-8
+    # even for the ill-conditioned 4th-derivative (p=5) solve.
+    rel = np.max(np.abs(mk - fixture)) / np.max(np.abs(fixture))
+    assert rel < 1e-8
+    assert np.max(np.abs(mk - fixture)) < tol
+
+
+def test_sm_variance_factor_genuine_reconstruction() -> None:
+    """SM c_f: recompute residuals from the series at b0, then Bartlett(given M) == cf0 exactly."""
+    meta = json.loads((_FIXTURE_DIR / "smooth_cf_sm_meta.json").read_text(encoding="utf-8"))
+    b0 = meta["b0"]
+    m_window = meta["Mcf_NP"]["L0_opt"]
+    cf0 = meta["Mcf_NP"]["cf0"]
+    series = _series()
+    # Genuine clean-room recon: our own trend -> our own residuals -> the Bartlett sum.
+    residuals = series - local_poly(series, p=1, mu=1, bandwidth=b0, boundary="knn")
+    res_fixture = np.loadtxt(_FIXTURE_DIR / "smooth_cf_sm_res.csv", skiprows=1)
+    assert np.max(np.abs(residuals - res_fixture)) < 1e-12  # our residuals match smoots'
+    assert bartlett_variance_factor(residuals, window=m_window) == pytest.approx(cf0, abs=1e-12)
+
+
+def test_sm_variance_factor_weight_convention() -> None:
+    """The (M+1) weight is the implementation convention; the paper's (M+0.5) would NOT match."""
+    meta = json.loads((_FIXTURE_DIR / "smooth_cf_sm_meta.json").read_text(encoding="utf-8"))
+    b0, m_window, cf0 = meta["b0"], meta["Mcf_NP"]["L0_opt"], meta["Mcf_NP"]["cf0"]
+    res = _series() - local_poly(_series(), p=1, mu=1, bandwidth=b0, boundary="knn")
+    n = res.size
+    r = res - res.mean()
+    gamma = np.array([np.sum(r[: n - j] * r[j:]) / n for j in range(m_window + 1)])
+    paper = gamma[0] + 2 * sum(
+        (1 - j / (m_window + 0.5)) * gamma[j] for j in range(1, m_window + 1)
+    )
+    assert abs(paper - cf0) > 1e-3  # the paper's (M+0.5) weights are the wrong convention here
+    assert bartlett_variance_factor(res, window=m_window) == pytest.approx(cf0, abs=1e-12)
+
+
+def test_integrated_squared_derivative_mechanism() -> None:
+    """I[m^(k)] = trapezoidal int of {m^(k)}^2 over [0.05,0.95] -- positive, finite, monotone."""
+    series = _series()
+    full = integrated_squared_derivative(series, k=2, p=3, mu=1, bandwidth=0.25)
+    assert np.isfinite(full) and full > 0.0
+    # Narrower interior limits integrate a strict sub-interval -> strictly smaller.
+    inner = integrated_squared_derivative(series, k=2, p=3, mu=1, bandwidth=0.25, cb=0.2, db=0.8)
+    assert 0.0 < inner < full
+    with pytest.raises(ValueError, match="cb"):
+        integrated_squared_derivative(series, k=2, p=3, cb=0.5, db=0.5)
+
+
+def test_bartlett_rejects_bad_window() -> None:
+    """The Bartlett window must satisfy 0 <= M < n."""
+    res = _series()
+    with pytest.raises(ValueError, match="window"):
+        bartlett_variance_factor(res, window=-1)
+    with pytest.raises(ValueError, match="window"):
+        bartlett_variance_factor(res, window=res.size)

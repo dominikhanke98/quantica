@@ -39,6 +39,21 @@ Reconstructing the fixtures this way is machine-exact: interior ``~1e-14``, boun
 (``p=1``) to ``~1e-12`` (``p=3``, the cubic design's floating-point summation order). This
 determinism matters because sub-build 2 (the iterative-plug-in bandwidth) calls this repeatedly.
 
+**Sub-build 2 (IPI bandwidth) — the machine-exact components are built; the auto-iterator is not.**
+This module adds the two further pieces that *are* cleanly clean-room-reproducible: the derivative
+local polynomial :func:`local_poly` (``v = k``, for the AMISE numerator :math:`I[m^{(k)}]`, with
+:func:`integrated_squared_derivative`), and the short-memory variance factor
+:func:`bartlett_variance_factor` (the Bartlett lag-window, **given** the window ``M``). The full
+**AMISE iterative-plug-in bandwidth selector is deliberately not built** — it depends on references
+absent from ``literature/``: the equivalent-kernel constants :math:`\beta_{\nu,k}`, :math:`R(K)`,
+:math:`K(0)` and the enlargement factor :math:`C_F` are tabulated in **Feng-Heiler (2009)** (cited,
+not reproduced by Feng-Gries-Fritz), and the short-memory window-width ``M`` (``L0.opt``) is the
+nested **Bühlmann (1996)** spectral-density IPI. The long-memory variance factor (``esemifar``) is a
+FARIMA fracdiff-MLE — an *optimizer-dependent fit* reproducible only to the port's ~1e-6 fit
+tolerance (not machine-exact). These limits, and the paper-vs-implementation
+:math:`(M+0.5)`-vs-:math:`(M+1)` Bartlett-weight divergence, are recorded in
+``docs/fegarch-spec-notes.md``.
+
 References
 ----------
 Feng, Y., Gries, T. & Fritz, M. (2020). "Data-Driven Local Polynomial for the Trend and its
@@ -49,6 +64,7 @@ long-range dependence and nonstationarity." *Computational Statistics & Data Ana
 
 from __future__ import annotations
 
+from math import factorial
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -58,6 +74,8 @@ if TYPE_CHECKING:
 
 __all__ = [
     "KERNELS",
+    "bartlett_variance_factor",
+    "integrated_squared_derivative",
     "local_poly",
 ]
 
@@ -76,25 +94,33 @@ def _kernel_weights(u: FloatArray, mu: int) -> FloatArray:
 def local_poly(
     y: FloatArray,
     *,
+    v: int = 0,
     p: int = 3,
     mu: int = 1,
     bandwidth: float = 0.15,
     boundary: Literal["fixed", "knn"] = "knn",
 ) -> FloatArray:
-    r"""Local-polynomial trend estimate :math:`\hat m(x_t)` at a fixed bandwidth (``gsmooth`` core).
+    r"""Local-polynomial estimate of the trend or its ``v``-th derivative (``gsmooth`` core).
 
     Weighted-least-squares local-polynomial regression of ``y`` on the rescaled equidistant time
-    grid, returning the fitted trend (:math:`v = 0`). See the module docstring for the estimator,
-    kernels and boundary conventions; this reproduces ``smoots::gsmooth(y, v=0, p, mu, b, bb)``
-    machine-exactly.
+    grid :math:`x_t = t/n \in (0, 1]`. For ``v = 0`` this is the fitted trend :math:`\hat m(x_t)`;
+    for ``v \ge 1`` it is the :math:`v`-th derivative :math:`\hat m^{(v)}(x_t)` **with respect to
+    the rescaled time** — the WLS coefficient of the degree-``v`` term times :math:`v!` and times
+    :math:`n^{v}` (the chain-rule factor converting the index-offset derivative to the :math:`x`
+    derivative). Reproduces ``smoots::gsmooth(y, v, p, mu, b, bb)`` machine-exactly (``v = 0``); for
+    ``v \ge 1`` the :math:`n^{v}` factor amplifies the ~1e-15 relative floating-point error of the
+    high-order WLS solve to ~1e-9 (``v = 2``) / ~1e-3 (``v = 4``) absolute — a documented
+    FP-amplification, not a convention gap.
 
     Parameters
     ----------
     y : ndarray, shape (n,)
         The equidistant series to smooth (e.g. the log-squared demeaned returns for the scale).
+    v : int, optional
+        The derivative order to estimate (0 = the trend itself). Default 0. The IPI's integrated
+        squared derivative :math:`I[m^{(k)}]` uses ``v = k = p_trend + 1``.
     p : int, optional
-        The local polynomial degree; ``p`` must be odd (``p - v`` odd with :math:`v = 0`). Default
-        3.
+        The local polynomial degree; must satisfy ``p >= v + 1`` with ``p - v`` **odd**. Default 3.
     mu : int, optional
         The kernel smoothness order — a key of :data:`KERNELS` (0 uniform, 1 Epanechnikov, 2
         bisquare, 3 triweight). Default 1.
@@ -108,19 +134,21 @@ def local_poly(
     Returns
     -------
     ndarray, shape (n,)
-        The local-polynomial trend estimate :math:`\hat m(x_t)`.
+        The local-polynomial estimate :math:`\hat m^{(v)}(x_t)`.
 
     Raises
     ------
     ValueError
-        If ``p`` is not a positive odd integer, ``mu`` is not a supported kernel order,
-        ``bandwidth`` is not in ``(0, 0.5)``, or the series is too short for the window (``n < 2m +
-        1``).
+        If ``v`` is negative, ``p`` does not satisfy ``p >= v + 1`` with ``p - v`` odd, ``mu`` is
+        not a supported kernel order, ``bandwidth`` is not in ``(0, 0.5)``, or the series is too
+        short for the window.
     """
     values = np.asarray(y, dtype=np.float64)
     n = values.size
-    if p < 1 or p % 2 == 0:
-        raise ValueError(f"p must be a positive odd integer (p - v odd, v=0), got {p}")
+    if v < 0:
+        raise ValueError(f"v must be a non-negative integer, got {v}")
+    if p < v + 1 or (p - v) % 2 == 0:
+        raise ValueError(f"require p >= v+1 and (p - v) odd, got p={p}, v={v}")
     if mu not in KERNELS:
         raise ValueError(f"mu must be one of {sorted(KERNELS)}, got {mu}")
     if not 0.0 < bandwidth < 0.5:
@@ -133,6 +161,7 @@ def local_poly(
     if m < p:
         raise ValueError(f"bandwidth too small: window half-width m={m} < p={p}")
 
+    derivative_factor = factorial(v) * (n**v)  # v! * n^v: coefficient -> v-th x-derivative
     out = np.empty(n, dtype=np.float64)
     for t in range(n):
         if boundary == "fixed":
@@ -148,5 +177,114 @@ def local_poly(
         weights = _kernel_weights(offset / scale, mu)
         design = np.vander(offset, p + 1, increasing=True)
         weighted = design.T * weights
-        out[t] = np.linalg.solve(weighted @ design, weighted @ values[lo : hi + 1])[0]
-    return out
+        out[t] = np.linalg.solve(weighted @ design, weighted @ values[lo : hi + 1])[v]
+    return out * derivative_factor
+
+
+def integrated_squared_derivative(
+    y: FloatArray,
+    *,
+    k: int,
+    p: int,
+    mu: int = 1,
+    bandwidth: float = 0.15,
+    boundary: Literal["fixed", "knn"] = "knn",
+    cb: float = 0.05,
+    db: float = 0.95,
+) -> float:
+    r"""The integrated squared ``k``-th derivative :math:`I[m^{(k)}]` (the AMISE numerator).
+
+    The AMISE numerator of the IPI: estimate :math:`m^{(k)}` by :func:`local_poly` (``v = k``) at
+    the given bandwidth, then **trapezoidally** integrate its square over the interior
+    :math:`x \in [c_b, d_b]` (the equidistant grid points there), matching Feng-Gries-Fritz (2020).
+
+    .. note::
+
+        In the full IPI this is evaluated at an *inflated pilot bandwidth* :math:`h_d = h^a` whose
+        value comes from the (Feng-Heiler-2009-tabulated) kernel constants — so a direct match to a
+        fixture's stored ``I2`` requires that pilot bandwidth (the AMISE iteration, deferred). This
+        function supplies the integrand/quadrature mechanism only.
+
+    Parameters
+    ----------
+    y : ndarray, shape (n,)
+        The equidistant series.
+    k : int
+        The derivative order (``k = p_trend + 1``).
+    p : int
+        The local polynomial degree for the derivative estimate (``p - k`` odd, ``p >= k + 1``).
+    mu : int, optional
+        The kernel smoothness order (default 1).
+    bandwidth : float, optional
+        The (pilot) bandwidth at which :math:`m^{(k)}` is estimated (default 0.15).
+    boundary : {"fixed", "knn"}, optional
+        The boundary rule (default ``"knn"``).
+    cb, db : float, optional
+        The interior integration limits on the rescaled time axis (default ``0.05``, ``0.95``).
+
+    Returns
+    -------
+    float
+        The integrated squared derivative over :math:`[c_b, d_b]`.
+
+    Raises
+    ------
+    ValueError
+        If ``cb``/``db`` are not ``0 <= cb < db <= 1``.
+    """
+    if not 0.0 <= cb < db <= 1.0:
+        raise ValueError(f"require 0 <= cb < db <= 1, got cb={cb}, db={db}")
+    mk = local_poly(y, v=k, p=p, mu=mu, bandwidth=bandwidth, boundary=boundary)
+    n = mk.size
+    x = (np.arange(1, n + 1, dtype=np.float64)) / n
+    mask = (x >= cb) & (x <= db)
+    return float(np.trapezoid(mk[mask] ** 2, x[mask]))
+
+
+def bartlett_variance_factor(residuals: FloatArray, *, window: int) -> float:
+    r"""The short-memory variance factor :math:`c_f` by a Bartlett lag-window, given window ``M``.
+
+    .. math::
+
+        \hat c_f = \hat\gamma_0 + 2\sum_{l=1}^{M}\left(1 - \frac{l}{M+1}\right)\hat\gamma_l,
+
+    with :math:`\hat\gamma_l` the **biased** (divide-by-:math:`n`) sample autocovariances of the
+    (detrended) ``residuals`` and :math:`M` the lag-window width. Validated against ``smoots``'
+    ``Mcf = "NP"`` output: recomputing the residuals from the series at the selected bandwidth and
+    applying this sum reproduces ``cf0`` exactly.
+
+    .. note::
+
+        **Paper-vs-implementation divergence (documented).** Feng-Gries-Fritz (2020) write the
+        Bartlett weights as :math:`1 - |l|/(M + 0.5)`; smoots' implementation uses
+        :math:`1 - |l|/(M + 1)`. Validating against OUTPUT (CLAUDE.md §12), this uses ``M + 1``.
+        **The automatic selection of the window ``M`` (``L0.opt``) is NOT implemented** — it is the
+        Bühlmann (1996) nested spectral-density IPI, whose defining equations are not reproduced in
+        Feng-Gries-Fritz (2020) and whose source (Bühlmann 1996) is unavailable; ``M`` must
+        therefore be supplied (smoots permits manual control). See ``docs/fegarch-spec-notes.md``.
+
+    Parameters
+    ----------
+    residuals : ndarray, shape (n,)
+        The detrended residuals.
+    window : int
+        The Bartlett lag-window width :math:`M \ge 0` (the smoots ``L0.opt``, supplied).
+
+    Returns
+    -------
+    float
+        The variance factor :math:`\hat c_f`.
+
+    Raises
+    ------
+    ValueError
+        If ``window`` is negative or not smaller than the series length.
+    """
+    r = np.asarray(residuals, dtype=np.float64)
+    n = r.size
+    if window < 0 or window >= n:
+        raise ValueError(f"window must satisfy 0 <= window < n={n}, got {window}")
+    r = r - r.mean()
+    gamma = np.array([float(np.sum(r[: n - lag] * r[lag:]) / n) for lag in range(window + 1)])
+    weights = 1.0 - np.arange(1, window + 1) / (window + 1)
+    return float(gamma[0] + 2.0 * np.sum(weights * gamma[1:]))

@@ -1884,6 +1884,71 @@ machine-exact first.
 
 ---
 
-*Add further specification derivations here as the remaining Phase 7 sub-builds (IPI bandwidth,
-semiparametric wiring) or the deferred forecasting breadth are implemented — always from the
-papers/manual, never the source.*
+## 31. IPI bandwidth (Phase 7, sub-build 2) — machine-exact components built; auto-iterator BLOCKED
+
+**The IPI data-driven bandwidth selector decomposes into pieces of three different reproducibility
+classes. The machine-exact pieces are built; the iterator itself is blocked on two unavailable
+references.** Clean-room (§12): from the papers in `literature/`, validated against smoots/esemifar
+OUTPUT, never their source; the `L0.opt` rule is **not** reverse-engineered from source and the
+fixture's `M` is **not** consumed as a clean-room selector.
+
+### 31.1 Built — machine-exact (`quantica/timeseries/fegarch/semiparam.py`)
+
+- **Derivative local polynomial** `local_poly(v=k)` — the AMISE integrand `m^(k)`: the WLS
+  coefficient of the degree-`k` term × `k!` × **`nᵏ`** (the chain-rule factor to the rescaled-`x`
+  derivative — load-bearing; without `nᵏ` it is off by 100%). Reproduces `smoots::gsmooth(v=k)`:
+  v=2/p=3 → ~1.5e-9, v=4/p=5 → ~3.5e-3 absolute (relative ~1e-9; `nᵏ`=n² / n⁴ amplifies the ~1e-15
+  WLS relative error — documented FP-amplification, not a convention gap). `integrated_squared_derivative`
+  trapezoidally integrates `{m^(k)}²` over the interior `x∈[0.05,0.95]`.
+- **Short-memory variance factor** `bartlett_variance_factor(res, window=M)` — the Bartlett lag-window
+  `ĉ_f = γ̂₀ + 2Σ_{l=1}^{M}(1−l/(M+1))γ̂_l`, biased (÷n) autocovariances. **Genuine clean-room recon**
+  (recompute the trend from the series at `b0` via `local_poly` → our own residuals → the Bartlett
+  sum) reproduces smoots' `cf0` **exactly (0.0e+00)**, *given* the window `M`.
+  - **Paper-vs-implementation divergence (documented):** Feng-Gries-Fritz (2020, §5) write the weights
+    `1−|l|/(M+0.5)`; smoots' code uses `1−|l|/(M+1)`. §12 validates against OUTPUT → `M+1` (the paper's
+    `M+0.5` misses `cf0` by >1e-3). No explicit `2π` in the returned `cf0` (the paper's `ĉ_f` carries
+    `1/2π`; smoots returns the raw long-run-variance sum).
+
+### 31.2 BLOCKED — the auto-iterator (needs two references absent from `literature/`)
+
+- **SM window `M` (`L0.opt`)** — the nested **Bühlmann (1996)** "Locally Adaptive Lag-Window Spectral
+  Estimation" (JTSA 17:247-270) IPI: `M₀=[n/2]`, iterate estimating the spectral-density integrals and
+  inserting into *Bühlmann (1996) Eq. (5)* to 20 iters. Feng-Gries-Fritz **cites but does not
+  reproduce** those equations, and Bühlmann (1996) is not in `literature/`. Empirically `L0.opt` is
+  not any simple formula (Andrews AR(1)/Newey-West/`c·n^{1/3}`/significance-lag all fail; e.g. n=2500
+  gives `L0.opt`=3 at p=1 but 1 at p=3). So `M` is a **required user-supplied parameter**; automatic
+  selection is not implemented (smoots permits manual `M`).
+- **AMISE kernel constants** `β_{ν,k}`, `R(K)`, `K(0)`, and the enlargement factor
+  `C_F = (2k/(2K(0)/R(K)−1))^{1/(2k+1)}` (the `bvc="Y"` enlargement `h_γ = C_F·ĥ`) — tabulated in
+  **Feng-Heiler (2009) Table 1**, cited-not-reproduced, absent from `literature/`. A from-scratch
+  equivalent-kernel derivation is not validated against smoots' tabulated values, so the AMISE
+  `b_opt` constant is not pinned → the iterator is not built.
+
+### 31.3 Reclassified — LM variance factor is FIT-tolerance (~1e-6), not seam-exact (correcting an earlier overclaim)
+
+The long-memory `c_f` = (empirical innovation variance of a BIC-selected FARIMA(p,d,q) fit to the
+detrended residuals) ÷ 2π. The recon's "1e-16" used **R's own `fracdiff` innovations** fed back in
+(R-to-R). A genuine clean-room recon — quantica's Phase-3 binomial `(1−B)^d` filter on the residuals,
+*even given the fixture's d* — reproduces `cf0` only to **4.1e-7** (the truncated binomial filter ≠
+`fracdiff`'s exact Haslett-Raftery innovations). Plus the FARIMA MLE `d` itself is a NEW,
+optimizer-dependent fit (not the dual-mean FARIMA-in-mean QMLE). So the LM `c_f` belongs to the port's
+**established fit-tolerance class (~1e-6), like the GARCH/EGARCH fits — not the machine-exact
+seam class.** This corrects the earlier recon's machine-exact claim for LM `c_f`.
+
+### 31.4 Consequence
+
+The full IPI bandwidth is reproducible clean-room only to ~1e-6 (fit tolerance) **and** needs
+Bühlmann (1996) + Feng-Heiler (2009) added to `literature/` for a genuine SM auto-selector. The
+machine-exact building blocks (derivative local-poly, SM Bartlett `c_f` given `M`) are built and
+tested; the iterator is deferred. **Sub-build 3's fixture step (next) determines whether any of this
+matters end-to-end** — i.e. whether `fEGarch(use_nonpar=TRUE)` defaults to `esemifar` (LM, no
+Bühlmann) or `smoots` (SM, needs `L0.opt`), whether `locpol_spec(bwidth=...)` lets the end-to-end fit
+use a **fixed** bandwidth (fully deterministic, no auto-selector), and whether the real validation
+target is fEGarch's semiparametric OUTPUT (the total volatility `Ω̂ = ŝ·σ̃`) rather than smoots'
+internal bandwidth.
+
+---
+
+*Add further specification derivations here as the remaining Phase 7 work (the IPI auto-iterator once
+Bühlmann/Feng-Heiler are available, the semiparametric wiring) or the deferred forecasting breadth is
+implemented — always from the papers/manual, never the source.*

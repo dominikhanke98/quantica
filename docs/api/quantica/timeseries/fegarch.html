@@ -532,6 +532,9 @@
                     <a class="function" href="#arma_mean_residuals">arma_mean_residuals</a>
             </li>
             <li>
+                    <a class="function" href="#bartlett_variance_factor">bartlett_variance_factor</a>
+            </li>
+            <li>
                     <a class="function" href="#egarch_recursion">egarch_recursion</a>
             </li>
             <li>
@@ -683,6 +686,9 @@
             </li>
             <li>
                     <a class="function" href="#initial_variance">initial_variance</a>
+            </li>
+            <li>
+                    <a class="function" href="#integrated_squared_derivative">integrated_squared_derivative</a>
             </li>
             <li>
                     <a class="function" href="#local_poly">local_poly</a>
@@ -3195,6 +3201,61 @@ The MA(1) coefficient \( \alpha_1 \) (default <code>0</code>).</li>
 
 
                 </section>
+                <section id="bartlett_variance_factor">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">bartlett_variance_factor</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">residuals</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">window</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#bartlett_variance_factor"></a>
+    
+            <div class="docstring"><p>The short-memory variance factor \( c_f \) by a Bartlett lag-window, given window <code>M</code>.</p>
+
+<p>$$\hat c_f = \hat\gamma_0 + 2\sum_{l=1}^{M}\left(1 - \frac{l}{M+1}\right)\hat\gamma_l,$$</p>
+
+<p>with \( \hat\gamma_l \) the <strong>biased</strong> (divide-by-\( n \)) sample autocovariances of the
+(detrended) <code>residuals</code> and \( M \) the lag-window width. Validated against <code>smoots</code>'
+<code>Mcf = "NP"</code> output: recomputing the residuals from the series at the selected bandwidth and
+applying this sum reproduces <code>cf0</code> exactly.</p>
+
+<div class="alert note">
+
+<p><strong>Paper-vs-implementation divergence (documented).</strong> Feng-Gries-Fritz (2020) write the
+Bartlett weights as \( 1 - |l|/(M + 0.5) \); smoots' implementation uses
+\( 1 - |l|/(M + 1) \). Validating against OUTPUT (CLAUDE.md §12), this uses <code>M + 1</code>.
+<strong>The automatic selection of the window <code>M</code> (<code>L0.opt</code>) is NOT implemented</strong> — it is the
+Bühlmann (1996) nested spectral-density IPI, whose defining equations are not reproduced in
+Feng-Gries-Fritz (2020) and whose source (Bühlmann 1996) is unavailable; <code>M</code> must
+therefore be supplied (smoots permits manual control). See <code>docs/fegarch-spec-notes.md</code>.</p>
+
+</div>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>residuals</strong> (ndarray, shape (n,)):
+The detrended residuals.</li>
+<li><strong>window</strong> (int):
+The Bartlett lag-window width \( M \ge 0 \) (the smoots <code>L0.opt</code>, supplied).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The variance factor \( \hat c_f \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>window</code> is negative or not smaller than the series length.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="egarch_recursion">
                     <div class="attr function">
             
@@ -5090,31 +5151,97 @@ The (mean-zero) return series.</li>
 
 
                 </section>
+                <section id="integrated_squared_derivative">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">integrated_squared_derivative</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">k</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>,</span><span class="param">	<span class="n">boundary</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;fixed&#39;</span><span class="p">,</span> <span class="s1">&#39;knn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;knn&#39;</span>,</span><span class="param">	<span class="n">cb</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>,</span><span class="param">	<span class="n">db</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#integrated_squared_derivative"></a>
+    
+            <div class="docstring"><p>The integrated squared <code>k</code>-th derivative \( I[m^{(k)}] \) (the AMISE numerator).</p>
+
+<p>The AMISE numerator of the IPI: estimate \( m^{(k)} \) by <code><a href="#local_poly">local_poly()</a></code> (<code>v = k</code>) at
+the given bandwidth, then <strong>trapezoidally</strong> integrate its square over the interior
+\( x \in [c_b, d_b] \) (the equidistant grid points there), matching Feng-Gries-Fritz (2020).</p>
+
+<div class="alert note">
+
+<p>In the full IPI this is evaluated at an <em>inflated pilot bandwidth</em> \( h_d = h^a \) whose
+value comes from the (Feng-Heiler-2009-tabulated) kernel constants — so a direct match to a
+fixture's stored <code>I2</code> requires that pilot bandwidth (the AMISE iteration, deferred). This
+function supplies the integrand/quadrature mechanism only.</p>
+
+</div>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>y</strong> (ndarray, shape (n,)):
+The equidistant series.</li>
+<li><strong>k</strong> (int):
+The derivative order (<code>k = p_trend + 1</code>).</li>
+<li><strong>p</strong> (int):
+The local polynomial degree for the derivative estimate (<code>p - k</code> odd, <code>p &gt;= k + 1</code>).</li>
+<li><strong>mu</strong> (int, optional):
+The kernel smoothness order (default 1).</li>
+<li><strong>bandwidth</strong> (float, optional):
+The (pilot) bandwidth at which \( m^{(k)} \) is estimated (default 0.15).</li>
+<li><strong>boundary</strong> ({"fixed", "knn"}, optional):
+The boundary rule (default <code>"knn"</code>).</li>
+<li><strong>cb, db</strong> (float, optional):
+The interior integration limits on the rescaled time axis (default <code>0.05</code>, <code>0.95</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The integrated squared derivative over \( [c_b, d_b] \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>cb</code>/<code>db</code> are not <code>0 &lt;= cb &lt; db &lt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="local_poly">
                     <div class="attr function">
             
         <span class="def">def</span>
-        <span class="name">local_poly</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>,</span><span class="param">	<span class="n">boundary</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;fixed&#39;</span><span class="p">,</span> <span class="s1">&#39;knn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;knn&#39;</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+        <span class="name">local_poly</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">v</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>,</span><span class="param">	<span class="n">boundary</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;fixed&#39;</span><span class="p">,</span> <span class="s1">&#39;knn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;knn&#39;</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
 
         
     </div>
     <a class="headerlink" href="#local_poly"></a>
     
-            <div class="docstring"><p>Local-polynomial trend estimate \( \hat m(x_t) \) at a fixed bandwidth (<code>gsmooth</code> core).</p>
+            <div class="docstring"><p>Local-polynomial estimate of the trend or its <code>v</code>-th derivative (<code>gsmooth</code> core).</p>
 
 <p>Weighted-least-squares local-polynomial regression of <code>y</code> on the rescaled equidistant time
-grid, returning the fitted trend (\( v = 0 \)). See the module docstring for the estimator,
-kernels and boundary conventions; this reproduces <code>smoots::gsmooth(y, v=0, p, mu, b, bb)</code>
-machine-exactly.</p>
+grid \( x_t = t/n \in (0, 1] \). For <code>v = 0</code> this is the fitted trend \( \hat m(x_t) \);
+for <code>v \ge 1</code> it is the \( v \)-th derivative \( \hat m^{(v)}(x_t) \) <strong>with respect to
+the rescaled time</strong> — the WLS coefficient of the degree-<code>v</code> term times \( v! \) and times
+\( n^{v} \) (the chain-rule factor converting the index-offset derivative to the \( x \)
+derivative). Reproduces <code>smoots::gsmooth(y, v, p, mu, b, bb)</code> machine-exactly (<code>v = 0</code>); for
+<code>v \ge 1</code> the \( n^{v} \) factor amplifies the ~1e-15 relative floating-point error of the
+high-order WLS solve to ~1e-9 (<code>v = 2</code>) / ~1e-3 (<code>v = 4</code>) absolute — a documented
+FP-amplification, not a convention gap.</p>
 
 <h6 id="parameters">Parameters</h6>
 
 <ul>
 <li><strong>y</strong> (ndarray, shape (n,)):
 The equidistant series to smooth (e.g. the log-squared demeaned returns for the scale).</li>
+<li><strong>v</strong> (int, optional):
+The derivative order to estimate (0 = the trend itself). Default 0. The IPI's integrated
+squared derivative \( I[m^{(k)}] \) uses <code>v = k = p_trend + 1</code>.</li>
 <li><strong>p</strong> (int, optional):
-The local polynomial degree; <code>p</code> must be odd (<code>p - v</code> odd with \( v = 0 \)). Default
-3.</li>
+The local polynomial degree; must satisfy <code>p &gt;= v + 1</code> with <code>p - v</code> <strong>odd</strong>. Default 3.</li>
 <li><strong>mu</strong> (int, optional):
 The kernel smoothness order — a key of <code><a href="#KERNELS">KERNELS</a></code> (0 uniform, 1 Epanechnikov, 2
 bisquare, 3 triweight). Default 1.</li>
@@ -5129,15 +5256,15 @@ The boundary rule: <code>"fixed"</code> (smoots <code>bb=0</code>) truncates the
 <h6 id="returns">Returns</h6>
 
 <ul>
-<li><strong>ndarray, shape (n,)</strong>: The local-polynomial trend estimate \( \hat m(x_t) \).</li>
+<li><strong>ndarray, shape (n,)</strong>: The local-polynomial estimate \( \hat m^{(v)}(x_t) \).</li>
 </ul>
 
 <h6 id="raises">Raises</h6>
 
 <ul>
-<li><strong>ValueError</strong>: If <code>p</code> is not a positive odd integer, <code>mu</code> is not a supported kernel order,
-<code>bandwidth</code> is not in <code>(0, 0.5)</code>, or the series is too short for the window (<code>n &lt; 2m +
-1</code>).</li>
+<li><strong>ValueError</strong>: If <code>v</code> is negative, <code>p</code> does not satisfy <code>p &gt;= v + 1</code> with <code>p - v</code> odd, <code>mu</code> is
+not a supported kernel order, <code>bandwidth</code> is not in <code>(0, 0.5)</code>, or the series is too
+short for the window.</li>
 </ul>
 </div>
 

@@ -1,0 +1,12 @@
+{
+  "model": "egarch(1,1)/norm semiparametric (use_nonpar=TRUE)", "package": "fEGarch",
+  "n": 2500, "input": "synthetic_returns.csv",
+  "nonparspec": {"poly_order": 3, "kernel_order": 1, "boundary_method": "extend", "bwidth": 0.15},
+  "nonpar_model_class": "smoots",
+  "nonpar_note": "fixed bwidth supplied -> the auto IPI selector did NOT run (b0 empty, niterations empty); the scale is computed at bwidth=0.15 directly, so the end-to-end fit is fully deterministic (no Buhlmann L0.opt / no FARIMA selector).",
+  "pars": {"omega_sig": -0.06427727591643885, "phi1": 0.95154465168279989, "kappa": -0.022778594333743327, "gamma": 0.15722597659711973},
+  "llhood": -3490.7330171779668,
+  "scale_fun_head": [0.012780471835369093, 0.012791109445227926, 0.012801602587334062], "sigt_head": [0.012762879705462121, 0.012577398408968609, 0.012035765162469295],
+  "note": "end-to-end semiparametric: scale s(x_t) via local-poly on ln((r-mu)^2) at FIXED bwidth, then zero-mean egarch on zeta=r*/s; sigt = s*lambda total vol",
+  "fegarch_version": "1.0.6", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

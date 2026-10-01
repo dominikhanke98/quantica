@@ -265,7 +265,12 @@ from quantica.timeseries.fegarch.qmle import (
     initial_variance,
     quasi_max_likelihood,
 )
-from quantica.timeseries.fegarch.semiparam import KERNELS, local_poly
+from quantica.timeseries.fegarch.semiparam import (
+    KERNELS,
+    bartlett_variance_factor,
+    integrated_squared_derivative,
+    local_poly,
+)
 
 __all__ = [
     "DISTRIBUTIONS",
@@ -294,6 +299,7 @@ __all__ = [
     "aparch_recursion",
     "aparch_sim",
     "arma_mean_residuals",
+    "bartlett_variance_factor",
     "egarch_recursion",
     "egarch_sim",
     "farima_mean_residuals",
@@ -345,6 +351,7 @@ __all__ = [
     "gjr_sim",
     "goodness_of_fit_test",
     "initial_variance",
+    "integrated_squared_derivative",
     "local_poly",
     "loggarch_recursion",
     "loggarch_sim",

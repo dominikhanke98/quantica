@@ -260,10 +260,26 @@ all 16 (p∈{1,3} × mu∈{0,1,2,3} × bb∈{0,1}) fixtures — worst **2.0e-12*
 order; p=1 worst 1.6e-13; interior ~1e-14). Conventions pinned from the OUTPUT (incl. the returned
 `ws` weight matrix, not source): kernels `(1−u²)^mu`, scale `s = max|offset|+1` (=m+1 interior),
 boundary `fixed` (bb=0, truncate) vs `knn` (bb=1, keep 2m+1) — the `locpol_spec` extend/shorten ↔
-fixed/knn mapping is deferred to sub-build 3. Spec: `docs/fegarch-spec-notes.md` §30. **Next on this
-branch:** sub-build 2 (IPI data-driven bandwidth — calls `local_poly` repeatedly, hence the
-machine-exact-first discipline) → sub-build 3 (`use_nonpar` end-to-end wiring). Clean-room (§12): built
-from the papers, validated against smoots OUTPUT, never its Rcpp source.
+fixed/knn mapping is deferred to sub-build 3. Spec: `docs/fegarch-spec-notes.md` §30.
+
+**Phase 7 sub-build 2 (IPI bandwidth) — the machine-exact COMPONENTS are built; the auto-iterator is
+BLOCKED** (on `feat/fegarch-semiparam`, pushed for CI; NOT merged). Built + tested machine-exact:
+`local_poly(v=k)` (the AMISE integrand `m^(k)` = coeff·k!·**nᵏ**; reproduces `smoots::gsmooth(v=k)` to
+~1.5e-9 (v2) / ~3.5e-3 (v4), rel ~1e-9, nᵏ FP-amplification documented) + `integrated_squared_derivative`
+(trapezoidal over [0.05,0.95]); and `bartlett_variance_factor(res, window=M)` — the SM `c_f` Bartlett
+lag-window `γ₀+2Σ(1−l/(M+1))γ_l`, which via GENUINE clean-room recon (our own trend→residuals→sum)
+reproduces smoots' `cf0` **exactly (0.0)** given `M`. **BLOCKED (two refs absent from `literature/`):**
+(1) the SM window `M` (`L0.opt`) is the nested **Bühlmann (1996)** spectral IPI (Eq.5 cited-not-reproduced)
+— so `M` is a user-supplied param, auto-selection not implemented; (2) the AMISE kernel constants
+(β,R(K),K(0),C_F) are tabulated in **Feng-Heiler (2009)** (cited-not-reproduced) — so the `b_opt`
+iterator is not built. **Reclassified (correcting an earlier overclaim):** the LM `c_f` (FARIMA
+fracdiff-MLE) is FIT-tolerance (~1e-6, the recon's "1e-16" was R-to-R; quantica's binomial `(1−B)^d`
+filter reproduces `cf0` to only 4.1e-7 even given d), the port's established fit class, not machine-exact.
+Paper-vs-impl Bartlett weight `(M+0.5)` vs `(M+1)` documented. Spec: `docs/fegarch-spec-notes.md` §31.
+**Next:** sub-build 3's FIXTURE step (`fEGarch(use_nonpar=TRUE)`) resolves whether the end-to-end
+semiparametric fit needs the blocked auto-selector at all (esemifar-LM default? `locpol_spec(bwidth=)`
+fixed-bandwidth path? validate vs fEGarch's `Ω̂=ŝ·σ̃` output?). Clean-room (§12): from the papers,
+validated against smoots/esemifar OUTPUT, never their source.
 
 ## Completed
 
