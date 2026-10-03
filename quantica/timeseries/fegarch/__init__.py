@@ -267,9 +267,12 @@ from quantica.timeseries.fegarch.qmle import (
 )
 from quantica.timeseries.fegarch.semiparam import (
     KERNELS,
+    SemiparametricFit,
     bartlett_variance_factor,
     integrated_squared_derivative,
     local_poly,
+    semiparametric_fit,
+    semiparametric_scale,
 )
 
 __all__ = [
@@ -293,6 +296,7 @@ __all__ = [
     "QMLEResult",
     "RiskForecast",
     "RollingForecast",
+    "SemiparametricFit",
     "SignBiasResult",
     "StudentT",
     "VarianceRecursion",
@@ -363,6 +367,8 @@ __all__ = [
     "predict",
     "predict_roll",
     "quasi_max_likelihood",
+    "semiparametric_fit",
+    "semiparametric_scale",
     "sign_bias_test",
     "standardized_residuals",
     "tgarch_recursion",

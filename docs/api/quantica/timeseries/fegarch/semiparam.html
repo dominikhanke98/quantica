@@ -54,6 +54,42 @@
                     <a class="variable" href="#KERNELS">KERNELS</a>
             </li>
             <li>
+                    <a class="class" href="#SemiparametricFit">SemiparametricFit</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#SemiparametricFit.__init__">SemiparametricFit</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.mu">mu</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.c_t">c_t</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.scale">scale</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.parametric_vol">parametric_vol</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.total_vol">total_vol</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.pars">pars</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.loglikelihood">loglikelihood</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.model">model</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.bwidth">bwidth</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="function" href="#bartlett_variance_factor">bartlett_variance_factor</a>
             </li>
             <li>
@@ -61,6 +97,12 @@
             </li>
             <li>
                     <a class="function" href="#local_poly">local_poly</a>
+            </li>
+            <li>
+                    <a class="function" href="#semiparametric_fit">semiparametric_fit</a>
+            </li>
+            <li>
+                    <a class="function" href="#semiparametric_scale">semiparametric_scale</a>
             </li>
     </ul>
 
@@ -138,6 +180,20 @@ tolerance (not machine-exact). These limits, and the paper-vs-implementation
 \( (M+0.5) \)-vs-\( (M+1) \) Bartlett-weight divergence, are recorded in
 <code>docs/fegarch-spec-notes.md</code>.</p>
 
+<p><strong>Sub-build 3 (the fixed-bandwidth semiparametric fit) — fully clean-room.</strong>
+<code><a href="#semiparametric_fit">semiparametric_fit()</a></code> wires the six-step WP171 §2.2.1 procedure: the sample mean
+\( \bar y \); the log-squared
+\( \tilde w_t = \ln[(y_t-\bar y)^2] \); the local-poly trend \( \hat m \) at a <em>fixed</em> bandwidth
+(<code><a href="#local_poly">local_poly()</a></code>); the <strong>empirical</strong> retransform correction
+\( \hat C_T = -\ln[n^{-1}\sum e^{\tilde w_t-\hat m_t}] \); the scale
+\( \hat s = \exp{(\hat m-\hat C_T)/2} \) (<code><a href="#semiparametric_scale">semiparametric_scale()</a></code>); the de-scaled returns
+\( \hat r = (y-\bar y)/\hat s \); and a <strong>zero-mean</strong> EGF fit on \( \hat r \) giving the total
+volatility \( \hat\Omega = \hat s\,\tilde\sigma \). At a fixed user-supplied bandwidth the scale
+steps are <strong>machine-exact</strong> (and route-independent — the SM/LM selector only governs <em>automatic</em>
+bandwidth, bypassed here) and the parametric fit is at the established fit tolerance, so the whole
+semiparametric fit is clean-room-reproducible with <strong>no</strong> dependency on the blocked auto-selectors.
+Automatic bandwidth (<code>bwidth=None</code>) raises, pointing to the Bühlmann/Feng-Heiler gap.</p>
+
 <h6 id="references">References</h6>
 
 <p>Feng, Y., Gries, T. &amp; Fritz, M. (2020). "Data-Driven Local Polynomial for the Trend and its
@@ -161,6 +217,160 @@ long-range dependence and nonstationarity." <em>Computational Statistics &amp; D
     
     
 
+                </section>
+                <section id="SemiparametricFit">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">SemiparametricFit</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit"></a>
+    
+            <div class="docstring"><p>A fixed-bandwidth semiparametric EGF fit (nonparametric scale + zero-mean parametric EGF).</p>
+
+<p>The total volatility decomposes as \( \sigma_t = \hat s(x_t)\,\tilde\sigma_t \) — a smooth
+deterministic scale \( \hat s \) and the parametric conditional SD \( \tilde\sigma \) of the
+de-scaled returns \( \hat r_t = (r_t - \bar y)/\hat s_t \).</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>mu</strong> (float):
+The mean \( \hat\mu = \bar y \) (the sample mean — the semiparametric mean is not fitted).</li>
+<li><strong>c_t</strong> (float):
+The empirical retransform correction \( \hat C_T = -\ln[n^{-1}\sum_t e^{\hat u_t}] \).</li>
+<li><strong>scale</strong> (ndarray, shape (n,)):
+The nonparametric scale \( \hat s(x_t) \).</li>
+<li><strong>parametric_vol</strong> (ndarray, shape (n,)):
+The parametric conditional SD \( \tilde\sigma_t \) of \( \hat r_t \) (<code>lambda_hat</code>).</li>
+<li><strong>total_vol</strong> (ndarray, shape (n,)):
+The total volatility \( \hat\Omega_t = \hat s_t\,\tilde\sigma_t \) (fEGarch's <code>sigt</code>).</li>
+<li><strong>pars</strong> (dict of str to float):
+The zero-mean parametric EGF parameters (<code>omega_sig, phi1, kappa, gamma</code> [, <code>d</code>]).</li>
+<li><strong>loglikelihood</strong> (float):
+The parametric-stage maximized log-likelihood (on \( \hat r_t \)).</li>
+<li><strong>model</strong> (str):
+The parametric EGF model (<code>"egarch"</code> or <code>"fiegarch"</code>).</li>
+<li><strong>bwidth</strong> (float):
+The fixed relative bandwidth used for the scale.</li>
+</ul>
+</div>
+
+
+                            <div id="SemiparametricFit.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">SemiparametricFit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">c_t</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">scale</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">parametric_vol</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">total_vol</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">pars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">model</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">bwidth</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.mu" class="classattr">
+                                <div class="attr variable">
+            <span class="name">mu</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.mu"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.c_t" class="classattr">
+                                <div class="attr variable">
+            <span class="name">c_t</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.c_t"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.scale" class="classattr">
+                                <div class="attr variable">
+            <span class="name">scale</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.scale"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.parametric_vol" class="classattr">
+                                <div class="attr variable">
+            <span class="name">parametric_vol</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.parametric_vol"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.total_vol" class="classattr">
+                                <div class="attr variable">
+            <span class="name">total_vol</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.total_vol"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.pars" class="classattr">
+                                <div class="attr variable">
+            <span class="name">pars</span><span class="annotation">: dict[str, float]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.pars"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.loglikelihood" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.loglikelihood"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.model" class="classattr">
+                                <div class="attr variable">
+            <span class="name">model</span><span class="annotation">: str</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.model"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.bwidth" class="classattr">
+                                <div class="attr variable">
+            <span class="name">bwidth</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.bwidth"></a>
+    
+    
+
+                            </div>
                 </section>
                 <section id="bartlett_variance_factor">
                     <div class="attr function">
@@ -331,6 +541,125 @@ The boundary rule: <code>"fixed"</code> (smoots <code>bb=0</code>) truncates the
 <li><strong>ValueError</strong>: If <code>v</code> is negative, <code>p</code> does not satisfy <code>p &gt;= v + 1</code> with <code>p - v</code> odd, <code>mu</code> is
 not a supported kernel order, <code>bandwidth</code> is not in <code>(0, 0.5)</code>, or the series is too
 short for the window.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="semiparametric_fit">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">semiparametric_fit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">model</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;egarch&#39;</span><span class="p">,</span> <span class="s1">&#39;fiegarch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;egarch&#39;</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">poly_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">kernel_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">boundary_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">,</span> <span class="s1">&#39;shorten&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;extend&#39;</span>,</span><span class="param">	<span class="n">bwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">start_pars</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#SemiparametricFit">SemiparametricFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#semiparametric_fit"></a>
+    
+            <div class="docstring"><p>Fixed-bandwidth semiparametric EGF fit (WP171 §2.2.1, all six steps).</p>
+
+<p>Estimates the nonparametric scale (<code><a href="#semiparametric_scale">semiparametric_scale()</a></code>, steps 1--5, machine-exact),
+then fits a <strong>zero-mean</strong> EGF model (<code>"egarch"</code>/<code>"fiegarch"</code>) to the de-scaled returns
+\( \hat r_t \) (step 6), returning the total volatility
+\( \hat\Omega = \hat s\,\tilde\sigma \) (fEGarch's <code>sigt</code>). The parametric stage reuses the
+existing EGF recursions with the mean fixed at 0 (the mean is already \( \bar y \)), so its
+fit vector is <code>(omega_sig, phi1, kappa, gamma)</code> for EGARCH (<code>+ d</code> for FIEGARCH), <strong>no</strong>
+\( \mu \). The scale is reproduced machine-exactly; the parametric fit matches fEGarch to the
+port's established fit tolerance.</p>
+
+<div class="alert note">
+
+<p><strong>Automatic bandwidth is not implemented</strong> (<code>bwidth=None</code> raises): it needs the Bühlmann
+(1996) + Feng-Heiler (2009) machinery, unavailable in <code>literature/</code>. Supply a fixed
+<code>bwidth</code> in <code>(0, 0.5)</code>. <strong>FIEGARCH is multimodal</strong> (Phase-4 weak-identification): from
+the default start the fit may land in a \( d \approx 0 \) basin; pass <code>start_pars</code> to
+target a specific basin. EGARCH is well-identified.</p>
+
+</div>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (n,)):
+The return series.</li>
+<li><strong>model</strong> ({"egarch", "fiegarch"}, optional):
+The parametric EGF model for the de-scaled returns. Default <code>"egarch"</code>.</li>
+<li><strong>cond_dist</strong> (str, optional):
+The conditional distribution; only <code>"norm"</code> is supported (the committed fixtures).</li>
+<li><strong>poly_order, kernel_order</strong> (int, optional):
+The local-polynomial order and kernel smoothness for the scale (default 1, 1).</li>
+<li><strong>boundary_method</strong> ({"extend", "shorten"}, optional):
+The scale boundary method (default <code>"extend"</code>).</li>
+<li><strong>bwidth</strong> (float or None):
+The fixed relative bandwidth in <code>(0, 0.5)</code>; <code>None</code> raises <code>NotImplementedError</code>.</li>
+<li><strong>start_pars</strong> (sequence of float or None, optional):
+Optional start for the parametric stage; defaults to a data-driven start.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>SemiparametricFit</strong>: The scale, parametric and total volatilities, and the zero-mean EGF parameters.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>NotImplementedError</strong>: If <code>bwidth</code> is <code>None</code> or <code>cond_dist</code> is not <code>"norm"</code>.</li>
+<li><strong>ValueError</strong>: If <code>model</code> is not supported.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="semiparametric_scale">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">semiparametric_scale</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">poly_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">kernel_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">boundary_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">,</span> <span class="s1">&#39;shorten&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;extend&#39;</span>,</span><span class="param">	<span class="n">bwidth</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#semiparametric_scale"></a>
+    
+            <div class="docstring"><p>The semiparametric scale \( \hat s(x_t) \) at a fixed bandwidth (WP171 §2.2.1 steps 1--5).</p>
+
+<p>The machine-exact, model-independent scale core: <code>(1)</code> \( \bar y = \mathrm{mean}(y) \),
+\( \tilde w_t = \ln[(y_t-\bar y)^2] \); <code>(2)</code> \( \hat m(x_t) \) = <code><a href="#local_poly">local_poly()</a></code> of
+\( \tilde w \) at the fixed <code>bwidth</code>; <code>(3)</code> the <strong>empirical</strong> retransform correction
+\( \hat C_T = -\ln[n^{-1}\sum_t e^{\hat u_t}] \), \( \hat u_t = \tilde w_t - \hat m_t \)
+(the finite-sample-unbiasing correction forcing \( \operatorname{E}[e^{\hat u}] = 1 \) —
+<strong>not</strong> the theoretical \( \operatorname{E}[\ln\zeta^2] \)); <code>(4)</code>
+\( \hat s(x_t) = \exp{(\hat m_t - \hat C_T)/2} \); <code>(5)</code>
+\( \hat r_t = (y_t-\bar y)/\hat s_t \). Route-independent at a fixed bandwidth; reproduces
+fEGarch's <code>scale_fun</code> to machine precision.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (n,)):
+The return series.</li>
+<li><strong>poly_order</strong> (int, optional):
+The local polynomial order (<code>locpol_spec</code> <code>poly_order</code>; 1 or 3). Default 1.</li>
+<li><strong>kernel_order</strong> (int, optional):
+The kernel smoothness order (<code>locpol_spec</code> <code>kernel_order</code> / <code><a href="#KERNELS">KERNELS</a></code>). Default 1.</li>
+<li><strong>boundary_method</strong> ({"extend", "shorten"}, optional):
+<code>locpol_spec</code> boundary method: <code>"extend"</code> (= gsmooth k-NN) or <code>"shorten"</code> (= fixed).</li>
+<li><strong>bwidth</strong> (float):
+The fixed relative bandwidth \( \in (0, 0.5) \) (keyword-only, required).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple</strong>: <code>(mu, c_t, scale, standardized)</code> — \( \bar y \), \( \hat C_T \), \( \hat s(x_t) \)
+and the de-scaled returns \( \hat r_t \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>boundary_method</code> is not <code>"extend"</code>/<code>"shorten"</code>.</li>
 </ul>
 </div>
 

@@ -281,6 +281,28 @@ semiparametric fit needs the blocked auto-selector at all (esemifar-LM default? 
 fixed-bandwidth path? validate vs fEGarch's `Ω̂=ŝ·σ̃` output?). Clean-room (§12): from the papers,
 validated against smoots/esemifar OUTPUT, never their source.
 
+**Phase 7 sub-build 3 — the fixed-bandwidth semiparametric EGF fit — BUILT** (on
+`feat/fegarch-semiparam`, pushed for CI; NOT merged), **completing Phase 7's reproducible scope.**
+`semiparametric_fit` / `semiparametric_scale` (`quantica/…/semiparam.py`) wire the 6-step WP171 §2.2.1
+procedure, validated against `semiparam_{egarch,fiegarch}11_norm_*`: ȳ→w̃=ln((y−ȳ)²)→m̂ local-poly at a
+FIXED bwidth→**empirical `Ĉ_T=−ln[n⁻¹Σexp(w̃−m̂)]`** (=−1.37547; corrects the earlier theoretical-C_μ
+note)→ŝ=exp((m̂−Ĉ_T)/2)→r̂=(y−ȳ)/ŝ→**zero-mean** EGF fit→Ω̂=ŝ·σ̃ (sigt). **Scale steps 1–5 machine-exact
+(~6e-16) and route-independent** (at fixed bwidth both egarch and fiegarch use smoots, same Ĉ_T; the
+SM/LM selector only governs auto-bandwidth, bypassed); **step 6 at fit-tolerance** (EGARCH pars ~1e-5,
+Ω̂ ~1e-8; FIEGARCH reproduces the committed basin to ~1e-6 from a basin start — the Phase-4
+multimodality means the default start may land at d≈0). Pinned the deferred boundary mapping:
+`locpol_spec` **extend=knn, shorten=fixed**. μ̂=ȳ exactly. `semiparametric_fit(bwidth=None)` raises
+`NotImplementedError` (automatic bandwidth needs Bühlmann 1996 + Feng-Heiler 2009, unavailable). Spec:
+`docs/fegarch-spec-notes.md` §32.
+
+**PHASE 7 (all 3 sub-builds) COMPLETE — reproducible scope.** The branch holds: sub-build 1 (`local_poly`,
+machine-exact); sub-build 2 (derivative/`I[m^(k)]`/SM-Bartlett-`c_f` machine-exact; IPI auto-iterator +
+LM-`c_f` + auto-lag documented-blocked); sub-build 3 (fixed-bwidth semiparametric fit, machine-exact
+scale + fit-tolerance parametric). **The single documented limit is AUTOMATIC data-driven bandwidth**
+(Bühlmann 1996 + Feng-Heiler 2009 — irreducible from available literature). **This closes Phase 7's
+clean-room-reproducible scope and the entire fEGarch port** (modelling, distribution breadth, dual mean,
+forecasting, risk tie-back, diagnostics, and the semiparametric scale at a user-supplied bandwidth).
+
 ## Completed
 
 - **Project skeleton** — packaging (`pyproject.toml`), ruff + mypy + pytest

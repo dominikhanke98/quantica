@@ -1949,6 +1949,61 @@ internal bandwidth.
 
 ---
 
-*Add further specification derivations here as the remaining Phase 7 work (the IPI auto-iterator once
-Bühlmann/Feng-Heiler are available, the semiparametric wiring) or the deferred forecasting breadth is
-implemented — always from the papers/manual, never the source.*
+## 32. The fixed-bandwidth semiparametric EGF fit (Phase 7, sub-build 3) — RESOLVED
+
+**The end-to-end semiparametric fit at a user-supplied bandwidth is fully clean-room-reproducible —
+machine-exact scale + fit-tolerance parametric — with no dependency on the blocked auto-selectors.**
+`quantica/timeseries/fegarch/semiparam.py::semiparametric_fit` / `semiparametric_scale`, validated
+against `semiparam_{egarch,fiegarch}11_norm_*`. Clean-room (§12): from WP171 §2.2.1 + the locpol_spec
+help, validated against fEGarch OUTPUT, never its source.
+
+### 32.1 The six-step procedure (WP171 §2.2.1), reconstructed
+
+Model: `r_t = μ + s(x_t)·λ_t·η_t`, total vol `σ_t = s(x_t)·λ_t`. Steps:
+1. `ȳ = mean(y)`; **μ̂ = ȳ** (the semiparametric mean is the sample mean, NOT a fitted μ — μ̂=ȳ exactly);
+   `w̃_t = ln[(y_t−ȳ)²]`.
+2. `m̂(x_t)` = `local_poly(w̃, v=0, p=poly_order, mu=kernel_order, b=bwidth, boundary)` at the **fixed**
+   bwidth (reuses sub-build-1 `local_poly`, machine-exact; NO auto-selection).
+3. **`Ĉ_T = −ln[n⁻¹ Σ exp(û_t)]`, `û_t = w̃_t − m̂_t`** — the EMPIRICAL retransform correction (forces
+   `E[exp û]=1` for finite-sample unbiasedness). **This corrects §30/§31's earlier "theoretical
+   C_μ=E[ln ζ²]/mean_log_sq" note: the implemented correction is the empirical `Ĉ_T`, here −1.37547.**
+4. `ŝ(x_t) = exp{(m̂_t − Ĉ_T)/2}` → **reconstructs fEGarch's `scale_fun` to ~6e-16 (machine-exact)**.
+5. `r̂_t = (y_t − ȳ)/ŝ_t` (the de-scaled returns = ζ̂).
+6. a **ZERO-MEAN** EGF fit on `r̂` (fit vector `{omega_sig, phi1, kappa, gamma}` for EGARCH, `+d` for
+   FIEGARCH, **no μ** — reuses the existing EGF recursions with μ fixed at 0 via `mean=False`) → `λ̂=σ̃`;
+   total volatility `Ω̂ = ŝ·σ̃` = fEGarch's `sigt`.
+
+### 32.2 Pinned conventions + validation
+
+- **`boundary_method` mapping (the deferred sub-build-1 item, now pinned):** `locpol_spec`
+  `"extend"` = gsmooth **k-NN** (`bb=1`) — the fixture convention (scale recon ~6e-16); `"shorten"` =
+  **fixed** (`bb=0`) — differs at the boundary (>1e-3). So extend↔knn, shorten↔fixed.
+- **Fixed-bwidth route-independence:** at a fixed bwidth BOTH egarch and fiegarch use the smoots scale
+  machinery with the SAME `Ĉ_T`; the scale step is identical and machine-exact. The SM/LM selector only
+  governs *automatic* bandwidth (bypassed). So steps 1–5 are route-independent machine-exact.
+- **Step-6 validation (fit-tolerance):** EGARCH zero-mean pars match the fixture to ~1e-5 (omega_sig
+  1.2e-6, phi1 9e-9, kappa/gamma ~1e-7); `Ω̂` (`sigt`) to ~1e-8. FIEGARCH is **multimodal** (the Phase-4
+  weak-identification): from the default start the fit lands in a `d≈0` basin; from the fixture-basin
+  start it reproduces the committed pars to ~1e-6 (d 4.7e-7) — confirming the wiring, not auto-selecting
+  the basin. Decoupling confirmed (a second pass on `r̂` agrees on the vol dynamics phi1/gamma).
+
+### 32.3 Phase 7 scope — one bounded gap
+
+**The semiparametric EGF fit is fully clean-room-reproducible at a USER-SPECIFIED bandwidth**
+(machine-exact scale + fit-tolerance parametric). **AUTOMATIC data-driven bandwidth is the single
+bounded gap** — blocked on Bühlmann (1996) (the SM `L0.opt` lag IPI) + Feng-Heiler (2009) (the AMISE
+kernel constants), both unavailable in `literature/` (§31). This is the *irreducible-from-available-
+literature* category (the analogue of the APARCH σ₀ / FIAPARCH irreducible-from-output findings).
+`semiparametric_fit(bwidth=None)` raises `NotImplementedError` pointing here.
+
+**Phase 7 (all three sub-builds) summary:** sub-build 1 — `local_poly` (machine-exact, §30); sub-build 2
+— derivative `local_poly(v=k)` / `I[m^(k)]` / SM-Bartlett `c_f` machine-exact, IPI auto-iterator +
+LM-`c_f` + auto-lag documented-blocked (§31); sub-build 3 — the fixed-bwidth semiparametric fit,
+machine-exact scale + fit-tolerance parametric (§32). The auto-bandwidth gap is the single documented
+limit of Phase 7.
+
+---
+
+*Add further specification derivations here if the auto-bandwidth gap is later closed (Bühlmann 1996 +
+Feng-Heiler 2009 added to `literature/`) or the deferred forecasting breadth is implemented — always
+from the papers/manual, never the source.*

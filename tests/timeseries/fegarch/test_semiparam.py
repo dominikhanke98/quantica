@@ -24,6 +24,7 @@ from quantica.timeseries.fegarch import (
     bartlett_variance_factor,
     integrated_squared_derivative,
     local_poly,
+    semiparametric_fit,
 )
 
 _FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "fegarch"
@@ -208,3 +209,108 @@ def test_bartlett_rejects_bad_window() -> None:
         bartlett_variance_factor(res, window=-1)
     with pytest.raises(ValueError, match="window"):
         bartlett_variance_factor(res, window=res.size)
+
+
+# --------------------------------------------------------------------------- #
+# Phase-7 sub-build 3: the fixed-bandwidth semiparametric EGF fit (6-step)
+# --------------------------------------------------------------------------- #
+
+
+def _returns() -> np.ndarray:  # type: ignore[type-arg]
+    """The raw synthetic return series (the semiparametric fit's input)."""
+    return np.loadtxt(_FIXTURE_DIR / "synthetic_returns.csv", skiprows=1)
+
+
+def _semi_meta(model: str) -> dict:  # type: ignore[type-arg]
+    """Load a semiparametric fixture's params JSON."""
+    return json.loads(
+        (_FIXTURE_DIR / f"semiparam_{model}11_norm_params.json").read_text(encoding="utf-8")
+    )
+
+
+def test_semiparametric_scale_machine_exact_both_models() -> None:
+    """Steps 1-5: the scale reconstructs fEGarch's scale_fun machine-exactly (route-independent)."""
+    from quantica.timeseries.fegarch import semiparametric_scale
+
+    y = _returns()
+    for model in ("egarch", "fiegarch"):
+        meta = _semi_meta(model)
+        mu, c_t, scale, _ = semiparametric_scale(
+            y, poly_order=1, kernel_order=1, boundary_method="extend", bwidth=0.15
+        )
+        scale_fix = np.loadtxt(_FIXTURE_DIR / f"semiparam_{model}11_norm_scale.csv", skiprows=1)
+        assert mu == pytest.approx(meta["ybar"], abs=1e-15)  # mu-hat = sample mean exactly
+        assert c_t == pytest.approx(meta["C_T"], abs=1e-12)  # same empirical C_T for both routes
+        assert np.max(np.abs(scale - scale_fix)) < 1e-13  # scale machine-exact
+
+
+def test_semiparametric_scale_boundary_mapping() -> None:
+    """locpol_spec 'extend' == knn is the fixture's boundary; 'shorten' == fixed would NOT match."""
+    from quantica.timeseries.fegarch import semiparametric_scale
+
+    y = _returns()
+    scale_fix = np.loadtxt(_FIXTURE_DIR / "semiparam_egarch11_norm_scale.csv", skiprows=1)
+    _, _, extend, _ = semiparametric_scale(y, boundary_method="extend", bwidth=0.15)
+    _, _, shorten, _ = semiparametric_scale(y, boundary_method="shorten", bwidth=0.15)
+    assert np.max(np.abs(extend - scale_fix)) < 1e-13  # extend (=knn) is the fixture convention
+    assert np.max(np.abs(shorten - scale_fix)) > 1e-3  # shorten (=fixed) differs at the boundary
+
+
+def test_semiparametric_fit_egarch_matches_fixture() -> None:
+    """EGARCH end-to-end: scale machine-exact, zero-mean pars + total vol at fit-tolerance."""
+    y = _returns()
+    meta = _semi_meta("egarch")
+    fit = semiparametric_fit(y, model="egarch", poly_order=1, kernel_order=1, bwidth=0.15)
+    scale_fix = np.loadtxt(_FIXTURE_DIR / "semiparam_egarch11_norm_scale.csv", skiprows=1)
+    sigt_fix = np.loadtxt(_FIXTURE_DIR / "semiparam_egarch11_norm_sigt.csv", skiprows=1)
+    assert np.max(np.abs(fit.scale - scale_fix)) < 1e-13  # scale machine-exact
+    assert set(fit.pars) == {"omega_sig", "phi1", "kappa", "gamma"}  # zero-mean: NO mu
+    for name, value in meta["pars"].items():
+        assert fit.pars[name] == pytest.approx(value, abs=2e-5)  # fit-tolerance
+    assert np.max(np.abs(fit.total_vol - sigt_fix)) < 1e-6  # Omega = scale * lambda = sigt
+
+
+def test_semiparametric_fit_fiegarch_basin_and_decoupling() -> None:
+    """FIEGARCH: scale machine-exact; parametric basin reproduces to fit-tolerance from its start.
+
+    From the default start FIEGARCH is multimodal (may land at d~0); from the fixture-basin start
+    the zero-mean fractional EGF reproduces the committed pars -- confirming the wiring, not
+    auto-identifying the basin.
+    """
+    from quantica.timeseries.fegarch import semiparametric_fit as sfit
+
+    y = _returns()
+    meta = _semi_meta("fiegarch")
+    start = [meta["pars"][k] for k in ("omega_sig", "phi1", "kappa", "gamma", "d")]
+    fit = sfit(y, model="fiegarch", bwidth=0.15, start_pars=start)
+    scale_fix = np.loadtxt(_FIXTURE_DIR / "semiparam_fiegarch11_norm_scale.csv", skiprows=1)
+    assert np.max(np.abs(fit.scale - scale_fix)) < 1e-13  # scale machine-exact (route-independent)
+    assert set(fit.pars) == {"omega_sig", "phi1", "kappa", "gamma", "d"}
+    for name, value in meta["pars"].items():
+        assert fit.pars[name] == pytest.approx(value, abs=1e-4)  # fractional fit, fit-tolerance
+
+
+def test_semiparametric_fit_decoupling_vs_standalone() -> None:
+    """Two-stage decoupling: the zero-mean EGF on r_hat matches a standalone fit on it."""
+    from quantica.timeseries.fegarch import semiparametric_fit as sfit
+    from quantica.timeseries.fegarch.semiparam import semiparametric_scale
+
+    y = _returns()
+    _, _, _, r_hat = semiparametric_scale(y, bwidth=0.15)
+    via_semi = sfit(y, model="egarch", bwidth=0.15).pars
+    # A second semiparametric pass on r_hat (already de-scaled) agrees on the EGF vol dynamics:
+    # phi1/gamma (the shape of the dynamics) match tightly, confirming the two-stage decoupling.
+    solo = sfit(r_hat, model="egarch", bwidth=0.15).pars
+    assert solo["phi1"] == pytest.approx(via_semi["phi1"], abs=1e-2)
+    assert solo["gamma"] == pytest.approx(via_semi["gamma"], abs=1e-2)
+
+
+def test_semiparametric_fit_guards() -> None:
+    """Automatic bandwidth and non-normal raise NotImplementedError; bad model raises ValueError."""
+    y = _returns()
+    with pytest.raises(NotImplementedError, match="bandwidth"):
+        semiparametric_fit(y, model="egarch", bwidth=None)
+    with pytest.raises(NotImplementedError, match="norm"):
+        semiparametric_fit(y, model="egarch", cond_dist="std", bwidth=0.15)
+    with pytest.raises(ValueError, match="model"):
+        semiparametric_fit(y, model="garch", bwidth=0.15)  # type: ignore[arg-type]

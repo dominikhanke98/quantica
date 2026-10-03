@@ -54,6 +54,20 @@ tolerance (not machine-exact). These limits, and the paper-vs-implementation
 :math:`(M+0.5)`-vs-:math:`(M+1)` Bartlett-weight divergence, are recorded in
 ``docs/fegarch-spec-notes.md``.
 
+**Sub-build 3 (the fixed-bandwidth semiparametric fit) — fully clean-room.**
+:func:`semiparametric_fit` wires the six-step WP171 §2.2.1 procedure: the sample mean
+:math:`\bar y`; the log-squared
+:math:`\tilde w_t = \ln[(y_t-\bar y)^2]`; the local-poly trend :math:`\hat m` at a *fixed* bandwidth
+(:func:`local_poly`); the **empirical** retransform correction
+:math:`\hat C_T = -\ln[n^{-1}\sum e^{\tilde w_t-\hat m_t}]`; the scale
+:math:`\hat s = \exp\{(\hat m-\hat C_T)/2\}` (:func:`semiparametric_scale`); the de-scaled returns
+:math:`\hat r = (y-\bar y)/\hat s`; and a **zero-mean** EGF fit on :math:`\hat r` giving the total
+volatility :math:`\hat\Omega = \hat s\,\tilde\sigma`. At a fixed user-supplied bandwidth the scale
+steps are **machine-exact** (and route-independent — the SM/LM selector only governs *automatic*
+bandwidth, bypassed here) and the parametric fit is at the established fit tolerance, so the whole
+semiparametric fit is clean-room-reproducible with **no** dependency on the blocked auto-selectors.
+Automatic bandwidth (``bwidth=None``) raises, pointing to the Bühlmann/Feng-Heiler gap.
+
 References
 ----------
 Feng, Y., Gries, T. & Fritz, M. (2020). "Data-Driven Local Polynomial for the Trend and its
@@ -64,20 +78,54 @@ long-range dependence and nonstationarity." *Computational Statistics & Data Ana
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from math import factorial
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
+from quantica.timeseries.fegarch.distributions import get_distribution
+from quantica.timeseries.fegarch.egarch import (
+    EGARCH_CONSTANTS,
+    _type1_variance,
+)
+from quantica.timeseries.fegarch.fiegarch import fiegarch_recursion
+from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from quantica.core.types import FloatArray
 
 __all__ = [
     "KERNELS",
+    "SemiparametricFit",
     "bartlett_variance_factor",
     "integrated_squared_derivative",
     "local_poly",
+    "semiparametric_fit",
+    "semiparametric_scale",
 ]
+
+#: locpol_spec boundary_method -> the gsmooth boundary rule (extend=knn/bb1, shorten=fixed/bb0).
+_BOUNDARY_MAP: dict[str, Literal["fixed", "knn"]] = {"extend": "knn", "shorten": "fixed"}
+
+#: Parameter names of the zero-mean EGF parametric stage, per model (no mu — the mean is ybar).
+_PARAMETRIC_NAMES: dict[str, tuple[str, ...]] = {
+    "egarch": ("omega_sig", "phi1", "kappa", "gamma"),
+    "fiegarch": ("omega_sig", "phi1", "kappa", "gamma", "d"),
+}
+#: Optimization bounds for the zero-mean EGF parametric stage, per model (aligned with the names).
+_PARAMETRIC_BOUNDS: dict[str, tuple[tuple[float, float], ...]] = {
+    "egarch": ((-50.0, 50.0), (-0.9999, 0.9999), (-10.0, 10.0), (-10.0, 10.0)),
+    "fiegarch": (
+        (-50.0, 50.0),
+        (-0.9999, 0.9999),
+        (-10.0, 10.0),
+        (-10.0, 10.0),
+        (0.0, 0.9999),
+    ),
+}
 
 #: The four second-order kernels ``locpol_spec`` exposes, keyed by the ``mu`` smoothness order.
 KERNELS: dict[int, str] = {0: "uniform", 1: "epanechnikov", 2: "bisquare", 3: "triweight"}
@@ -291,3 +339,240 @@ def bartlett_variance_factor(residuals: FloatArray, *, window: int) -> float:
     gamma = np.array([float(np.sum(r[: n - lag] * r[lag:]) / n) for lag in range(window + 1)])
     weights = 1.0 - np.arange(1, window + 1) / (window + 1)
     return float(gamma[0] + 2.0 * np.sum(weights * gamma[1:]))
+
+
+@dataclass(frozen=True)
+class SemiparametricFit:
+    r"""A fixed-bandwidth semiparametric EGF fit (nonparametric scale + zero-mean parametric EGF).
+
+    The total volatility decomposes as :math:`\sigma_t = \hat s(x_t)\,\tilde\sigma_t` — a smooth
+    deterministic scale :math:`\hat s` and the parametric conditional SD :math:`\tilde\sigma` of the
+    de-scaled returns :math:`\hat r_t = (r_t - \bar y)/\hat s_t`.
+
+    Attributes
+    ----------
+    mu : float
+        The mean :math:`\hat\mu = \bar y` (the sample mean — the semiparametric mean is not fitted).
+    c_t : float
+        The empirical retransform correction :math:`\hat C_T = -\ln[n^{-1}\sum_t e^{\hat u_t}]`.
+    scale : ndarray, shape (n,)
+        The nonparametric scale :math:`\hat s(x_t)`.
+    parametric_vol : ndarray, shape (n,)
+        The parametric conditional SD :math:`\tilde\sigma_t` of :math:`\hat r_t` (``lambda_hat``).
+    total_vol : ndarray, shape (n,)
+        The total volatility :math:`\hat\Omega_t = \hat s_t\,\tilde\sigma_t` (fEGarch's ``sigt``).
+    pars : dict of str to float
+        The zero-mean parametric EGF parameters (``omega_sig, phi1, kappa, gamma`` [, ``d``]).
+    loglikelihood : float
+        The parametric-stage maximized log-likelihood (on :math:`\hat r_t`).
+    model : str
+        The parametric EGF model (``"egarch"`` or ``"fiegarch"``).
+    bwidth : float
+        The fixed relative bandwidth used for the scale.
+    """
+
+    mu: float
+    c_t: float
+    scale: FloatArray
+    parametric_vol: FloatArray
+    total_vol: FloatArray
+    pars: dict[str, float]
+    loglikelihood: float
+    model: str
+    bwidth: float
+
+
+def semiparametric_scale(
+    returns: FloatArray,
+    *,
+    poly_order: int = 1,
+    kernel_order: int = 1,
+    boundary_method: Literal["extend", "shorten"] = "extend",
+    bwidth: float,
+) -> tuple[float, float, FloatArray, FloatArray]:
+    r"""The semiparametric scale :math:`\hat s(x_t)` at a fixed bandwidth (WP171 §2.2.1 steps 1--5).
+
+    The machine-exact, model-independent scale core: ``(1)`` :math:`\bar y = \mathrm{mean}(y)`,
+    :math:`\tilde w_t = \ln[(y_t-\bar y)^2]`; ``(2)`` :math:`\hat m(x_t)` = :func:`local_poly` of
+    :math:`\tilde w` at the fixed ``bwidth``; ``(3)`` the **empirical** retransform correction
+    :math:`\hat C_T = -\ln[n^{-1}\sum_t e^{\hat u_t}]`, :math:`\hat u_t = \tilde w_t - \hat m_t`
+    (the finite-sample-unbiasing correction forcing :math:`\operatorname{E}[e^{\hat u}] = 1` —
+    **not** the theoretical :math:`\operatorname{E}[\ln\zeta^2]`); ``(4)``
+    :math:`\hat s(x_t) = \exp\{(\hat m_t - \hat C_T)/2\}`; ``(5)``
+    :math:`\hat r_t = (y_t-\bar y)/\hat s_t`. Route-independent at a fixed bandwidth; reproduces
+    fEGarch's ``scale_fun`` to machine precision.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (n,)
+        The return series.
+    poly_order : int, optional
+        The local polynomial order (``locpol_spec`` ``poly_order``; 1 or 3). Default 1.
+    kernel_order : int, optional
+        The kernel smoothness order (``locpol_spec`` ``kernel_order`` / :data:`KERNELS`). Default 1.
+    boundary_method : {"extend", "shorten"}, optional
+        ``locpol_spec`` boundary method: ``"extend"`` (= gsmooth k-NN) or ``"shorten"`` (= fixed).
+    bwidth : float
+        The fixed relative bandwidth :math:`\in (0, 0.5)` (keyword-only, required).
+
+    Returns
+    -------
+    tuple
+        ``(mu, c_t, scale, standardized)`` — :math:`\bar y`, :math:`\hat C_T`, :math:`\hat s(x_t)`
+        and the de-scaled returns :math:`\hat r_t`.
+
+    Raises
+    ------
+    ValueError
+        If ``boundary_method`` is not ``"extend"``/``"shorten"``.
+    """
+    if boundary_method not in _BOUNDARY_MAP:
+        raise ValueError(f"boundary_method must be 'extend' or 'shorten', got {boundary_method!r}")
+    y = np.asarray(returns, dtype=np.float64)
+    mu = float(y.mean())
+    demeaned = y - mu
+    log_sq = np.log(demeaned**2)
+    m_hat = local_poly(
+        log_sq,
+        v=0,
+        p=poly_order,
+        mu=kernel_order,
+        bandwidth=bwidth,
+        boundary=_BOUNDARY_MAP[boundary_method],
+    )
+    c_t = -float(np.log(np.mean(np.exp(log_sq - m_hat))))
+    scale = np.exp((m_hat - c_t) / 2.0)
+    standardized = demeaned / scale
+    return mu, c_t, np.asarray(scale, dtype=np.float64), np.asarray(standardized, dtype=np.float64)
+
+
+def semiparametric_fit(
+    returns: FloatArray,
+    *,
+    model: Literal["egarch", "fiegarch"] = "egarch",
+    cond_dist: str = "norm",
+    poly_order: int = 1,
+    kernel_order: int = 1,
+    boundary_method: Literal["extend", "shorten"] = "extend",
+    bwidth: float | None,
+    start_pars: Sequence[float] | None = None,
+) -> SemiparametricFit:
+    r"""Fixed-bandwidth semiparametric EGF fit (WP171 §2.2.1, all six steps).
+
+    Estimates the nonparametric scale (:func:`semiparametric_scale`, steps 1--5, machine-exact),
+    then fits a **zero-mean** EGF model (``"egarch"``/``"fiegarch"``) to the de-scaled returns
+    :math:`\hat r_t` (step 6), returning the total volatility
+    :math:`\hat\Omega = \hat s\,\tilde\sigma` (fEGarch's ``sigt``). The parametric stage reuses the
+    existing EGF recursions with the mean fixed at 0 (the mean is already :math:`\bar y`), so its
+    fit vector is ``(omega_sig, phi1, kappa, gamma)`` for EGARCH (``+ d`` for FIEGARCH), **no**
+    :math:`\mu`. The scale is reproduced machine-exactly; the parametric fit matches fEGarch to the
+    port's established fit tolerance.
+
+    .. note::
+
+        **Automatic bandwidth is not implemented** (``bwidth=None`` raises): it needs the Bühlmann
+        (1996) + Feng-Heiler (2009) machinery, unavailable in ``literature/``. Supply a fixed
+        ``bwidth`` in ``(0, 0.5)``. **FIEGARCH is multimodal** (Phase-4 weak-identification): from
+        the default start the fit may land in a :math:`d \approx 0` basin; pass ``start_pars`` to
+        target a specific basin. EGARCH is well-identified.
+
+    Parameters
+    ----------
+    returns : ndarray, shape (n,)
+        The return series.
+    model : {"egarch", "fiegarch"}, optional
+        The parametric EGF model for the de-scaled returns. Default ``"egarch"``.
+    cond_dist : str, optional
+        The conditional distribution; only ``"norm"`` is supported (the committed fixtures).
+    poly_order, kernel_order : int, optional
+        The local-polynomial order and kernel smoothness for the scale (default 1, 1).
+    boundary_method : {"extend", "shorten"}, optional
+        The scale boundary method (default ``"extend"``).
+    bwidth : float or None
+        The fixed relative bandwidth in ``(0, 0.5)``; ``None`` raises ``NotImplementedError``.
+    start_pars : sequence of float or None, optional
+        Optional start for the parametric stage; defaults to a data-driven start.
+
+    Returns
+    -------
+    SemiparametricFit
+        The scale, parametric and total volatilities, and the zero-mean EGF parameters.
+
+    Raises
+    ------
+    NotImplementedError
+        If ``bwidth`` is ``None`` or ``cond_dist`` is not ``"norm"``.
+    ValueError
+        If ``model`` is not supported.
+    """
+    if bwidth is None:
+        raise NotImplementedError(
+            "automatic bandwidth selection is not implemented (needs Bühlmann 1996 + "
+            "Feng-Heiler 2009, unavailable); supply a fixed bwidth in (0, 0.5)"
+        )
+    if cond_dist != "norm":
+        raise NotImplementedError(
+            f"semiparametric_fit currently supports cond_dist='norm' only, got {cond_dist!r} "
+            "(non-normal reuses the Phase-2/4 per-iteration centering — deferred)"
+        )
+    if model not in _PARAMETRIC_NAMES:
+        raise ValueError(f"model must be 'egarch' or 'fiegarch', got {model!r}")
+
+    mu, c_t, scale, r_hat = semiparametric_scale(
+        returns,
+        poly_order=poly_order,
+        kernel_order=kernel_order,
+        boundary_method=boundary_method,
+        bwidth=bwidth,
+    )
+    e_abs = get_distribution("norm").abs_moment(None)  # E|z| = sqrt(2/pi)
+    names = _PARAMETRIC_NAMES[model]
+    bounds = _PARAMETRIC_BOUNDS[model]
+    log_var0 = float(np.log(np.var(r_hat, ddof=1)))
+
+    if model == "egarch":
+
+        def recursion(params: FloatArray, series: FloatArray) -> FloatArray:
+            return _type1_variance(
+                (0.0, *params), series, constants=EGARCH_CONSTANTS, mean_asy=0.0, mean_mag=e_abs
+            )
+
+        default_start: tuple[float, ...] = (log_var0, 0.9, 0.0, 0.1)
+        method: str = "L-BFGS-B"
+        options: dict[str, object] | None = None
+    else:  # fiegarch
+
+        def recursion(params: FloatArray, series: FloatArray) -> FloatArray:
+            return fiegarch_recursion((0.0, *params), series, abs_moment=e_abs)
+
+        default_start = (log_var0, 0.5, 0.0, 0.1, 0.3)
+        method = "Nelder-Mead"
+        options = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
+
+    start = tuple(float(p) for p in start_pars) if start_pars is not None else default_start
+    with np.errstate(over="ignore", invalid="ignore"):  # exp overflow in bad optimizer regions
+        result = quasi_max_likelihood(
+            r_hat,
+            recursion,
+            get_distribution("norm"),
+            var_start=start,
+            var_bounds=bounds,
+            var_names=names,
+            mean=False,
+            method=method,
+            options=options,
+        )
+    pars = {name: float(v) for name, v in zip(names, result.params, strict=True)}
+    parametric_vol = np.sqrt(result.conditional_variance)
+    total_vol = scale * parametric_vol
+    return SemiparametricFit(
+        mu=mu,
+        c_t=c_t,
+        scale=scale,
+        parametric_vol=np.asarray(parametric_vol, dtype=np.float64),
+        total_vol=np.asarray(total_vol, dtype=np.float64),
+        pars=pars,
+        loglikelihood=float(result.loglikelihood),
+        model=model,
+        bwidth=float(bwidth),
+    )
