@@ -1,0 +1,10 @@
+{
+  "model": "fiegarch(1,1)/norm semiparametric (use_nonpar=TRUE, fixed bandwidth, LM route)", "package": "fEGarch",
+  "n": 2500, "input": "synthetic_returns.csv",
+  "nonparspec": {"poly_order": 1, "kernel_order": 1, "boundary_method": "extend", "bwidth": 0.15},
+  "nonpar_model_class": "smoots", "ybar": 0.00048375227856886096, "C_T": -1.3754726484562365,
+  "pars": {"omega_sig": -0.45116921910433699, "phi1": 0.44845787029286344, "kappa": -0.01798803768611134, "gamma": 0.16515938518722209, "d": 0.71901082447080866},
+  "scale_head": [0.013984587481878918, 0.013977480645311938, 0.013970377504599464], "sigt_head": [0.011160393536765898, 0.011052858690462233, 0.010552056549805303],
+  "note": "confirms the LM-route (fiegarch -> esemifar scale selector) ALSO works at fixed bwidth: scale reconstruction machine-exact via the same 6-step procedure (C_T correction), fractional EGF fit on r_hat. Scale step identical to the SM route at fixed bwidth.",
+  "fegarch_version": "1.0.6"
+}
