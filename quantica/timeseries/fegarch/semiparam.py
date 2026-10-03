@@ -533,8 +533,9 @@ def semiparametric_fit(
     if model == "egarch":
 
         def recursion(params: FloatArray, series: FloatArray) -> FloatArray:
+            full = np.concatenate(([0.0], np.asarray(params, dtype=np.float64)))
             return _type1_variance(
-                (0.0, *params), series, constants=EGARCH_CONSTANTS, mean_asy=0.0, mean_mag=e_abs
+                full, series, constants=EGARCH_CONSTANTS, mean_asy=0.0, mean_mag=e_abs
             )
 
         default_start: tuple[float, ...] = (log_var0, 0.9, 0.0, 0.1)
@@ -543,7 +544,8 @@ def semiparametric_fit(
     else:  # fiegarch
 
         def recursion(params: FloatArray, series: FloatArray) -> FloatArray:
-            return fiegarch_recursion((0.0, *params), series, abs_moment=e_abs)
+            full = np.concatenate(([0.0], np.asarray(params, dtype=np.float64)))
+            return fiegarch_recursion(full, series, abs_moment=e_abs)
 
         default_start = (log_var0, 0.5, 0.0, 0.1, 0.3)
         method = "Nelder-Mead"
