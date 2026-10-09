@@ -281,8 +281,8 @@ semiparametric fit needs the blocked auto-selector at all (esemifar-LM default? 
 fixed-bandwidth path? validate vs fEGarch's `Ω̂=ŝ·σ̃` output?). Clean-room (§12): from the papers,
 validated against smoots/esemifar OUTPUT, never their source.
 
-**Phase 7 sub-build 3 — the fixed-bandwidth semiparametric EGF fit — BUILT** (on
-`feat/fegarch-semiparam`, pushed for CI; NOT merged), **completing Phase 7's reproducible scope.**
+**Phase 7 sub-build 3 — the fixed-bandwidth semiparametric EGF fit — COMPLETE + MERGED** (PR #26 →
+`main` `88c9d6e`, CI green on py3.11/3.12), **completing Phase 7's reproducible scope.**
 `semiparametric_fit` / `semiparametric_scale` (`quantica/…/semiparam.py`) wire the 6-step WP171 §2.2.1
 procedure, validated against `semiparam_{egarch,fiegarch}11_norm_*`: ȳ→w̃=ln((y−ȳ)²)→m̂ local-poly at a
 FIXED bwidth→**empirical `Ĉ_T=−ln[n⁻¹Σexp(w̃−m̂)]`** (=−1.37547; corrects the earlier theoretical-C_μ
@@ -295,13 +295,25 @@ multimodality means the default start may land at d≈0). Pinned the deferred bo
 `NotImplementedError` (automatic bandwidth needs Bühlmann 1996 + Feng-Heiler 2009, unavailable). Spec:
 `docs/fegarch-spec-notes.md` §32.
 
-**PHASE 7 (all 3 sub-builds) COMPLETE — reproducible scope.** The branch holds: sub-build 1 (`local_poly`,
-machine-exact); sub-build 2 (derivative/`I[m^(k)]`/SM-Bartlett-`c_f` machine-exact; IPI auto-iterator +
-LM-`c_f` + auto-lag documented-blocked); sub-build 3 (fixed-bwidth semiparametric fit, machine-exact
-scale + fit-tolerance parametric). **The single documented limit is AUTOMATIC data-driven bandwidth**
-(Bühlmann 1996 + Feng-Heiler 2009 — irreducible from available literature). **This closes Phase 7's
-clean-room-reproducible scope and the entire fEGarch port** (modelling, distribution breadth, dual mean,
-forecasting, risk tie-back, diagnostics, and the semiparametric scale at a user-supplied bandwidth).
+**PHASE 7 COMPLETE + MERGED — reproducible scope** (PR #26 → `main` `88c9d6e`). On `main`:
+**sub-build 1** — `local_poly` (machine-exact local-polynomial regression; 4 kernels × 2 poly orders ×
+2 boundaries); **sub-build 2** — derivative `local_poly(v=k)` / `I[m^(k)]` / SM-Bartlett `c_f`
+machine-exact, with the IPI auto-iterator + LM-`c_f` (fit-tolerance) + SM auto-lag documented-blocked;
+**sub-build 3** — fixed-bandwidth semiparametric EGF fit (6-step WP171 §2.2.1 — empirical `Ĉ_T`,
+machine-exact scale ~6e-16 route-independent, fit-tolerance parametric). **The single documented limit
+is AUTOMATIC data-driven bandwidth selection**, blocked on **Bühlmann (1996)** (the SM `L0.opt` lag
+IPI) + **Feng-Heiler (2009)** (the AMISE kernel constants), both unavailable in `literature/` —
+*irreducible-from-available-literature*. The semiparametric fit is **fully reproducible at a
+USER-SPECIFIED bandwidth**; `semiparametric_fit(bwidth=None)` raises `NotImplementedError` pointing to
+the gap.
+
+**This completes the fEGarch roadmap through Phase 7** — every phase done to the extent reproducible
+from available literature (modelling: short-memory + EGF + fractional/long-memory; the full eight-
+distribution breadth; dual mean; forecasting `predict` + `predict_roll`; VaR/ES + the risk-pillar
+backtest tie-back; residual diagnostics; and the semiparametric scale at a user-supplied bandwidth) —
+with exactly **two precisely-attributed missing-paper gaps, both inside the auto-bandwidth selector**
+(Bühlmann 1996 + Feng-Heiler 2009), each of which closes in an afternoon with library access. The
+fEGarch clean-room port is DONE.
 
 ## Completed
 
