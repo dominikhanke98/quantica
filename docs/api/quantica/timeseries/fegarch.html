@@ -64,6 +64,9 @@
                     <a class="variable" href="#FIGARCH_PRESAMPLE">FIGARCH_PRESAMPLE</a>
             </li>
             <li>
+                    <a class="variable" href="#KERNELS">KERNELS</a>
+            </li>
+            <li>
                     <a class="variable" href="#MEGARCH_CONSTANTS">MEGARCH_CONSTANTS</a>
             </li>
             <li>
@@ -454,6 +457,42 @@
 
             </li>
             <li>
+                    <a class="class" href="#SemiparametricFit">SemiparametricFit</a>
+                            <ul class="memberlist">
+                        <li>
+                                <a class="function" href="#SemiparametricFit.__init__">SemiparametricFit</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.mu">mu</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.c_t">c_t</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.scale">scale</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.parametric_vol">parametric_vol</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.total_vol">total_vol</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.pars">pars</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.loglikelihood">loglikelihood</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.model">model</a>
+                        </li>
+                        <li>
+                                <a class="variable" href="#SemiparametricFit.bwidth">bwidth</a>
+                        </li>
+                </ul>
+
+            </li>
+            <li>
                     <a class="class" href="#SignBiasResult">SignBiasResult</a>
                             <ul class="memberlist">
                         <li>
@@ -527,6 +566,9 @@
             </li>
             <li>
                     <a class="function" href="#arma_mean_residuals">arma_mean_residuals</a>
+            </li>
+            <li>
+                    <a class="function" href="#bartlett_variance_factor">bartlett_variance_factor</a>
             </li>
             <li>
                     <a class="function" href="#egarch_recursion">egarch_recursion</a>
@@ -682,6 +724,12 @@
                     <a class="function" href="#initial_variance">initial_variance</a>
             </li>
             <li>
+                    <a class="function" href="#integrated_squared_derivative">integrated_squared_derivative</a>
+            </li>
+            <li>
+                    <a class="function" href="#local_poly">local_poly</a>
+            </li>
+            <li>
                     <a class="function" href="#loggarch_recursion">loggarch_recursion</a>
             </li>
             <li>
@@ -710,6 +758,12 @@
             </li>
             <li>
                     <a class="function" href="#quasi_max_likelihood">quasi_max_likelihood</a>
+            </li>
+            <li>
+                    <a class="function" href="#semiparametric_fit">semiparametric_fit</a>
+            </li>
+            <li>
+                    <a class="function" href="#semiparametric_scale">semiparametric_scale</a>
             </li>
             <li>
                     <a class="function" href="#sign_bias_test">sign_bias_test</a>
@@ -905,7 +959,15 @@ approximation, on the simple and squared standardized residuals), the Engle-Ng s
 (<code>~<a href="#sign_bias_test">quantica.timeseries.fegarch.sign_bias_test()</a></code>), and the PIT Pearson goodness-of-fit test
 (<code>~<a href="#goodness_of_fit_test">quantica.timeseries.fegarch.goodness_of_fit_test()</a></code>), bundled by
 <code>~<a href="#fit_test_suite">quantica.timeseries.fegarch.fit_test_suite()</a></code> — reproducing fEGarch's p-values to machine
-precision. See <code>docs/fegarch-port-roadmap.md</code>.</p>
+precision.</p>
+
+<p><strong>Phase 7 — semiparametric scale</strong> (optional; in progress). The deterministic <strong>local-polynomial
+regression</strong> (<code>~<a href="fegarch/semiparam.html">quantica.timeseries.fegarch.semiparam</a></code>,
+<code>~<a href="#local_poly">quantica.timeseries.fegarch.local_poly()</a></code>) is the scale-estimation core (sub-build 1): a
+weighted-least-squares local polynomial at a <em>given</em> bandwidth (kernels <code><a href="#KERNELS">KERNELS</a></code>
+\( (1-u^2)^\mu \), boundary <code>fixed</code>/<code>knn</code>), reproducing <code>smoots::gsmooth</code> machine-exactly.
+The data-driven (iterative-plug-in) bandwidth and the semiparametric wiring into the EGARCH family
+are the next sub-builds. See <code>docs/fegarch-port-roadmap.md</code>.</p>
 </div>
 
                 
@@ -945,6 +1007,18 @@ precision. See <code>docs/fegarch-port-roadmap.md</code>.</p>
         
     </div>
     <a class="headerlink" href="#FIGARCH_PRESAMPLE"></a>
+    
+    
+
+                </section>
+                <section id="KERNELS">
+                    <div class="attr variable">
+            <span class="name">KERNELS</span>        =
+<span class="default_value">{0: &#39;uniform&#39;, 1: &#39;epanechnikov&#39;, 2: &#39;bisquare&#39;, 3: &#39;triweight&#39;}</span>
+
+        
+    </div>
+    <a class="headerlink" href="#KERNELS"></a>
     
     
 
@@ -2778,6 +2852,160 @@ The number of held-out test points forecast.</li>
 
                             </div>
                 </section>
+                <section id="SemiparametricFit">
+                    <div class="attr class">
+                    <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
+
+    <span class="def">class</span>
+    <span class="name">SemiparametricFit</span>:
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit"></a>
+    
+            <div class="docstring"><p>A fixed-bandwidth semiparametric EGF fit (nonparametric scale + zero-mean parametric EGF).</p>
+
+<p>The total volatility decomposes as \( \sigma_t = \hat s(x_t)\,\tilde\sigma_t \) — a smooth
+deterministic scale \( \hat s \) and the parametric conditional SD \( \tilde\sigma \) of the
+de-scaled returns \( \hat r_t = (r_t - \bar y)/\hat s_t \).</p>
+
+<h6 id="attributes">Attributes</h6>
+
+<ul>
+<li><strong>mu</strong> (float):
+The mean \( \hat\mu = \bar y \) (the sample mean — the semiparametric mean is not fitted).</li>
+<li><strong>c_t</strong> (float):
+The empirical retransform correction \( \hat C_T = -\ln[n^{-1}\sum_t e^{\hat u_t}] \).</li>
+<li><strong>scale</strong> (ndarray, shape (n,)):
+The nonparametric scale \( \hat s(x_t) \).</li>
+<li><strong>parametric_vol</strong> (ndarray, shape (n,)):
+The parametric conditional SD \( \tilde\sigma_t \) of \( \hat r_t \) (<code>lambda_hat</code>).</li>
+<li><strong>total_vol</strong> (ndarray, shape (n,)):
+The total volatility \( \hat\Omega_t = \hat s_t\,\tilde\sigma_t \) (fEGarch's <code>sigt</code>).</li>
+<li><strong>pars</strong> (dict of str to float):
+The zero-mean parametric EGF parameters (<code>omega_sig, phi1, kappa, gamma</code> [, <code>d</code>]).</li>
+<li><strong>loglikelihood</strong> (float):
+The parametric-stage maximized log-likelihood (on \( \hat r_t \)).</li>
+<li><strong>model</strong> (str):
+The parametric EGF model (<code>"egarch"</code> or <code>"fiegarch"</code>).</li>
+<li><strong>bwidth</strong> (float):
+The fixed relative bandwidth used for the scale.</li>
+</ul>
+</div>
+
+
+                            <div id="SemiparametricFit.__init__" class="classattr">
+                                <div class="attr function">
+            
+        <span class="name">SemiparametricFit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">c_t</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">scale</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">parametric_vol</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">total_vol</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="n">pars</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>,</span><span class="param">	<span class="n">loglikelihood</span><span class="p">:</span> <span class="nb">float</span>,</span><span class="param">	<span class="n">model</span><span class="p">:</span> <span class="nb">str</span>,</span><span class="param">	<span class="n">bwidth</span><span class="p">:</span> <span class="nb">float</span></span>)</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.__init__"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.mu" class="classattr">
+                                <div class="attr variable">
+            <span class="name">mu</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.mu"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.c_t" class="classattr">
+                                <div class="attr variable">
+            <span class="name">c_t</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.c_t"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.scale" class="classattr">
+                                <div class="attr variable">
+            <span class="name">scale</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.scale"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.parametric_vol" class="classattr">
+                                <div class="attr variable">
+            <span class="name">parametric_vol</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.parametric_vol"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.total_vol" class="classattr">
+                                <div class="attr variable">
+            <span class="name">total_vol</span><span class="annotation">: numpy.ndarray[tuple[typing.Any, ...], numpy.dtype[numpy.float64]]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.total_vol"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.pars" class="classattr">
+                                <div class="attr variable">
+            <span class="name">pars</span><span class="annotation">: dict[str, float]</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.pars"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.loglikelihood" class="classattr">
+                                <div class="attr variable">
+            <span class="name">loglikelihood</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.loglikelihood"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.model" class="classattr">
+                                <div class="attr variable">
+            <span class="name">model</span><span class="annotation">: str</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.model"></a>
+    
+    
+
+                            </div>
+                            <div id="SemiparametricFit.bwidth" class="classattr">
+                                <div class="attr variable">
+            <span class="name">bwidth</span><span class="annotation">: float</span>
+
+        
+    </div>
+    <a class="headerlink" href="#SemiparametricFit.bwidth"></a>
+    
+    
+
+                            </div>
+                </section>
                 <section id="SignBiasResult">
                     <div class="attr class">
                     <div class="decorator decorator-dataclass">@dataclass(frozen=True)</div>
@@ -3164,6 +3392,61 @@ The MA(1) coefficient \( \alpha_1 \) (default <code>0</code>).</li>
 
 <ul>
 <li><strong>ndarray, shape (T,)</strong>: The mean-residuals \( r_t \).</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="bartlett_variance_factor">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">bartlett_variance_factor</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">residuals</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">window</span><span class="p">:</span> <span class="nb">int</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#bartlett_variance_factor"></a>
+    
+            <div class="docstring"><p>The short-memory variance factor \( c_f \) by a Bartlett lag-window, given window <code>M</code>.</p>
+
+<p>$$\hat c_f = \hat\gamma_0 + 2\sum_{l=1}^{M}\left(1 - \frac{l}{M+1}\right)\hat\gamma_l,$$</p>
+
+<p>with \( \hat\gamma_l \) the <strong>biased</strong> (divide-by-\( n \)) sample autocovariances of the
+(detrended) <code>residuals</code> and \( M \) the lag-window width. Validated against <code>smoots</code>'
+<code>Mcf = "NP"</code> output: recomputing the residuals from the series at the selected bandwidth and
+applying this sum reproduces <code>cf0</code> exactly.</p>
+
+<div class="alert note">
+
+<p><strong>Paper-vs-implementation divergence (documented).</strong> Feng-Gries-Fritz (2020) write the
+Bartlett weights as \( 1 - |l|/(M + 0.5) \); smoots' implementation uses
+\( 1 - |l|/(M + 1) \). Validating against OUTPUT (CLAUDE.md §12), this uses <code>M + 1</code>.
+<strong>The automatic selection of the window <code>M</code> (<code>L0.opt</code>) is NOT implemented</strong> — it is the
+Bühlmann (1996) nested spectral-density IPI, whose defining equations are not reproduced in
+Feng-Gries-Fritz (2020) and whose source (Bühlmann 1996) is unavailable; <code>M</code> must
+therefore be supplied (smoots permits manual control). See <code>docs/fegarch-spec-notes.md</code>.</p>
+
+</div>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>residuals</strong> (ndarray, shape (n,)):
+The detrended residuals.</li>
+<li><strong>window</strong> (int):
+The Bartlett lag-window width \( M \ge 0 \) (the smoots <code>L0.opt</code>, supplied).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The variance factor \( \hat c_f \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>window</code> is negative or not smaller than the series length.</li>
 </ul>
 </div>
 
@@ -5064,6 +5347,125 @@ The (mean-zero) return series.</li>
 
 
                 </section>
+                <section id="integrated_squared_derivative">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">integrated_squared_derivative</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">k</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="nb">int</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>,</span><span class="param">	<span class="n">boundary</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;fixed&#39;</span><span class="p">,</span> <span class="s1">&#39;knn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;knn&#39;</span>,</span><span class="param">	<span class="n">cb</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>,</span><span class="param">	<span class="n">db</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.95</span></span><span class="return-annotation">) -> <span class="nb">float</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#integrated_squared_derivative"></a>
+    
+            <div class="docstring"><p>The integrated squared <code>k</code>-th derivative \( I[m^{(k)}] \) (the AMISE numerator).</p>
+
+<p>The AMISE numerator of the IPI: estimate \( m^{(k)} \) by <code><a href="#local_poly">local_poly()</a></code> (<code>v = k</code>) at
+the given bandwidth, then <strong>trapezoidally</strong> integrate its square over the interior
+\( x \in [c_b, d_b] \) (the equidistant grid points there), matching Feng-Gries-Fritz (2020).</p>
+
+<div class="alert note">
+
+<p>In the full IPI this is evaluated at an <em>inflated pilot bandwidth</em> \( h_d = h^a \) whose
+value comes from the (Feng-Heiler-2009-tabulated) kernel constants — so a direct match to a
+fixture's stored <code>I2</code> requires that pilot bandwidth (the AMISE iteration, deferred). This
+function supplies the integrand/quadrature mechanism only.</p>
+
+</div>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>y</strong> (ndarray, shape (n,)):
+The equidistant series.</li>
+<li><strong>k</strong> (int):
+The derivative order (<code>k = p_trend + 1</code>).</li>
+<li><strong>p</strong> (int):
+The local polynomial degree for the derivative estimate (<code>p - k</code> odd, <code>p &gt;= k + 1</code>).</li>
+<li><strong>mu</strong> (int, optional):
+The kernel smoothness order (default 1).</li>
+<li><strong>bandwidth</strong> (float, optional):
+The (pilot) bandwidth at which \( m^{(k)} \) is estimated (default 0.15).</li>
+<li><strong>boundary</strong> ({"fixed", "knn"}, optional):
+The boundary rule (default <code>"knn"</code>).</li>
+<li><strong>cb, db</strong> (float, optional):
+The interior integration limits on the rescaled time axis (default <code>0.05</code>, <code>0.95</code>).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>float</strong>: The integrated squared derivative over \( [c_b, d_b] \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>cb</code>/<code>db</code> are not <code>0 &lt;= cb &lt; db &lt;= 1</code>.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="local_poly">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">local_poly</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">v</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>,</span><span class="param">	<span class="n">p</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span>,</span><span class="param">	<span class="n">mu</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">bandwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span>,</span><span class="param">	<span class="n">boundary</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;fixed&#39;</span><span class="p">,</span> <span class="s1">&#39;knn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;knn&#39;</span></span><span class="return-annotation">) -> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#local_poly"></a>
+    
+            <div class="docstring"><p>Local-polynomial estimate of the trend or its <code>v</code>-th derivative (<code>gsmooth</code> core).</p>
+
+<p>Weighted-least-squares local-polynomial regression of <code>y</code> on the rescaled equidistant time
+grid \( x_t = t/n \in (0, 1] \). For <code>v = 0</code> this is the fitted trend \( \hat m(x_t) \);
+for <code>v \ge 1</code> it is the \( v \)-th derivative \( \hat m^{(v)}(x_t) \) <strong>with respect to
+the rescaled time</strong> — the WLS coefficient of the degree-<code>v</code> term times \( v! \) and times
+\( n^{v} \) (the chain-rule factor converting the index-offset derivative to the \( x \)
+derivative). Reproduces <code>smoots::gsmooth(y, v, p, mu, b, bb)</code> machine-exactly (<code>v = 0</code>); for
+<code>v \ge 1</code> the \( n^{v} \) factor amplifies the ~1e-15 relative floating-point error of the
+high-order WLS solve to ~1e-9 (<code>v = 2</code>) / ~1e-3 (<code>v = 4</code>) absolute — a documented
+FP-amplification, not a convention gap.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>y</strong> (ndarray, shape (n,)):
+The equidistant series to smooth (e.g. the log-squared demeaned returns for the scale).</li>
+<li><strong>v</strong> (int, optional):
+The derivative order to estimate (0 = the trend itself). Default 0. The IPI's integrated
+squared derivative \( I[m^{(k)}] \) uses <code>v = k = p_trend + 1</code>.</li>
+<li><strong>p</strong> (int, optional):
+The local polynomial degree; must satisfy <code>p &gt;= v + 1</code> with <code>p - v</code> <strong>odd</strong>. Default 3.</li>
+<li><strong>mu</strong> (int, optional):
+The kernel smoothness order — a key of <code><a href="#KERNELS">KERNELS</a></code> (0 uniform, 1 Epanechnikov, 2
+bisquare, 3 triweight). Default 1.</li>
+<li><strong>bandwidth</strong> (float, optional):
+The relative bandwidth \( b \in (0, 0.5) \); the bandwidth in points is
+\( m = \lfloor n b \rfloor \). Default 0.15.</li>
+<li><strong>boundary</strong> ({"fixed", "knn"}, optional):
+The boundary rule: <code>"fixed"</code> (smoots <code>bb=0</code>) truncates the window; <code>"knn"</code> (smoots
+<code>bb=1</code>, the default) keeps \( 2m+1 \) nearest points.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>ndarray, shape (n,)</strong>: The local-polynomial estimate \( \hat m^{(v)}(x_t) \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>v</code> is negative, <code>p</code> does not satisfy <code>p &gt;= v + 1</code> with <code>p - v</code> odd, <code>mu</code> is
+not a supported kernel order, <code>bandwidth</code> is not in <code>(0, 0.5)</code>, or the series is too
+short for the window.</li>
+</ul>
+</div>
+
+
+                </section>
                 <section id="loggarch_recursion">
                     <div class="attr function">
             
@@ -5543,6 +5945,125 @@ whose variance recursion does not consume shape parameters).</li>
 
 <ul>
 <li><strong>ValueError</strong>: If the variance metadata lengths disagree.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="semiparametric_fit">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">semiparametric_fit</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">model</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;egarch&#39;</span><span class="p">,</span> <span class="s1">&#39;fiegarch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;egarch&#39;</span>,</span><span class="param">	<span class="n">cond_dist</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>,</span><span class="param">	<span class="n">poly_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">kernel_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">boundary_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">,</span> <span class="s1">&#39;shorten&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;extend&#39;</span>,</span><span class="param">	<span class="n">bwidth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span>,</span><span class="param">	<span class="n">start_pars</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></span><span class="return-annotation">) -> <span class="n"><a href="#SemiparametricFit">SemiparametricFit</a></span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#semiparametric_fit"></a>
+    
+            <div class="docstring"><p>Fixed-bandwidth semiparametric EGF fit (WP171 §2.2.1, all six steps).</p>
+
+<p>Estimates the nonparametric scale (<code><a href="#semiparametric_scale">semiparametric_scale()</a></code>, steps 1--5, machine-exact),
+then fits a <strong>zero-mean</strong> EGF model (<code>"egarch"</code>/<code>"fiegarch"</code>) to the de-scaled returns
+\( \hat r_t \) (step 6), returning the total volatility
+\( \hat\Omega = \hat s\,\tilde\sigma \) (fEGarch's <code>sigt</code>). The parametric stage reuses the
+existing EGF recursions with the mean fixed at 0 (the mean is already \( \bar y \)), so its
+fit vector is <code>(omega_sig, phi1, kappa, gamma)</code> for EGARCH (<code>+ d</code> for FIEGARCH), <strong>no</strong>
+\( \mu \). The scale is reproduced machine-exactly; the parametric fit matches fEGarch to the
+port's established fit tolerance.</p>
+
+<div class="alert note">
+
+<p><strong>Automatic bandwidth is not implemented</strong> (<code>bwidth=None</code> raises): it needs the Bühlmann
+(1996) + Feng-Heiler (2009) machinery, unavailable in <code>literature/</code>. Supply a fixed
+<code>bwidth</code> in <code>(0, 0.5)</code>. <strong>FIEGARCH is multimodal</strong> (Phase-4 weak-identification): from
+the default start the fit may land in a \( d \approx 0 \) basin; pass <code>start_pars</code> to
+target a specific basin. EGARCH is well-identified.</p>
+
+</div>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (n,)):
+The return series.</li>
+<li><strong>model</strong> ({"egarch", "fiegarch"}, optional):
+The parametric EGF model for the de-scaled returns. Default <code>"egarch"</code>.</li>
+<li><strong>cond_dist</strong> (str, optional):
+The conditional distribution; only <code>"norm"</code> is supported (the committed fixtures).</li>
+<li><strong>poly_order, kernel_order</strong> (int, optional):
+The local-polynomial order and kernel smoothness for the scale (default 1, 1).</li>
+<li><strong>boundary_method</strong> ({"extend", "shorten"}, optional):
+The scale boundary method (default <code>"extend"</code>).</li>
+<li><strong>bwidth</strong> (float or None):
+The fixed relative bandwidth in <code>(0, 0.5)</code>; <code>None</code> raises <code>NotImplementedError</code>.</li>
+<li><strong>start_pars</strong> (sequence of float or None, optional):
+Optional start for the parametric stage; defaults to a data-driven start.</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>SemiparametricFit</strong>: The scale, parametric and total volatilities, and the zero-mean EGF parameters.</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>NotImplementedError</strong>: If <code>bwidth</code> is <code>None</code> or <code>cond_dist</code> is not <code>"norm"</code>.</li>
+<li><strong>ValueError</strong>: If <code>model</code> is not supported.</li>
+</ul>
+</div>
+
+
+                </section>
+                <section id="semiparametric_scale">
+                    <div class="attr function">
+            
+        <span class="def">def</span>
+        <span class="name">semiparametric_scale</span><span class="signature pdoc-code multiline">(<span class="param">	<span class="n">returns</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]</span>,</span><span class="param">	<span class="o">*</span>,</span><span class="param">	<span class="n">poly_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">kernel_order</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>,</span><span class="param">	<span class="n">boundary_method</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;extend&#39;</span><span class="p">,</span> <span class="s1">&#39;shorten&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;extend&#39;</span>,</span><span class="param">	<span class="n">bwidth</span><span class="p">:</span> <span class="nb">float</span></span><span class="return-annotation">) -> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">float64</span><span class="p">]]]</span>:</span></span>
+
+        
+    </div>
+    <a class="headerlink" href="#semiparametric_scale"></a>
+    
+            <div class="docstring"><p>The semiparametric scale \( \hat s(x_t) \) at a fixed bandwidth (WP171 §2.2.1 steps 1--5).</p>
+
+<p>The machine-exact, model-independent scale core: <code>(1)</code> \( \bar y = \mathrm{mean}(y) \),
+\( \tilde w_t = \ln[(y_t-\bar y)^2] \); <code>(2)</code> \( \hat m(x_t) \) = <code><a href="#local_poly">local_poly()</a></code> of
+\( \tilde w \) at the fixed <code>bwidth</code>; <code>(3)</code> the <strong>empirical</strong> retransform correction
+\( \hat C_T = -\ln[n^{-1}\sum_t e^{\hat u_t}] \), \( \hat u_t = \tilde w_t - \hat m_t \)
+(the finite-sample-unbiasing correction forcing \( \operatorname{E}[e^{\hat u}] = 1 \) —
+<strong>not</strong> the theoretical \( \operatorname{E}[\ln\zeta^2] \)); <code>(4)</code>
+\( \hat s(x_t) = \exp{(\hat m_t - \hat C_T)/2} \); <code>(5)</code>
+\( \hat r_t = (y_t-\bar y)/\hat s_t \). Route-independent at a fixed bandwidth; reproduces
+fEGarch's <code>scale_fun</code> to machine precision.</p>
+
+<h6 id="parameters">Parameters</h6>
+
+<ul>
+<li><strong>returns</strong> (ndarray, shape (n,)):
+The return series.</li>
+<li><strong>poly_order</strong> (int, optional):
+The local polynomial order (<code>locpol_spec</code> <code>poly_order</code>; 1 or 3). Default 1.</li>
+<li><strong>kernel_order</strong> (int, optional):
+The kernel smoothness order (<code>locpol_spec</code> <code>kernel_order</code> / <code><a href="#KERNELS">KERNELS</a></code>). Default 1.</li>
+<li><strong>boundary_method</strong> ({"extend", "shorten"}, optional):
+<code>locpol_spec</code> boundary method: <code>"extend"</code> (= gsmooth k-NN) or <code>"shorten"</code> (= fixed).</li>
+<li><strong>bwidth</strong> (float):
+The fixed relative bandwidth \( \in (0, 0.5) \) (keyword-only, required).</li>
+</ul>
+
+<h6 id="returns">Returns</h6>
+
+<ul>
+<li><strong>tuple</strong>: <code>(mu, c_t, scale, standardized)</code> — \( \bar y \), \( \hat C_T \), \( \hat s(x_t) \)
+and the de-scaled returns \( \hat r_t \).</li>
+</ul>
+
+<h6 id="raises">Raises</h6>
+
+<ul>
+<li><strong>ValueError</strong>: If <code>boundary_method</code> is not <code>"extend"</code>/<code>"shorten"</code>.</li>
 </ul>
 </div>
 

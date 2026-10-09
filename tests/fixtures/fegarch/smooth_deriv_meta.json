@@ -1,0 +1,9 @@
+{
+  "estimator": "derivative smoother m^(v) (= I[m^(k)] integrand)", "package": "smoots", "fn": "gsmooth",
+  "input": "synthetic_returns.csv", "transform": "w = log((y-mean(y))^2)",
+  "n": 2500, "bandwidth_b": 0.15, "mu": 1,
+  "convention": "gsmooth(v=k) = local_poly returning beta[v] * v! * n^v (v-th derivative w.r.t. rescaled x=t/n); k=p_trend+1, derivative poly order p with p-v odd",
+  "files": {"v2_p3_bb1": "for trend p=1 (k=2)", "v2_p3_bb0": "boundary variant", "v4_p5_bb1": "for trend p=3 (k=4)"},
+  "integration": "I[m^(k)] = trapezoidal integral of {m^(k)}^2 over x in [cb, db] = [0.05, 0.95] (the interior grid points), to be confirmed against I2 in the build",
+  "smoots_version": "1.1.4", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

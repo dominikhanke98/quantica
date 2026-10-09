@@ -1831,6 +1831,179 @@ local-polynomial scale) remains.
 
 ---
 
-*Add further specification derivations here if optional Phase 7 (semiparametric) or the deferred
-breadth (other-distribution / dual-mean / asymmetric-FI multi-step) is implemented — always from the
-papers/manual, never the source.*
+## 30. Local-polynomial regression — the semiparametric scale core (Phase 7, sub-build 1) — RESOLVED
+
+**Phase 7 (optional semiparametric scale) sub-build 1: the deterministic local-polynomial regression
+at a given bandwidth** — the `smoots::gsmooth` core, which fEGarch's `use_nonpar` path smooths the
+log-squared demeaned returns `w̃_t = ln[(y_t − ȳ)²]` with to obtain the nonparametric scale. Built
+clean-room from Feng-Gries-Fritz (2020) + Beran-Feng (2002) (in `literature/`), validated against the
+committed `smooth_gsmooth_*` OUTPUT fixtures — **never** the smoots/esemifar Rcpp source (§12 applies
+to them as to fEGarch). `quantica/timeseries/fegarch/semiparam.py::local_poly`.
+
+### 30.1 The estimator (machine-exact against gsmooth)
+
+`y_t = m(x_t) + ε_t` on the equidistant grid `x_t = t/n`. With `m = ⌊n·b⌋` the bandwidth in points
+(b=0.15, n=2500 → m=375, window 2m+1=751), at each `t` fit a degree-`p` polynomial in the **index
+offset** `d_i = i − t` by weighted least squares with kernel weights `K(d_i/s)`, and take the fitted
+**intercept** as `m̂(x_t)` (v=0). The intercept is invariant to rescaling the design, so the raw index
+offset is used (no x-grid rescaling needed for m̂). `p − v` odd → p ∈ {1, 3} (local-linear, local-cubic
+— the two `locpol_spec` orders). The whole thing is the linear smoother `m̂ = W·y`; the returned
+`gsmooth$ws` [751×751] matrix (OUTPUT, inspected — not source) is exactly these boundary weight rows,
+and confirmed the conventions below.
+
+### 30.2 The pinned conventions (each derived from the OUTPUT, not guessed)
+
+- **Kernels (mu):** the `(1−u²)^mu` family on [−1,1] — mu=0 uniform, 1 Epanechnikov ¾(1−u²), 2 bisquare
+  15/16(1−u²)², 3 triweight 35/32(1−u²)³ (matching `locpol_spec` kernel_order). The normalization
+  cancels in the WLS, so the unnormalized `(1−u²)^mu` is used.
+- **Kernel scale:** `s = max_i|d_i| + 1` — pinned by the interior (u=(i−t)/(m+1) gave 1.07e-14 vs
+  m→1.7e-3 and m+0.5→8.5e-4). So the window-edge points get a *small nonzero* weight (`K(m/(m+1)) > 0`),
+  not zero. Interior s = m+1; the same rule adapts at the boundary (below).
+- **Boundary (bb):** near the ends the symmetric window runs off the data. **`"fixed"` (smoots bb=0)**
+  truncates to `[max(0,t−m), min(n−1,t+m)]` — fewer points, fixed bandwidth (s stays m+1 since
+  max offset = m). **`"knn"` (smoots bb=1, default)** shifts the window inward to keep 2m+1 points
+  (k-nearest-neighbour), and the scale widens to `s = max(t−lo, hi−t) + 1` (the larger half-width). The
+  unified rule `s = max half-width + 1` covers both. Interior rows are identical for the two; only the
+  boundary rows differ — the discriminating test (`test_boundary_only_affects_the_ends`) asserts this.
+- **`locpol_spec` extend/shorten ↔ fixed/knn:** deferred to **sub-build 3** (the semiparametric wiring);
+  sub-build 1 matches smoots' `bb` directly (both validated).
+
+### 30.3 Validation — machine-exact, deterministic WLS
+
+All 16 (p, mu, bb) fixtures reproduce machine-exactly: **worst 2.01e-12** overall, p=1 worst
+**1.6e-13**, p=3 worst **2.01e-12**. Interior is always ~1e-14; the p=3 boundary loosens to ~1e-12 —
+pure **floating-point summation order** in the cubic Vandermonde normal equations, not a convention
+gap (documented). Sanity: mu=0 (uniform) + p=1 interior = the symmetric-window mean (local-linear with
+even weights); the four normalized kernels integrate to 1. This determinism is load-bearing because
+**sub-build 2 (the iterative-plug-in bandwidth) calls `local_poly` repeatedly** — the core had to be
+machine-exact first.
+
+**Phase 7 remaining:** sub-build 2 (IPI data-driven bandwidth — `msmooth`/`tsmooth` short-memory,
+`tsmoothlm`/`dsmoothlm` long-memory) and sub-build 3 (the `fEGarch(use_nonpar=TRUE)` end-to-end wiring
++ the extend/shorten ↔ fixed/knn mapping). Papers present, packages installed (recon §-prior).
+
+---
+
+## 31. IPI bandwidth (Phase 7, sub-build 2) — machine-exact components built; auto-iterator BLOCKED
+
+**The IPI data-driven bandwidth selector decomposes into pieces of three different reproducibility
+classes. The machine-exact pieces are built; the iterator itself is blocked on two unavailable
+references.** Clean-room (§12): from the papers in `literature/`, validated against smoots/esemifar
+OUTPUT, never their source; the `L0.opt` rule is **not** reverse-engineered from source and the
+fixture's `M` is **not** consumed as a clean-room selector.
+
+### 31.1 Built — machine-exact (`quantica/timeseries/fegarch/semiparam.py`)
+
+- **Derivative local polynomial** `local_poly(v=k)` — the AMISE integrand `m^(k)`: the WLS
+  coefficient of the degree-`k` term × `k!` × **`nᵏ`** (the chain-rule factor to the rescaled-`x`
+  derivative — load-bearing; without `nᵏ` it is off by 100%). Reproduces `smoots::gsmooth(v=k)`:
+  v=2/p=3 → ~1.5e-9, v=4/p=5 → ~3.5e-3 absolute (relative ~1e-9; `nᵏ`=n² / n⁴ amplifies the ~1e-15
+  WLS relative error — documented FP-amplification, not a convention gap). `integrated_squared_derivative`
+  trapezoidally integrates `{m^(k)}²` over the interior `x∈[0.05,0.95]`.
+- **Short-memory variance factor** `bartlett_variance_factor(res, window=M)` — the Bartlett lag-window
+  `ĉ_f = γ̂₀ + 2Σ_{l=1}^{M}(1−l/(M+1))γ̂_l`, biased (÷n) autocovariances. **Genuine clean-room recon**
+  (recompute the trend from the series at `b0` via `local_poly` → our own residuals → the Bartlett
+  sum) reproduces smoots' `cf0` **exactly (0.0e+00)**, *given* the window `M`.
+  - **Paper-vs-implementation divergence (documented):** Feng-Gries-Fritz (2020, §5) write the weights
+    `1−|l|/(M+0.5)`; smoots' code uses `1−|l|/(M+1)`. §12 validates against OUTPUT → `M+1` (the paper's
+    `M+0.5` misses `cf0` by >1e-3). No explicit `2π` in the returned `cf0` (the paper's `ĉ_f` carries
+    `1/2π`; smoots returns the raw long-run-variance sum).
+
+### 31.2 BLOCKED — the auto-iterator (needs two references absent from `literature/`)
+
+- **SM window `M` (`L0.opt`)** — the nested **Bühlmann (1996)** "Locally Adaptive Lag-Window Spectral
+  Estimation" (JTSA 17:247-270) IPI: `M₀=[n/2]`, iterate estimating the spectral-density integrals and
+  inserting into *Bühlmann (1996) Eq. (5)* to 20 iters. Feng-Gries-Fritz **cites but does not
+  reproduce** those equations, and Bühlmann (1996) is not in `literature/`. Empirically `L0.opt` is
+  not any simple formula (Andrews AR(1)/Newey-West/`c·n^{1/3}`/significance-lag all fail; e.g. n=2500
+  gives `L0.opt`=3 at p=1 but 1 at p=3). So `M` is a **required user-supplied parameter**; automatic
+  selection is not implemented (smoots permits manual `M`).
+- **AMISE kernel constants** `β_{ν,k}`, `R(K)`, `K(0)`, and the enlargement factor
+  `C_F = (2k/(2K(0)/R(K)−1))^{1/(2k+1)}` (the `bvc="Y"` enlargement `h_γ = C_F·ĥ`) — tabulated in
+  **Feng-Heiler (2009) Table 1**, cited-not-reproduced, absent from `literature/`. A from-scratch
+  equivalent-kernel derivation is not validated against smoots' tabulated values, so the AMISE
+  `b_opt` constant is not pinned → the iterator is not built.
+
+### 31.3 Reclassified — LM variance factor is FIT-tolerance (~1e-6), not seam-exact (correcting an earlier overclaim)
+
+The long-memory `c_f` = (empirical innovation variance of a BIC-selected FARIMA(p,d,q) fit to the
+detrended residuals) ÷ 2π. The recon's "1e-16" used **R's own `fracdiff` innovations** fed back in
+(R-to-R). A genuine clean-room recon — quantica's Phase-3 binomial `(1−B)^d` filter on the residuals,
+*even given the fixture's d* — reproduces `cf0` only to **4.1e-7** (the truncated binomial filter ≠
+`fracdiff`'s exact Haslett-Raftery innovations). Plus the FARIMA MLE `d` itself is a NEW,
+optimizer-dependent fit (not the dual-mean FARIMA-in-mean QMLE). So the LM `c_f` belongs to the port's
+**established fit-tolerance class (~1e-6), like the GARCH/EGARCH fits — not the machine-exact
+seam class.** This corrects the earlier recon's machine-exact claim for LM `c_f`.
+
+### 31.4 Consequence
+
+The full IPI bandwidth is reproducible clean-room only to ~1e-6 (fit tolerance) **and** needs
+Bühlmann (1996) + Feng-Heiler (2009) added to `literature/` for a genuine SM auto-selector. The
+machine-exact building blocks (derivative local-poly, SM Bartlett `c_f` given `M`) are built and
+tested; the iterator is deferred. **Sub-build 3's fixture step (next) determines whether any of this
+matters end-to-end** — i.e. whether `fEGarch(use_nonpar=TRUE)` defaults to `esemifar` (LM, no
+Bühlmann) or `smoots` (SM, needs `L0.opt`), whether `locpol_spec(bwidth=...)` lets the end-to-end fit
+use a **fixed** bandwidth (fully deterministic, no auto-selector), and whether the real validation
+target is fEGarch's semiparametric OUTPUT (the total volatility `Ω̂ = ŝ·σ̃`) rather than smoots'
+internal bandwidth.
+
+---
+
+## 32. The fixed-bandwidth semiparametric EGF fit (Phase 7, sub-build 3) — RESOLVED
+
+**The end-to-end semiparametric fit at a user-supplied bandwidth is fully clean-room-reproducible —
+machine-exact scale + fit-tolerance parametric — with no dependency on the blocked auto-selectors.**
+`quantica/timeseries/fegarch/semiparam.py::semiparametric_fit` / `semiparametric_scale`, validated
+against `semiparam_{egarch,fiegarch}11_norm_*`. Clean-room (§12): from WP171 §2.2.1 + the locpol_spec
+help, validated against fEGarch OUTPUT, never its source.
+
+### 32.1 The six-step procedure (WP171 §2.2.1), reconstructed
+
+Model: `r_t = μ + s(x_t)·λ_t·η_t`, total vol `σ_t = s(x_t)·λ_t`. Steps:
+1. `ȳ = mean(y)`; **μ̂ = ȳ** (the semiparametric mean is the sample mean, NOT a fitted μ — μ̂=ȳ exactly);
+   `w̃_t = ln[(y_t−ȳ)²]`.
+2. `m̂(x_t)` = `local_poly(w̃, v=0, p=poly_order, mu=kernel_order, b=bwidth, boundary)` at the **fixed**
+   bwidth (reuses sub-build-1 `local_poly`, machine-exact; NO auto-selection).
+3. **`Ĉ_T = −ln[n⁻¹ Σ exp(û_t)]`, `û_t = w̃_t − m̂_t`** — the EMPIRICAL retransform correction (forces
+   `E[exp û]=1` for finite-sample unbiasedness). **This corrects §30/§31's earlier "theoretical
+   C_μ=E[ln ζ²]/mean_log_sq" note: the implemented correction is the empirical `Ĉ_T`, here −1.37547.**
+4. `ŝ(x_t) = exp{(m̂_t − Ĉ_T)/2}` → **reconstructs fEGarch's `scale_fun` to ~6e-16 (machine-exact)**.
+5. `r̂_t = (y_t − ȳ)/ŝ_t` (the de-scaled returns = ζ̂).
+6. a **ZERO-MEAN** EGF fit on `r̂` (fit vector `{omega_sig, phi1, kappa, gamma}` for EGARCH, `+d` for
+   FIEGARCH, **no μ** — reuses the existing EGF recursions with μ fixed at 0 via `mean=False`) → `λ̂=σ̃`;
+   total volatility `Ω̂ = ŝ·σ̃` = fEGarch's `sigt`.
+
+### 32.2 Pinned conventions + validation
+
+- **`boundary_method` mapping (the deferred sub-build-1 item, now pinned):** `locpol_spec`
+  `"extend"` = gsmooth **k-NN** (`bb=1`) — the fixture convention (scale recon ~6e-16); `"shorten"` =
+  **fixed** (`bb=0`) — differs at the boundary (>1e-3). So extend↔knn, shorten↔fixed.
+- **Fixed-bwidth route-independence:** at a fixed bwidth BOTH egarch and fiegarch use the smoots scale
+  machinery with the SAME `Ĉ_T`; the scale step is identical and machine-exact. The SM/LM selector only
+  governs *automatic* bandwidth (bypassed). So steps 1–5 are route-independent machine-exact.
+- **Step-6 validation (fit-tolerance):** EGARCH zero-mean pars match the fixture to ~1e-5 (omega_sig
+  1.2e-6, phi1 9e-9, kappa/gamma ~1e-7); `Ω̂` (`sigt`) to ~1e-8. FIEGARCH is **multimodal** (the Phase-4
+  weak-identification): from the default start the fit lands in a `d≈0` basin; from the fixture-basin
+  start it reproduces the committed pars to ~1e-6 (d 4.7e-7) — confirming the wiring, not auto-selecting
+  the basin. Decoupling confirmed (a second pass on `r̂` agrees on the vol dynamics phi1/gamma).
+
+### 32.3 Phase 7 scope — one bounded gap
+
+**The semiparametric EGF fit is fully clean-room-reproducible at a USER-SPECIFIED bandwidth**
+(machine-exact scale + fit-tolerance parametric). **AUTOMATIC data-driven bandwidth is the single
+bounded gap** — blocked on Bühlmann (1996) (the SM `L0.opt` lag IPI) + Feng-Heiler (2009) (the AMISE
+kernel constants), both unavailable in `literature/` (§31). This is the *irreducible-from-available-
+literature* category (the analogue of the APARCH σ₀ / FIAPARCH irreducible-from-output findings).
+`semiparametric_fit(bwidth=None)` raises `NotImplementedError` pointing here.
+
+**Phase 7 (all three sub-builds) summary:** sub-build 1 — `local_poly` (machine-exact, §30); sub-build 2
+— derivative `local_poly(v=k)` / `I[m^(k)]` / SM-Bartlett `c_f` machine-exact, IPI auto-iterator +
+LM-`c_f` + auto-lag documented-blocked (§31); sub-build 3 — the fixed-bwidth semiparametric fit,
+machine-exact scale + fit-tolerance parametric (§32). The auto-bandwidth gap is the single documented
+limit of Phase 7.
+
+---
+
+*Add further specification derivations here if the auto-bandwidth gap is later closed (Bühlmann 1996 +
+Feng-Heiler 2009 added to `literature/`) or the deferred forecasting breadth is implemented — always
+from the papers/manual, never the source.*

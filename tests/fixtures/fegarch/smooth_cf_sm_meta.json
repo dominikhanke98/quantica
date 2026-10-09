@@ -1,0 +1,9 @@
+{
+  "estimator": "variance_factor c_f (short-memory)", "package": "smoots", "fn": "tsmooth",
+  "input": "synthetic_returns.csv", "transform": "w = log((y-mean(y))^2)",
+  "n": 2500, "bvc": "N", "b0": 0.12965254441932922, "res_is_detrended_residual_at_b0": true,
+  "Mcf_NP": {"note": "Bartlett long-run variance: cf0 = g0 + 2*sum_{j=1}^{L}(1-j/(L+1))*gj, gj biased autocov of res, L=L0.opt",
+             "cf0": 6.2605364746143817, "L0_opt": 3, "cf0_LW": 6.2605364746143817},
+  "Mcf_ARMA": {"cf0": 34.114760770500205, "b0": 0.16193653119005016}, "Mcf_AR": {"cf0": 6.8846199530603336, "b0": 0.13145343302187862}, "Mcf_MA": {"cf0": 6.5570546939893024, "b0": 0.13058581301152822},
+  "smoots_version": "1.1.4", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

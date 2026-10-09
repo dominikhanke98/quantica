@@ -1,0 +1,13 @@
+{
+  "model": "egarch(1,1)/norm semiparametric (use_nonpar=TRUE, fixed bandwidth)", "package": "fEGarch",
+  "n": 2500, "input": "synthetic_returns.csv",
+  "nonparspec": {"poly_order": 1, "kernel_order": 1, "boundary_method": "extend", "bwidth": 0.15},
+  "ybar": 0.00048375227856886096,
+  "C_T": -1.3754726484562365,
+  "pars": {"omega_sig": -0.13316339978683853, "phi1": 0.97707302321454859, "kappa": -0.021139050460359503, "gamma": 0.15967414370328142},
+  "llhood": -3413.2153204703186,
+  "scale_head": [0.013984587481878918, 0.013977480645311938, 0.013970377504599464], "sigt_head": [0.013965920597210468, 0.013676234112537943, 0.013034896373605614], "lambda_hat_mean": 0.97280862985091587,
+  "sigt_is": "total volatility Omega_hat = scale_fun * lambda_hat (parametric cond. sd of r_hat)",
+  "note": "6-step WP171 2.2.1: wtil=ln((y-ybar)^2) -> mhat local-poly at bwidth -> C_T=-ln[mean exp(uhat)] -> shat=exp((mhat-C_T)/2) -> rhat=(y-ybar)/shat -> zero-mean EGF fit -> Omega=shat*sigtilde",
+  "fegarch_version": "1.0.6", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

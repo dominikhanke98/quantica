@@ -1,0 +1,11 @@
+{
+  "estimator": "variance_factor c_f (long-memory)", "package": "esemifar", "fn": "tsmoothlm",
+  "input": "synthetic_returns.csv", "transform": "w = log((y-mean(y))^2)",
+  "n": 2500, "b0": 0.14024950307742756, "res_is_detrended_residual_at_b0": true,
+  "formula": "cf0 = mean(FARIMA_innovations^2)/(2*pi) = (sum resid_FARIMA^2 / n)/(2*pi); FARIMA(p,d,q) BIC-fit to res; ar/ma factor |theta(1)/phi(1)|^2 = 1 for (0,d,0)",
+  "cf0": 0.81996780179915463, "innovation_var_(cf0*2pi)": 5.1520096446247914,
+  "d_BIC": 0.089890522069612455, "p_BIC": 0, "q_BIC": 0,
+  "fracdiff_sigma": 2.2689179128466548,
+  "fracdiff_sigma_note": "the fracdiff MLE innovation SD; sigma^2 = 5.14799 differs ~0.08% from the empirical innovation variance cf0*2pi = 5.15201 that c_f actually uses",
+  "esemifar_version": "2.0.1", "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
