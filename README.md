@@ -24,7 +24,7 @@ is hand-typed.
 | **[II — Risk & model validation](#pillar-ii--risk--model-validation)** | Four VaR/ES engines with a VaR *and* ES backtesting suite whose **own size and power are measured**; an option book priced *through the pricers* as a drop-in P&L source; credit-PD and ML (SR 11-7) validation batteries; the FRTB P&L-attribution capital test. |
 | **[III — Capital markets](#pillar-iii--capital-markets)** | Observable and statistical (PCA/RMT) multi-factor risk models and an out-of-sample covariance-estimator study, feeding constrained portfolio construction and a walk-forward backtest — fronted by a **backtest-validity layer** (Deflated Sharpe, PBO, purged CV) that tests whether the backtest means anything, plus a full **statistical-arbitrage** arc (cointegration → Kalman dynamic hedge ratio → pairs strategy with an overfitting-aware backtest). |
 | **[IV — Rates & fixed income](#pillar-iv--rates--fixed-income)** | The first non-equity asset class, end to end: **yield-curve construction** (a discount curve bootstrapped from deposits and par swaps, repriced to par to machine precision, under hand-rolled interpolation schemes whose choice materially changes the implied forwards), **one-factor short-rate models** (Vasicek / CIR / Hull–White) with analytic bonds, exact-transition simulation and curve calibration, and **interest-rate products** — swaps, caps/floors and swaptions priced both with Black-76 and analytically under Hull–White (bond options / Jamshidian), whose volatility calibration finally identifies the σ the curve could not. |
-| **[V — Time series & econometrics](#pillar-v--time-series--econometrics)** | GARCH-family volatility modelling (GARCH / GJR / EGARCH via `arch`) built **forecast-evaluation-first**: the deliverable is the evaluation layer the libraries don't ship — the **Diebold–Mariano** test with the **HAC/Newey–West** correction, proxy-robust **QLIKE/MSE** losses, and the **Mincer–Zarnowitz** efficiency regression — with the headline that the DM test is correctly sized *only* with HAC, and the honest finding that the leverage term significant in-sample does **not** beat plain GARCH out-of-sample. Plus **Markov regime-switching** (hand-written Hamilton filter / Kim smoother / EM) that recovers planted regimes and lights up the 2008 crisis on real S&P 500 returns, and a **multivariate** close (VECM generalising pairwise cointegration; DCC-GARCH producing a time-varying covariance that feeds the portfolio/risk pillars as a drop-in estimator). A **clean-room `fEGarch` long-memory-GARCH port** is now under way (Phase 0: the standardized conditional-distribution layer + a generic QMLE engine), reimplemented from published specifications and validated against committed fEGarch output fixtures. |
+| **[V — Time series & econometrics](#pillar-v--time-series--econometrics)** | GARCH-family volatility modelling (GARCH / GJR / EGARCH via `arch`) built **forecast-evaluation-first**: the deliverable is the evaluation layer the libraries don't ship — the **Diebold–Mariano** test with the **HAC/Newey–West** correction, proxy-robust **QLIKE/MSE** losses, and the **Mincer–Zarnowitz** efficiency regression — with the headline that the DM test is correctly sized *only* with HAC, and the honest finding that the leverage term significant in-sample does **not** beat plain GARCH out-of-sample. Plus **Markov regime-switching** (hand-written Hamilton filter / Kim smoother / EM) that recovers planted regimes and lights up the 2008 crisis on real S&P 500 returns, and a **multivariate** close (VECM generalising pairwise cointegration; DCC-GARCH producing a time-varying covariance that feeds the portfolio/risk pillars as a drop-in estimator). The pillar's **flagship** is a **clean-room port of the R package `fEGarch`** (the long-memory GARCH family), [**complete through the entire roadmap**](docs/fegarch-port.md) (Phases 0–7): every model — short-memory GARCH/GJR/TGARCH/APARCH, the EGF family EGARCH/MEGARCH/MLog-GARCH/Log-GARCH, and eight fractional/long-memory variants — under all eight conditional distributions, with dual-mean (ARMA/FARIMA), forecasting (rolling + multi-step), a VaR/ES-into-the-risk-pillar backtest tie-back, residual diagnostics, and a semiparametric scale extension; reimplemented purely from published specifications, **never** the `fEGarch` source, and validated against committed R output fixtures — the reimplementation surfacing, among other findings, that `fEGarch`'s own committed FILog-GARCH fixture is a strictly-dominated local optimum an independent fit beats by **+120 log-likelihood**. |
 
 ## Headline results
 
@@ -120,6 +120,28 @@ tool is silently wrong or simply absent, surfaced only by reimplementing indepen
   data row) and concatenate several monthly blocks under the same `YYYYMM` format (a
   naive filter silently mixes returns with firm-size dollars, producing betas of ~100).
   Caught by an economic smell test → [factor risk models](#factor-risk-models--the-shared-foundation).
+- **A reference package's committed fixture, caught non-optimal and beaten by +120
+  log-likelihood.** Reimplementing R's `fEGarch` independently surfaced that its *own*
+  committed FILog-GARCH fit (`mu=−0.003`, loglik `7435.98`) is a strictly-dominated local
+  optimum: an independent fit from the data mean reaches `7555.85` (**+119.87**), and three
+  random starts plus a start from `fEGarch`'s own params all land `+100` or more higher. The
+  recursion at `fEGarch`'s params reproduces the fixture σ to `1.05e-15` — so it is the
+  reference's *optimizer*, not its model. Validated as domination from every sensible start,
+  not as a parameter match to the bad point →
+  [fEGarch port](docs/fegarch-port.md).
+- **An independent reimplementation that converges where the reference's optimizer errors
+  out.** Six continuous-df Type-I EGF fits (EGARCH/MEGARCH/MLog-GARCH × `std`/`sstd`, plus
+  Log-GARCH × `std`) make `fEGarch`'s optimizer fail outright ("Error during optimization");
+  no fixture exists and none was fabricated. Validated by known-truth instead: our
+  Nelder-Mead-plus-restart fit converges on all of them and recovers the planted `df = 6`
+  (`|dev|/SE ≤ 1.2`) → [fEGarch port](docs/fegarch-port.md).
+- **`fEGarch`'s GJR is the APARCH kernel, not the textbook indicator — and two seeds it
+  honestly cannot reduce.** The Glosten–Jagannathan–Runkle *indicator* form misses the GJR
+  fixture by `~1e-2`; the APARCH-at-δ=2 kernel `(|ε|−γε)²` reproduces it, and the finding
+  carries into the fractional FIGJR. Where the public output genuinely cannot pin an internal
+  quantity (the APARCH and FIAPARCH pre-sample seeds), the port documents the exact residual
+  as a *bounded limit* rather than reverse-engineering it from the forbidden source — the
+  honest-boundary half of clean-room discipline → [fEGarch port](docs/fegarch-port.md).
 
 ---
 
@@ -1642,102 +1664,52 @@ dcc           |        0.0391        |   1.308
 > pillar's output being another's validated input — is the deliverable. **This closes the Pillar V
 > econometrics arc: GARCH + forecast evaluation → regime-switching → multivariate (VECM, DCC).**
 
-### fEGarch port — Phase 0 (clean-room foundations)
+### fEGarch port — a clean-room reimplementation of the `fEGarch` model family (Phases 0–7, complete)
 
-A sub-project within Pillar V: an **independent clean-room reimplementation of the models described
-in the [`fEGarch`](https://cran.r-project.org/package=fEGarch) R package's reference manual and its
-cited papers** — a broad EGARCH-type family with long-memory / fractionally-integrated members
-(FIEGARCH, FILog-GARCH, …) that no mainstream Python library offers. **Clean-room means clean-room**
-(see [`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md)): the code is implemented purely
-from the published mathematics, **never** from the `fEGarch` source, and each model is validated
-against **committed `fEGarch` output fixtures** (generated once in R, never run in CI). `fEGarch` and
-the underlying papers are credited as the specification source; `quantica` stays MIT because the work
-is original.
+The flagship of Pillar V and the longest arc in the repo: an **independent clean-room reimplementation
+of the models described in the [`fEGarch`](https://cran.r-project.org/package=fEGarch) R package** — the
+long-memory GARCH family that no mainstream Python library offers. **Complete through the entire
+roadmap.** The full write-up — methodology, every effective-challenge finding with its number and
+source, and the one bounded gap — is in **[`docs/fegarch-port.md`](docs/fegarch-port.md)**; the
+equation-level log is in [`docs/fegarch-spec-notes.md`](docs/fegarch-spec-notes.md) (§1–§32) and the
+build history in [`PROGRESS.md`](PROGRESS.md).
 
-**Phase 0 ships the two foundations** every later model reuses
-([`quantica/timeseries/fegarch/`](quantica/timeseries/fegarch)):
+**What it ships** ([`quantica/timeseries/fegarch/`](quantica/timeseries/fegarch)): the short-memory
+models (GARCH / GJR / TGARCH / APARCH, reconciled as one APARCH-power recursion); the EGF family
+(EGARCH / MEGARCH / MLog-GARCH via one generalized Type-I `g`-engine, + Log-GARCH); eight
+fractional/long-memory models (FIEGARCH-family, FIGARCH / FIAPARCH / FITGARCH / FIGJR, FILog-GARCH)
+composed with a hand-written `(1−L)^d` operator; **all eight conditional distributions**
+(`norm`/`std`/`ged`/`ald` + their Fernández–Steel skews); **dual mean** (ARMA/FARIMA-in-mean);
+**forecasting** (`predict_roll` rolling + `predict` multi-step); **conditional VaR/ES** that feed the
+risk pillar's backtests; **residual diagnostics** (weighted Ljung-Box / sign-bias / PIT goodness-of-fit);
+and a **semiparametric scale** extension (local-polynomial trend + fixed-bandwidth EGF fit).
 
-- **The conditional-distribution layer** ([`distributions.py`](quantica/timeseries/fegarch/distributions.py))
-  — the eight fEGarch innovation distributions `norm` / `std` / `ged` / `ald` and their
-  Fernández–Steel skewed variants `snorm` / `sstd` / `sged` / `sald`, each **standardized to mean 0,
-  variance 1** (the QMLE convention), with `pdf` / `cdf` / `ppf` and a seeded inverse-CDF sampler.
-- **The QMLE engine** ([`qmle.py`](quantica/timeseries/fegarch/qmle.py)) — a generic
-  quasi-maximum-likelihood estimator that fits any conditional-variance recursion under any of those
-  distributions, with documented pre-sample conditioning and Hessian-based standard errors.
+**Clean-room means clean-room** (CLAUDE.md §12, [`docs/fegarch-port-roadmap.md`](docs/fegarch-port-roadmap.md)):
+implemented purely from the published mathematics (WP171/173/175, the cited papers, the
+`smoots`/`esemifar` papers), **never** from the `fEGarch`/`smoots`/`esemifar` source, and validated
+**only** against committed R *output* fixtures ([`tests/fixtures/fegarch/`](tests/fixtures/fegarch),
+`fEGarch` 1.0.6 / R 4.6.1; R is never a dependency of `quantica` or its CI). Validation keeps two classes
+distinct: **seam-exact** (the recursion at the reference's own params → machine precision ~1e-15) and
+**fit-tolerance** (the optimizer-dependent fitted params → ~1e-5/1e-6), with a reconstruction gate as
+the pre-build correctness proof.
 
-Validated two ways. *Analytic* (fixture-free): every density integrates to 1 with mean 0 and variance
-1; `cdf`/`ppf` round-trip; the seeded sampler's moments match analytically; each skew **reduces
-exactly to its symmetric base at ξ = 1**; the average-Laplace moment identities (`a(0)=a(2)=1`,
-`a(4)=3+3/(P+1)`) hold; and QMLE **recovers planted GARCH(1,1) parameters** with a log-likelihood that
-matches a hand computation. *Against fEGarch* — the committed R **output fixtures**
-([`tests/fixtures/fegarch/`](tests/fixtures/fegarch), fEGarch 1.0.6 / R 4.6.1, generated by running
-fEGarch's public functions, **never** reading its source): all eight distributions match fEGarch's
-sampler output within Monte-Carlo tolerance. That reconciliation **locked the two open
-parameterizations** — fEGarch's `ald` is the **scaled average-Laplace (Sargan)** density (not a
-plain Laplace; kurtosis `3 + 3/(P+1)`, confirmed at P ∈ {2, 8}), and the **Fernández–Steel** `skew`
-argument is `ξ` **directly** (`skew < 1` left-skew, `> 1` right-skew). Only the Phase-1 QMLE-fit
-fixture check stays skipped (it needs the fEGarch GARCH recursion).
+**The reimplementation was effective challenge against the reference, and it bit** (full vignettes in
+[`docs/fegarch-port.md`](docs/fegarch-port.md)): `fEGarch`'s committed FILog-GARCH fixture is a
+strictly-dominated local optimum beaten by **+119.87** log-likelihood (the seam machine-exact at its own
+params, `1.05e-15` — the reference's optimizer, not its model); its interior-`P` selection on
+FILog-GARCH×sald was an optimizer stall (our profiling reproduces its `P=3` then dominates at `P=5`,
+`+6.67`); it errors out on six continuous-df Type-I EGF fits where ours converges and recovers the
+planted `df=6`; its GJR uses the APARCH `(|ε|−γε)²` kernel, not the textbook Glosten indicator (which
+misses the fixture by `~1e-2`); and the weighted Ljung-Box / sign-bias conventions (Fisher–Gallagher
+Gamma-approx; raw-ε size terms + an LM — not F — joint, `0.62320` vs `0.62360`) were forced out by
+p-value-only fixtures. Where output genuinely cannot pin an internal quantity (two pre-sample seeds),
+the residual is documented as a bounded limit, not reverse-engineered from the forbidden source.
 
-Since then the port has advanced through the model family (full detail in
-[`docs/fegarch-spec-notes.md`](docs/fegarch-spec-notes.md) and `PROGRESS.md`): **Phase 1** — the
-short-memory models GARCH / GJR / TGARCH / APARCH (the three asymmetric ones reconciled as a single
-APARCH-power recursion), fixture-validated; **Phase 2** — the EGARCH family EGARCH / MEGARCH /
-MLog-GARCH (one generalized Type-I `g`-transformation engine) + Log-GARCH (Type-II), fixture-validated
-at σ-rel ~1e-5; and **Phase 3** — the fractional-differencing engine below.
-
-#### Phase 3 — the fractional-differencing operator `(1−L)^d`
-
-The long-memory engine every Phase-4 fractionally-integrated model will compose with. It is an
-**internal filter, not a fitted model, so it has no fEGarch output fixture** — validation is
-*analytic + cross-method* (the numerical-validation discipline), not fixture-matching. The operator
-is the truncated binomial `(1−L)^d = Σ b_i L^i` (`b_0 = 1`, `b_i = b_{i-1}(i−1−d)/i`), applied as a
-causal convolution with **fEGarch's App. C.3 truncation/pre-sample policy** (`trunc = n−1`,
-pre-sample of the filtered quantity `= 0`) — load-bearing because every Phase-4 model inherits it.
-Two filter paths (direct `O(nL)` and FFT `O(n log n)`, per Nielsen–Noël 2021) are provided. The
-validation table below is produced reproducibly (seeded) by
-[`scripts/fracdiff_convergence.py`](scripts/fracdiff_convergence.py):
-
-```
-### Coefficient accuracy (vs analytic (-1)^i C(d,i))
-
-| d | b_0 | max abs error | recursion b_i/b_{i-1} - (i-1-d)/i |
-|---|---|---|---|
-| 0.2 | 1.0 | 9.39e-17 | 1.11e-16 |
-| 0.3 | 1.0 | 1.02e-16 | 1.11e-16 |
-| 0.45 | 1.0 | 5.55e-17 | 1.11e-16 |
-
-### FFT-vs-direct cross-method agreement (random series, n=4000)
-
-| d | max abs difference |
-|---|---|
-| 0.0 | 1.12e-15 |
-| 0.25 | 1.33e-15 |
-| 0.45 | 1.33e-15 |
-| 1.0 | 1.78e-15 |
-
-### Truncation-error convergence (d=0.35, n=4000)
-
-| L | max|y_L - y_full| | |b_L| | L^(-d-1) ref |
-|---|---|---|---|
-| 10 | 1.10e-01 | 1.16e-02 | 4.47e-02 |
-| 50 | 2.43e-02 | 1.29e-03 | 5.09e-03 |
-| 250 | 5.42e-03 | 1.47e-04 | 5.79e-04 |
-| 1000 | 1.42e-03 | 2.25e-05 | 8.91e-05 |
-| 3999 | 0.00e+00 | 3.47e-06 | 1.37e-05 |
-
-### Long-memory ACF decay of (1-L)^(-d) white noise (n=200000)
-
-| d | fitted log-log slope | 2d-1 (theory) | rho(1000) [long-memory persists] |
-|---|---|---|---|
-| 0.3 | -0.743 | -0.400 | 0.015 |
-| 0.4 | -0.262 | -0.200 | 0.135 |
-```
-
-Coefficients hit the analytic binomial to machine precision; `d=0` is the identity and `d=1` the
-first difference exactly; the FFT and direct paths agree to FFT round-off; the truncation error
-decays with `L` (tracking the coefficient tail `|b_L| ~ L^{-d-1}`); and fractionally integrating white
-noise yields the hyperbolic long-memory ACF (`ρ(k) ~ k^{2d-1}`), decisively unlike geometric decay.
-**Next: the long-memory FI models (Phase 4) — compose these recursions with `(1−L)^d`.**
+**One documented gap:** the semiparametric *automatic* bandwidth selector, blocked on two
+cited-not-reproduced papers absent from [`literature/`](literature) (Bühlmann 1996, Feng–Heiler 2009);
+the semiparametric fit is fully reproducible **at a user-specified bandwidth** (machine-exact scale
+`~6e-16` + fit-tolerance parametric), and `semiparametric_fit(bwidth=None)` raises `NotImplementedError`
+pointing at the gap. The boundary is drawn where the evidence runs out.
 
 ## Running the apps
 
