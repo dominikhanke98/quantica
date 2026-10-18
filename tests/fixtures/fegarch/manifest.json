@@ -674,6 +674,116 @@
     "h50": "predict_egarch11_norm_h50.csv",
     "note": "Phase-6 multi-step predict for the Type-I EGF (EGARCH(1,1)/norm, FULL-sample fit == fit_egarch11_norm). REVIEW FINDING (the paper-flagged E[exp(g(eta))] bias case): predict is the NAIVE/BIASED iterated forecast -- iterate ln sigma^2 forward with the future news term g(eta)=0 by construction (ln sigma^2_{n+h} = omega + phi1*ln sigma^2_{n+h-1}, h>=2; 1-step uses the known eta_n), then report sigma = exp(ln sigma^2 / 2). NO bias correction is applied: reproduced this naive form to 1.7e-17 (h10) / 1.9e-17 (h50), MACHINE-EXACT. Consequence: sigma converges to exp(E[ln sigma^2]/2) = exp(omega_sig/2) = 0.011349, NOT E[sigma] (the Jensen/E[exp(g/2)] term is left in). This is what makes EGF multi-step 'biased' -- fEGarch's predict does the naive iterate, exactly reproducible. cmeans constant = mu."
   },
+  "_forecast_breadth": "Phase-6 forecasting BREADTH (branch feat/fegarch-forecast-breadth): the forecast engine (predict_roll, predict) is UNCHANGED; these fixtures extend the distribution axis of the two models it reproduces -- GARCH (rolling + multi-step) and EGARCH (multi-step). The sigma-hat recursion is distribution-independent, so each law reproduces the norm mechanism to machine precision; the DISTRIBUTION bites in the GARCH rolling VaR/ES (measure_risk uses the fitted law) and the EGARCH h=1 news g(eta_n) (E|eta| centering). EGARCH covers 5 non-norm (ged/ald/snorm/sged/sald), NOT 7: fEGarch errors on egarch x std/sstd (continuous-df Type-I EGF, spec-notes 20) -> no output to reproduce. EGARCH rolling is not generated (predict_roll is GARCH-only).",
+  "forecast_garch11_std_roll": {
+    "params": "forecast_garch11_std_params.json",
+    "sigma": "forecast_garch11_std_roll_sigma.csv",
+    "cmeans": "forecast_garch11_std_roll_cmeans.csv",
+    "var_es": "forecast_garch11_std_var_es.csv",
+    "note": "Phase-6 forecasting breadth: GARCH(1,1)/std fit, n_test=250 held out, predict_roll(refit_after=NULL) -> rolling one-step sigma/cmeans + measure_risk VaR/ES at 0.975 & 0.99. Same mechanism/data as forecast_garch11_norm; a Student-t df rides into the distribution-specific VaR/ES. Engine UNCHANGED. sigma seam-exact (~1e-14); VaR/ES <=2.66e-6 (R<->SciPy quantile gap, same scale as norm's 3e-6)."
+  },
+  "forecast_garch11_ged_roll": {
+    "params": "forecast_garch11_ged_params.json",
+    "sigma": "forecast_garch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_garch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_garch11_ged_var_es.csv",
+    "note": "Phase-6 forecasting breadth: GARCH(1,1)/ged fit, n_test=250 held out, predict_roll(refit_after=NULL) -> rolling one-step sigma/cmeans + measure_risk VaR/ES at 0.975 & 0.99. Same mechanism/data as forecast_garch11_norm; a GED shape rides into the distribution-specific VaR/ES. Engine UNCHANGED. sigma seam-exact (~1e-14); VaR/ES <=2.66e-6 (R<->SciPy quantile gap, same scale as norm's 3e-6)."
+  },
+  "forecast_garch11_ald_roll": {
+    "params": "forecast_garch11_ald_params.json",
+    "sigma": "forecast_garch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_garch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_garch11_ald_var_es.csv",
+    "note": "Phase-6 forecasting breadth: GARCH(1,1)/ald fit, n_test=250 held out, predict_roll(refit_after=NULL) -> rolling one-step sigma/cmeans + measure_risk VaR/ES at 0.975 & 0.99. Same mechanism/data as forecast_garch11_norm; a profiled ALD degree P rides into the distribution-specific VaR/ES. Engine UNCHANGED. sigma seam-exact (~1e-14); VaR/ES <=2.66e-6 (R<->SciPy quantile gap, same scale as norm's 3e-6)."
+  },
+  "forecast_garch11_snorm_roll": {
+    "params": "forecast_garch11_snorm_params.json",
+    "sigma": "forecast_garch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_garch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_garch11_snorm_var_es.csv",
+    "note": "Phase-6 forecasting breadth: GARCH(1,1)/snorm fit, n_test=250 held out, predict_roll(refit_after=NULL) -> rolling one-step sigma/cmeans + measure_risk VaR/ES at 0.975 & 0.99. Same mechanism/data as forecast_garch11_norm; an FS skew rides into the distribution-specific VaR/ES. Engine UNCHANGED. sigma seam-exact (~1e-14); VaR/ES <=2.66e-6 (R<->SciPy quantile gap, same scale as norm's 3e-6)."
+  },
+  "forecast_garch11_sstd_roll": {
+    "params": "forecast_garch11_sstd_params.json",
+    "sigma": "forecast_garch11_sstd_roll_sigma.csv",
+    "cmeans": "forecast_garch11_sstd_roll_cmeans.csv",
+    "var_es": "forecast_garch11_sstd_var_es.csv",
+    "note": "Phase-6 forecasting breadth: GARCH(1,1)/sstd fit, n_test=250 held out, predict_roll(refit_after=NULL) -> rolling one-step sigma/cmeans + measure_risk VaR/ES at 0.975 & 0.99. Same mechanism/data as forecast_garch11_norm; a Student-t df + FS skew rides into the distribution-specific VaR/ES. Engine UNCHANGED. sigma seam-exact (~1e-14); VaR/ES <=2.66e-6 (R<->SciPy quantile gap, same scale as norm's 3e-6)."
+  },
+  "forecast_garch11_sged_roll": {
+    "params": "forecast_garch11_sged_params.json",
+    "sigma": "forecast_garch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_garch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_garch11_sged_var_es.csv",
+    "note": "Phase-6 forecasting breadth: GARCH(1,1)/sged fit, n_test=250 held out, predict_roll(refit_after=NULL) -> rolling one-step sigma/cmeans + measure_risk VaR/ES at 0.975 & 0.99. Same mechanism/data as forecast_garch11_norm; a GED shape + FS skew rides into the distribution-specific VaR/ES. Engine UNCHANGED. sigma seam-exact (~1e-14); VaR/ES <=2.66e-6 (R<->SciPy quantile gap, same scale as norm's 3e-6)."
+  },
+  "forecast_garch11_sald_roll": {
+    "params": "forecast_garch11_sald_params.json",
+    "sigma": "forecast_garch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_garch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_garch11_sald_var_es.csv",
+    "note": "Phase-6 forecasting breadth: GARCH(1,1)/sald fit, n_test=250 held out, predict_roll(refit_after=NULL) -> rolling one-step sigma/cmeans + measure_risk VaR/ES at 0.975 & 0.99. Same mechanism/data as forecast_garch11_norm; a profiled ALD degree P + FS skew rides into the distribution-specific VaR/ES. Engine UNCHANGED. sigma seam-exact (~1e-14); VaR/ES <=2.66e-6 (R<->SciPy quantile gap, same scale as norm's 3e-6)."
+  },
+  "predict_garch11_std": {
+    "meta": "predict_garch11_std_meta.json",
+    "h10": "predict_garch11_std_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: GARCH(1,1)/std TRAINING fit (n_test=250, same fit as forecast_garch11_std); predict(n.ahead=10) covers the requested h=1,5,10 in one path (cols h,sigma,cmeans). Unbiased iterated variance forecast, distribution-independent; reproduced to <=6.8e-14 (skew laws; symmetric ~1e-17). predict h=1 sigma == predict_roll first sigma (1-step seam)."
+  },
+  "predict_garch11_ged": {
+    "meta": "predict_garch11_ged_meta.json",
+    "h10": "predict_garch11_ged_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: GARCH(1,1)/ged TRAINING fit (n_test=250, same fit as forecast_garch11_ged); predict(n.ahead=10) covers the requested h=1,5,10 in one path (cols h,sigma,cmeans). Unbiased iterated variance forecast, distribution-independent; reproduced to <=6.8e-14 (skew laws; symmetric ~1e-17). predict h=1 sigma == predict_roll first sigma (1-step seam)."
+  },
+  "predict_garch11_ald": {
+    "meta": "predict_garch11_ald_meta.json",
+    "h10": "predict_garch11_ald_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: GARCH(1,1)/ald TRAINING fit (n_test=250, same fit as forecast_garch11_ald); predict(n.ahead=10) covers the requested h=1,5,10 in one path (cols h,sigma,cmeans). Unbiased iterated variance forecast, distribution-independent; reproduced to <=6.8e-14 (skew laws; symmetric ~1e-17). predict h=1 sigma == predict_roll first sigma (1-step seam)."
+  },
+  "predict_garch11_snorm": {
+    "meta": "predict_garch11_snorm_meta.json",
+    "h10": "predict_garch11_snorm_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: GARCH(1,1)/snorm TRAINING fit (n_test=250, same fit as forecast_garch11_snorm); predict(n.ahead=10) covers the requested h=1,5,10 in one path (cols h,sigma,cmeans). Unbiased iterated variance forecast, distribution-independent; reproduced to <=6.8e-14 (skew laws; symmetric ~1e-17). predict h=1 sigma == predict_roll first sigma (1-step seam)."
+  },
+  "predict_garch11_sstd": {
+    "meta": "predict_garch11_sstd_meta.json",
+    "h10": "predict_garch11_sstd_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: GARCH(1,1)/sstd TRAINING fit (n_test=250, same fit as forecast_garch11_sstd); predict(n.ahead=10) covers the requested h=1,5,10 in one path (cols h,sigma,cmeans). Unbiased iterated variance forecast, distribution-independent; reproduced to <=6.8e-14 (skew laws; symmetric ~1e-17). predict h=1 sigma == predict_roll first sigma (1-step seam)."
+  },
+  "predict_garch11_sged": {
+    "meta": "predict_garch11_sged_meta.json",
+    "h10": "predict_garch11_sged_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: GARCH(1,1)/sged TRAINING fit (n_test=250, same fit as forecast_garch11_sged); predict(n.ahead=10) covers the requested h=1,5,10 in one path (cols h,sigma,cmeans). Unbiased iterated variance forecast, distribution-independent; reproduced to <=6.8e-14 (skew laws; symmetric ~1e-17). predict h=1 sigma == predict_roll first sigma (1-step seam)."
+  },
+  "predict_garch11_sald": {
+    "meta": "predict_garch11_sald_meta.json",
+    "h10": "predict_garch11_sald_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: GARCH(1,1)/sald TRAINING fit (n_test=250, same fit as forecast_garch11_sald); predict(n.ahead=10) covers the requested h=1,5,10 in one path (cols h,sigma,cmeans). Unbiased iterated variance forecast, distribution-independent; reproduced to <=6.8e-14 (skew laws; symmetric ~1e-17). predict h=1 sigma == predict_roll first sigma (1-step seam)."
+  },
+  "predict_egarch11_ged": {
+    "meta": "predict_egarch11_ged_meta.json",
+    "h10": "predict_egarch11_ged_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: EGARCH(1,1)/ged FULL-sample fit (== fit_egarch11_ged); predict(n.ahead=10) covers h=1,5,10. The NAIVE/BIASED EGF iterate (future g(eta)=0), reproduced-not-corrected; the h=1 news uses the law's E|eta| centering (a GED shape). Reproduced to <=8.3e-13 (FS-skew laws; symmetric ~1e-15 -- the skew-wrapper E|eta| is a touch looser). Converges to exp(omega_sig/2) (the left-in Jensen gap), per law."
+  },
+  "predict_egarch11_ald": {
+    "meta": "predict_egarch11_ald_meta.json",
+    "h10": "predict_egarch11_ald_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: EGARCH(1,1)/ald FULL-sample fit (== fit_egarch11_ald); predict(n.ahead=10) covers h=1,5,10. The NAIVE/BIASED EGF iterate (future g(eta)=0), reproduced-not-corrected; the h=1 news uses the law's E|eta| centering (a profiled ALD degree P). Reproduced to <=8.3e-13 (FS-skew laws; symmetric ~1e-15 -- the skew-wrapper E|eta| is a touch looser). Converges to exp(omega_sig/2) (the left-in Jensen gap), per law."
+  },
+  "predict_egarch11_snorm": {
+    "meta": "predict_egarch11_snorm_meta.json",
+    "h10": "predict_egarch11_snorm_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: EGARCH(1,1)/snorm FULL-sample fit (== fit_egarch11_snorm); predict(n.ahead=10) covers h=1,5,10. The NAIVE/BIASED EGF iterate (future g(eta)=0), reproduced-not-corrected; the h=1 news uses the law's E|eta| centering (an FS skew). Reproduced to <=8.3e-13 (FS-skew laws; symmetric ~1e-15 -- the skew-wrapper E|eta| is a touch looser). Converges to exp(omega_sig/2) (the left-in Jensen gap), per law."
+  },
+  "predict_egarch11_sged": {
+    "meta": "predict_egarch11_sged_meta.json",
+    "h10": "predict_egarch11_sged_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: EGARCH(1,1)/sged FULL-sample fit (== fit_egarch11_sged); predict(n.ahead=10) covers h=1,5,10. The NAIVE/BIASED EGF iterate (future g(eta)=0), reproduced-not-corrected; the h=1 news uses the law's E|eta| centering (a GED shape + FS skew). Reproduced to <=8.3e-13 (FS-skew laws; symmetric ~1e-15 -- the skew-wrapper E|eta| is a touch looser). Converges to exp(omega_sig/2) (the left-in Jensen gap), per law."
+  },
+  "predict_egarch11_sald": {
+    "meta": "predict_egarch11_sald_meta.json",
+    "h10": "predict_egarch11_sald_h10.csv",
+    "note": "Phase-6 multi-step predict breadth: EGARCH(1,1)/sald FULL-sample fit (== fit_egarch11_sald); predict(n.ahead=10) covers h=1,5,10. The NAIVE/BIASED EGF iterate (future g(eta)=0), reproduced-not-corrected; the h=1 news uses the law's E|eta| centering (a profiled ALD degree P + FS skew). Reproduced to <=8.3e-13 (FS-skew laws; symmetric ~1e-15 -- the skew-wrapper E|eta| is a touch looser). Converges to exp(omega_sig/2) (the left-in Jensen gap), per law."
+  },
   "smooth_gsmooth": {
     "meta": "smooth_gsmooth_meta.json",
     "files": "smooth_gsmooth_p{1,3}_mu{0,1,2,3}_bb{0,1}.csv (16 files, one column m_hat)",

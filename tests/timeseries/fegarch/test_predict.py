@@ -28,6 +28,15 @@ from quantica.timeseries.fegarch.garch import garch_recursion
 _FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "fegarch"
 
 _SIGMA_TOL = 1e-14  # residual state is machine-exact -> the iterate is too
+# GARCH multi-step across laws: the variance iterate is distribution-independent, so sigma matches
+# the fixture to machine precision -- symmetric laws ~1e-17, the skew laws ~7e-14 (the sigma_n
+# training-end seed's reconstruction gap compounding over the 10-step iterate). Machine-precision.
+_GARCH_PREDICT_TOL = 1e-12
+# EGARCH non-norm: the h=1 news uses the law's E|eta| centering, so the band also carries the
+# abs_moment-vs-fEGarch gap -- symmetric laws ~1e-15, the Fernandez-Steel-skew laws ~8e-13 (the
+# skew-wrapper E|eta| is a touch looser than the symmetric closed forms). Calibrated against the
+# fixtures (see test_egarch_predict_matches_fixture_all_dists).
+_EGARCH_SIGMA_TOL = 5e-12
 
 
 def _returns() -> np.ndarray:  # type: ignore[type-arg]
@@ -189,3 +198,161 @@ def test_predict_rejects_unsupported_family() -> None:
     )
     with pytest.raises(NotImplementedError, match="multi-step predict"):
         predict(fi_like, _returns(), n_ahead=5)
+
+
+# --------------------------------------------------------------------------- #
+# distribution breadth -- GARCH + EGARCH multi-step under the non-norm laws
+# --------------------------------------------------------------------------- #
+#
+# The engine is UNCHANGED. The multi-step iterate is distribution-independent for GARCH (variance
+# recursion) and depends on the law ONLY through the EGARCH h=1 news centering E|eta|; both match
+# the fixtures to machine precision under every converging law. The requested horizons h = 1, 5, 10
+# are the first, fifth and tenth rows of the committed h10 path. GARCH covers all 7 non-norm laws;
+# EGARCH covers the 5 that fEGarch's optimizer fits (std/sstd error out -- the continuous-df Type-I
+# EGF robustness gap, docs/fegarch-spec-notes.md §20 -- so there is no fEGarch output to reproduce).
+
+_GARCH_DISTS = ["std", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+_EGARCH_DISTS = ["ged", "ald", "snorm", "sged", "sald"]
+_REQUESTED_HORIZONS = (1, 5, 10)
+
+
+def _garch_params_from_json(p: dict, cond_dist: str) -> dict:  # type: ignore[type-arg]
+    """R GARCH fit params (``mu, omega, phi1, beta1`` + shape/skew/P) -> quantica GarchFit names."""
+    params = {"mu": p["mu"], "omega": p["omega"], "alpha": p["phi1"], "beta": p["beta1"]}
+    if cond_dist in ("std", "sstd"):
+        params["nu"] = p["df"]
+    elif cond_dist in ("ged", "sged"):
+        params["nu"] = p["shape"]
+    if cond_dist in ("ald", "sald"):
+        params["P"] = p["P"]
+    if cond_dist in ("snorm", "sstd", "sged", "sald"):
+        params["skew"] = p["skew"]
+    return params
+
+
+def _egarch_params_from_json(p: dict, cond_dist: str) -> dict:  # type: ignore[type-arg]
+    """R EGARCH fit params (``mu, omega_sig, phi1, kappa, gamma`` + shape/skew/P) -> quantica."""
+    params = {k: p[k] for k in ("mu", "omega_sig", "phi1", "kappa", "gamma")}
+    if cond_dist in ("std", "sstd"):
+        params["nu"] = p["df"]
+    elif cond_dist in ("ged", "sged"):
+        params["nu"] = p["shape"]
+    if cond_dist in ("ald", "sald"):
+        params["P"] = p["P"]
+    if cond_dist in ("snorm", "sstd", "sged", "sald"):
+        params["skew"] = p["skew"]
+    return params
+
+
+def _garch_fit_dist(dist: str) -> GarchFit:
+    """GARCH(1,1) TRAINING fit (n_test=250) under ``dist``, with reconstructed conditional vol."""
+    meta = json.loads(
+        (_FIXTURE_DIR / f"predict_garch11_{dist}_meta.json").read_text(encoding="utf-8")
+    )
+    params = _garch_params_from_json(meta["fit_params"], dist)
+    n_obs = int(meta["n_obs_train"])
+    vec = np.array([params["mu"], params["omega"], params["alpha"], params["beta"]])
+    cond_vol = np.sqrt(garch_recursion(vec, _returns()[:n_obs]))
+    return GarchFit(
+        cond_dist=dist,
+        params=params,
+        std_errors=dict.fromkeys(params, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=cond_vol,
+        n_obs=n_obs,
+        converged=True,
+    )
+
+
+def _egarch_fit_dist(dist: str) -> GarchFit:
+    """EGARCH(1,1) FULL-sample fit under ``dist``, with conditional vol rebuilt at its E|eta|."""
+    from quantica.timeseries.fegarch.forecast import _distribution_for_fit
+
+    meta = json.loads(
+        (_FIXTURE_DIR / f"predict_egarch11_{dist}_meta.json").read_text(encoding="utf-8")
+    )
+    params = _egarch_params_from_json(meta["fit_params"], dist)
+    returns = _returns()
+    vec = np.array([params[k] for k in ("mu", "omega_sig", "phi1", "kappa", "gamma")])
+    # The log-variance recursion is centred on the law's E|eta| (distribution-dependent) -- rebuild
+    # it exactly as predict does, so sigma_n (the h=1 seed) is machine-consistent with the fit.
+    partial = GarchFit(
+        cond_dist=dist,
+        params=params,
+        std_errors=dict.fromkeys(params, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=np.array([1.0]),
+        n_obs=returns.size,
+        converged=True,
+    )
+    dist_obj, shape = _distribution_for_fit(partial)
+    e_abs = dist_obj.abs_moment(shape)
+    cond_vol = np.sqrt(egarch_recursion(vec, returns, abs_moment=e_abs))
+    return GarchFit(
+        cond_dist=dist,
+        params=params,
+        std_errors=dict.fromkeys(params, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=cond_vol,
+        n_obs=returns.size,
+        converged=True,
+    )
+
+
+@pytest.mark.parametrize("dist", _GARCH_DISTS)
+def test_garch_predict_matches_fixture_all_dists(dist: str) -> None:
+    """GARCH multi-step sigma reproduces the h10 fixture (incl. h=1,5,10) under every law."""
+    fit = _garch_fit_dist(dist)
+    fc = predict(fit, _returns(), n_ahead=10)
+    fix = _fix(f"garch11_{dist}", 10)
+    assert fc.n_ahead == 10
+    assert np.max(np.abs(fc.sigma - fix)) < _GARCH_PREDICT_TOL
+    # The requested horizons h = 1, 5, 10 land on the committed path.
+    for h in _REQUESTED_HORIZONS:
+        assert abs(fc.sigma[h - 1] - fix[h - 1]) < _GARCH_PREDICT_TOL
+    assert np.all(fc.cmeans == fit.params["mu"])
+
+
+@pytest.mark.parametrize("dist", _GARCH_DISTS)
+def test_garch_predict_h1_equals_roll_first_all_dists(dist: str) -> None:
+    """The h=1 multi-step sigma equals the rolling forecast's first value (the one-step seam)."""
+    fit = _garch_fit_dist(dist)
+    ph1 = predict(fit, _returns(), n_ahead=1).sigma[0]
+    roll_first = predict_roll(fit, _returns()).sigma[0]
+    # The same one-step-ahead forecast from the same state -- equal to within a last-bit rounding
+    # (the two paths reach eps_n/sigma_n by a different order of operations; <= 1 ULP apart).
+    assert abs(ph1 - roll_first) < 1e-15
+    roll_fix = np.loadtxt(_FIXTURE_DIR / f"forecast_garch11_{dist}_roll_sigma.csv", skiprows=1)[0]
+    assert abs(ph1 - roll_fix) < _GARCH_PREDICT_TOL
+
+
+@pytest.mark.parametrize("dist", _EGARCH_DISTS)
+def test_egarch_predict_matches_fixture_all_dists(dist: str) -> None:
+    """EGARCH multi-step sigma reproduces the naive/biased h10 fixture under each converging law.
+
+    The h=1 news term uses the law's distribution-dependent E|eta| centering; h>=2 depends only on
+    omega_sig / phi1. The known reproduced-not-corrected EGF bias is asserted as reproduced (we
+    match fEGarch's naive iterate), never "fixed".
+    """
+    fit = _egarch_fit_dist(dist)
+    fc = predict(fit, _returns(), n_ahead=10)
+    fix = _fix(f"egarch11_{dist}", 10)
+    assert np.max(np.abs(fc.sigma - fix)) < _EGARCH_SIGMA_TOL
+    for h in _REQUESTED_HORIZONS:
+        assert abs(fc.sigma[h - 1] - fix[h - 1]) < _EGARCH_SIGMA_TOL
+    assert np.all(fc.cmeans == fit.params["mu"])
+
+
+@pytest.mark.parametrize("dist", _EGARCH_DISTS)
+def test_egarch_predict_reproduces_biased_limit_all_dists(dist: str) -> None:
+    """Far-horizon EGARCH sigma converges to exp(omega_sig/2) -- the left-in Jensen gap, per law."""
+    fit = _egarch_fit_dist(dist)
+    biased_limit = float(np.exp(fit.params["omega_sig"] / 2.0))
+    fc = predict(fit, _returns(), n_ahead=4000)
+    assert fc.sigma[-1] == pytest.approx(biased_limit, rel=1e-6)

@@ -46,6 +46,10 @@ _FIXTURE_DIR = Path(__file__).resolve().parents[2] / "fixtures" / "fegarch"
 # sigma-hat is machine-exact; the ~1e-6 band on VaR/ES is the documented R<->SciPy quantile diff.
 _SIGMA_TOL = 1e-14
 _VAR_ES_TOL = 3e-6
+# The VaR/ES band across the non-normal laws: the same R<->SciPy quantile gap (max observed 2.66e-6,
+# the GED), the same scale as the normal's 3e-6. Calibrated against the fixtures (see
+# test_measure_risk_matches_fixture_all_dists).
+_VAR_ES_DIST_TOL = 5e-6
 
 
 def _returns() -> np.ndarray:  # type: ignore[type-arg]
@@ -277,3 +281,106 @@ def test_backtest_results_are_coherent() -> None:
     assert suite.basel.n_obs == 250
     assert np.isfinite(suite.es.statistic)
     assert suite.es.p_value is None  # no predictive null supplied -> statistic only
+
+
+# --------------------------------------------------------------------------- #
+# 5. distribution breadth -- GARCH(1,1) rolling forecast + VaR/ES under all 8 laws
+# --------------------------------------------------------------------------- #
+#
+# The engine is UNCHANGED: the rolling sigma-hat recursion is distribution-independent, so the same
+# ``predict_roll`` reproduces the GARCH fixture under every conditional law to machine precision.
+# The distribution genuinely bites in the VaR/ES: ``measure_risk`` uses each law's fitted
+# quantile/ES, so these fixtures exercise ``ppf`` + ``expected_shortfall`` across the seven
+# non-normal laws (``std``/``ged``/``ald`` + the four FS-skews). EGARCH is excluded from rolling:
+# ``predict_roll`` is GARCH-only (an EGARCH rolling fixture would need an engine change).
+
+# R fixture-JSON shape-key -> quantica GarchFit.params key: StudentT/GED both expose ``nu`` (R
+# writes ``df``/``shape``); the ALD's profiled degree is the arg ``P``; FS-skew adds ``skew``.
+_FORECAST_DISTS = ["std", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+
+
+def _garch_params_from_json(p: dict, cond_dist: str) -> dict:  # type: ignore[type-arg]
+    """Map an R GARCH fit JSON's params (``mu, omega, phi1, beta1`` + shape/skew/P) to quantica.
+
+    The variance block is renamed ``phi1 -> alpha``, ``beta1 -> beta``; the distribution shape
+    parameters are renamed to the quantica ``param_names`` (``df``/``shape`` -> ``nu``) so
+    :func:`~quantica.timeseries.fegarch.forecast._distribution_for_fit` finds them, with the ALD's
+    integer ``P`` and the Fernandez-Steel ``skew`` carried through under their own names.
+    """
+    params = {"mu": p["mu"], "omega": p["omega"], "alpha": p["phi1"], "beta": p["beta1"]}
+    if cond_dist in ("std", "sstd"):
+        params["nu"] = p["df"]
+    elif cond_dist in ("ged", "sged"):
+        params["nu"] = p["shape"]
+    if cond_dist in ("ald", "sald"):
+        params["P"] = p["P"]
+    if cond_dist in ("snorm", "sstd", "sged", "sald"):
+        params["skew"] = p["skew"]
+    return params
+
+
+def _forecast_fixture(dist: str) -> dict:  # type: ignore[type-arg]
+    """Load the GARCH rolling-forecast fixture for conditional law ``dist``."""
+    stem = f"forecast_garch11_{dist}"
+    meta = json.loads((_FIXTURE_DIR / f"{stem}_params.json").read_text(encoding="utf-8"))
+    return {
+        "meta": meta,
+        "sigma": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_sigma.csv", skiprows=1),
+        "cmeans": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_cmeans.csv", skiprows=1),
+        "var_es": np.loadtxt(_FIXTURE_DIR / f"{stem}_var_es.csv", delimiter=",", skiprows=1),
+    }
+
+
+def _fit_from_forecast(dist: str, meta: dict, returns: np.ndarray) -> GarchFit:  # type: ignore[type-arg]
+    """A :class:`GarchFit` carrying the ``dist`` fixture's training params (shape/skew included)."""
+    params = _garch_params_from_json(meta["params"], dist)
+    n_obs = int(meta["n_obs"])
+    vec = np.array([params["mu"], params["omega"], params["alpha"], params["beta"]])
+    cond_vol = np.sqrt(garch_recursion(vec, returns[:n_obs]))
+    return GarchFit(
+        cond_dist=meta["cond_dist"],
+        params=params,
+        std_errors=dict.fromkeys(params, 0.0),
+        loglikelihood=float(meta["loglikelihood"]),
+        aic=float(meta["aic"]),
+        bic=float(meta["bic"]),
+        conditional_volatility=cond_vol,
+        n_obs=n_obs,
+        converged=True,
+    )
+
+
+@pytest.mark.parametrize("dist", _FORECAST_DISTS)
+def test_predict_roll_sigma_machine_exact_all_dists(dist: str) -> None:
+    """Rolling sigma-hat is distribution-independent -> machine-exact under every law."""
+    fx = _forecast_fixture(dist)
+    returns = _returns()
+    fit = _fit_from_forecast(dist, fx["meta"], returns)
+    forecast = predict_roll(fit, returns)
+    assert forecast.n_test == fx["sigma"].size == 250
+    assert np.max(np.abs(forecast.sigma - fx["sigma"])) < _SIGMA_TOL
+    # The mean is the constant fitted mu (plain GARCH, sigma-only forecast).
+    assert np.max(np.abs(forecast.cmeans - fx["cmeans"])) < _SIGMA_TOL
+
+
+@pytest.mark.parametrize("dist", _FORECAST_DISTS)
+def test_measure_risk_matches_fixture_all_dists(dist: str) -> None:
+    """VaR/ES reproduces the fixture under each law -- exercising its ppf + expected_shortfall.
+
+    Not machine-exact: sigma-hat is, so the residual is the R<->SciPy quantile-implementation gap
+    for the fitted distribution (same mechanism documented for the normal, a touch wider for the
+    hand-implemented ALD / Fernandez-Steel-skew quantiles) -- bounded by ``_VAR_ES_DIST_TOL``.
+    """
+    fx = _forecast_fixture(dist)
+    returns = _returns()
+    fit = _fit_from_forecast(dist, fx["meta"], returns)
+    risk = measure_risk(predict_roll(fit, returns), fit, levels=(0.975, 0.99))
+    ve = fx["var_es"]  # cols: var_0.975, var_0.99, es_0.975, es_0.99
+    assert np.max(np.abs(risk.var[0.975] - ve[:, 0])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.var[0.99] - ve[:, 1])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.975] - ve[:, 2])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.99] - ve[:, 3])) < _VAR_ES_DIST_TOL
+    # ES is everywhere at least as deep as VaR, and both are return-space (negative) thresholds.
+    for alpha in (0.975, 0.99):
+        assert np.all(risk.es[alpha] <= risk.var[alpha])
+        assert np.all(risk.var[alpha] < 0.0)

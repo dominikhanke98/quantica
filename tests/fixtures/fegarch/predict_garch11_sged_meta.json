@@ -1,0 +1,22 @@
+{
+  "model": "garch",
+  "cond_dist": "sged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00045219193813581183,
+    "omega": 3.4587271540297999e-06,
+    "phi1": 0.085667269828722553,
+    "beta1": 0.89181955115828759,
+    "shape": 2.2143187208915887,
+    "skew": 0.97913866671782956
+  },
+  "unconditional_variance": 0.00015363121983057783,
+  "unconditional_sigma": 0.012394806163493555,
+  "note": "predict(n.ahead=h) multi-step point forecast from the TRAINING end; same training fit as forecast_garch11_<dist> (predict_roll). Distribution-breadth: the GARCH variance iterate is distribution-independent, so sigma matches norm's mechanism; the fitted shape/skew ride along in fit_params for the VaR/ES path.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
