@@ -29,7 +29,11 @@ A reimplementation of the whole `fEGarch` model family, in
   skewed variants `snorm` / `sstd` / `sged` / `sald`, each standardized to mean 0 / variance 1.
 - **Dual mean** — ARMA-in-mean and FARIMA-in-mean fits coupled to the variance in one joint QMLE
   (`fEGarch` has no GARCH-in-mean; the dual mean is ARMA + FARIMA only — spec-notes §25).
-- **Forecasting** — `predict_roll` (no-refit rolling one-step) and `predict` (multi-step).
+- **Forecasting** — `predict_roll` (no-refit rolling one-step) and `predict` (multi-step), validated
+  across the conditional-distribution surface (PR #28): GARCH across **all eight** laws (rolling *and*
+  multi-step), and EGARCH multi-step across **six of the eight** — all but `std` / `sstd`, because
+  `fEGarch`'s optimizer errors on `egarch×{std, sstd}` (the continuous-df Type-I EGF cases of finding 3
+  below / spec-notes §20), so there is no reference forecast output to reproduce for those two.
 - **Risk** — conditional VaR/ES (WP171 Eqs. 61–62) that **feed the repository's existing risk-pillar
   backtests**.
 - **Diagnostics** — the weighted Ljung-Box, Engle–Ng sign-bias, and PIT goodness-of-fit fit-tests.
@@ -59,7 +63,12 @@ never conflates them:
   conditional-SD series. This isolates the model's correctness from the optimizer. Examples: the
   FILog-GARCH recursion reproduces the fixture σ to `1.05e-15` at `fEGarch`'s params (spec-notes §14.1);
   the GARCH rolling-forecast reconstruction pins to `6.939e-18` (§27.1); the semiparametric scale
-  reconstructs `fEGarch`'s `scale_fun` to `~6e-16` (§32).
+  reconstructs `fEGarch`'s `scale_fun` to `~6e-16` (§32). One refinement of what "seam-exact" means for
+  the EGF family: the four EGF centering moments (the `E|η|`-type constants the log-variance recursion is
+  built on) are seam-exact to machine epsilon (`~1e-15`) for the **symmetric** laws, which have closed
+  forms, but to the **quadrature floor** (`~1e-13`) for the **Fernández–Steel skew** laws, whose moments
+  are integrated numerically over the skew wrapper. That is a precision boundary — the honest meaning of
+  seam-exact for skew EGF centering — not a defect (PR #28).
 - **Fit-tolerance (~1e-5 / 1e-6).** The *fitted parameters* are optimizer-dependent, so an independent
   optimizer lands a few `1e-6` away — the same category as the port's GARCH/EGARCH parameter matches.
   Stated as a tolerance, never as machine precision.
