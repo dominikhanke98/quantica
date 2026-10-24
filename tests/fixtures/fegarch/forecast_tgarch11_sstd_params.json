@@ -1,0 +1,28 @@
+{
+  "model": "tgarch",
+  "cond_dist": "sstd",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00038987901567451376,
+    "omega": 0.00028519411139955604,
+    "phi1": 0.085938303026507498,
+    "beta1": 0.90731294123108897,
+    "gamma1": 0.13290285855124559,
+    "df": 340.75307913147816,
+    "skew": 0.96617172388185801
+  },
+  "loglikelihood": 6808.1794075643511,
+  "aic": -6.0454928067238676,
+  "bic": -6.0277013407388056,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

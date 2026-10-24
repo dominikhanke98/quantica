@@ -56,6 +56,11 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from quantica.timeseries.fegarch.asymmetric import (
+    aparch_recursion,
+    gjr_recursion,
+    tgarch_recursion,
+)
 from quantica.timeseries.fegarch.distributions import (
     AverageLaplace,
     ConditionalDistribution,
@@ -124,23 +129,44 @@ class RiskForecast:
     es: dict[float, FloatArray]
 
 
+def _aparch_family_variance(fit: GarchFit, y: FloatArray) -> FloatArray:
+    r"""Conditional variance :math:`\sigma_t^2` for an APARCH-family fit, continued over ``y``.
+
+    Dispatches on the fitted power :math:`\delta` to the recursion that carries that model's own
+    pre-sample seed convention (spec-notes §4): :math:`\delta = 2` → :func:`gjr_recursion`,
+    :math:`\delta = 1` → :func:`tgarch_recursion`, free :math:`\delta` → :func:`aparch_recursion`.
+    The pre-sample seed transient decays to nothing long before the test window, so the choice does
+    not affect the rolling forecast there (it is seam-exact regardless; §33.3).
+    """
+    mu, omega, phi1 = fit.params["mu"], fit.params["omega"], fit.params["phi1"]
+    beta1, gamma1, delta = fit.params["beta1"], fit.params["gamma1"], fit.params["delta"]
+    if delta == 2.0:
+        return gjr_recursion(np.array([mu, omega, phi1, beta1, gamma1], dtype=np.float64), y)
+    if delta == 1.0:
+        return tgarch_recursion(np.array([mu, omega, phi1, beta1, gamma1], dtype=np.float64), y)
+    return aparch_recursion(np.array([mu, omega, phi1, beta1, gamma1, delta], dtype=np.float64), y)
+
+
 def predict_roll(
     fit: GarchFit, returns: FloatArray, *, n_test: int | None = None
 ) -> RollingForecast:
     r"""No-refit rolling one-step forecast of :math:`\hat\sigma_t` / :math:`\hat\mu_t`.
 
-    Freezes the parameters at the training ``fit`` and continues the GARCH variance recursion past
-    the training window over the realized test returns — equivalently, runs
-    :func:`~quantica.timeseries.fegarch.garch_recursion` with the training parameters over the
-    **full** ``returns`` series and keeps the last ``n_test`` values (the train-then-continue seed
-    is machine-exact for any reasonable training seed; see the module docstring). The mean is the
-    constant fitted :math:`\mu` (plain GARCH), so :math:`\hat\mu_t` is a constant series.
+    Freezes the parameters at the training ``fit`` and continues the fitted variance recursion past
+    the training window over the realized test returns — equivalently, runs the model's recursion
+    with the training parameters over the **full** ``returns`` series and keeps the last ``n_test``
+    values (the train-then-continue seed is machine-exact for any reasonable training seed; see the
+    module docstring). Supports **GARCH** (via
+    :func:`~quantica.timeseries.fegarch.garch_recursion`) and the **APARCH family** — GJR / TGARCH /
+    APARCH, detected by the ``phi1, beta1, gamma1`` parameters and dispatched by the fitted power
+    :math:`\delta` (spec-notes §33). The mean is the constant fitted :math:`\mu` (constant-mean
+    models), so :math:`\hat\mu_t` is a constant series.
 
     Parameters
     ----------
     fit : GarchFit
-        A GARCH(1,1) fit on the **training** window (its ``params`` supply ``mu, omega, alpha,
-        beta`` and ``n_obs`` the training length).
+        A fit on the **training** window — GARCH (``mu, omega, alpha, beta``) or an APARCH-family
+        model (``mu, omega, phi1, beta1, gamma1, delta``); ``n_obs`` is the training length.
     returns : ndarray, shape (n_train + n_test,)
         The full return series — the training returns followed by the realized test returns.
     n_test : int, optional
@@ -162,11 +188,14 @@ def predict_roll(
     if not 0 < n_test <= y.size:
         raise ValueError(f"n_test must satisfy 0 < n_test <= {y.size}, got {n_test}")
 
-    params = np.array(
-        [fit.params["mu"], fit.params["omega"], fit.params["alpha"], fit.params["beta"]],
-        dtype=np.float64,
-    )
-    sigma2 = garch_recursion(params, y)
+    if {"phi1", "beta1", "gamma1"} <= set(fit.params):  # APARCH family (GJR / TGARCH / APARCH)
+        sigma2 = _aparch_family_variance(fit, y)
+    else:  # plain GARCH
+        params = np.array(
+            [fit.params["mu"], fit.params["omega"], fit.params["alpha"], fit.params["beta"]],
+            dtype=np.float64,
+        )
+        sigma2 = garch_recursion(params, y)
     sigma = np.sqrt(sigma2[y.size - n_test :])
     cmeans = np.full(n_test, fit.params["mu"], dtype=np.float64)
     return RollingForecast(sigma=sigma, cmeans=cmeans, n_test=n_test)
@@ -258,7 +287,7 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
 
     Iterates the fitted recursion forward from the fitted-sample-end state, replacing each future
     news term by its expectation (the ``predict`` mechanism, distinct from :func:`predict_roll`'s
-    one-step rolling). Two families are supported, both reproducing the committed fixtures to
+    one-step rolling). Three families are supported, all reproducing the committed fixtures to
     machine precision:
 
     * **Variance-recursion GARCH(1,1)** (params ``mu, omega, alpha, beta``): the standard iterated
@@ -266,6 +295,15 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
       :math:`h \ge 2` (the future :math:`\varepsilon_{n+h-1}^2 \to` its expectation
       :math:`\hat\sigma_{n+h-1}^2`); :math:`h = 1` uses the realized :math:`\varepsilon_n`. It is
       **unbiased** and converges to the unconditional variance :math:`\omega/(1-\alpha-\beta)`.
+    * **APARCH family (GJR / TGARCH / APARCH)** (params ``mu, omega, phi1, beta1, gamma1, delta``):
+      the iterated :math:`\sigma^\delta` forecast :math:`m_h = \omega + (\phi_1\kappa + \beta_1)
+      m_{h-1}` for :math:`h \ge 2`, with the asymmetry-corrected news moment
+      :math:`\kappa = \operatorname{E}[(|\eta| - \gamma_1\eta)^\delta]` (full quadrature — fEGarch
+      integrates the whole kernel, spec-notes §33); :math:`h = 1` uses the realized news
+      :math:`(|\varepsilon_n| - \gamma_1\varepsilon_n)^\delta`. Report
+      :math:`\hat\sigma = (m_h)^{1/\delta}`, the **Jensen-biased plug-in** fEGarch ships (for
+      :math:`\delta \ne 2`), reproduced **not** bias-corrected. GJR (:math:`\delta=2`) and TGARCH
+      (:math:`\delta=1`) are the fixed-power specializations of this path.
     * **Type-I EGF (EGARCH)** (params ``mu, omega_sig, phi1, kappa, gamma``): iterate the
       log-variance with the future news :math:`g(\eta) = 0` (its expectation by construction),
       :math:`\ln\hat\sigma_{n+h}^2 = \omega + \phi_1\ln\hat\sigma_{n+h-1}^2` for :math:`h \ge 2`
@@ -339,10 +377,28 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
         for h in range(1, n_ahead):
             variance[h] = omega + (alpha + beta) * variance[h - 1]
         sigma = np.sqrt(variance)
+    elif {"omega", "phi1", "beta1", "gamma1"} <= keys:
+        # APARCH family (GJR delta=2, TGARCH delta=1, APARCH free delta): iterate the sigma^delta
+        # recursion m_h = omega + (phi1*kappa + beta1) m_{h-1} for h >= 2, with the asymmetry-
+        # corrected news moment kappa = E[(|z| - gamma1 z)^delta] (§33). The h=1 term uses
+        # the realized news (|eps_n| - gamma1 eps_n)^delta; report sigma = (m_h)^(1/delta), the
+        # Jensen-biased plug-in fEGarch ships (reproduced, not corrected -- as the EGARCH bias).
+        omega, phi1 = fit.params["omega"], fit.params["phi1"]
+        beta1, gamma1, delta = fit.params["beta1"], fit.params["gamma1"], fit.params["delta"]
+        dist, shape = _distribution_for_fit(fit)
+        kappa = dist.news_moment(delta, gamma1, shape)
+        rho = phi1 * kappa + beta1  # reduced persistence
+        eps_n = y[-1] - mu
+        m = np.empty(n_ahead, dtype=np.float64)
+        m[0] = omega + phi1 * (abs(eps_n) - gamma1 * eps_n) ** delta + beta1 * sigma_n**delta
+        for h in range(1, n_ahead):
+            m[h] = omega + rho * m[h - 1]
+        sigma = m ** (1.0 / delta)
     else:
         raise NotImplementedError(
             f"multi-step predict is not built for a fit with params {sorted(keys)}; "
-            "only constant-mean GARCH(1,1) and EGARCH(1,1) have committed fixtures"
+            "only constant-mean GARCH(1,1), EGARCH(1,1) and the APARCH family (GJR/TGARCH/APARCH) "
+            "have committed fixtures"
         )
 
     cmeans = np.full(n_ahead, mu, dtype=np.float64)

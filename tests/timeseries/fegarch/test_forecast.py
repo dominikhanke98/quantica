@@ -33,6 +33,11 @@ from quantica.timeseries.fegarch import (
     measure_risk,
     predict_roll,
 )
+from quantica.timeseries.fegarch.asymmetric import (
+    aparch_recursion,
+    gjr_recursion,
+    tgarch_recursion,
+)
 from quantica.timeseries.fegarch.distributions import (
     ConditionalDistribution,
     FernandezSteelSkew,
@@ -381,6 +386,107 @@ def test_measure_risk_matches_fixture_all_dists(dist: str) -> None:
     assert np.max(np.abs(risk.es[0.975] - ve[:, 2])) < _VAR_ES_DIST_TOL
     assert np.max(np.abs(risk.es[0.99] - ve[:, 3])) < _VAR_ES_DIST_TOL
     # ES is everywhere at least as deep as VaR, and both are return-space (negative) thresholds.
+    for alpha in (0.975, 0.99):
+        assert np.all(risk.es[alpha] <= risk.var[alpha])
+        assert np.all(risk.var[alpha] < 0.0)
+
+
+# --------------------------------------------------------------------------- #
+# 6. APARCH family (forecast family 1) -- rolling forecast + VaR/ES, GJR/TGARCH/APARCH x 8 laws
+# --------------------------------------------------------------------------- #
+#
+# predict_roll for the APARCH family (§33): the one-step sigma_{t+1}^delta is deterministic
+# at t, and the §4 pre-sample seed transient has decayed by the test window, so the rolling forecast
+# is seam-exact for all three models. VaR/ES again exercises each law's quantile/ES. GJR
+# (delta=2) and TGARCH (delta=1) are the fixed-power specializations of the APARCH path.
+
+_APARCH_MODELS = ["aparch", "gjrgarch", "tgarch"]
+_APARCH_DISTS = ["norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+
+
+def _aparch_params_from_json(p: dict, model: str, dist: str) -> dict:  # type: ignore[type-arg]
+    """R APARCH-family fit params -> quantica GarchFit names (incl. the power ``delta``)."""
+    q = {
+        "mu": p["mu"],
+        "omega": p["omega"],
+        "phi1": p["phi1"],
+        "beta1": p["beta1"],
+        "gamma1": p["gamma1"],
+    }
+    q["delta"] = p.get("delta", 2.0 if model == "gjrgarch" else 1.0)
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q
+
+
+def _aparch_forecast_fit(model: str, dist: str, returns: np.ndarray) -> GarchFit:  # type: ignore[type-arg]
+    """APARCH-family training fit from the forecast_<model>11_<dist> fixture, reconstructed vol."""
+    stem = f"forecast_{model}11_{dist}"
+    meta = json.loads((_FIXTURE_DIR / f"{stem}_params.json").read_text(encoding="utf-8"))
+    q = _aparch_params_from_json(meta["params"], model, dist)
+    n = int(meta["n_obs"])
+    v = np.array([q["mu"], q["omega"], q["phi1"], q["beta1"], q["gamma1"]])
+    if q["delta"] == 2.0:
+        cond_vol = np.sqrt(gjr_recursion(v, returns[:n]))
+    elif q["delta"] == 1.0:
+        cond_vol = np.sqrt(tgarch_recursion(v, returns[:n]))
+    else:
+        cond_vol = np.sqrt(aparch_recursion(np.append(v, q["delta"]), returns[:n]))
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=float(meta["loglikelihood"]),
+        aic=float(meta["aic"]),
+        bic=float(meta["bic"]),
+        conditional_volatility=cond_vol,
+        n_obs=n,
+        converged=True,
+    )
+
+
+def _aparch_roll_fixture(model: str, dist: str) -> dict:  # type: ignore[type-arg]
+    """Load the APARCH-family rolling-forecast fixture (sigma / cmeans / VaR-ES) for model+dist."""
+    stem = f"forecast_{model}11_{dist}"
+    return {
+        "sigma": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_sigma.csv", skiprows=1),
+        "cmeans": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_cmeans.csv", skiprows=1),
+        "var_es": np.loadtxt(_FIXTURE_DIR / f"{stem}_var_es.csv", delimiter=",", skiprows=1),
+    }
+
+
+@pytest.mark.parametrize("model", _APARCH_MODELS)
+@pytest.mark.parametrize("dist", _APARCH_DISTS)
+def test_aparch_family_predict_roll_matches_fixture(model: str, dist: str) -> None:
+    """Rolling sigma-hat is seam-exact for the APARCH family (the §4 seed transient decays)."""
+    returns = _returns()
+    fit = _aparch_forecast_fit(model, dist, returns)
+    fx = _aparch_roll_fixture(model, dist)
+    forecast = predict_roll(fit, returns)
+    assert forecast.n_test == fx["sigma"].size == 250
+    assert np.max(np.abs(forecast.sigma - fx["sigma"])) < _SIGMA_TOL
+    assert np.max(np.abs(forecast.cmeans - fx["cmeans"])) < _SIGMA_TOL
+
+
+@pytest.mark.parametrize("model", _APARCH_MODELS)
+@pytest.mark.parametrize("dist", _APARCH_DISTS)
+def test_aparch_family_measure_risk_matches_fixture(model: str, dist: str) -> None:
+    """VaR/ES reproduces the fixture for the APARCH family per law (R<->SciPy quantile gap)."""
+    returns = _returns()
+    fit = _aparch_forecast_fit(model, dist, returns)
+    fx = _aparch_roll_fixture(model, dist)
+    risk = measure_risk(predict_roll(fit, returns), fit, levels=(0.975, 0.99))
+    ve = fx["var_es"]
+    assert np.max(np.abs(risk.var[0.975] - ve[:, 0])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.var[0.99] - ve[:, 1])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.975] - ve[:, 2])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.99] - ve[:, 3])) < _VAR_ES_DIST_TOL
     for alpha in (0.975, 0.99):
         assert np.all(risk.es[alpha] <= risk.var[alpha])
         assert np.all(risk.var[alpha] < 0.0)

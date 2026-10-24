@@ -1,0 +1,27 @@
+{
+  "model": "gjrgarch",
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.0003530662555319712,
+    "omega": 3.5490241425248919e-06,
+    "phi1": 0.084806045596469093,
+    "beta1": 0.89139520165388098,
+    "gamma1": 0.090588679389901117,
+    "shape": 2.2244365345449055
+  },
+  "loglikelihood": 6815.843471167198,
+  "aic": -6.0531941965930649,
+  "bic": -6.0379443686058689,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
