@@ -273,6 +273,11 @@ def _build_asym_fit(
     }
     if extra_params:
         params.update(extra_params)
+    # Record the power delta in params for the whole family: free (already present) for APARCH, the
+    # fixed 2.0 / 1.0 for GJR / TGARCH. This makes a fit self-describing and forecast-ready -- the
+    # multi-step predict reads delta from params (GJR/TGARCH are the delta=2 / delta=1 cases of one
+    # APARCH forecast path). It carries no standard error and does not enter the AIC/BIC k.
+    params["delta"] = delta
 
     loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
     aic = (2.0 * k - 2.0 * loglik) / n

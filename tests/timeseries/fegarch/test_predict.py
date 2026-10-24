@@ -22,6 +22,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 from quantica.timeseries.fegarch import GarchFit, predict, predict_roll
+from quantica.timeseries.fegarch.asymmetric import (
+    aparch_recursion,
+    gjr_recursion,
+    tgarch_recursion,
+)
 from quantica.timeseries.fegarch.egarch import egarch_recursion
 from quantica.timeseries.fegarch.garch import garch_recursion
 
@@ -356,3 +361,116 @@ def test_egarch_predict_reproduces_biased_limit_all_dists(dist: str) -> None:
     biased_limit = float(np.exp(fit.params["omega_sig"] / 2.0))
     fc = predict(fit, _returns(), n_ahead=4000)
     assert fc.sigma[-1] == pytest.approx(biased_limit, rel=1e-6)
+
+
+# --------------------------------------------------------------------------- #
+# APARCH-family multi-step (forecast family 1) -- GJR / TGARCH / APARCH, all 8 laws
+# --------------------------------------------------------------------------- #
+#
+# The APARCH-power multi-step forecast (spec-notes §33): m_h = E_t[sigma_{t+h}^delta] obeys the
+# linear recursion m_h = omega + (phi1*kappa + beta1) m_{h-1} for h>=2, with the ASYMMETRY-CORRECTED
+# news moment kappa = E[(|eta| - gamma1 eta)^delta] (full quadrature -- the gate showed fEGarch
+# integrates the whole kernel even at delta=1,2, so the analytic closed forms diverge ~1e-13 while
+# full quadrature is machine-exact), and sigma = (m_h)^(1/delta) the Jensen-biased plug-in
+# (reproduced-not-corrected). GJR (delta=2) / TGARCH (delta=1) are the fixed-power specializations.
+
+_APARCH_MODELS = ["aparch", "gjrgarch", "tgarch"]
+_APARCH_DISTS = ["norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+# 23/24 reproduce to machine precision (~1e-16); the one R<->SciPy kappa-quadrature-floor case is
+# tgarch x sged at ~8.7e-12 (the skew-GED shape where R's and SciPy's adaptive integrals differ).
+_APARCH_PREDICT_TOL = 1e-10
+
+
+def _aparch_params_from_json(p: dict, model: str, dist: str) -> dict:  # type: ignore[type-arg]
+    """R APARCH-family fit params -> quantica GarchFit names (incl. the power ``delta``)."""
+    q = {
+        "mu": p["mu"],
+        "omega": p["omega"],
+        "phi1": p["phi1"],
+        "beta1": p["beta1"],
+        "gamma1": p["gamma1"],
+    }
+    # delta is in the fitted vector for APARCH; fixed 2.0 / 1.0 for GJR / TGARCH.
+    q["delta"] = p.get("delta", 2.0 if model == "gjrgarch" else 1.0)
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q
+
+
+def _aparch_family_cond_vol(q: dict, n: int) -> np.ndarray:  # type: ignore[type-arg]
+    """Reconstruct conditional-SD over ``returns[:n]`` via the delta-matched recursion."""
+    v = np.array([q["mu"], q["omega"], q["phi1"], q["beta1"], q["gamma1"]])
+    y = _returns()[:n]
+    if q["delta"] == 2.0:
+        return np.sqrt(gjr_recursion(v, y))
+    if q["delta"] == 1.0:
+        return np.sqrt(tgarch_recursion(v, y))
+    return np.sqrt(aparch_recursion(np.append(v, q["delta"]), y))
+
+
+def _aparch_predict_fit(model: str, dist: str) -> GarchFit:
+    """APARCH-family TRAINING fit (n_test=250) for ``(model, dist)`` with reconstructed cond vol."""
+    meta = json.loads(
+        (_FIXTURE_DIR / f"predict_{model}11_{dist}_meta.json").read_text(encoding="utf-8")
+    )
+    q = _aparch_params_from_json(meta["fit_params"], model, dist)
+    n = int(meta["n_obs_train"])
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=_aparch_family_cond_vol(q, n),
+        n_obs=n,
+        converged=True,
+    )
+
+
+@pytest.mark.parametrize("model", _APARCH_MODELS)
+@pytest.mark.parametrize("dist", _APARCH_DISTS)
+def test_aparch_family_predict_matches_fixture(model: str, dist: str) -> None:
+    """APARCH/GJR/TGARCH multi-step sigma reproduces the h10 fixture (incl. h=1,5,10) per law.
+
+    GJR/TGARCH flow through the same delta=2/delta=1 specialization of the APARCH path -- a clean
+    inheritance (all land at machine precision bar the one documented quadrature-floor case).
+    """
+    fit = _aparch_predict_fit(model, dist)
+    fc = predict(fit, _returns(), n_ahead=10)
+    fix = _fix(f"{model}11_{dist}", 10)
+    assert fc.n_ahead == 10
+    assert np.max(np.abs(fc.sigma - fix)) < _APARCH_PREDICT_TOL
+    for h in _REQUESTED_HORIZONS:
+        assert abs(fc.sigma[h - 1] - fix[h - 1]) < _APARCH_PREDICT_TOL
+    assert np.all(fc.cmeans == fit.params["mu"])
+
+
+@pytest.mark.parametrize("model", _APARCH_MODELS)
+@pytest.mark.parametrize("dist", _APARCH_DISTS)
+def test_aparch_family_predict_h1_equals_roll_first(model: str, dist: str) -> None:
+    """The h=1 multi-step sigma equals predict_roll's first value (one-step seam), per model/law."""
+    fit = _aparch_predict_fit(model, dist)
+    ph1 = predict(fit, _returns(), n_ahead=1).sigma[0]
+    roll_first = predict_roll(fit, _returns()).sigma[0]
+    assert abs(ph1 - roll_first) < 1e-15  # same one-step forecast from the same state (<=1 ULP)
+
+
+def test_aparch_predict_converges_to_reduced_persistence_limit() -> None:
+    """APARCH sigma^delta -> omega/(1 - (phi1*kappa + beta1)), the reduced-persistence limit."""
+    from quantica.timeseries.fegarch.distributions import get_distribution
+
+    fit = _aparch_predict_fit("aparch", "norm")
+    delta, gamma1 = fit.params["delta"], fit.params["gamma1"]
+    kappa = get_distribution("norm").news_moment(delta, gamma1)
+    rho = fit.params["phi1"] * kappa + fit.params["beta1"]
+    m_inf = fit.params["omega"] / (1.0 - rho)
+    fc = predict(fit, _returns(), n_ahead=4000)
+    assert (fc.sigma[-1] ** delta) == pytest.approx(m_inf, rel=1e-6)
+    assert np.all(np.diff(fc.sigma**delta) >= -1e-18)  # monotone in sigma^delta

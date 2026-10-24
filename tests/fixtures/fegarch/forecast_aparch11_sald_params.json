@@ -1,0 +1,29 @@
+{
+  "model": "aparch",
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00039112888330091996,
+    "omega": 3.8864804051482526e-07,
+    "phi1": 0.07665677384559294,
+    "beta1": 0.88608042999921743,
+    "gamma1": 0.088382879256918359,
+    "delta": 2.5129366042684547,
+    "P": 5,
+    "skew": 0.96894515047539653
+  },
+  "loglikelihood": 6800.5176765059223,
+  "aic": -6.0377934902274868,
+  "bic": -6.0174603862445579,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

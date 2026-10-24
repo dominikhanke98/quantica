@@ -332,7 +332,29 @@ skew-wrapper E|η| is a touch looser** than the symmetric closed forms) and VaR/
 EGF, §20), so there is no reference output to reproduce — the gap is inherited from the fit layer, not
 introduced here. (c) EGARCH rolling is not generated (the engine's `predict_roll` is GARCH-only). The
 other ~14 model families + dual-mean remain out of scope (the unchanged engine raises
-`NotImplementedError` for them). PR open, not merged.
+`NotImplementedError` for them). PR open, not merged. **MERGED** (PR #28 → `main` `29499a3`).
+
+**Forecast family 1 — APARCH multi-step + rolling (APARCH/GJR/TGARCH) — on `feat/fegarch-forecast-aparch`**
+(an **engine build**, not fixture breadth: new forecast-recursion math, derived clean-room and gated
+before any engine code). The APARCH-power multi-step forecast (spec-notes **§33**): by iterated
+expectations on `σ^δ`, `m_h = E_t[σ_{t+h}^δ]` obeys the linear recursion `m_h = ω + (φ₁κ + β₁)m_{h-1}`
+(h≥2) with the **asymmetry-corrected news moment** `κ = E[(|η|−γ₁η)^δ]` and reduced persistence
+`φ₁κ+β₁`; `σ̂ = (m_h)^{1/δ}` is the Jensen-biased plug-in (reproduced-not-corrected, as the EGARCH bias).
+GJR (δ=2) / TGARCH (δ=1) are the fixed-power specializations of **one** path. Engine: `distributions.py`
+gained `news_moment(δ,γ)` (κ by full quadrature over the validated density); `asymmetric.py` now records
+`delta` in the family's fit params (self-describing, forecast-ready); `forecast.py` `predict`/`predict_roll`
+extended to the family. **48 fixture-sets** (3 models × 8 laws × {predict_roll, predict}, 144 files) in R;
+`test_forecast.py`/`test_predict.py` gained parametrized tests (163 forecast+predict tests pass).
+**Findings:** (a) **reconstruction gate** — the **proper asymmetry-corrected κ reproduces fEGarch to
+1.7e-17 (machine-exact)**; dropping the γ-asymmetry misses by 4.2e-05 (rejected). (b) **fEGarch integrates
+the full `(|η|−γ₁η)^δ` kernel numerically even at δ=1,2** — the analytic closed forms (δ=1: E|η|; δ=2:
+(1+γ²)−2γE[η|η|]) *diverge* ~1e-13 from its integral, so the faithful engine uses **full quadrature
+uniformly** (the "obvious" closed-form impl would be ~1e-13 wrong — an effective-challenge result).
+(c) **GJR/TGARCH inherited cleanly** as δ=2/δ=1 specializations (machine-exact). (d) **no finding-3 gaps**
+— all 24 (model,law) fit+forecast (variance-recursion, no continuous-df EGF fragility). (e) 23/24
+reproduce to ~1e-16; **tgarch×sged is the one R↔SciPy κ-quadrature-floor case at ~8.7e-12** (still
+machine-precision-class). predict_roll seam-exact (the §4 pre-sample seed decays by the test window);
+VaR/ES ≤2.83e-6. PR open, not merged.
 
 ## Completed
 

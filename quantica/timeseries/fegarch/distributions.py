@@ -165,6 +165,48 @@ class ConditionalDistribution(ABC):
         """
         raise NotImplementedError(f"{self.name} does not expose abs_moment (E|z|)")
 
+    def news_moment(
+        self, delta: float, gamma: float, params: Sequence[float] | None = None
+    ) -> float:
+        r"""APARCH news moment :math:`\kappa(\delta, \gamma) = E[(|z| - \gamma z)^\delta]`.
+
+        The moment that turns the APARCH-family **multi-step** forecast into a linear
+        :math:`\sigma^\delta` recursion (spec-notes §33): for a future lag
+        :math:`E_t[(|\varepsilon| - \gamma\varepsilon)^\delta] = E_t[\sigma^\delta]\,\kappa`, so the
+        iterated forecast has reduced persistence :math:`\phi_1\kappa + \beta_1`. Since
+        :math:`|\gamma| < 1` the kernel base :math:`|z|(1 - \gamma\operatorname{sign} z)` is
+        non-negative, so the fractional power is real.
+
+        Parameters
+        ----------
+        delta : float
+            The APARCH power :math:`\delta > 0`.
+        gamma : float
+            The APARCH asymmetry :math:`|\gamma| < 1`.
+        params : sequence of float or None, optional
+            The distribution's shape parameters (default ``param_start``).
+
+        Returns
+        -------
+        float
+            The news moment :math:`\kappa(\delta, \gamma) = E[(|z| - \gamma z)^\delta]`.
+
+        Notes
+        -----
+        Computed by **full numerical quadrature of** :math:`(|z| - \gamma z)^\delta` for *every*
+        :math:`\delta` — including the fixed powers — over the validated standardized density (the
+        same :func:`_moment_by_quadrature` the EGF centering moments use). The reconstruction gate
+        (spec-notes §33.3) established that fEGarch integrates the whole kernel numerically even at
+        :math:`\delta = 1, 2`: the mathematically-equal closed forms (:math:`\delta = 1`:
+        :math:`E|z|`; :math:`\delta = 2`: :math:`(1+\gamma^2) - 2\gamma E[z|z|]`) *diverge* from
+        fEGarch's integral by ``~1e-13``; this full quadrature matches it to machine precision
+        for the symmetric bases (to the R↔SciPy quadrature floor for the FS-skew laws). So it is the
+        faithful single path — GJR and TGARCH are the :math:`\delta = 2` / :math:`\delta = 1`
+        specializations of it, not a closed-form fork.
+        """
+        p = self._params(params)
+        return _moment_by_quadrature(self.logpdf, p, lambda z: (abs(z) - gamma * z) ** delta)
+
     def mean_log_sq(self, params: Sequence[float] | None = None) -> float:
         r"""Log-square moment :math:`E[\ln z^2]` of the standardized innovation.
 

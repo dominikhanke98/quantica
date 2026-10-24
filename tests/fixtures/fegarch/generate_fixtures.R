@@ -767,6 +767,68 @@ for (dist in c("ged", "ald", "snorm", "sged", "sald")) {
   }, error = function(e) cat(sprintf("  ERROR predict egarch11_%s:", dist), conditionMessage(e), "\n"))
 }
 
+# --- Forecast family 1: the APARCH-family multi-step + rolling forecasts (APARCH/GJR/TGARCH) --------
+# The APARCH-power recursion sigma^delta = omega + phi1(|eps|-gamma1 eps)^delta + beta1 sigma^delta
+# forecasts by iterated expectations (spec-notes §33): m_h = E_t[sigma_{t+h}^delta] obeys the linear
+# recursion m_h = omega + (phi1*kappa + beta1) m_{h-1} for h>=2, with the news moment
+# kappa = E[(|eta|-gamma1 eta)^delta] (the ASYMMETRY-CORRECTED moment -- the reconstruction gate §33.3
+# confirms fEGarch uses the proper kappa, not a simplification), and sigma=(m_h)^(1/delta) the
+# Jensen-biased plug-in (reproduced-not-corrected). GJR (delta=2) and TGARCH (delta=1) are the fixed-
+# power specializations of the same recursion. predict_roll (one-step) is deterministic at t and the §4
+# pre-sample seed transient has decayed by the test window, so both are seam-exact. Across all 8 laws
+# (these variance-recursion models have no continuous-df EGF fragility -> no finding-3 gaps expected).
+# Each (model,law) is tryCatch-wrapped; a failure prints ERROR and writes NO fixture (documented gap).
+for (model in c("aparch", "gjrgarch", "tgarch")) {
+  for (dist in c("norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+    tag <- sprintf("%s11_%s", model, dist)
+    tryCatch({
+      fc_fit <- match.fun(model)(returns, orders = c(1, 1), cond_dist = dist,
+                                 n_test = N_TEST_FC, parallel = FALSE)
+      p <- pars(fc_fit); ic <- inf_criteria(fc_fit)
+      params <- as.list(as.numeric(p)); names(params) <- names(p)
+      fcast <- predict_roll(fc_fit, refit_after = NULL, parallel = FALSE)
+      meta <- list(
+        model = model, cond_dist = dist, orders = c(1L, 1L),
+        presample = 50L, trunc = "none", mean_included = TRUE,
+        n_obs = length(returns) - N_TEST_FC, n_forecast = N_TEST_FC, refit_after = "none",
+        input = "synthetic_returns.csv", parallel = FALSE, seed = SIM_SEED,
+        params = params, loglikelihood = as.numeric(llhood(fc_fit)),
+        aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
+        fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+      write_json(meta, file.path(OUTDIR, sprintf("forecast_%s_params.json", tag)))
+      write_series_csv(as.numeric(fcast@sigt),
+                       file.path(OUTDIR, sprintf("forecast_%s_roll_sigma.csv", tag)), "sigma")
+      write_series_csv(as.numeric(fcast@cmeans),
+                       file.path(OUTDIR, sprintf("forecast_%s_roll_cmeans.csv", tag)), "cmeans")
+      risk <- measure_risk(fcast, measure = c("VaR", "ES"), level = c(0.975, 0.99)); mm <- risk@measures
+      write_matrix_csv(
+        list(as.numeric(mm$VaR[["VaR0.975"]]), as.numeric(mm$VaR[["VaR0.99"]]),
+             as.numeric(mm$ES[["ES0.975"]]), as.numeric(mm$ES[["ES0.99"]])),
+        file.path(OUTDIR, sprintf("forecast_%s_var_es.csv", tag)),
+        c("var_0.975", "var_0.99", "es_0.975", "es_0.99"))
+      pred <- predict(fc_fit, n.ahead = H_MULTI)
+      write_matrix_csv(
+        list(seq_len(H_MULTI), as.numeric(pred@sigt), as.numeric(pred@cmeans)),
+        file.path(OUTDIR, sprintf("predict_%s_h%d.csv", tag, H_MULTI)),
+        c("h", "sigma", "cmeans"))
+      pmeta <- list(
+        model = model, cond_dist = dist, orders = c(1L, 1L),
+        n_obs_train = length(returns) - N_TEST_FC, n_test = N_TEST_FC,
+        input = "synthetic_returns.csv", seed = SIM_SEED, fit_params = params,
+        note = paste0("predict(n.ahead=h) multi-step for the APARCH family from the TRAINING end; ",
+                      "same training fit as forecast_", tag, " (predict_roll). Iterated sigma^delta ",
+                      "forecast with reduced persistence phi1*kappa+beta1, ",
+                      "kappa=E[(|eta|-gamma1 eta)^delta]; sigma=(m_h)^(1/delta) is the Jensen-biased ",
+                      "plug-in, reproduced-not-corrected (spec-notes §33)."),
+        fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+      write_json(pmeta, file.path(OUTDIR, sprintf("predict_%s_meta.json", tag)))
+      cat(sprintf("  forecast+predict %-16s roll_n=%d sig1=%.7g  predict h1=%.7g h%d=%.7g\n",
+                  tag, length(fcast@sigt), as.numeric(fcast@sigt)[1],
+                  as.numeric(pred@sigt)[1], H_MULTI, as.numeric(pred@sigt)[H_MULTI]))
+    }, error = function(e) cat(sprintf("  ERROR forecast %s:", tag), conditionMessage(e), "\n"))
+  }
+}
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -1097,6 +1159,150 @@ manifest <- list(
                           note = "Phase-6 multi-step predict breadth: EGARCH(1,1)/sged full-sample fit (== fit_egarch11_sged); predict(n.ahead=10) covers h=1,5,10. Naive/biased EGF iterate (future g(eta)=0), reproduced-not-corrected; h=1 news uses the law's E|eta| centering. std/sstd absent (fEGarch optimizer errors, continuous-df) -> 5 non-norm, not 7."),
       predict_egarch11_sald = list(meta = "predict_egarch11_sald_meta.json", h10 = "predict_egarch11_sald_h10.csv",
                           note = "Phase-6 multi-step predict breadth: EGARCH(1,1)/sald full-sample fit (== fit_egarch11_sald); predict(n.ahead=10) covers h=1,5,10. Naive/biased EGF iterate (future g(eta)=0), reproduced-not-corrected; h=1 news uses the law's E|eta| centering. std/sstd absent (fEGarch optimizer errors, continuous-df) -> 5 non-norm, not 7."),
+      forecast_aparch11_norm_roll = list(params = "forecast_aparch11_norm_params.json",
+                          sigma = "forecast_aparch11_norm_roll_sigma.csv", cmeans = "forecast_aparch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_norm_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/norm (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_norm = list(meta = "predict_aparch11_norm_meta.json", h10 = "predict_aparch11_norm_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/norm multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_aparch11_std_roll = list(params = "forecast_aparch11_std_params.json",
+                          sigma = "forecast_aparch11_std_roll_sigma.csv", cmeans = "forecast_aparch11_std_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_std_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/std (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_std = list(meta = "predict_aparch11_std_meta.json", h10 = "predict_aparch11_std_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/std multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_aparch11_ged_roll = list(params = "forecast_aparch11_ged_params.json",
+                          sigma = "forecast_aparch11_ged_roll_sigma.csv", cmeans = "forecast_aparch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_ged_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/ged (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_ged = list(meta = "predict_aparch11_ged_meta.json", h10 = "predict_aparch11_ged_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/ged multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_aparch11_ald_roll = list(params = "forecast_aparch11_ald_params.json",
+                          sigma = "forecast_aparch11_ald_roll_sigma.csv", cmeans = "forecast_aparch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_ald_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/ald (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_ald = list(meta = "predict_aparch11_ald_meta.json", h10 = "predict_aparch11_ald_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/ald multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_aparch11_snorm_roll = list(params = "forecast_aparch11_snorm_params.json",
+                          sigma = "forecast_aparch11_snorm_roll_sigma.csv", cmeans = "forecast_aparch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_snorm_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/snorm (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_snorm = list(meta = "predict_aparch11_snorm_meta.json", h10 = "predict_aparch11_snorm_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/snorm multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_aparch11_sstd_roll = list(params = "forecast_aparch11_sstd_params.json",
+                          sigma = "forecast_aparch11_sstd_roll_sigma.csv", cmeans = "forecast_aparch11_sstd_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_sstd_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/sstd (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_sstd = list(meta = "predict_aparch11_sstd_meta.json", h10 = "predict_aparch11_sstd_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/sstd multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_aparch11_sged_roll = list(params = "forecast_aparch11_sged_params.json",
+                          sigma = "forecast_aparch11_sged_roll_sigma.csv", cmeans = "forecast_aparch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_sged_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/sged (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_sged = list(meta = "predict_aparch11_sged_meta.json", h10 = "predict_aparch11_sged_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/sged multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_aparch11_sald_roll = list(params = "forecast_aparch11_sald_params.json",
+                          sigma = "forecast_aparch11_sald_roll_sigma.csv", cmeans = "forecast_aparch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_aparch11_sald_var_es.csv",
+                          note = "Forecast family 1: APARCH(1,1)/sald (free delta), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_aparch11_sald = list(meta = "predict_aparch11_sald_meta.json", h10 = "predict_aparch11_sald_h10.csv",
+                          note = "Forecast family 1: APARCH(1,1)/sald multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_norm_roll = list(params = "forecast_gjrgarch11_norm_params.json",
+                          sigma = "forecast_gjrgarch11_norm_roll_sigma.csv", cmeans = "forecast_gjrgarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_norm_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/norm (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_norm = list(meta = "predict_gjrgarch11_norm_meta.json", h10 = "predict_gjrgarch11_norm_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/norm multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_std_roll = list(params = "forecast_gjrgarch11_std_params.json",
+                          sigma = "forecast_gjrgarch11_std_roll_sigma.csv", cmeans = "forecast_gjrgarch11_std_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_std_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/std (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_std = list(meta = "predict_gjrgarch11_std_meta.json", h10 = "predict_gjrgarch11_std_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/std multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_ged_roll = list(params = "forecast_gjrgarch11_ged_params.json",
+                          sigma = "forecast_gjrgarch11_ged_roll_sigma.csv", cmeans = "forecast_gjrgarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_ged_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/ged (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_ged = list(meta = "predict_gjrgarch11_ged_meta.json", h10 = "predict_gjrgarch11_ged_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/ged multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_ald_roll = list(params = "forecast_gjrgarch11_ald_params.json",
+                          sigma = "forecast_gjrgarch11_ald_roll_sigma.csv", cmeans = "forecast_gjrgarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_ald_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/ald (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_ald = list(meta = "predict_gjrgarch11_ald_meta.json", h10 = "predict_gjrgarch11_ald_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/ald multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_snorm_roll = list(params = "forecast_gjrgarch11_snorm_params.json",
+                          sigma = "forecast_gjrgarch11_snorm_roll_sigma.csv", cmeans = "forecast_gjrgarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_snorm_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/snorm (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_snorm = list(meta = "predict_gjrgarch11_snorm_meta.json", h10 = "predict_gjrgarch11_snorm_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/snorm multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_sstd_roll = list(params = "forecast_gjrgarch11_sstd_params.json",
+                          sigma = "forecast_gjrgarch11_sstd_roll_sigma.csv", cmeans = "forecast_gjrgarch11_sstd_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_sstd_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/sstd (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_sstd = list(meta = "predict_gjrgarch11_sstd_meta.json", h10 = "predict_gjrgarch11_sstd_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/sstd multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_sged_roll = list(params = "forecast_gjrgarch11_sged_params.json",
+                          sigma = "forecast_gjrgarch11_sged_roll_sigma.csv", cmeans = "forecast_gjrgarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_sged_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/sged (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_sged = list(meta = "predict_gjrgarch11_sged_meta.json", h10 = "predict_gjrgarch11_sged_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/sged multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_gjrgarch11_sald_roll = list(params = "forecast_gjrgarch11_sald_params.json",
+                          sigma = "forecast_gjrgarch11_sald_roll_sigma.csv", cmeans = "forecast_gjrgarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_gjrgarch11_sald_var_es.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/sald (delta=2), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_gjrgarch11_sald = list(meta = "predict_gjrgarch11_sald_meta.json", h10 = "predict_gjrgarch11_sald_h10.csv",
+                          note = "Forecast family 1: GJRGARCH(1,1)/sald multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_norm_roll = list(params = "forecast_tgarch11_norm_params.json",
+                          sigma = "forecast_tgarch11_norm_roll_sigma.csv", cmeans = "forecast_tgarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_norm_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/norm (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_norm = list(meta = "predict_tgarch11_norm_meta.json", h10 = "predict_tgarch11_norm_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/norm multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_std_roll = list(params = "forecast_tgarch11_std_params.json",
+                          sigma = "forecast_tgarch11_std_roll_sigma.csv", cmeans = "forecast_tgarch11_std_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_std_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/std (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_std = list(meta = "predict_tgarch11_std_meta.json", h10 = "predict_tgarch11_std_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/std multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_ged_roll = list(params = "forecast_tgarch11_ged_params.json",
+                          sigma = "forecast_tgarch11_ged_roll_sigma.csv", cmeans = "forecast_tgarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_ged_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/ged (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_ged = list(meta = "predict_tgarch11_ged_meta.json", h10 = "predict_tgarch11_ged_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/ged multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_ald_roll = list(params = "forecast_tgarch11_ald_params.json",
+                          sigma = "forecast_tgarch11_ald_roll_sigma.csv", cmeans = "forecast_tgarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_ald_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/ald (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_ald = list(meta = "predict_tgarch11_ald_meta.json", h10 = "predict_tgarch11_ald_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/ald multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_snorm_roll = list(params = "forecast_tgarch11_snorm_params.json",
+                          sigma = "forecast_tgarch11_snorm_roll_sigma.csv", cmeans = "forecast_tgarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_snorm_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/snorm (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_snorm = list(meta = "predict_tgarch11_snorm_meta.json", h10 = "predict_tgarch11_snorm_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/snorm multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_sstd_roll = list(params = "forecast_tgarch11_sstd_params.json",
+                          sigma = "forecast_tgarch11_sstd_roll_sigma.csv", cmeans = "forecast_tgarch11_sstd_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_sstd_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/sstd (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_sstd = list(meta = "predict_tgarch11_sstd_meta.json", h10 = "predict_tgarch11_sstd_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/sstd multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_sged_roll = list(params = "forecast_tgarch11_sged_params.json",
+                          sigma = "forecast_tgarch11_sged_roll_sigma.csv", cmeans = "forecast_tgarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_sged_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/sged (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_sged = list(meta = "predict_tgarch11_sged_meta.json", h10 = "predict_tgarch11_sged_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/sged multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
+      forecast_tgarch11_sald_roll = list(params = "forecast_tgarch11_sald_params.json",
+                          sigma = "forecast_tgarch11_sald_roll_sigma.csv", cmeans = "forecast_tgarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_tgarch11_sald_var_es.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/sald (delta=1), n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (§4 seed decays by the test window); VaR/ES per law."),
+      predict_tgarch11_sald = list(meta = "predict_tgarch11_sald_meta.json", h10 = "predict_tgarch11_sald_h10.csv",
+                          note = "Forecast family 1: TGARCH(1,1)/sald multi-step predict(n.ahead=10), covers h=1,5,10. Iterated sigma^delta, reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] full quadrature; (m_h)^(1/delta) Jensen plug-in (spec-notes §33)."),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",

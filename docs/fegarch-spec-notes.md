@@ -2004,6 +2004,116 @@ limit of Phase 7.
 
 ---
 
+## 33. APARCH-family multi-step `predict` (GJR / TGARCH / APARCH) — RESOLVED (forecast family 1)
+
+**The multi-step forecast of the APARCH-power family — the second forecast-recursion derivation after
+§29 (GARCH/EGARCH).** New math (an engine build, not fixture breadth), derived clean-room from the
+APARCH model definition (Ding–Granger–Engle 1993) by iterated expectations, then gated against
+committed fEGarch `predict` OUTPUT before any engine code. The §29.1 note anticipated it exactly:
+"APARCH-family: future `(|ε|−γε)^δ` → its `E[(|z|−γz)^δ]` moment".
+
+### 33.1 The derivation (iterated expectations on `σ^δ`)
+
+The APARCH recursion (one recursion for all three models, §4) is, with `ε_t = σ_t η_t` and `η` the
+standardized conditional law,
+
+```
+σ_t^δ = ω + φ₁ (|ε_{t-1}| − γ₁ ε_{t-1})^δ + β₁ σ_{t-1}^δ.
+```
+
+Write `m_h ≡ E_t[σ_{t+h}^δ]` (the forecast is built on the **`σ^δ` scale**, the scale the recursion is
+linear on). **The key identity:** since `|γ₁| < 1` and `σ_s > 0`,
+
+```
+(|ε_s| − γ₁ ε_s)^δ = σ_s^δ (|η_s| − γ₁ η_s)^δ,
+```
+
+and `η_s ⟂ ℱ_{s-1}` while `σ_s ∈ ℱ_{s-1}`, so for any **future** lag `s > t`
+`E_t[(|ε_s| − γ₁ ε_s)^δ] = E_t[σ_s^δ]·κ` with the **news moment**
+
+```
+κ(δ, γ₁) ≡ E[(|η| − γ₁ η)^δ].
+```
+
+This gives a **linear** `σ^δ` recursion with a **reduced persistence** `ρ = φ₁κ + β₁`:
+
+```
+m_1 = ω + φ₁ (|ε_t| − γ₁ ε_t)^δ + β₁ σ_t^δ        (h = 1: observed news, ε_t and σ_t ∈ ℱ_t — no κ)
+m_h = ω + (φ₁κ + β₁) m_{h-1} = ω + ρ · m_{h-1}     (h ≥ 2: future news → κ·m_{h-1})
+```
+
+`ρ` is exactly the stationarity quantity the APARCH *simulator* already uses
+(`persistence = beta1 + phi1 * kappa`, `asymmetric.py`); `m_h → ω/(1−ρ)` as `h→∞` when `ρ < 1` (the
+same unconditional `σ^δ` the simulator seeds from). **Sanity: collapse to GARCH** at `δ=2, γ₁=0` gives
+`κ = E[η²] = 1` (standardized), `ρ = φ₁+β₁`, `m_h = ω + (φ₁+β₁)m_{h-1}` — the §29.1 GARCH recursion
+exactly.
+
+**The volatility forecast from the `σ^δ` forecast** is the plug-in `σ̂_{t+h} = (m_h)^{1/δ}`. For `δ ≠ 2`
+`x ↦ x^{1/δ}` is non-linear, so this is a **Jensen-biased** estimator of `E_t[σ_{t+h}]`
+(`(E[σ^δ])^{1/δ} ≠ E[σ]`), analogous to the §29.2 EGARCH `exp(ln σ²/2)` bias. fEGarch ships this
+plug-in; per the clean-room discipline (§12) the port **reproduces it, not bias-corrects it** — a
+correction would be an original contribution, not a port. (At `δ=2` the `σ²` forecast is linear/unbiased
+in the news; the final `√` is the standard GARCH vol-forecast convention, §29.1.)
+
+### 33.2 κ per conditional law — fEGarch integrates the full kernel (the closed forms diverge)
+
+`κ(δ, γ₁) = E[(|η| − γ₁ η)^δ]` under the **same standardized `η` density the fit layer validated**
+(`distributions.py` — reused, not re-derived). The analytic closed forms exist at the fixed powers —
+**TGARCH (`δ=1`):** `κ = E|η| − γ₁E[η] = E|η|` (standardized `E[η]=0`); **GJR (`δ=2`):**
+`κ = (1+γ₁²)E[η²] − 2γ₁E[η|η|] = (1+γ₁²) − 2γ₁E[η|η|]` (`E[η²]=1`, and `E[η|η|]=0` for symmetric laws
+→ `κ = 1+γ₁²`) — and for the **free power (APARCH)** there is no elementary form.
+
+**But a finding forces the implementation (§33.3): fEGarch computes `κ` by FULL numerical quadrature of
+`(|η|−γ₁η)^δ` for EVERY `δ`, including `δ=1,2`.** The mathematically-equal closed forms *diverge* from
+fEGarch's own integral by ~1e-13 (e.g. GJR×sald: the `(1+γ₁²)−2γ₁E[η|η|]` decomposition misses by
+`2.2e-13` where the full `E[(|η|−γ₁η)²]` quadrature matches to `1.7e-18`; TGARCH×skew: `E|η|` misses by
+~1e-12 where the full quadrature matches to ~1e-17). The split is numerical, not analytic: fEGarch
+integrates the whole kernel, so replicating that exact numerical path — not the textbook
+decomposition — is what reproduces its output. This is itself an effective-challenge result (the
+"obvious" closed-form implementation is ~1e-13 wrong).
+
+**Implementation (one path, no fork).** κ is therefore computed by **full quadrature of `(|η|−γ₁η)^δ`
+uniformly** over the validated `logpdf` (reusing `_moment_by_quadrature`), reusing the fit layer's
+already-validated `(|ε|−γε)^δ` kernel (`asymmetric.py`). GJR (`δ=2`) and TGARCH (`δ=1`) are the
+fixed-power specializations of this single APARCH path. **Seam:** machine-exact (~1e-15/1e-17) for the
+symmetric bases and for *almost* every skew law; the one **R↔SciPy quadrature-floor** case is
+TGARCH×sged at ~`8.7e-12` (the skew-GED shape where R's and SciPy's adaptive integrals of the kernel
+differ most) — still machine-precision-class, bounded, and documented.
+
+### 33.3 The reconstruction gate — proper (asymmetry-corrected) κ reproduces fEGarch machine-exact
+
+Before any engine code, `E_t[σ_{t+h}^δ]` was reconstructed by hand from each fit's committed params +
+an **independently computed κ**, against fEGarch's `predict(n.ahead=10)` output (`norm`, `n_test=250`
+training fit, `σ_n` = fEGarch's own `sigma(fit)` end state):
+
+| model | δ | γ₁ | κ used | max \|recon − fEGarch\| |
+| --- | --- | --- | --- | --- |
+| **APARCH** | 2.598 | 0.081 | `E[(\|η\|−γη)^δ]` (quadrature) | **1.74e-17** (machine-exact) |
+| APARCH | 2.598 | 0.081 | `E\|η\|^δ` (asymmetry **dropped**) | **4.21e-05** (decisively wrong) |
+| **GJR** | 2 | 0.090 | `1+γ²` (closed) | **1.73e-18** |
+| **TGARCH** | 1 | 0.130 | `E\|η\|` (closed) | **8.67e-18** |
+
+**The headline finding: fEGarch uses the PROPER asymmetry-corrected κ**, not a simplification. Dropping
+the `γ` asymmetry correction in the forecast (hypothesis (c)) misses by `4.2e-05` — four orders above
+machine precision — so the correction is unambiguously present. The `h=1` observed-news term is exact
+(`diff = 0.0`), confirming the `(m_h)^{1/δ}` plug-in and the `m_1` form. Scalar-γ (there is one `(1,1)`
+lag) and the Jensen plug-in need no further hypothesis — the proper-κ recursion is machine-exact as
+derived.
+
+**The `σ_n` seed and `predict_roll`.** The §4 APARCH pre-sample news-impact seed gap (~`1.6e-7` at `t=0`)
+**decays to exactly `0.0` by the training end** (`σ_{2250}` matches fEGarch bit-for-bit under
+persistence `ρ ≈ 0.98`, `0.98^2250 ≈ 0`). So — exactly as for GARCH (§27.1/§29.1) — the forecast
+reconstructs its own `σ_n` via `aparch_recursion` and stays **seam-exact** (the §4 fit-layer seed gap
+does not leak into the forecast), and `predict_roll` (one-step `σ_{t+1}^δ`, deterministic at `t`,
+continued over the test window) is seam-exact to `ε` for all three models. The VaR/ES assembly reuses
+the §27 `measure_risk` (distribution quantile + ES; the documented R↔SciPy quantile gap, not κ).
+
+**Scope.** This is forecast **family 1** (APARCH / GJR / TGARCH). The Type-I EGF multi-step beyond
+EGARCH (MEGARCH/MLog-GARCH) and the variance-recursion FI families (FIGARCH/FIAPARCH/FITGARCH/FIGJR,
+whose `θ`-weight iteration is a further derivation) remain deferred until their forecast fixtures exist.
+
+---
+
 *Add further specification derivations here if the auto-bandwidth gap is later closed (Bühlmann 1996 +
-Feng-Heiler 2009 added to `literature/`) or the deferred forecasting breadth is implemented — always
+Feng-Heiler 2009 added to `literature/`) or further forecasting breadth is implemented — always
 from the papers/manual, never the source.*
