@@ -1,0 +1,22 @@
+{
+  "model": "fiegarch",
+  "cond_dist": "sged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00040703604740171249,
+    "omega_sig": -8.991607208976852,
+    "phi1": 0.46310903355313193,
+    "kappa": -0.019492573738868341,
+    "gamma": 0.18411572932534379,
+    "d": 0.67037510053238736,
+    "shape": 2.1834774090633258,
+    "skew": 0.97413331249483337
+  },
+  "note": "predict(n.ahead=h) multi-step for the FI long-memory family from the TRAINING end; same training fit as forecast_fiegarch11_sged (predict_roll). The fractional (1-L)^d weights are extended by the horizon and conditioned on the observed sample with pre-sample 0; the asymmetric/variance-recursion models reuse the §33 kappa=E[(|eta|-gamma eta)^delta]; sigma=(m_h)^(1/delta) [FIEGARCH: exp(lnsigma^2/2)] is the Jensen-biased plug-in, reproduced-not-corrected (spec-notes §34).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

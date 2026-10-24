@@ -1,0 +1,21 @@
+{
+  "model": "figjr",
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.0003576690641049861,
+    "omega": 1.0372424638539201e-05,
+    "phi1": 0.18887771975661458,
+    "beta1": 0.67656241655359728,
+    "gamma": 0.06604300129736701,
+    "d": 0.58476639823171561,
+    "shape": 2.2198059143742013
+  },
+  "note": "predict(n.ahead=h) multi-step FI long-memory FIGJR(1,d,1)/ged; same training fit as forecast_figjr11_ged. (1-L)^d weights extended by horizon, observed sample pre-sample 0, reuse §33 kappa (delta=2); (m_h)^(1/2) plug-in (spec-notes §34).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

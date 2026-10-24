@@ -2109,8 +2109,103 @@ continued over the test window) is seam-exact to `ε` for all three models. The 
 the §27 `measure_risk` (distribution quantile + ES; the documented R↔SciPy quantile gap, not κ).
 
 **Scope.** This is forecast **family 1** (APARCH / GJR / TGARCH). The Type-I EGF multi-step beyond
-EGARCH (MEGARCH/MLog-GARCH) and the variance-recursion FI families (FIGARCH/FIAPARCH/FITGARCH/FIGJR,
-whose `θ`-weight iteration is a further derivation) remain deferred until their forecast fixtures exist.
+EGARCH (MEGARCH/MLog-GARCH) remains deferred until its forecast fixtures exist; the long-memory FI
+families are **family 2** (§34).
+
+---
+
+## 34. FI long-memory multi-step `predict` (FIGARCH / FIEGARCH / FIGJR / FITGARCH / FIAPARCH) — RESOLVED (forecast family 2)
+
+**The fractional long-memory forecast — the FI versions of the bases whose short-memory forecast is
+already on main (GARCH §29, EGARCH §29.2, GJR/TGARCH/APARCH §33).** New math, derived clean-room from
+the model definitions + the `(1−L)^d` fractional-differencing weights (reusing the validated
+`fracdiff_coeffs` / `figarch_coefficients` / `theta_coefficients`, **not** re-derived), gated against
+committed fEGarch `predict` OUTPUT before any engine code. Two structures, matching the two in-sample
+seams (§4-vs-EGF): the variance-recursion FI family (FIGARCH/FIGJR/FITGARCH/FIAPARCH) and the EGF-FI
+model (FIEGARCH).
+
+### 34.1 The two forecast structures (iterated expectations through the ARCH(∞) / MA(∞) weights)
+
+**Variance-recursion FI** — `σ_t^δ = ω + Σ_{i≥1} θ_i (|ε_{t-i}| − γε_{t-i})^δ`, a *pure linear
+ARCH(∞) filter* of the observed news (no `σ^δ` feedback), `θ` the `figarch_coefficients`
+(`fracdiff(+d) ⋆ ARMA`, `θ_0 = 0`). For a future lag the news expectation reuses the **§33 moment**
+`E_t[(|ε_s|−γε_s)^δ] = E_t[σ_s^δ]·κ`, `κ = E[(|η|−γη)^δ]`, so with `m_h = E_t[σ_{t+h}^δ]`:
+
+```
+m_h = ω + Σ_{i=1}^{h-1} θ_i · κ · m_{h-i}   +   Σ_{i≥h} θ_i · news_obs(n+h-i),
+```
+
+the first sum the **future** news (→ `κ·m`), the second the **observed** news tail (realized
+`(|ε|−γε)^δ`); `h=1` is all-observed (`m_1 = σ_{n+1}^δ`, deterministic). Report
+`σ̂_{n+h} = (m_h)^{1/δ}`, the Jensen-biased plug-in (reproduced-not-corrected, §33). FIGARCH is the
+`δ=2, γ=0` case (`κ=1`); FIGJR `δ=2`, FITGARCH `δ=1`, FIAPARCH free `δ` — the §33 `κ` reused verbatim.
+
+**EGF-FI (FIEGARCH)** — `ln σ_t^2 = ω_σ + Σ_{i≥0} θ_i g(η_{t-1-i})`, a truncated MA(∞) in the EGARCH
+news `g(η) = κ_e η + γ(|η| − E|η|)` with **no feedback**, `θ` the `theta_coefficients`
+(`(1−φ₁B)^{-1}(1−B)^{-d}`, `θ_0 = 1`). Every *future* `g` has `E_t[g] = 0`, so there is **no
+recursion** — just the shifted convolution of the observed `g`-history:
+
+```
+ln σ̂_{n+h}^2 = ω_σ + Σ_{k≥0} θ_{h-1+k} g(η_{n-k}),   σ̂_{n+h} = exp(ln σ̂_{n+h}^2 / 2),
+```
+
+the same biased plug-in as EGARCH (§29.2), converging to `exp(ω_σ/2)` but **hyperbolically slowly**
+(the `θ_k ~ k^{d-1}` tail).
+
+### 34.2 The truncation convention — the gate's headline
+
+`π_k`/`θ_k` decay only hyperbolically, so *how the truncation window is handled as `h` grows* is a
+real question. Three candidates were tested (§34.3): **(a)** hold the in-sample truncation fixed;
+**(b)** extend the weight window with `h`; **(c)** re-seed per horizon. The reconstruction gate is
+decisive:
+
+- **The forecast EXTENDS the weight window with the horizon** (`L = n+h−1` at step `h`), keeping the
+  **whole** observed history — candidate (b). Capping at the fit length drops the slow-decaying deep
+  tail and misses (FIEGARCH: `2.8e-4`, since `θ_k ~ k^{d-1}` barely decays).
+- **The forecast conditions on the observed sample back to `t=1` with a ZERO pre-sample.** For
+  FIGARCH the in-sample fit seeds **50 terms at `Var(r, ddof=1)`** (§, load-bearing in-sample), but
+  the **forecast does *not* re-apply that seed** — pre-sample news is `0`. Using the 50-term Var seed
+  in the forecast tail misses at `2e-6`; pre-sample `0` reproduces to `8.7e-18`. (FIEGARCH's
+  `g`-history is already `0`-seeded in-sample, so only the window extension matters there.) This
+  fit-vs-forecast seam difference is the finding: **the long-memory forecast truncates the weights at
+  the start of the observed sample and extends them forward by `h`, with no pre-sample warm-up.**
+
+### 34.3 The reconstruction gate
+
+Reconstructed each FI forecast from the fitted params + fracdiff weights (+ §33 `κ` for the
+asymmetric ones), vs fEGarch `predict(n.ahead=10)` (`norm`, `n_test=250`):
+
+| model | structure | convention that reproduces | max \|recon − fEGarch\| |
+| --- | --- | --- | --- |
+| **FIEGARCH** | EGF MA(∞) | window extended by `h`, `g`-presample `0` | **3.9e-16** (machine-exact) |
+| FIEGARCH | — | window capped at fit length | 2.8e-4 (rejected) |
+| **FIGARCH** | ARCH(∞) | window extended, **pre-sample `0`** | **8.7e-18** (machine-exact) |
+| FIGARCH | — | pre-sample = in-sample 50×`Var` | 2.0e-6 (rejected) |
+| **FIAPARCH** | ARCH(∞)+§33 `κ` | window extended, pre-sample `0` | **2.4e-12** |
+| FIAPARCH | — | `κ` with the asymmetry **dropped** | 1.9e-5 (rejected) |
+
+**Asymmetric-FI `κ` inheritance — confirmed.** FIAPARCH reuses the §33 `κ = E[(|η|−γη)^δ]` (full
+quadrature) verbatim: the proper `κ` reproduces (`h=1` exact at `1.9e-17`), the asymmetry-dropped
+control misses by `1.9e-5`. FIGJR (`δ=2`) and FITGARCH (`δ=1`) are its fixed-power specializations
+(same code path). The `h=1` value equals `predict_roll`'s first `σ̂` (the one-step seam).
+
+**FIAPARCH pre-sample seed (finding 5) — does NOT enter the forecast.** The variance-recursion
+forecast is built from the **observed news** `(|ε|−γε)^δ` + `ω` + `θ` + the recursive `κ·m` term; it
+never touches `σ_n` or the fit's irreducible pre-sample seed (unlike the short-memory APARCH forecast,
+which seeds `m_1` from `σ_n^δ`). So the FI forecast is **seam-exact for the deterministic part** (`h=1`
+at `1.9e-17`); the `~2.4e-12` growth at `h≥2` is the §33 `κ`-quadrature floor propagating through the
+recursive term, not the seed. The finding-5 bound is in-sample only.
+
+### 34.4 Implementation + scope
+
+`predict` / `predict_roll` dispatch on `d ∈ params`: `omega_sig` present → FIEGARCH (MA(∞) convolution);
+else the variance-recursion FI path (`γ = params.get("gamma", 0)`, `δ = params["delta"]` — recorded in
+the fit for the whole FI-power family so FIGJR/FITGARCH, whose key sets are identical, are
+distinguishable). Reuses `figarch_coefficients` / `theta_coefficients` / the §33 `news_moment`; GJR/TGARCH/APARCH-FI do **not** fork. `predict_roll` (one-step) is the deterministic filter continued over
+the test window — seam-exact (the forecast pre-sample-`0` + observed-news convolution needs no seed).
+Family 2 completes the FI versions of every short-memory base already forecastable; the MEGARCH/MLog
+and FI-EGF-modulus multi-step (FIMEGARCH/FIMLog-GARCH) stay deferred until their short-memory forecast
+and fixtures exist.
 
 ---
 

@@ -354,7 +354,31 @@ uniformly** (the "obvious" closed-form impl would be ~1e-13 wrong — an effecti
 — all 24 (model,law) fit+forecast (variance-recursion, no continuous-df EGF fragility). (e) 23/24
 reproduce to ~1e-16; **tgarch×sged is the one R↔SciPy κ-quadrature-floor case at ~8.7e-12** (still
 machine-precision-class). predict_roll seam-exact (the §4 pre-sample seed decays by the test window);
-VaR/ES ≤2.83e-6. PR open, not merged.
+VaR/ES ≤2.83e-6. PR open, not merged. **MERGED** (PR #29 → `main` `68a476a`).
+
+**Forecast family 2 — FI long-memory multi-step + rolling (FIGARCH/FIEGARCH/FIGJR/FITGARCH/FIAPARCH) —
+on `feat/fegarch-forecast-fi`** (engine build; the fractional versions of the bases forecastable on
+main). Spec-notes **§34**: by iterated expectations through the `(1−L)^d` weights (reusing the validated
+`fracdiff`/`figarch_coefficients`/`theta_coefficients`), two structures — the variance-recursion family
+(`m_h = ω + Σ_{i<h}θ_iκm_{h-i} + Σ_{i≥h}θ_i·news_{n+h-i}`, reusing the §33 `κ` for future news) and the
+EGF-FI FIEGARCH (`ln σ²_{n+h} = ω_σ + Σ_k θ_{h-1+k}g(η_{n-k})`, future g=0, no recursion). `σ̂=(m_h)^{1/δ}`
+[FIEGARCH `exp(lnσ²/2)`], Jensen-biased plug-in reproduced-not-corrected. Engine: `fiaparch.py` records
+`delta` in the FI-power params (FITGARCH δ=1 / FIGJR δ=2 distinguishable); `forecast.py` `predict`/`predict_roll`
+extended (dispatch on `d`; FIEGARCH vs variance-recursion). **76 fixture-sets** (38 model×law × {predict_roll,
+predict}, 228 files) in R. 315 forecast+predict tests pass.
+**Findings:** (a) **truncation convention (gate headline)** — the forecast **extends the fractional weight
+window with the horizon** (`L=n+h−1`) and conditions on the observed sample with **pre-sample 0**: FIGARCH's
+in-sample 50-term `Var` warm-up is NOT re-applied (pre-sample 0 reproduces to 8.7e-18; the 50-Var seed
+misses at 2e-6), and capping the window at the fit length misses (FIEGARCH 2.8e-4, the `θ_k~k^{d-1}` tail
+barely decays). (b) **asymmetric-FI κ reuse confirmed** — FIAPARCH reuses the §33 `κ` (asymmetry-dropped
+control off by 1.9e-5); FIGJR (δ=2) / FITGARCH (δ=1) are its fixed-power specializations. (c) **FIAPARCH
+finding-5 seed does NOT enter the forecast** (the variance-recursion forecast uses observed news + ω + θ,
+no σ feedback) → seam-exact (`h=1` at 1.9e-17; the ~2.4e-12 growth is the κ-floor via the recursive term).
+(d) **one optimizer-name gap**: fEGarch's FIGJR function is `figjrgarch` (not `figjr`) — a naming fix, not
+a model gap. (e) **finding-3 inherited**: FIEGARCH drops std/sstd (6 laws; the 4 variance-recursion models
+fit all 8 → 38 triples). FIGARCH/FIEGARCH reproduce ~1e-16; FI-power skew/free-δ predict at the κ-floor
+(max 9.3e-12, fitgarch×sged); FIEGARCH-skew roll at the abs_moment floor (max 2.55e-12, fiegarch×sald);
+VaR/ES ≤ a few e-6. PR open, not merged.
 
 ## Completed
 
