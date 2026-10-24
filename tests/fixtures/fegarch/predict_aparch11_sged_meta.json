@@ -1,0 +1,22 @@
+{
+  "model": "aparch",
+  "cond_dist": "sged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00036880141344054984,
+    "omega": 2.5872921556552213e-07,
+    "phi1": 0.07198402653970605,
+    "beta1": 0.88735200853143315,
+    "gamma1": 0.082814433120330336,
+    "delta": 2.5838711714117255,
+    "shape": 2.2233669566257741,
+    "skew": 0.98022586052586769
+  },
+  "note": "predict(n.ahead=h) multi-step for the APARCH family from the TRAINING end;same training fit as forecast_aparch11_sged (predict_roll). Iterated sigma^deltaforecast with reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta];sigma=(m_h)^(1/delta) is the Jensen-biased plug-in, reproduced-not-corrected.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
