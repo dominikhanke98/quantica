@@ -674,6 +674,99 @@ tryCatch({
 }, error = function(e) cat("  ERROR forecast garch11_norm:", conditionMessage(e),
                           "| exists('predict_roll') =", exists("predict_roll"), "\n"))
 
+# --- Phase-6 forecasting BREADTH: GARCH + EGARCH forecasts under the non-norm distributions ---------
+# Breadth over the two forecast families the quantica engine supports UNCHANGED (CLAUDE.md §8 scope):
+#   * predict_roll (rolling one-step) is GARCH-only in quantica -> rolling fixtures for GARCH only;
+#   * predict (multi-step n.ahead) supports GARCH + EGARCH (Type-I EGF log-variance) -> both.
+# The sigma-hat recursion is DISTRIBUTION-INDEPENDENT, so the distribution axis of these two models is
+# the engine-reproducible breadth: GARCH x {7 non-norm} (rolling sigma/cmeans + VaR/ES + multi-step)
+# and EGARCH x {5 non-norm} (multi-step). The DISTRIBUTION genuinely bites in two places the fixtures
+# pin: (a) the rolling VaR/ES, where measure_risk uses each law's fitted quantile/ES; (b) the EGARCH
+# multi-step h=1 news term g(eta_n), whose E|eta| centering is distribution-dependent.
+#
+# EGARCH covers 5 non-norm (ged/ald/snorm/sged/sald), NOT 7: fEGarch's OWN optimizer errors out on
+# egarch x std and egarch x sstd ("Error during optimization") -- the continuous-df Type-I EGF cases
+# (see the EGARCH fit loop above, and docs/fegarch-spec-notes.md §20). No converging fit -> no fEGarch
+# forecast output -> no fixture: a PRINCIPLED gap inherited from the fit layer, clean-room (§12: never
+# fabricate). EGARCH rolling is intentionally NOT generated (quantica's predict_roll is GARCH-only).
+# The multi-step horizon H_MULTI=10 captures the requested h = 1, 5, 10 in one forecast path.
+# Each block is tryCatch-wrapped (dist + error), never writing a partial fixture.
+H_MULTI <- 10L
+
+for (dist in c("std", "ged", "ald", "snorm", "sstd", "sged", "sald")) {
+  tryCatch({
+    fc_fit <- garch(returns, orders = c(1, 1), cond_dist = dist, n_test = N_TEST_FC, parallel = FALSE)
+    p <- pars(fc_fit); ic <- inf_criteria(fc_fit)
+    params <- as.list(as.numeric(p)); names(params) <- names(p)
+    # (1) rolling one-step forecast (predict_roll, no refit) + VaR/ES (measure_risk) -----------------
+    fcast <- predict_roll(fc_fit, refit_after = NULL, parallel = FALSE)
+    meta <- list(
+      model = "garch", cond_dist = dist, orders = c(1L, 1L),
+      presample = 50L, trunc = "none", mean_included = TRUE,
+      n_obs = length(returns) - N_TEST_FC, n_forecast = N_TEST_FC, refit_after = "none",
+      input = "synthetic_returns.csv", parallel = FALSE, seed = SIM_SEED,
+      params = params, loglikelihood = as.numeric(llhood(fc_fit)),
+      aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
+      fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+    write_json(meta, file.path(OUTDIR, sprintf("forecast_garch11_%s_params.json", dist)))
+    write_series_csv(as.numeric(fcast@sigt),
+                     file.path(OUTDIR, sprintf("forecast_garch11_%s_roll_sigma.csv", dist)), "sigma")
+    write_series_csv(as.numeric(fcast@cmeans),
+                     file.path(OUTDIR, sprintf("forecast_garch11_%s_roll_cmeans.csv", dist)), "cmeans")
+    risk <- measure_risk(fcast, measure = c("VaR", "ES"), level = c(0.975, 0.99))
+    mm <- risk@measures
+    write_matrix_csv(
+      list(as.numeric(mm$VaR[["VaR0.975"]]), as.numeric(mm$VaR[["VaR0.99"]]),
+           as.numeric(mm$ES[["ES0.975"]]), as.numeric(mm$ES[["ES0.99"]])),
+      file.path(OUTDIR, sprintf("forecast_garch11_%s_var_es.csv", dist)),
+      c("var_0.975", "var_0.99", "es_0.975", "es_0.99"))
+    # (2) multi-step point forecast (predict, n.ahead = H_MULTI) from the SAME training-end state -----
+    pred <- predict(fc_fit, n.ahead = H_MULTI)
+    write_matrix_csv(
+      list(seq_len(H_MULTI), as.numeric(pred@sigt), as.numeric(pred@cmeans)),
+      file.path(OUTDIR, sprintf("predict_garch11_%s_h%d.csv", dist, H_MULTI)),
+      c("h", "sigma", "cmeans"))
+    uncond_var <- params$omega / (1 - params$phi1 - params$beta1)
+    pmeta <- list(
+      model = "garch", cond_dist = dist, orders = c(1L, 1L),
+      n_obs_train = length(returns) - N_TEST_FC, n_test = N_TEST_FC,
+      input = "synthetic_returns.csv", seed = SIM_SEED, fit_params = params,
+      unconditional_variance = uncond_var, unconditional_sigma = sqrt(uncond_var),
+      note = paste("predict(n.ahead=h) multi-step point forecast from the TRAINING end; same training",
+                   "fit as forecast_garch11_<dist> (predict_roll). Distribution-breadth: the GARCH",
+                   "variance iterate is distribution-independent, so sigma matches norm's mechanism;",
+                   "the fitted shape/skew ride along in fit_params for the VaR/ES path."),
+      fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+    write_json(pmeta, file.path(OUTDIR, sprintf("predict_garch11_%s_meta.json", dist)))
+    cat(sprintf("  forecast+predict garch11_%-5s roll_n=%d sigma1=%.7g  predict h1=%.7g h%d=%.7g\n",
+                dist, length(fcast@sigt), as.numeric(fcast@sigt)[1],
+                as.numeric(pred@sigt)[1], H_MULTI, as.numeric(pred@sigt)[H_MULTI]))
+  }, error = function(e) cat(sprintf("  ERROR forecast garch11_%s:", dist), conditionMessage(e), "\n"))
+}
+
+for (dist in c("ged", "ald", "snorm", "sged", "sald")) {
+  tryCatch({
+    efit <- fEGarch(egarch_spec(orders = c(1, 1), cond_dist = dist), returns, parallel = FALSE)
+    p <- pars(efit); params <- as.list(as.numeric(p)); names(params) <- names(p)
+    pred <- predict(efit, n.ahead = H_MULTI)
+    write_matrix_csv(
+      list(seq_len(H_MULTI), as.numeric(pred@sigt), as.numeric(pred@cmeans)),
+      file.path(OUTDIR, sprintf("predict_egarch11_%s_h%d.csv", dist, H_MULTI)),
+      c("h", "sigma", "cmeans"))
+    pmeta <- list(
+      model = "egarch", cond_dist = dist, orders = c(1L, 1L),
+      n_obs = length(returns), input = "synthetic_returns.csv", seed = SIM_SEED, fit_params = params,
+      note = paste("predict(n.ahead=h) multi-step for the Type-I EGF (EGARCH); full-sample fit",
+                   "(matches fit_egarch11_<dist>). The NAIVE/BIASED iterate (future g(eta)=0) -- the",
+                   "paper-flagged bias is reproduced, not corrected. Distribution-breadth: the h=1 news",
+                   "g(eta_n) uses the law's E|eta| centering; h>=2 depends only on omega_sig, phi1."),
+      fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+    write_json(pmeta, file.path(OUTDIR, sprintf("predict_egarch11_%s_meta.json", dist)))
+    cat(sprintf("  predict egarch11_%-5s h1=%.7g h%d=%.7g\n",
+                dist, as.numeric(pred@sigt)[1], H_MULTI, as.numeric(pred@sigt)[H_MULTI]))
+  }, error = function(e) cat(sprintf("  ERROR predict egarch11_%s:", dist), conditionMessage(e), "\n"))
+}
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -952,6 +1045,58 @@ manifest <- list(
                           sigma = "forecast_garch11_norm_roll_sigma.csv", cmeans = "forecast_garch11_norm_roll_cmeans.csv",
                           var_es = "forecast_garch11_norm_var_es.csv",
                           note = "Phase-6 forecasting: GARCH(1,1)/norm fit with n_test=250 held out, then predict_roll(refit_after=NULL) -> rolling one-step sigma-hat (roll_sigma) + mu-hat (roll_cmeans, constant) over the 250 test points (one fixed model iterated forward, the pure forward GARCH variance recursion on realized test returns); measure_risk -> VaR/ES at 0.975 & 0.99 (var_es, losses negative). params JSON holds the TRAINING fit (2250 obs), distinct from the full-sample garch11_norm. The backtests in quantica/risk/backtest.py consume these forecasts."),
+      forecast_garch11_std_roll = list(params = "forecast_garch11_std_params.json",
+                          sigma = "forecast_garch11_std_roll_sigma.csv", cmeans = "forecast_garch11_std_roll_cmeans.csv",
+                          var_es = "forecast_garch11_std_var_es.csv",
+                          note = "Phase-6 forecasting breadth: GARCH(1,1)/std, n_test=250 held out, predict_roll + measure_risk VaR/ES (0.975,0.99). Distribution-independent sigma recursion (same as norm); a Student-t df enters the distribution-specific VaR/ES. Engine unchanged."),
+      forecast_garch11_ged_roll = list(params = "forecast_garch11_ged_params.json",
+                          sigma = "forecast_garch11_ged_roll_sigma.csv", cmeans = "forecast_garch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_garch11_ged_var_es.csv",
+                          note = "Phase-6 forecasting breadth: GARCH(1,1)/ged, n_test=250 held out, predict_roll + measure_risk VaR/ES (0.975,0.99). Distribution-independent sigma recursion (same as norm); a GED shape enters the distribution-specific VaR/ES. Engine unchanged."),
+      forecast_garch11_ald_roll = list(params = "forecast_garch11_ald_params.json",
+                          sigma = "forecast_garch11_ald_roll_sigma.csv", cmeans = "forecast_garch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_garch11_ald_var_es.csv",
+                          note = "Phase-6 forecasting breadth: GARCH(1,1)/ald, n_test=250 held out, predict_roll + measure_risk VaR/ES (0.975,0.99). Distribution-independent sigma recursion (same as norm); a profiled ALD degree P enters the distribution-specific VaR/ES. Engine unchanged."),
+      forecast_garch11_snorm_roll = list(params = "forecast_garch11_snorm_params.json",
+                          sigma = "forecast_garch11_snorm_roll_sigma.csv", cmeans = "forecast_garch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_garch11_snorm_var_es.csv",
+                          note = "Phase-6 forecasting breadth: GARCH(1,1)/snorm, n_test=250 held out, predict_roll + measure_risk VaR/ES (0.975,0.99). Distribution-independent sigma recursion (same as norm); an FS skew enters the distribution-specific VaR/ES. Engine unchanged."),
+      forecast_garch11_sstd_roll = list(params = "forecast_garch11_sstd_params.json",
+                          sigma = "forecast_garch11_sstd_roll_sigma.csv", cmeans = "forecast_garch11_sstd_roll_cmeans.csv",
+                          var_es = "forecast_garch11_sstd_var_es.csv",
+                          note = "Phase-6 forecasting breadth: GARCH(1,1)/sstd, n_test=250 held out, predict_roll + measure_risk VaR/ES (0.975,0.99). Distribution-independent sigma recursion (same as norm); a Student-t df + FS skew enters the distribution-specific VaR/ES. Engine unchanged."),
+      forecast_garch11_sged_roll = list(params = "forecast_garch11_sged_params.json",
+                          sigma = "forecast_garch11_sged_roll_sigma.csv", cmeans = "forecast_garch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_garch11_sged_var_es.csv",
+                          note = "Phase-6 forecasting breadth: GARCH(1,1)/sged, n_test=250 held out, predict_roll + measure_risk VaR/ES (0.975,0.99). Distribution-independent sigma recursion (same as norm); a GED shape + FS skew enters the distribution-specific VaR/ES. Engine unchanged."),
+      forecast_garch11_sald_roll = list(params = "forecast_garch11_sald_params.json",
+                          sigma = "forecast_garch11_sald_roll_sigma.csv", cmeans = "forecast_garch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_garch11_sald_var_es.csv",
+                          note = "Phase-6 forecasting breadth: GARCH(1,1)/sald, n_test=250 held out, predict_roll + measure_risk VaR/ES (0.975,0.99). Distribution-independent sigma recursion (same as norm); a profiled ALD degree P + FS skew enters the distribution-specific VaR/ES. Engine unchanged."),
+      predict_garch11_std = list(meta = "predict_garch11_std_meta.json", h10 = "predict_garch11_std_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: GARCH(1,1)/std training fit (n_test=250); predict(n.ahead=10) covers h=1,5,10. Unbiased iterated variance forecast, distribution-independent."),
+      predict_garch11_ged = list(meta = "predict_garch11_ged_meta.json", h10 = "predict_garch11_ged_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: GARCH(1,1)/ged training fit (n_test=250); predict(n.ahead=10) covers h=1,5,10. Unbiased iterated variance forecast, distribution-independent."),
+      predict_garch11_ald = list(meta = "predict_garch11_ald_meta.json", h10 = "predict_garch11_ald_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: GARCH(1,1)/ald training fit (n_test=250); predict(n.ahead=10) covers h=1,5,10. Unbiased iterated variance forecast, distribution-independent."),
+      predict_garch11_snorm = list(meta = "predict_garch11_snorm_meta.json", h10 = "predict_garch11_snorm_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: GARCH(1,1)/snorm training fit (n_test=250); predict(n.ahead=10) covers h=1,5,10. Unbiased iterated variance forecast, distribution-independent."),
+      predict_garch11_sstd = list(meta = "predict_garch11_sstd_meta.json", h10 = "predict_garch11_sstd_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: GARCH(1,1)/sstd training fit (n_test=250); predict(n.ahead=10) covers h=1,5,10. Unbiased iterated variance forecast, distribution-independent."),
+      predict_garch11_sged = list(meta = "predict_garch11_sged_meta.json", h10 = "predict_garch11_sged_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: GARCH(1,1)/sged training fit (n_test=250); predict(n.ahead=10) covers h=1,5,10. Unbiased iterated variance forecast, distribution-independent."),
+      predict_garch11_sald = list(meta = "predict_garch11_sald_meta.json", h10 = "predict_garch11_sald_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: GARCH(1,1)/sald training fit (n_test=250); predict(n.ahead=10) covers h=1,5,10. Unbiased iterated variance forecast, distribution-independent."),
+      predict_egarch11_ged = list(meta = "predict_egarch11_ged_meta.json", h10 = "predict_egarch11_ged_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: EGARCH(1,1)/ged full-sample fit (== fit_egarch11_ged); predict(n.ahead=10) covers h=1,5,10. Naive/biased EGF iterate (future g(eta)=0), reproduced-not-corrected; h=1 news uses the law's E|eta| centering. std/sstd absent (fEGarch optimizer errors, continuous-df) -> 5 non-norm, not 7."),
+      predict_egarch11_ald = list(meta = "predict_egarch11_ald_meta.json", h10 = "predict_egarch11_ald_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: EGARCH(1,1)/ald full-sample fit (== fit_egarch11_ald); predict(n.ahead=10) covers h=1,5,10. Naive/biased EGF iterate (future g(eta)=0), reproduced-not-corrected; h=1 news uses the law's E|eta| centering. std/sstd absent (fEGarch optimizer errors, continuous-df) -> 5 non-norm, not 7."),
+      predict_egarch11_snorm = list(meta = "predict_egarch11_snorm_meta.json", h10 = "predict_egarch11_snorm_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: EGARCH(1,1)/snorm full-sample fit (== fit_egarch11_snorm); predict(n.ahead=10) covers h=1,5,10. Naive/biased EGF iterate (future g(eta)=0), reproduced-not-corrected; h=1 news uses the law's E|eta| centering. std/sstd absent (fEGarch optimizer errors, continuous-df) -> 5 non-norm, not 7."),
+      predict_egarch11_sged = list(meta = "predict_egarch11_sged_meta.json", h10 = "predict_egarch11_sged_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: EGARCH(1,1)/sged full-sample fit (== fit_egarch11_sged); predict(n.ahead=10) covers h=1,5,10. Naive/biased EGF iterate (future g(eta)=0), reproduced-not-corrected; h=1 news uses the law's E|eta| centering. std/sstd absent (fEGarch optimizer errors, continuous-df) -> 5 non-norm, not 7."),
+      predict_egarch11_sald = list(meta = "predict_egarch11_sald_meta.json", h10 = "predict_egarch11_sald_h10.csv",
+                          note = "Phase-6 multi-step predict breadth: EGARCH(1,1)/sald full-sample fit (== fit_egarch11_sald); predict(n.ahead=10) covers h=1,5,10. Naive/biased EGF iterate (future g(eta)=0), reproduced-not-corrected; h=1 news uses the law's E|eta| centering. std/sstd absent (fEGarch optimizer errors, continuous-df) -> 5 non-norm, not 7."),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",

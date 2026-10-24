@@ -1,0 +1,19 @@
+{
+  "model": "egarch",
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "n_obs": 2500,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.0004624740070217322,
+    "omega_sig": -8.9121611364427551,
+    "phi1": 0.98298327185357304,
+    "kappa": -0.023379526724916895,
+    "gamma": 0.15726661172796225,
+    "shape": 2.1119561919343943
+  },
+  "note": "predict(n.ahead=h) multi-step for the Type-I EGF (EGARCH); full-sample fit (matches fit_egarch11_<dist>). The NAIVE/BIASED iterate (future g(eta)=0) -- the paper-flagged bias is reproduced, not corrected. Distribution-breadth: the h=1 news g(eta_n) uses the law's E|eta| centering; h>=2 depends only on omega_sig, phi1.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

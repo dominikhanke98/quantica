@@ -315,6 +315,25 @@ with exactly **two precisely-attributed missing-paper gaps, both inside the auto
 (Bühlmann 1996 + Feng-Heiler 2009), each of which closes in an afternoon with library access. The
 fEGarch clean-room port is DONE.
 
+**Forecasting-fixture BREADTH — on `feat/fegarch-forecast-breadth`** (additive; forecast engine
+UNCHANGED). Extended the Phase-6 forecast fixtures along the distribution axis of the two models the
+engine reproduces: **GARCH(1,1) × 7 non-norm laws** (rolling `predict_roll` sigma/cmeans + VaR/ES,
+and multi-step `predict` h=1..10) and **EGARCH(1,1) × 5 non-norm laws** (multi-step `predict`
+h=1..10) — **19 fixture-sets across 12 (model, dist) triples**, generated once in R (fEGarch 1.0.6)
+via `generate_fixtures.R` (extended with two canonical loops + 19 manifest entries; `manifest.json`
+hand-edited to match, preserving the tracked top-level nesting). `test_forecast.py` /
+`test_predict.py` gained parametrized reproduction tests reusing the existing helpers (66 tests pass).
+**Findings:** (a) no refit was needed — fixture params + the deterministic recursions reproduce every
+fixture, so the sigma paths are **seam-exact** (GARCH symmetric ~1e-17, skew ~7e-14 from the sigma_n
+reconstruction gap compounding over the iterate; EGARCH symmetric ~1e-15, **FS-skew ~8e-13 — the
+skew-wrapper E|η| is a touch looser** than the symmetric closed forms) and VaR/ES matches to ≤2.66e-6
+(the documented R↔SciPy quantile gap, same scale as the normal). (b) **EGARCH covers 5 non-norm, not
+7, by principled inheritance:** fEGarch's optimizer errors on egarch×std/sstd (continuous-df Type-I
+EGF, §20), so there is no reference output to reproduce — the gap is inherited from the fit layer, not
+introduced here. (c) EGARCH rolling is not generated (the engine's `predict_roll` is GARCH-only). The
+other ~14 model families + dual-mean remain out of scope (the unchanged engine raises
+`NotImplementedError` for them). PR open, not merged.
+
 ## Completed
 
 - **Project skeleton** — packaging (`pyproject.toml`), ruff + mypy + pytest
