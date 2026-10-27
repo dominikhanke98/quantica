@@ -188,11 +188,16 @@ def test_predict_rejects_bad_horizon() -> None:
 
 
 def test_predict_rejects_unsupported_family() -> None:
-    """A fit whose params are neither GARCH nor EGARCH raises NotImplementedError."""
+    """A fit whose params match no supported family raises NotImplementedError.
+
+    Uses a Log-GARCH-like Type-II EGF vector (``mu, omega_sig, phi1, psi1``): no ``d`` (not FI), not
+    the full EGARCH ``{omega_sig, phi1, kappa, gamma}``, no ``{omega, alpha, beta}`` and no
+    ``gamma1`` — so it falls through every branch. (A ``d``-bearing vector is now a valid FIGARCH.)
+    """
     fit = _garch_fit()
-    fi_like = GarchFit(
+    unsupported = GarchFit(
         cond_dist="norm",
-        params={"mu": 0.0, "omega": 1e-6, "phi1": 0.2, "beta1": 0.7, "d": 0.4},
+        params={"mu": 0.0, "omega_sig": -9.0, "phi1": 0.2, "psi1": 0.1},
         std_errors={},
         loglikelihood=0.0,
         aic=0.0,
@@ -202,7 +207,7 @@ def test_predict_rejects_unsupported_family() -> None:
         converged=True,
     )
     with pytest.raises(NotImplementedError, match="multi-step predict"):
-        predict(fi_like, _returns(), n_ahead=5)
+        predict(unsupported, _returns(), n_ahead=5)
 
 
 # --------------------------------------------------------------------------- #
@@ -474,3 +479,105 @@ def test_aparch_predict_converges_to_reduced_persistence_limit() -> None:
     fc = predict(fit, _returns(), n_ahead=4000)
     assert (fc.sigma[-1] ** delta) == pytest.approx(m_inf, rel=1e-6)
     assert np.all(np.diff(fc.sigma**delta) >= -1e-18)  # monotone in sigma^delta
+
+
+# --------------------------------------------------------------------------- #
+# FI long-memory multi-step (forecast family 2) -- FIGARCH/FIEGARCH/FIGJR/FITGARCH/FIAPARCH
+# --------------------------------------------------------------------------- #
+#
+# The FI multi-step forecast (spec-notes §34): the (1-L)^d weights are extended by the horizon and
+# conditioned on the observed sample with pre-sample 0. FIEGARCH is the EGF MA(inf) convolution of
+# the observed g (future g=0, no recursion); the variance-recursion family (FIGARCH/FIGJR/FITGARCH/
+# FIAPARCH) is the ARCH(inf) iterate reusing the §33 kappa = E[(|eta|-gamma eta)^delta]. FIEGARCH
+# drops std/sstd (finding-3 EGF gap). sigma = (m_h)^(1/delta) [FIEGARCH: exp(lnsigma^2/2)] is the
+# Jensen-biased plug-in, reproduced-not-corrected.
+
+_FI_ALL = ["norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+_FI_EGF = ["norm", "ged", "ald", "snorm", "sged", "sald"]  # FIEGARCH: no std/sstd (finding 3)
+_FI_CASES = (
+    [("figarch", d) for d in _FI_ALL]
+    + [("figjr", d) for d in _FI_ALL]
+    + [("fitgarch", d) for d in _FI_ALL]
+    + [("fiaparch", d) for d in _FI_ALL]
+    + [("fiegarch", d) for d in _FI_EGF]
+)
+# FIGARCH/FIEGARCH reproduce to ~1e-16; the FI-power skew / free-delta cases carry the §33 kappa-
+# quadrature floor propagated through the ARCH(inf) tail (max observed 9.3e-12, fitgarch x sged).
+_FI_PREDICT_TOL = 1e-10
+
+
+def _fi_params_from_json(p: dict, model: str, dist: str) -> dict:  # type: ignore[type-arg]
+    """R FI fit params -> quantica names (fractional ``d``; fixed ``delta`` for FITGARCH/FIGJR)."""
+    q: dict = {"mu": p["mu"], "d": p["d"]}
+    if model == "fiegarch":
+        q.update(omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"])
+    else:
+        q.update(omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"])
+        if model in ("fitgarch", "figjr", "fiaparch"):
+            q["gamma"] = p["gamma"]
+            q["delta"] = p.get("delta", 1.0 if model == "fitgarch" else 2.0)
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q
+
+
+def _fi_predict_fit(model: str, dist: str) -> GarchFit:
+    """FI TRAINING fit (n_test=250) for ``(model, dist)``, conditional vol via the engine helper."""
+    from quantica.timeseries.fegarch.forecast import _fi_variance
+
+    meta = json.loads(
+        (_FIXTURE_DIR / f"predict_{model}11_{dist}_meta.json").read_text(encoding="utf-8")
+    )
+    q = _fi_params_from_json(meta["fit_params"], model, dist)
+    n = int(meta["n_obs_train"])
+    tmp = GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=np.array([1.0]),
+        n_obs=n,
+        converged=True,
+    )
+    cv = np.sqrt(_fi_variance(tmp, _returns()[:n]))  # in-sample sigma (forecast-convention)
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=cv,
+        n_obs=n,
+        converged=True,
+    )
+
+
+@pytest.mark.parametrize(("model", "dist"), _FI_CASES)
+def test_fi_predict_matches_fixture(model: str, dist: str) -> None:
+    """FI multi-step sigma reproduces the h10 fixture (incl. h=1,5,10) under every supported law."""
+    fit = _fi_predict_fit(model, dist)
+    fc = predict(fit, _returns(), n_ahead=10)
+    fix = _fix(f"{model}11_{dist}", 10)
+    assert fc.n_ahead == 10
+    assert np.max(np.abs(fc.sigma - fix)) < _FI_PREDICT_TOL
+    for h in _REQUESTED_HORIZONS:
+        assert abs(fc.sigma[h - 1] - fix[h - 1]) < _FI_PREDICT_TOL
+    assert np.all(fc.cmeans == fit.params["mu"])
+
+
+@pytest.mark.parametrize(("model", "dist"), _FI_CASES)
+def test_fi_predict_h1_equals_roll_first(model: str, dist: str) -> None:
+    """The h=1 FI multi-step sigma equals predict_roll's first value (one-step seam), per law."""
+    fit = _fi_predict_fit(model, dist)
+    ph1 = predict(fit, _returns(), n_ahead=1).sigma[0]
+    roll_first = predict_roll(fit, _returns()).sigma[0]
+    assert abs(ph1 - roll_first) < 1e-13  # same one-step forecast from the same state

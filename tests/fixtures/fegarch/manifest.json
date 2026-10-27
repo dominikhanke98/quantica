@@ -1073,6 +1073,463 @@
     "h10": "predict_tgarch11_sald_h10.csv",
     "note": "Forecast family 1: TGARCH(1,1)/sald (delta=1) multi-step predict(n.ahead=10) from the training end (same fit as forecast_tgarch11_sald); covers h=1,5,10. Iterated sigma^delta with reduced persistence phi1*kappa+beta1, kappa=E[(|eta|-gamma1 eta)^delta] by full quadrature; sigma=(m_h)^(1/delta) Jensen-biased plug-in. Reproduced to ~1e-16."
   },
+  "_forecast_fi_family": "Forecast family 2 (branch feat/fegarch-forecast-fi): the FI long-memory multi-step + rolling forecasts -- FIGARCH/FIEGARCH/FIGJR/FITGARCH/FIAPARCH, the fractional versions of the bases on main. NEW forecast math (spec-notes §34), gated before engine code. The (1-L)^d weights are EXTENDED by the horizon and the forecast conditions on the observed sample with PRE-SAMPLE 0 (the in-sample Var/mean-news warm-up is NOT re-applied -- the gate headline). FIEGARCH is the EGF MA(inf) convolution of observed g (future g=0, no recursion); the variance-recursion family is the ARCH(inf) iterate reusing the §33 kappa=E[(|eta|-gamma eta)^delta] for future news. sigma=(m_h)^(1/delta) [FIEGARCH: exp(lnsigma^2/2)] is the Jensen-biased plug-in, reproduced-not-corrected. FIEGARCH drops std/sstd (finding-3 continuous-df EGF gap); the 4 variance-recursion models fit all 8 laws (38 model,law triples). FIGARCH/FIEGARCH reproduce ~1e-16; the FI-power skew/free-delta predict carries the kappa floor (max 9.3e-12, fitgarch sged); FIEGARCH-skew roll the abs_moment floor (max 2.55e-12, fiegarch sald). The FIAPARCH finding-5 pre-sample seed does NOT enter the forecast (no sigma feedback).",
+  "forecast_figarch11_norm_roll": {
+    "params": "forecast_figarch11_norm_params.json",
+    "sigma": "forecast_figarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_norm_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/norm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_norm": {
+    "meta": "predict_figarch11_norm_meta.json",
+    "h10": "predict_figarch11_norm_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/norm multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_norm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figarch11_std_roll": {
+    "params": "forecast_figarch11_std_params.json",
+    "sigma": "forecast_figarch11_std_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_std_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_std_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/std, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_std": {
+    "meta": "predict_figarch11_std_meta.json",
+    "h10": "predict_figarch11_std_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/std multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_std); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figarch11_ged_roll": {
+    "params": "forecast_figarch11_ged_params.json",
+    "sigma": "forecast_figarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_ged_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/ged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_ged": {
+    "meta": "predict_figarch11_ged_meta.json",
+    "h10": "predict_figarch11_ged_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/ged multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_ged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figarch11_ald_roll": {
+    "params": "forecast_figarch11_ald_params.json",
+    "sigma": "forecast_figarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_ald_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/ald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_ald": {
+    "meta": "predict_figarch11_ald_meta.json",
+    "h10": "predict_figarch11_ald_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/ald multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_ald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figarch11_snorm_roll": {
+    "params": "forecast_figarch11_snorm_params.json",
+    "sigma": "forecast_figarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_snorm_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/snorm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_snorm": {
+    "meta": "predict_figarch11_snorm_meta.json",
+    "h10": "predict_figarch11_snorm_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/snorm multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_snorm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figarch11_sstd_roll": {
+    "params": "forecast_figarch11_sstd_params.json",
+    "sigma": "forecast_figarch11_sstd_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_sstd_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_sstd_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/sstd, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_sstd": {
+    "meta": "predict_figarch11_sstd_meta.json",
+    "h10": "predict_figarch11_sstd_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/sstd multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_sstd); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figarch11_sged_roll": {
+    "params": "forecast_figarch11_sged_params.json",
+    "sigma": "forecast_figarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_sged_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/sged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_sged": {
+    "meta": "predict_figarch11_sged_meta.json",
+    "h10": "predict_figarch11_sged_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/sged multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_sged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figarch11_sald_roll": {
+    "params": "forecast_figarch11_sald_params.json",
+    "sigma": "forecast_figarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_figarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_figarch11_sald_var_es.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/sald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figarch11_sald": {
+    "meta": "predict_figarch11_sald_meta.json",
+    "h10": "predict_figarch11_sald_h10.csv",
+    "note": "Forecast family 2: FIGARCH (variance-recursion, delta=2 gamma=0, kappa=1)/sald multi-step predict(n.ahead=10) from the training end (same fit as forecast_figarch11_sald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_norm_roll": {
+    "params": "forecast_figjr11_norm_params.json",
+    "sigma": "forecast_figjr11_norm_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_norm_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_norm_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/norm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_norm": {
+    "meta": "predict_figjr11_norm_meta.json",
+    "h10": "predict_figjr11_norm_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/norm multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_norm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_std_roll": {
+    "params": "forecast_figjr11_std_params.json",
+    "sigma": "forecast_figjr11_std_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_std_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_std_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/std, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_std": {
+    "meta": "predict_figjr11_std_meta.json",
+    "h10": "predict_figjr11_std_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/std multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_std); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_ged_roll": {
+    "params": "forecast_figjr11_ged_params.json",
+    "sigma": "forecast_figjr11_ged_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_ged_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_ged_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/ged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_ged": {
+    "meta": "predict_figjr11_ged_meta.json",
+    "h10": "predict_figjr11_ged_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/ged multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_ged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_ald_roll": {
+    "params": "forecast_figjr11_ald_params.json",
+    "sigma": "forecast_figjr11_ald_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_ald_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_ald_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/ald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_ald": {
+    "meta": "predict_figjr11_ald_meta.json",
+    "h10": "predict_figjr11_ald_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/ald multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_ald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_snorm_roll": {
+    "params": "forecast_figjr11_snorm_params.json",
+    "sigma": "forecast_figjr11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_snorm_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/snorm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_snorm": {
+    "meta": "predict_figjr11_snorm_meta.json",
+    "h10": "predict_figjr11_snorm_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/snorm multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_snorm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_sstd_roll": {
+    "params": "forecast_figjr11_sstd_params.json",
+    "sigma": "forecast_figjr11_sstd_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_sstd_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_sstd_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/sstd, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_sstd": {
+    "meta": "predict_figjr11_sstd_meta.json",
+    "h10": "predict_figjr11_sstd_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/sstd multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_sstd); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_sged_roll": {
+    "params": "forecast_figjr11_sged_params.json",
+    "sigma": "forecast_figjr11_sged_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_sged_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_sged_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/sged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_sged": {
+    "meta": "predict_figjr11_sged_meta.json",
+    "h10": "predict_figjr11_sged_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/sged multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_sged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_figjr11_sald_roll": {
+    "params": "forecast_figjr11_sald_params.json",
+    "sigma": "forecast_figjr11_sald_roll_sigma.csv",
+    "cmeans": "forecast_figjr11_sald_roll_cmeans.csv",
+    "var_es": "forecast_figjr11_sald_var_es.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/sald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_figjr11_sald": {
+    "meta": "predict_figjr11_sald_meta.json",
+    "h10": "predict_figjr11_sald_h10.csv",
+    "note": "Forecast family 2: FIGJR (variance-recursion, delta=2)/sald multi-step predict(n.ahead=10) from the training end (same fit as forecast_figjr11_sald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_norm_roll": {
+    "params": "forecast_fitgarch11_norm_params.json",
+    "sigma": "forecast_fitgarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_norm_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/norm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_norm": {
+    "meta": "predict_fitgarch11_norm_meta.json",
+    "h10": "predict_fitgarch11_norm_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/norm multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_norm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_std_roll": {
+    "params": "forecast_fitgarch11_std_params.json",
+    "sigma": "forecast_fitgarch11_std_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_std_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_std_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/std, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_std": {
+    "meta": "predict_fitgarch11_std_meta.json",
+    "h10": "predict_fitgarch11_std_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/std multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_std); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_ged_roll": {
+    "params": "forecast_fitgarch11_ged_params.json",
+    "sigma": "forecast_fitgarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_ged_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/ged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_ged": {
+    "meta": "predict_fitgarch11_ged_meta.json",
+    "h10": "predict_fitgarch11_ged_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/ged multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_ged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_ald_roll": {
+    "params": "forecast_fitgarch11_ald_params.json",
+    "sigma": "forecast_fitgarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_ald_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/ald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_ald": {
+    "meta": "predict_fitgarch11_ald_meta.json",
+    "h10": "predict_fitgarch11_ald_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/ald multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_ald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_snorm_roll": {
+    "params": "forecast_fitgarch11_snorm_params.json",
+    "sigma": "forecast_fitgarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_snorm_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/snorm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_snorm": {
+    "meta": "predict_fitgarch11_snorm_meta.json",
+    "h10": "predict_fitgarch11_snorm_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/snorm multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_snorm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_sstd_roll": {
+    "params": "forecast_fitgarch11_sstd_params.json",
+    "sigma": "forecast_fitgarch11_sstd_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_sstd_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_sstd_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/sstd, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_sstd": {
+    "meta": "predict_fitgarch11_sstd_meta.json",
+    "h10": "predict_fitgarch11_sstd_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/sstd multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_sstd); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_sged_roll": {
+    "params": "forecast_fitgarch11_sged_params.json",
+    "sigma": "forecast_fitgarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_sged_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/sged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_sged": {
+    "meta": "predict_fitgarch11_sged_meta.json",
+    "h10": "predict_fitgarch11_sged_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/sged multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_sged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fitgarch11_sald_roll": {
+    "params": "forecast_fitgarch11_sald_params.json",
+    "sigma": "forecast_fitgarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_fitgarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_fitgarch11_sald_var_es.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/sald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fitgarch11_sald": {
+    "meta": "predict_fitgarch11_sald_meta.json",
+    "h10": "predict_fitgarch11_sald_h10.csv",
+    "note": "Forecast family 2: FITGARCH (variance-recursion, delta=1)/sald multi-step predict(n.ahead=10) from the training end (same fit as forecast_fitgarch11_sald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_norm_roll": {
+    "params": "forecast_fiaparch11_norm_params.json",
+    "sigma": "forecast_fiaparch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_norm_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/norm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_norm": {
+    "meta": "predict_fiaparch11_norm_meta.json",
+    "h10": "predict_fiaparch11_norm_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/norm multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_norm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_std_roll": {
+    "params": "forecast_fiaparch11_std_params.json",
+    "sigma": "forecast_fiaparch11_std_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_std_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_std_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/std, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_std": {
+    "meta": "predict_fiaparch11_std_meta.json",
+    "h10": "predict_fiaparch11_std_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/std multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_std); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_ged_roll": {
+    "params": "forecast_fiaparch11_ged_params.json",
+    "sigma": "forecast_fiaparch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_ged_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/ged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_ged": {
+    "meta": "predict_fiaparch11_ged_meta.json",
+    "h10": "predict_fiaparch11_ged_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/ged multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_ged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_ald_roll": {
+    "params": "forecast_fiaparch11_ald_params.json",
+    "sigma": "forecast_fiaparch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_ald_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/ald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_ald": {
+    "meta": "predict_fiaparch11_ald_meta.json",
+    "h10": "predict_fiaparch11_ald_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/ald multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_ald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_snorm_roll": {
+    "params": "forecast_fiaparch11_snorm_params.json",
+    "sigma": "forecast_fiaparch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_snorm_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/snorm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_snorm": {
+    "meta": "predict_fiaparch11_snorm_meta.json",
+    "h10": "predict_fiaparch11_snorm_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/snorm multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_snorm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_sstd_roll": {
+    "params": "forecast_fiaparch11_sstd_params.json",
+    "sigma": "forecast_fiaparch11_sstd_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_sstd_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_sstd_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/sstd, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_sstd": {
+    "meta": "predict_fiaparch11_sstd_meta.json",
+    "h10": "predict_fiaparch11_sstd_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/sstd multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_sstd); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_sged_roll": {
+    "params": "forecast_fiaparch11_sged_params.json",
+    "sigma": "forecast_fiaparch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_sged_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/sged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_sged": {
+    "meta": "predict_fiaparch11_sged_meta.json",
+    "h10": "predict_fiaparch11_sged_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/sged multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_sged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiaparch11_sald_roll": {
+    "params": "forecast_fiaparch11_sald_params.json",
+    "sigma": "forecast_fiaparch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_fiaparch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_fiaparch11_sald_var_es.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/sald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiaparch11_sald": {
+    "meta": "predict_fiaparch11_sald_meta.json",
+    "h10": "predict_fiaparch11_sald_h10.csv",
+    "note": "Forecast family 2: FIAPARCH (variance-recursion, free delta)/sald multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiaparch11_sald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiegarch11_norm_roll": {
+    "params": "forecast_fiegarch11_norm_params.json",
+    "sigma": "forecast_fiegarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_fiegarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_fiegarch11_norm_var_es.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/norm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiegarch11_norm": {
+    "meta": "predict_fiegarch11_norm_meta.json",
+    "h10": "predict_fiegarch11_norm_h10.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/norm multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiegarch11_norm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiegarch11_ged_roll": {
+    "params": "forecast_fiegarch11_ged_params.json",
+    "sigma": "forecast_fiegarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_fiegarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_fiegarch11_ged_var_es.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/ged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiegarch11_ged": {
+    "meta": "predict_fiegarch11_ged_meta.json",
+    "h10": "predict_fiegarch11_ged_h10.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/ged multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiegarch11_ged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiegarch11_ald_roll": {
+    "params": "forecast_fiegarch11_ald_params.json",
+    "sigma": "forecast_fiegarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_fiegarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_fiegarch11_ald_var_es.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/ald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiegarch11_ald": {
+    "meta": "predict_fiegarch11_ald_meta.json",
+    "h10": "predict_fiegarch11_ald_h10.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/ald multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiegarch11_ald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiegarch11_snorm_roll": {
+    "params": "forecast_fiegarch11_snorm_params.json",
+    "sigma": "forecast_fiegarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_fiegarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_fiegarch11_snorm_var_es.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/snorm, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiegarch11_snorm": {
+    "meta": "predict_fiegarch11_snorm_meta.json",
+    "h10": "predict_fiegarch11_snorm_h10.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/snorm multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiegarch11_snorm); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiegarch11_sged_roll": {
+    "params": "forecast_fiegarch11_sged_params.json",
+    "sigma": "forecast_fiegarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_fiegarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_fiegarch11_sged_var_es.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/sged, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiegarch11_sged": {
+    "meta": "predict_fiegarch11_sged_meta.json",
+    "h10": "predict_fiegarch11_sged_h10.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/sged multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiegarch11_sged); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
+  "forecast_fiegarch11_sald_roll": {
+    "params": "forecast_fiegarch11_sald_params.json",
+    "sigma": "forecast_fiegarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_fiegarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_fiegarch11_sald_var_es.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/sald, n_test=250, predict_roll + measure_risk VaR/ES. Seam-exact rolling sigma (pre-sample-0 observed-news filter, §34.2); VaR/ES per law."
+  },
+  "predict_fiegarch11_sald": {
+    "meta": "predict_fiegarch11_sald_meta.json",
+    "h10": "predict_fiegarch11_sald_h10.csv",
+    "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/sald multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiegarch11_sald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
+  },
   "smooth_gsmooth": {
     "meta": "smooth_gsmooth_meta.json",
     "files": "smooth_gsmooth_p{1,3}_mu{0,1,2,3}_bb{0,1}.csv (16 files, one column m_hat)",

@@ -297,6 +297,11 @@ def _build_fi_power_fit(
     std_errors = {name: float(s) for name, s in zip(names, std_errors_arr, strict=True)}
     if extra_params:
         params.update(extra_params)
+    # Record the power delta for the whole FI-power family: free (already present) for FIAPARCH, the
+    # fixed 2.0 / 1.0 for FIGJR / FITGARCH (whose key sets are otherwise identical). This makes a
+    # fit forecast-ready -- the FI multi-step predict reads delta from params (spec-notes §34). It
+    # has no standard error (fixed for FIGJR/FITGARCH) and does not enter the AIC/BIC penalty k.
+    params["delta"] = delta_hat
 
     loglik = result.loglikelihood - n * np.log(scale)  # Jacobian of the rescaling
     aic = (2.0 * k - 2.0 * loglik) / n

@@ -55,6 +55,10 @@ _VAR_ES_TOL = 3e-6
 # the GED), the same scale as the normal's 3e-6. Calibrated against the fixtures (see
 # test_measure_risk_matches_fixture_all_dists).
 _VAR_ES_DIST_TOL = 5e-6
+# FI rolling sigma: the pre-sample-0 observed-news convolution is seam-exact (no kappa; §34.2) for
+# the variance-recursion models (~1e-14); FIEGARCH's g-recursion carries the FS-skew abs_moment
+# quadrature floor (max 2.55e-12, fiegarch x sald). Machine-precision-class across all FI laws.
+_FI_ROLL_TOL = 1e-11
 
 
 def _returns() -> np.ndarray:  # type: ignore[type-arg]
@@ -481,6 +485,119 @@ def test_aparch_family_measure_risk_matches_fixture(model: str, dist: str) -> No
     returns = _returns()
     fit = _aparch_forecast_fit(model, dist, returns)
     fx = _aparch_roll_fixture(model, dist)
+    risk = measure_risk(predict_roll(fit, returns), fit, levels=(0.975, 0.99))
+    ve = fx["var_es"]
+    assert np.max(np.abs(risk.var[0.975] - ve[:, 0])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.var[0.99] - ve[:, 1])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.975] - ve[:, 2])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.99] - ve[:, 3])) < _VAR_ES_DIST_TOL
+    for alpha in (0.975, 0.99):
+        assert np.all(risk.es[alpha] <= risk.var[alpha])
+        assert np.all(risk.var[alpha] < 0.0)
+
+
+# --------------------------------------------------------------------------- #
+# 7. FI long-memory family (forecast family 2) -- rolling + VaR/ES
+# --------------------------------------------------------------------------- #
+#
+# predict_roll for the FI family (spec-notes §34): the one-step rolling forecast uses the forecast
+# truncation convention -- the (1-L)^d weights conditioned on the observed sample with pre-sample 0
+# (the in-sample Var/mean-news warm-up is NOT re-applied) -- so it is seam-exact. VaR/ES again
+# exercises each law's quantile/ES. FIEGARCH drops std/sstd (finding-3 EGF gap).
+
+_FI_ALL_F = ["norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+_FI_EGF_F = ["norm", "ged", "ald", "snorm", "sged", "sald"]
+_FI_CASES_F = (
+    [("figarch", d) for d in _FI_ALL_F]
+    + [("figjr", d) for d in _FI_ALL_F]
+    + [("fitgarch", d) for d in _FI_ALL_F]
+    + [("fiaparch", d) for d in _FI_ALL_F]
+    + [("fiegarch", d) for d in _FI_EGF_F]
+)
+
+
+def _fi_params_from_json_fc(p: dict, model: str, dist: str) -> dict:  # type: ignore[type-arg]
+    """R FI fit params -> quantica names (fractional ``d``; fixed ``delta`` for FITGARCH/FIGJR)."""
+    q: dict = {"mu": p["mu"], "d": p["d"]}
+    if model == "fiegarch":
+        q.update(omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"])
+    else:
+        q.update(omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"])
+        if model in ("fitgarch", "figjr", "fiaparch"):
+            q["gamma"] = p["gamma"]
+            q["delta"] = p.get("delta", 1.0 if model == "fitgarch" else 2.0)
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q
+
+
+def _fi_forecast_fit(model: str, dist: str, returns: np.ndarray) -> GarchFit:  # type: ignore[type-arg]
+    """FI training fit from the forecast fixture, conditional vol via the engine helper."""
+    from quantica.timeseries.fegarch.forecast import _fi_variance
+
+    stem = f"forecast_{model}11_{dist}"
+    meta = json.loads((_FIXTURE_DIR / f"{stem}_params.json").read_text(encoding="utf-8"))
+    q = _fi_params_from_json_fc(meta["params"], model, dist)
+    n = int(meta["n_obs"])
+    tmp = GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=np.array([1.0]),
+        n_obs=n,
+        converged=True,
+    )
+    cv = np.sqrt(_fi_variance(tmp, returns[:n]))
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=float(meta["loglikelihood"]),
+        aic=float(meta["aic"]),
+        bic=float(meta["bic"]),
+        conditional_volatility=cv,
+        n_obs=n,
+        converged=True,
+    )
+
+
+def _fi_roll_fixture(model: str, dist: str) -> dict:  # type: ignore[type-arg]
+    """Load the FI rolling-forecast fixture (sigma / cmeans / VaR-ES) for model+dist."""
+    stem = f"forecast_{model}11_{dist}"
+    return {
+        "sigma": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_sigma.csv", skiprows=1),
+        "cmeans": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_cmeans.csv", skiprows=1),
+        "var_es": np.loadtxt(_FIXTURE_DIR / f"{stem}_var_es.csv", delimiter=",", skiprows=1),
+    }
+
+
+@pytest.mark.parametrize(("model", "dist"), _FI_CASES_F)
+def test_fi_predict_roll_matches_fixture(model: str, dist: str) -> None:
+    """Rolling sigma-hat is seam-exact for the FI family (pre-sample-0 observed-news filter)."""
+    returns = _returns()
+    fit = _fi_forecast_fit(model, dist, returns)
+    fx = _fi_roll_fixture(model, dist)
+    forecast = predict_roll(fit, returns)
+    assert forecast.n_test == fx["sigma"].size == 250
+    assert np.max(np.abs(forecast.sigma - fx["sigma"])) < _FI_ROLL_TOL
+    assert np.max(np.abs(forecast.cmeans - fx["cmeans"])) < _SIGMA_TOL
+
+
+@pytest.mark.parametrize(("model", "dist"), _FI_CASES_F)
+def test_fi_measure_risk_matches_fixture(model: str, dist: str) -> None:
+    """VaR/ES reproduces the fixture for the FI family per law (R<->SciPy quantile gap)."""
+    returns = _returns()
+    fit = _fi_forecast_fit(model, dist, returns)
+    fx = _fi_roll_fixture(model, dist)
     risk = measure_risk(predict_roll(fit, returns), fit, levels=(0.975, 0.99))
     ve = fx["var_es"]
     assert np.max(np.abs(risk.var[0.975] - ve[:, 0])) < _VAR_ES_DIST_TOL

@@ -67,6 +67,8 @@ from quantica.timeseries.fegarch.distributions import (
     FernandezSteelSkew,
     get_distribution,
 )
+from quantica.timeseries.fegarch.fiegarch import fiegarch_recursion, theta_coefficients
+from quantica.timeseries.fegarch.figarch import figarch_coefficients, figarch_variance_filter
 from quantica.timeseries.fegarch.garch import GarchFit, garch_recursion
 
 if TYPE_CHECKING:
@@ -147,6 +149,95 @@ def _aparch_family_variance(fit: GarchFit, y: FloatArray) -> FloatArray:
     return aparch_recursion(np.array([mu, omega, phi1, beta1, gamma1, delta], dtype=np.float64), y)
 
 
+def _fi_variance(fit: GarchFit, y: FloatArray) -> FloatArray:
+    r"""Rolling-forecast conditional variance for a long-memory FI fit over ``y`` (spec-notes §34).
+
+    The one-step rolling forecast uses the **forecast** truncation convention, not the in-sample
+    fit: the long-memory weights condition on the observed sample with a **pre-sample 0** (§34.2 --
+    the in-sample warm-up seed, FIGARCH's 50-term ``Var``, is not re-applied; gate-confirmed).
+    Dispatches the two structures: FIEGARCH (EGF MA(inf) in ``g``, already 0-seeded in-sample) and
+    the variance-recursion FI family (FIGARCH / FIGJR / FITGARCH / FIAPARCH), a pre-sample-0
+    ARCH(inf) filter of the observed news ``(|e|-gamma e)^delta`` (``e^2`` at ``gamma=0, delta=2``).
+    """
+    p = fit.params
+    y = np.asarray(y, dtype=np.float64)
+    if (
+        "omega_sig" in p
+    ):  # FIEGARCH: g-history is 0 for t <= 0 in-sample, so the recursion is 0-seeded
+        dist, shape = _distribution_for_fit(fit)
+        vec = [p["mu"], p["omega_sig"], p["phi1"], p["kappa"], p["gamma"], p["d"]]
+        return fiegarch_recursion(
+            np.array(vec, dtype=np.float64), y, abs_moment=dist.abs_moment(shape)
+        )
+    mu, phi1, beta1, d = p["mu"], p["phi1"], p["beta1"], p["d"]
+    gamma = p.get("gamma", 0.0)
+    delta = p.get("delta", 2.0)
+    eps = y - mu
+    news = (np.abs(eps) - gamma * eps) ** delta  # eps^2 at gamma=0, delta=2 (FIGARCH)
+    theta = figarch_coefficients(phi1, beta1, d, y.size + 1)
+    sig_delta = figarch_variance_filter(news, theta, p["omega"], 0.0, n_presample=0)
+    return np.asarray(sig_delta ** (2.0 / delta), dtype=np.float64)
+
+
+def _fiegarch_multistep(fit: GarchFit, returns: FloatArray, n_ahead: int) -> FloatArray:
+    r"""FIEGARCH multi-step forecast -- the shifted-``theta`` convolution (spec-notes §34.1).
+
+    ``ln sigma_{n+h}^2 = omega_sig + sum_{k>=0} theta_{h-1+k} g(eta_{n-k})`` (future ``g = 0``, no
+    recursion); the ``theta`` window is **extended by the horizon** and the observed ``g``-history
+    kept whole (§34.2). ``sigma = exp(ln sigma^2 / 2)``, the Jensen-biased plug-in
+    (reproduced-not-corrected, §29.2).
+    """
+    p = fit.params
+    mu, omega_sig, phi1 = p["mu"], p["omega_sig"], p["phi1"]
+    kappa_e, gamma, d = p["kappa"], p["gamma"], p["d"]
+    n = fit.n_obs
+    eta = (np.asarray(returns, dtype=np.float64)[:n] - mu) / np.asarray(fit.conditional_volatility)
+    dist, shape = _distribution_for_fit(fit)
+    e_abs = dist.abs_moment(shape)
+    g = kappa_e * eta + gamma * (np.abs(eta) - e_abs)  # g(eta_t), t = 1..n
+    g_rev = g[::-1]  # g_rev[k] = g(eta_{n-k})
+    theta = theta_coefficients(phi1, d, n + n_ahead)  # theta[0] = 1; window extended by h
+    k = np.arange(n)
+    sigma = np.empty(n_ahead, dtype=np.float64)
+    for h in range(1, n_ahead + 1):
+        log_var = omega_sig + float(np.sum(theta[(h - 1) + k] * g_rev))
+        sigma[h - 1] = np.exp(log_var / 2.0)
+    return sigma
+
+
+def _fi_power_multistep(fit: GarchFit, returns: FloatArray, n_ahead: int) -> FloatArray:
+    r"""FIGARCH-family multi-step forecast -- the ARCH(inf) iterate (spec-notes §34.1).
+
+    ``m_h = omega + sum_{i=1}^{h-1} theta_i kappa m_{h-i} + sum_{i>=h} theta_i news_{n+h-i}``, with
+    the §33 moment ``kappa = E[(|eta|-gamma eta)^delta]`` for future news, the observed news tail
+    conditioned back to ``t=1`` with **pre-sample 0**, and the ``theta`` window **extended by the
+    horizon** (§34.2). Report ``sigma = (m_h)^(1/delta)``. FIGARCH: ``delta=2, gamma=0`` (kappa=1).
+    """
+    p = fit.params
+    mu, omega, phi1, beta1, d = p["mu"], p["omega"], p["phi1"], p["beta1"], p["d"]
+    gamma = p.get("gamma", 0.0)
+    delta = p.get("delta", 2.0)
+    n = fit.n_obs
+    eps = np.asarray(returns, dtype=np.float64)[:n] - mu
+    news = (
+        np.abs(eps) - gamma * eps
+    ) ** delta  # observed (|eps| - gamma eps)^delta (eps^2 if gamma=0)
+    dist, shape = _distribution_for_fit(fit)
+    kappa = dist.news_moment(delta, gamma, shape)
+    theta = figarch_coefficients(phi1, beta1, d, n + n_ahead + 1)  # theta[0] = 0; window extended
+    m = np.empty(n_ahead, dtype=np.float64)
+    for h in range(1, n_ahead + 1):
+        imax = min(theta.size - 1, n + h - 1)
+        iobs = np.arange(h, imax + 1)  # observed tail: news time s = n+h-i in [1, n]
+        s = n + h - iobs
+        valid = (s >= 1) & (s <= n)
+        tot = float(np.sum(theta[iobs[valid]] * news[s[valid] - 1]))
+        for i in range(1, h):  # future news -> kappa * m_{h-i}
+            tot += theta[i] * kappa * m[h - i - 1]
+        m[h - 1] = omega + tot
+    return np.asarray(m ** (1.0 / delta), dtype=np.float64)
+
+
 def predict_roll(
     fit: GarchFit, returns: FloatArray, *, n_test: int | None = None
 ) -> RollingForecast:
@@ -188,7 +279,10 @@ def predict_roll(
     if not 0 < n_test <= y.size:
         raise ValueError(f"n_test must satisfy 0 < n_test <= {y.size}, got {n_test}")
 
-    if {"phi1", "beta1", "gamma1"} <= set(fit.params):  # APARCH family (GJR / TGARCH / APARCH)
+    keys = set(fit.params)
+    if "d" in keys:  # long-memory FI family (FIGARCH / FIEGARCH / FIGJR / FITGARCH / FIAPARCH)
+        sigma2 = _fi_variance(fit, y)
+    elif {"phi1", "beta1", "gamma1"} <= keys:  # APARCH family (GJR / TGARCH / APARCH)
         sigma2 = _aparch_family_variance(fit, y)
     else:  # plain GARCH
         params = np.array(
@@ -287,8 +381,11 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
 
     Iterates the fitted recursion forward from the fitted-sample-end state, replacing each future
     news term by its expectation (the ``predict`` mechanism, distinct from :func:`predict_roll`'s
-    one-step rolling). Three families are supported, all reproducing the committed fixtures to
-    machine precision:
+    one-step rolling). The short-memory families below, plus the **long-memory FI family** (FIGARCH,
+    FIEGARCH, FIGJR, FITGARCH, FIAPARCH, detected by the fractional ``d`` and dispatched to the §34
+    weight-propagation helpers -- weights extended with the horizon, observed sample pre-sample 0),
+    are supported, reproducing the fixtures to machine precision (FS-skew / free-``delta`` cases to
+    the kappa-quadrature floor):
 
     * **Variance-recursion GARCH(1,1)** (params ``mu, omega, alpha, beta``): the standard iterated
       forecast :math:`\hat\sigma_{n+h}^2 = \omega + (\alpha+\beta)\hat\sigma_{n+h-1}^2` for
@@ -354,7 +451,16 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
     sigma_n = float(fit.conditional_volatility[-1])
     keys = set(fit.params)
 
-    if {"omega_sig", "phi1", "kappa", "gamma"} <= keys:
+    if "d" in keys:
+        # Long-memory FI family (spec-notes §34): the fractional weight series is extended by the
+        # horizon and conditioned on the observed sample with pre-sample 0. FIEGARCH is the EGF
+        # MA(inf) convolution (no recursion); the FI-power family (FIGARCH/FIGJR/FITGARCH/FIAPARCH)
+        # is the ARCH(inf) iterate reusing the §33 kappa. Both delegate to the dedicated helpers.
+        if "omega_sig" in keys:
+            sigma = _fiegarch_multistep(fit, returns, n_ahead)
+        else:
+            sigma = _fi_power_multistep(fit, returns, n_ahead)
+    elif {"omega_sig", "phi1", "kappa", "gamma"} <= keys:
         # Type-I EGF (EGARCH): iterate ln sigma^2 forward with future g(eta) = 0.
         omega = fit.params["omega_sig"] * (1.0 - fit.params["phi1"])
         phi1, kappa, gamma = fit.params["phi1"], fit.params["kappa"], fit.params["gamma"]
@@ -397,8 +503,8 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
     else:
         raise NotImplementedError(
             f"multi-step predict is not built for a fit with params {sorted(keys)}; "
-            "only constant-mean GARCH(1,1), EGARCH(1,1) and the APARCH family (GJR/TGARCH/APARCH) "
-            "have committed fixtures"
+            "only constant-mean GARCH(1,1), EGARCH(1,1), the APARCH family (GJR/TGARCH/APARCH) and "
+            "the long-memory FI family (FIGARCH/FIEGARCH/FIGJR/FITGARCH/FIAPARCH) are built"
         )
 
     cmeans = np.full(n_ahead, mu, dtype=np.float64)

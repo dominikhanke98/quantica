@@ -1,0 +1,21 @@
+{
+  "model": "fitgarch",
+  "cond_dist": "std",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00040156372201097094,
+    "omega": 0.0026532007105571419,
+    "phi1": 0.18192823191247781,
+    "beta1": 0.6399963129094639,
+    "gamma": 0.12129576890509228,
+    "d": 0.55148499392443173,
+    "df": 341.89210461737025
+  },
+  "note": "predict(n.ahead=h) multi-step for the FI long-memory family from the TRAINING end; same training fit as forecast_fitgarch11_std (predict_roll). The fractional (1-L)^d weights are extended by the horizon and conditioned on the observed sample with pre-sample 0; the asymmetric/variance-recursion models reuse the §33 kappa=E[(|eta|-gamma eta)^delta]; sigma=(m_h)^(1/delta) [FIEGARCH: exp(lnsigma^2/2)] is the Jensen-biased plug-in, reproduced-not-corrected (spec-notes §34).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

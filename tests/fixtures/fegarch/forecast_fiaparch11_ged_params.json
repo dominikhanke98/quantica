@@ -1,0 +1,29 @@
+{
+  "model": "fiaparch",
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00035750057929767457,
+    "omega": 6.4954622250775132e-05,
+    "phi1": 0.18355687880969593,
+    "beta1": 0.6852228705374066,
+    "gamma": 0.081329094457056439,
+    "delta": 1.7087778150998303,
+    "d": 0.59762887994942382,
+    "shape": 2.215480500970525
+  },
+  "loglikelihood": 6811.8317990594987,
+  "aic": -6.0478504880528874,
+  "bic": -6.0275173840699594,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

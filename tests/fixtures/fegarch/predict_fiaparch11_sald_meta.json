@@ -1,0 +1,23 @@
+{
+  "model": "fiaparch",
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00039066393089766123,
+    "omega": 7.9569524123221044e-05,
+    "phi1": 0.15803352992027761,
+    "beta1": 0.74136576772985818,
+    "gamma": 0.083505795370821367,
+    "delta": 1.7021083352927948,
+    "d": 0.68158338660429785,
+    "P": 5,
+    "skew": 0.96715607823527716
+  },
+  "note": "predict(n.ahead=h) multi-step for the FI long-memory family from the TRAINING end; same training fit as forecast_fiaparch11_sald (predict_roll). The fractional (1-L)^d weights are extended by the horizon and conditioned on the observed sample with pre-sample 0; the asymmetric/variance-recursion models reuse the §33 kappa=E[(|eta|-gamma eta)^delta]; sigma=(m_h)^(1/delta) [FIEGARCH: exp(lnsigma^2/2)] is the Jensen-biased plug-in, reproduced-not-corrected (spec-notes §34).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
