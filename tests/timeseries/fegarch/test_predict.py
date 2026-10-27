@@ -190,14 +190,15 @@ def test_predict_rejects_bad_horizon() -> None:
 def test_predict_rejects_unsupported_family() -> None:
     """A fit whose params match no supported family raises NotImplementedError.
 
-    Uses a Log-GARCH-like Type-II EGF vector (``mu, omega_sig, phi1, psi1``): no ``d`` (not FI), not
-    the full EGARCH ``{omega_sig, phi1, kappa, gamma}``, no ``{omega, alpha, beta}`` and no
-    ``gamma1`` — so it falls through every branch. (A ``d``-bearing vector is now a valid FIGARCH.)
+    Uses a FIGARCH-shaped vector *without* ``d`` (``mu, omega, phi1, beta1``): not EGF
+    (no ``omega_sig``), not GARCH (no ``alpha``/``beta``), not the APARCH family (no ``gamma1``) and
+    not FI (no ``d``) — so it falls through every branch. (``omega_sig``+``psi1`` is now a valid
+    Log-GARCH, and a ``d``-bearing vector a valid FIGARCH.)
     """
     fit = _garch_fit()
     unsupported = GarchFit(
         cond_dist="norm",
-        params={"mu": 0.0, "omega_sig": -9.0, "phi1": 0.2, "psi1": 0.1},
+        params={"mu": 0.0, "omega": 1e-6, "phi1": 0.2, "beta1": 0.7},
         std_errors={},
         loglikelihood=0.0,
         aic=0.0,
@@ -581,3 +582,110 @@ def test_fi_predict_h1_equals_roll_first(model: str, dist: str) -> None:
     ph1 = predict(fit, _returns(), n_ahead=1).sigma[0]
     roll_first = predict_roll(fit, _returns()).sigma[0]
     assert abs(ph1 - roll_first) < 1e-13  # same one-step forecast from the same state
+
+
+# --------------------------------------------------------------------------- #
+# EGF log-family siblings (forecast family 3) -- MEGARCH/MLog/Log + FIMEGARCH/FIMLog/FILog
+# --------------------------------------------------------------------------- #
+#
+# All are the same log-variance forecast as EGARCH (§29.2) / FIEGARCH (§34): iterate ln sigma^2 with
+# the future news centered to 0; short memory AR(1), FI the §34 weight convolution. Only the link g
+# and its centering moment differ per model (spec-notes §35) -- Type-I (kappa/gamma + model tag)
+# EGARCH/MEGARCH/MLog; Type-II (psi1) Log/FILog. sigma=exp(lnsigma^2/2) Jensen plug-in. finding-3:
+# the Type-I trio drop std/sstd, Log-GARCH drops std only, FILog-GARCH drops nothing.
+
+_EGF_L6 = ["norm", "ged", "ald", "snorm", "sged", "sald"]  # Type-I: no std/sstd
+_EGF_L7 = ["norm", "ged", "ald", "snorm", "sstd", "sged", "sald"]  # Log-GARCH: + sstd
+_EGF_L8 = ["norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald"]  # FILog: all
+_EGF_CASES = (
+    [("megarch", d) for d in _EGF_L6]
+    + [("mloggarch", d) for d in _EGF_L6]
+    + [("loggarch", d) for d in _EGF_L7]
+    + [("fimegarch", d) for d in _EGF_L6]
+    + [("fimloggarch", d) for d in _EGF_L6]
+    + [("filoggarch", d) for d in _EGF_L6]  # std/sstd fail the forecast-window fit (§35.3 finding)
+)
+# Symmetric laws reproduce ~1e-16; the FS-skew laws carry the centering-moment quadrature floor
+# (abs_moment / log-modulus / mean_log_sq) through the EGF recursion -- largest for Log-GARCH, whose
+# high persistence (phi1 ~ 0.987) amplifies the h=1 floor over the horizon (max observed 1.4e-10,
+# loggarch x sstd). Machine-precision-class; same pattern as the §29/§30 FS-skew floors.
+_EGF_PREDICT_TOL = 1e-9
+
+
+def _egf_params_from_json(p: dict, dist: str) -> dict:  # type: ignore[type-arg]
+    """R EGF-sibling fit params -> quantica names (Type-I kappa/gamma or Type-II psi1; + d)."""
+    q: dict = {"mu": p["mu"], "omega_sig": p["omega_sig"], "phi1": p["phi1"]}
+    if "psi1" in p:  # Type-II (Log-GARCH / FILog-GARCH)
+        q["psi1"] = p["psi1"]
+    else:  # Type-I (MEGARCH / MLog-GARCH + FI)
+        q["kappa"] = p["kappa"]
+        q["gamma"] = p["gamma"]
+    if "d" in p:
+        q["d"] = p["d"]
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q
+
+
+def _egf_predict_fit(model: str, dist: str) -> GarchFit:
+    """EGF-sibling TRAINING fit (n_test=250), conditional vol via the engine EGF helper."""
+    from quantica.timeseries.fegarch.forecast import _egf_variance
+
+    meta = json.loads(
+        (_FIXTURE_DIR / f"predict_{model}11_{dist}_meta.json").read_text(encoding="utf-8")
+    )
+    q = _egf_params_from_json(meta["fit_params"], dist)
+    n = int(meta["n_obs_train"])
+    tmp = GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=np.array([1.0]),
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+    cv = np.sqrt(_egf_variance(tmp, _returns()[:n]))
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=cv,
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+
+
+@pytest.mark.parametrize(("model", "dist"), _EGF_CASES)
+def test_egf_sibling_predict_matches_fixture(model: str, dist: str) -> None:
+    """EGF-sibling multi-step sigma reproduces the h10 fixture (incl. h=1,5,10) under every law."""
+    fit = _egf_predict_fit(model, dist)
+    fc = predict(fit, _returns(), n_ahead=10)
+    fix = _fix(f"{model}11_{dist}", 10)
+    assert fc.n_ahead == 10
+    assert np.max(np.abs(fc.sigma - fix)) < _EGF_PREDICT_TOL
+    for h in _REQUESTED_HORIZONS:
+        assert abs(fc.sigma[h - 1] - fix[h - 1]) < _EGF_PREDICT_TOL
+    assert np.all(fc.cmeans == fit.params["mu"])
+
+
+@pytest.mark.parametrize(("model", "dist"), _EGF_CASES)
+def test_egf_sibling_predict_h1_equals_roll_first(model: str, dist: str) -> None:
+    """The h=1 EGF-sibling multi-step sigma equals predict_roll's first value (one-step seam)."""
+    fit = _egf_predict_fit(model, dist)
+    ph1 = predict(fit, _returns(), n_ahead=1).sigma[0]
+    roll_first = predict_roll(fit, _returns()).sigma[0]
+    assert abs(ph1 - roll_first) < 1e-13

@@ -452,6 +452,7 @@ def _build_type1_fit(
     n: int,
     *,
     k: int,
+    model: str | None = None,
     extra_params: dict[str, float] | None = None,
     profile: tuple[tuple[int, float], ...] | None = None,
 ) -> GarchFit:
@@ -508,6 +509,7 @@ def _build_type1_fit(
         n_obs=n,
         converged=result.converged,
         profile=profile,
+        model=model,
     )
 
 
@@ -517,6 +519,7 @@ def _fit_type1(
     *,
     constants: tuple[float, float, float, float],
     log_modulus_magnitude: bool,
+    model: str,
 ) -> GarchFit:
     """Shared Type-I EGF QMLE fit under any conditional distribution (the EGF infrastructure).
 
@@ -541,11 +544,12 @@ def _fit_type1(
             log_modulus_magnitude,
             var_start,
             skewed=cond_dist == "sald",
+            model=model,
         )
 
     distribution = get_distribution(cond_dist)
     result = _run_type1_fit(scaled, distribution, constants, log_modulus_magnitude, var_start)
-    return _build_type1_fit(result, cond_dist, scale, n, k=result.params.size)
+    return _build_type1_fit(result, cond_dist, scale, n, k=result.params.size, model=model)
 
 
 def _fit_type1_ald(
@@ -557,6 +561,7 @@ def _fit_type1_ald(
     var_start: tuple[float, ...],
     *,
     skewed: bool,
+    model: str,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for a Type-I EGF model (ald / sald).
 
@@ -582,6 +587,7 @@ def _fit_type1_ald(
         scale,
         n,
         k=best.params.size + 1,  # P is profiled, not optimized, but counts in the penalty
+        model=model,
         extra_params={"P": float(best_p)},
         profile=tuple(profile),
     )
@@ -603,7 +609,9 @@ def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega_sig, phi1, kappa, gamma``, log-likelihood, per-observation AIC/BIC,
         and the conditional-volatility series (original return units).
     """
-    return _fit_type1(returns, cond_dist, constants=EGARCH_CONSTANTS, log_modulus_magnitude=False)
+    return _fit_type1(
+        returns, cond_dist, constants=EGARCH_CONSTANTS, log_modulus_magnitude=False, model="egarch"
+    )
 
 
 def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
@@ -621,7 +629,13 @@ def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     GarchFit
         Estimates ``mu, omega_sig, phi1, kappa, gamma`` (+ log-likelihood, AIC/BIC, conditional SD).
     """
-    return _fit_type1(returns, cond_dist, constants=MEGARCH_CONSTANTS, log_modulus_magnitude=False)
+    return _fit_type1(
+        returns,
+        cond_dist,
+        constants=MEGARCH_CONSTANTS,
+        log_modulus_magnitude=False,
+        model="megarch",
+    )
 
 
 def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
@@ -639,7 +653,13 @@ def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     GarchFit
         Estimates ``mu, omega_sig, phi1, kappa, gamma`` (+ log-likelihood, AIC/BIC, conditional SD).
     """
-    return _fit_type1(returns, cond_dist, constants=MLOGGARCH_CONSTANTS, log_modulus_magnitude=True)
+    return _fit_type1(
+        returns,
+        cond_dist,
+        constants=MLOGGARCH_CONSTANTS,
+        log_modulus_magnitude=True,
+        model="mloggarch",
+    )
 
 
 def _sim_type1(

@@ -1,0 +1,27 @@
+{
+  "model": "mloggarch",
+  "cond_dist": "snorm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00040483946314106228,
+    "omega_sig": -8.9209971274698034,
+    "phi1": 0.98009971334968327,
+    "kappa": -0.03246044471306727,
+    "gamma": 0.30515637997165856,
+    "skew": 0.963400962458271
+  },
+  "loglikelihood": 6801.9247287881772,
+  "aic": -6.0408219811450463,
+  "bic": -6.0255721531578503,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

@@ -378,7 +378,30 @@ no σ feedback) → seam-exact (`h=1` at 1.9e-17; the ~2.4e-12 growth is the κ-
 a model gap. (e) **finding-3 inherited**: FIEGARCH drops std/sstd (6 laws; the 4 variance-recursion models
 fit all 8 → 38 triples). FIGARCH/FIEGARCH reproduce ~1e-16; FI-power skew/free-δ predict at the κ-floor
 (max 9.3e-12, fitgarch×sged); FIEGARCH-skew roll at the abs_moment floor (max 2.55e-12, fiegarch×sald);
-VaR/ES ≤ a few e-6. PR open, not merged.
+VaR/ES ≤ a few e-6. PR open, not merged. **MERGED** (PR #30 → `main` `0ed7a7f`).
+
+**Forecast family 3 — EGF log-family siblings (MEGARCH/MLog-GARCH/Log-GARCH short + FI; EGARCH rolling) —
+on `feat/fegarch-forecast-egf-siblings`** (engine build). Spec-notes **§35**: all are the *same*
+log-variance forecast as EGARCH (§29.2) / FIEGARCH (§34) — iterate `ln σ²` with the future news centered
+to 0 (short AR(1), FI the §34 weight convolution); only the **news link `g` and centering moment** differ
+per model: EGARCH/MEGARCH mag=`abs_moment`, MLog mag=`mean_log_modulus`, asy=`mean_signed_log_modulus`
+(Type-I); Log-GARCH/FILog `ξ=ln η²−E[ln η²]` `mean_log_sq` (Type-II). `σ̂=exp(ln σ̂²/2)` Jensen plug-in,
+reproduced-not-corrected. Engine: added `GarchFit.model` (the Type-I trio share param keys — §33
+GJR-vs-TGARCH pattern on the EGF axis), set in the EGF fits; `forecast.py` grew a single EGF path
+(`_egf_multistep`/`_egf_variance`) covering EGARCH/MEGARCH/MLog/Log + 4 FI variants — no fork. **EGARCH
+rolling added** (Phase 6 shipped EGARCH multi-step only; `predict_roll` previously `KeyError`-ed on it).
+**80 fixture-sets** (37 sibling (model,law) × {roll,predict} + 6 EGARCH-rolling, 246 files) in R; 475
+forecast+predict tests pass.
+**Findings:** (a) **per-sibling link→centering-moment mapping** confirmed machine-exact by the gate
+(MEGARCH 0.0, MLog 1.7e-18, Log 1.7e-17, FIMEGARCH 3.9e-16, FIMLog 2.8e-16, FILog 2.6e-15). (b) **two
+structural subtleties the gate forced out:** short Log-GARCH loads `ξ` by **`ψ₁+φ₁`** (not `ψ₁`; `ψ₁`
+misses at 5e-4), and FILog's `γ`-convolution is indexed at **`h+k`** (`γ_0=0`; the FIEGARCH `h-1+k` misses
+at 2.8e-4). (c) **the siblings inherited the EGF path cleanly** (no new structure). (d) **finding-3 law
+drops** follow the Type-I-fails/Type-II-converges split (§20/§21/§22.2): the Type-I log-variance trio
+(EGARCH/MEGARCH/MLog + FI) drop std/sstd (6 laws); **Log-GARCH drops std only** (7); **FILog-GARCH
+converges std/sstd on the full sample but ERRORS on the n_test=250 forecast-window fit** → forecasts cover
+6 laws (a new §35.3 finding). Symmetric laws ~1e-16; FS-skew laws at the centering-moment quadrature floor
+(max ~1.9e-10, loggarch×sstd, amplified by φ₁≈0.987). PR open, not merged.
 
 ## Completed
 

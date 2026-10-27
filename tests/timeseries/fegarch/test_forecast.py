@@ -607,3 +607,124 @@ def test_fi_measure_risk_matches_fixture(model: str, dist: str) -> None:
     for alpha in (0.975, 0.99):
         assert np.all(risk.es[alpha] <= risk.var[alpha])
         assert np.all(risk.var[alpha] < 0.0)
+
+
+# --------------------------------------------------------------------------- #
+# 8. EGF log-family siblings (forecast family 3) -- rolling + VaR/ES (+ EGARCH rolling)
+# --------------------------------------------------------------------------- #
+#
+# predict_roll for the EGF family (spec-notes §35): continue the model's own 0-seeded recursion over
+# the test window -- seam-exact (the ln Var intercept seed decays). Covers EGARCH (rolling was
+# -- Phase 6 shipped EGARCH multi-step only) + the six siblings. finding-3 law drops as in §35.3.
+
+_EGF_L6_F = ["norm", "ged", "ald", "snorm", "sged", "sald"]
+_EGF_L7_F = ["norm", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+_EGF_L8_F = ["norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald"]
+_EGF_ROLL_CASES = (
+    [("egarch", d) for d in _EGF_L6_F]  # rolling newly added (predict already on main)
+    + [("megarch", d) for d in _EGF_L6_F]
+    + [("mloggarch", d) for d in _EGF_L6_F]
+    + [("loggarch", d) for d in _EGF_L7_F]
+    + [("fimegarch", d) for d in _EGF_L6_F]
+    + [("fimloggarch", d) for d in _EGF_L6_F]
+    + [("filoggarch", d) for d in _EGF_L6_F]  # std/sstd fail the forecast-window fit (§35.3)
+)
+# Rolling sigma is the model's recursion continued -- ~1e-14 for symmetric; the FS-skew log-variance
+# cases carry the centering-moment quadrature floor (mean_log_sq / log-modulus / abs_moment) through
+# the recursion, amplified by Log-GARCH's high persistence (max observed 1.9e-10, loggarch x sstd).
+_EGF_ROLL_TOL = 1e-9
+
+
+def _egf_params_from_json_fc(p: dict, dist: str) -> dict:  # type: ignore[type-arg]
+    """R EGF fit params -> quantica names (Type-I kappa/gamma or Type-II psi1; fractional d)."""
+    q: dict = {"mu": p["mu"], "omega_sig": p["omega_sig"], "phi1": p["phi1"]}
+    if "psi1" in p:
+        q["psi1"] = p["psi1"]
+    else:
+        q["kappa"] = p["kappa"]
+        q["gamma"] = p["gamma"]
+    if "d" in p:
+        q["d"] = p["d"]
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q
+
+
+def _egf_forecast_fit(model: str, dist: str, returns: np.ndarray) -> GarchFit:  # type: ignore[type-arg]
+    """EGF training fit from the forecast fixture, conditional vol via the engine EGF helper."""
+    from quantica.timeseries.fegarch.forecast import _egf_variance
+
+    stem = f"forecast_{model}11_{dist}"
+    meta = json.loads((_FIXTURE_DIR / f"{stem}_params.json").read_text(encoding="utf-8"))
+    q = _egf_params_from_json_fc(meta["params"], dist)
+    n = int(meta["n_obs"])
+    tmp = GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=np.array([1.0]),
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+    cv = np.sqrt(_egf_variance(tmp, returns[:n]))
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=float(meta["loglikelihood"]),
+        aic=float(meta["aic"]),
+        bic=float(meta["bic"]),
+        conditional_volatility=cv,
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+
+
+def _egf_roll_fixture(model: str, dist: str) -> dict:  # type: ignore[type-arg]
+    """Load the EGF rolling-forecast fixture (sigma / cmeans / VaR-ES) for model+dist."""
+    stem = f"forecast_{model}11_{dist}"
+    return {
+        "sigma": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_sigma.csv", skiprows=1),
+        "cmeans": np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_cmeans.csv", skiprows=1),
+        "var_es": np.loadtxt(_FIXTURE_DIR / f"{stem}_var_es.csv", delimiter=",", skiprows=1),
+    }
+
+
+@pytest.mark.parametrize(("model", "dist"), _EGF_ROLL_CASES)
+def test_egf_predict_roll_matches_fixture(model: str, dist: str) -> None:
+    """Rolling sigma-hat is seam-exact for the EGF family (the model recursion continued; §35.3)."""
+    returns = _returns()
+    fit = _egf_forecast_fit(model, dist, returns)
+    fx = _egf_roll_fixture(model, dist)
+    forecast = predict_roll(fit, returns)
+    assert forecast.n_test == fx["sigma"].size == 250
+    assert np.max(np.abs(forecast.sigma - fx["sigma"])) < _EGF_ROLL_TOL
+    assert np.max(np.abs(forecast.cmeans - fx["cmeans"])) < _SIGMA_TOL
+
+
+@pytest.mark.parametrize(("model", "dist"), _EGF_ROLL_CASES)
+def test_egf_measure_risk_matches_fixture(model: str, dist: str) -> None:
+    """VaR/ES reproduces the fixture for the EGF family per law (R<->SciPy quantile gap)."""
+    returns = _returns()
+    fit = _egf_forecast_fit(model, dist, returns)
+    fx = _egf_roll_fixture(model, dist)
+    risk = measure_risk(predict_roll(fit, returns), fit, levels=(0.975, 0.99))
+    ve = fx["var_es"]
+    assert np.max(np.abs(risk.var[0.975] - ve[:, 0])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.var[0.99] - ve[:, 1])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.975] - ve[:, 2])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.99] - ve[:, 3])) < _VAR_ES_DIST_TOL
+    for alpha in (0.975, 0.99):
+        assert np.all(risk.es[alpha] <= risk.var[alpha])
+        assert np.all(risk.var[alpha] < 0.0)

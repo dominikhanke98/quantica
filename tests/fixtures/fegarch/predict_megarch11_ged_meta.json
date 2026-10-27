@@ -1,0 +1,20 @@
+{
+  "model": "megarch",
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00035676938032343046,
+    "omega_sig": -8.8662443702537175,
+    "phi1": 0.97882643645885159,
+    "kappa": -0.0300834102254962,
+    "gamma": 0.16932961029104748,
+    "shape": 2.1818991472919147
+  },
+  "note": "predict(n.ahead=h) multi-step EGF sibling megarch/ged; same training fit as forecast_megarch11_ged. Iterate ln sigma^2 with future news=0; short memory AR(1), FI the §34 weight convolution; link+centering per spec-notes §35; exp(lnsigma^2/2) Jensen plug-in.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

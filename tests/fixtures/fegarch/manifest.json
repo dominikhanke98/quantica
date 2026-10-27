@@ -1530,6 +1530,493 @@
     "h10": "predict_fiegarch11_sald_h10.csv",
     "note": "Forecast family 2: FIEGARCH (EGF MA(inf) log-variance)/sald multi-step predict(n.ahead=10) from the training end (same fit as forecast_fiegarch11_sald); covers h=1,5,10. (1-L)^d weights extended by horizon, observed sample pre-sample 0; sigma=(m_h)^(1/delta) [FIEGARCH exp(lnsigma^2/2)] Jensen plug-in (spec-notes §34)."
   },
+  "_forecast_egf_siblings": "Forecast family 3 (branch feat/fegarch-forecast-egf-siblings): the EGF log-family siblings MEGARCH/MLog-GARCH/Log-GARCH (short) + FIMEGARCH/FIMLog-GARCH/FILog-GARCH (FI), plus EGARCH rolling (Phase 6 shipped EGARCH multi-step only). All are the SAME log-variance forecast as EGARCH/FIEGARCH (iterate ln sigma^2 with future news=0; short AR(1), FI the §34 weight convolution); only the news link g and centering moment differ per model (spec-notes §35): EGARCH/MEGARCH mag=abs_moment, MLog mag=mean_log_modulus, asy=mean_signed_log_modulus (Type-I); Log-GARCH/FILog xi=ln eta^2-E[ln eta^2] mean_log_sq (Type-II). sigma=exp(lnsigma^2/2) Jensen-biased plug-in, reproduced-not-corrected. GATE: every sibling reproduces machine-exact; subtleties forced out were short Log-GARCH loading psi1+phi1 (not psi1) and FILog gamma-index h+k (not FIEGARCH h-1+k). finding-3 drops: the Type-I log-variance trio (EGARCH/MEGARCH/MLog + FI) drop std/sstd (6 laws); Log-GARCH drops std only (7); FILog-GARCH converges std/sstd on the full sample but ERRORS on the n_test=250 forecast-window fit, so forecasts cover 6 laws (a §35.3 finding). Symmetric laws ~1e-16; FS-skew laws carry the centering-moment quadrature floor through the recursion (max ~1.9e-10, loggarch sstd, amplified by phi1~0.987).",
+  "forecast_megarch11_norm_roll": {
+    "params": "forecast_megarch11_norm_params.json",
+    "sigma": "forecast_megarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_megarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_megarch11_norm_var_es.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / norm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_megarch11_norm": {
+    "meta": "predict_megarch11_norm_meta.json",
+    "h10": "predict_megarch11_norm_h10.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / norm multi-step predict(n.ahead=10), same training fit as forecast_megarch11_norm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_megarch11_ged_roll": {
+    "params": "forecast_megarch11_ged_params.json",
+    "sigma": "forecast_megarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_megarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_megarch11_ged_var_es.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / ged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_megarch11_ged": {
+    "meta": "predict_megarch11_ged_meta.json",
+    "h10": "predict_megarch11_ged_h10.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / ged multi-step predict(n.ahead=10), same training fit as forecast_megarch11_ged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_megarch11_ald_roll": {
+    "params": "forecast_megarch11_ald_params.json",
+    "sigma": "forecast_megarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_megarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_megarch11_ald_var_es.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / ald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_megarch11_ald": {
+    "meta": "predict_megarch11_ald_meta.json",
+    "h10": "predict_megarch11_ald_h10.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / ald multi-step predict(n.ahead=10), same training fit as forecast_megarch11_ald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_megarch11_snorm_roll": {
+    "params": "forecast_megarch11_snorm_params.json",
+    "sigma": "forecast_megarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_megarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_megarch11_snorm_var_es.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / snorm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_megarch11_snorm": {
+    "meta": "predict_megarch11_snorm_meta.json",
+    "h10": "predict_megarch11_snorm_h10.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / snorm multi-step predict(n.ahead=10), same training fit as forecast_megarch11_snorm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_megarch11_sged_roll": {
+    "params": "forecast_megarch11_sged_params.json",
+    "sigma": "forecast_megarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_megarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_megarch11_sged_var_es.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / sged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_megarch11_sged": {
+    "meta": "predict_megarch11_sged_meta.json",
+    "h10": "predict_megarch11_sged_h10.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / sged multi-step predict(n.ahead=10), same training fit as forecast_megarch11_sged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_megarch11_sald_roll": {
+    "params": "forecast_megarch11_sald_params.json",
+    "sigma": "forecast_megarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_megarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_megarch11_sald_var_es.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / sald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_megarch11_sald": {
+    "meta": "predict_megarch11_sald_meta.json",
+    "h10": "predict_megarch11_sald_h10.csv",
+    "note": "Forecast family 3: MEGARCH (Type-I: modulus-log asymmetry, |eta| magnitude; abs_moment + signed-log-modulus) / sald multi-step predict(n.ahead=10), same training fit as forecast_megarch11_sald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_mloggarch11_norm_roll": {
+    "params": "forecast_mloggarch11_norm_params.json",
+    "sigma": "forecast_mloggarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_mloggarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_mloggarch11_norm_var_es.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / norm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_mloggarch11_norm": {
+    "meta": "predict_mloggarch11_norm_meta.json",
+    "h10": "predict_mloggarch11_norm_h10.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / norm multi-step predict(n.ahead=10), same training fit as forecast_mloggarch11_norm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_mloggarch11_ged_roll": {
+    "params": "forecast_mloggarch11_ged_params.json",
+    "sigma": "forecast_mloggarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_mloggarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_mloggarch11_ged_var_es.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / ged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_mloggarch11_ged": {
+    "meta": "predict_mloggarch11_ged_meta.json",
+    "h10": "predict_mloggarch11_ged_h10.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / ged multi-step predict(n.ahead=10), same training fit as forecast_mloggarch11_ged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_mloggarch11_ald_roll": {
+    "params": "forecast_mloggarch11_ald_params.json",
+    "sigma": "forecast_mloggarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_mloggarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_mloggarch11_ald_var_es.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / ald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_mloggarch11_ald": {
+    "meta": "predict_mloggarch11_ald_meta.json",
+    "h10": "predict_mloggarch11_ald_h10.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / ald multi-step predict(n.ahead=10), same training fit as forecast_mloggarch11_ald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_mloggarch11_snorm_roll": {
+    "params": "forecast_mloggarch11_snorm_params.json",
+    "sigma": "forecast_mloggarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_mloggarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_mloggarch11_snorm_var_es.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / snorm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_mloggarch11_snorm": {
+    "meta": "predict_mloggarch11_snorm_meta.json",
+    "h10": "predict_mloggarch11_snorm_h10.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / snorm multi-step predict(n.ahead=10), same training fit as forecast_mloggarch11_snorm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_mloggarch11_sged_roll": {
+    "params": "forecast_mloggarch11_sged_params.json",
+    "sigma": "forecast_mloggarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_mloggarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_mloggarch11_sged_var_es.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / sged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_mloggarch11_sged": {
+    "meta": "predict_mloggarch11_sged_meta.json",
+    "h10": "predict_mloggarch11_sged_h10.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / sged multi-step predict(n.ahead=10), same training fit as forecast_mloggarch11_sged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_mloggarch11_sald_roll": {
+    "params": "forecast_mloggarch11_sald_params.json",
+    "sigma": "forecast_mloggarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_mloggarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_mloggarch11_sald_var_es.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / sald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_mloggarch11_sald": {
+    "meta": "predict_mloggarch11_sald_meta.json",
+    "h10": "predict_mloggarch11_sald_h10.csv",
+    "note": "Forecast family 3: MLog-GARCH (Type-I: modulus-log asymmetry + magnitude; mean_log_modulus + signed-log-modulus) / sald multi-step predict(n.ahead=10), same training fit as forecast_mloggarch11_sald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_loggarch11_norm_roll": {
+    "params": "forecast_loggarch11_norm_params.json",
+    "sigma": "forecast_loggarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_loggarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_loggarch11_norm_var_es.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / norm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_loggarch11_norm": {
+    "meta": "predict_loggarch11_norm_meta.json",
+    "h10": "predict_loggarch11_norm_h10.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / norm multi-step predict(n.ahead=10), same training fit as forecast_loggarch11_norm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_loggarch11_ged_roll": {
+    "params": "forecast_loggarch11_ged_params.json",
+    "sigma": "forecast_loggarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_loggarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_loggarch11_ged_var_es.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / ged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_loggarch11_ged": {
+    "meta": "predict_loggarch11_ged_meta.json",
+    "h10": "predict_loggarch11_ged_h10.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / ged multi-step predict(n.ahead=10), same training fit as forecast_loggarch11_ged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_loggarch11_ald_roll": {
+    "params": "forecast_loggarch11_ald_params.json",
+    "sigma": "forecast_loggarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_loggarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_loggarch11_ald_var_es.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / ald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_loggarch11_ald": {
+    "meta": "predict_loggarch11_ald_meta.json",
+    "h10": "predict_loggarch11_ald_h10.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / ald multi-step predict(n.ahead=10), same training fit as forecast_loggarch11_ald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_loggarch11_snorm_roll": {
+    "params": "forecast_loggarch11_snorm_params.json",
+    "sigma": "forecast_loggarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_loggarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_loggarch11_snorm_var_es.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / snorm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_loggarch11_snorm": {
+    "meta": "predict_loggarch11_snorm_meta.json",
+    "h10": "predict_loggarch11_snorm_h10.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / snorm multi-step predict(n.ahead=10), same training fit as forecast_loggarch11_snorm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_loggarch11_sstd_roll": {
+    "params": "forecast_loggarch11_sstd_params.json",
+    "sigma": "forecast_loggarch11_sstd_roll_sigma.csv",
+    "cmeans": "forecast_loggarch11_sstd_roll_cmeans.csv",
+    "var_es": "forecast_loggarch11_sstd_var_es.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / sstd, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_loggarch11_sstd": {
+    "meta": "predict_loggarch11_sstd_meta.json",
+    "h10": "predict_loggarch11_sstd_h10.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / sstd multi-step predict(n.ahead=10), same training fit as forecast_loggarch11_sstd; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_loggarch11_sged_roll": {
+    "params": "forecast_loggarch11_sged_params.json",
+    "sigma": "forecast_loggarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_loggarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_loggarch11_sged_var_es.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / sged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_loggarch11_sged": {
+    "meta": "predict_loggarch11_sged_meta.json",
+    "h10": "predict_loggarch11_sged_h10.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / sged multi-step predict(n.ahead=10), same training fit as forecast_loggarch11_sged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_loggarch11_sald_roll": {
+    "params": "forecast_loggarch11_sald_params.json",
+    "sigma": "forecast_loggarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_loggarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_loggarch11_sald_var_es.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / sald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_loggarch11_sald": {
+    "meta": "predict_loggarch11_sald_meta.json",
+    "h10": "predict_loggarch11_sald_h10.csv",
+    "note": "Forecast family 3: Log-GARCH (Type-II: xi=ln eta^2 - E[ln eta^2], mean_log_sq; loading psi1+phi1) / sald multi-step predict(n.ahead=10), same training fit as forecast_loggarch11_sald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimegarch11_norm_roll": {
+    "params": "forecast_fimegarch11_norm_params.json",
+    "sigma": "forecast_fimegarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_fimegarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_fimegarch11_norm_var_es.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / norm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimegarch11_norm": {
+    "meta": "predict_fimegarch11_norm_meta.json",
+    "h10": "predict_fimegarch11_norm_h10.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / norm multi-step predict(n.ahead=10), same training fit as forecast_fimegarch11_norm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimegarch11_ged_roll": {
+    "params": "forecast_fimegarch11_ged_params.json",
+    "sigma": "forecast_fimegarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_fimegarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_fimegarch11_ged_var_es.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / ged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimegarch11_ged": {
+    "meta": "predict_fimegarch11_ged_meta.json",
+    "h10": "predict_fimegarch11_ged_h10.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / ged multi-step predict(n.ahead=10), same training fit as forecast_fimegarch11_ged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimegarch11_ald_roll": {
+    "params": "forecast_fimegarch11_ald_params.json",
+    "sigma": "forecast_fimegarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_fimegarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_fimegarch11_ald_var_es.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / ald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimegarch11_ald": {
+    "meta": "predict_fimegarch11_ald_meta.json",
+    "h10": "predict_fimegarch11_ald_h10.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / ald multi-step predict(n.ahead=10), same training fit as forecast_fimegarch11_ald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimegarch11_snorm_roll": {
+    "params": "forecast_fimegarch11_snorm_params.json",
+    "sigma": "forecast_fimegarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_fimegarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_fimegarch11_snorm_var_es.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / snorm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimegarch11_snorm": {
+    "meta": "predict_fimegarch11_snorm_meta.json",
+    "h10": "predict_fimegarch11_snorm_h10.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / snorm multi-step predict(n.ahead=10), same training fit as forecast_fimegarch11_snorm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimegarch11_sged_roll": {
+    "params": "forecast_fimegarch11_sged_params.json",
+    "sigma": "forecast_fimegarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_fimegarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_fimegarch11_sged_var_es.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / sged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimegarch11_sged": {
+    "meta": "predict_fimegarch11_sged_meta.json",
+    "h10": "predict_fimegarch11_sged_h10.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / sged multi-step predict(n.ahead=10), same training fit as forecast_fimegarch11_sged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimegarch11_sald_roll": {
+    "params": "forecast_fimegarch11_sald_params.json",
+    "sigma": "forecast_fimegarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_fimegarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_fimegarch11_sald_var_es.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / sald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimegarch11_sald": {
+    "meta": "predict_fimegarch11_sald_meta.json",
+    "h10": "predict_fimegarch11_sald_h10.csv",
+    "note": "Forecast family 3: FIMEGARCH (Type-I FI; §34 theta convolution) / sald multi-step predict(n.ahead=10), same training fit as forecast_fimegarch11_sald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimloggarch11_norm_roll": {
+    "params": "forecast_fimloggarch11_norm_params.json",
+    "sigma": "forecast_fimloggarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_fimloggarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_fimloggarch11_norm_var_es.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / norm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimloggarch11_norm": {
+    "meta": "predict_fimloggarch11_norm_meta.json",
+    "h10": "predict_fimloggarch11_norm_h10.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / norm multi-step predict(n.ahead=10), same training fit as forecast_fimloggarch11_norm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimloggarch11_ged_roll": {
+    "params": "forecast_fimloggarch11_ged_params.json",
+    "sigma": "forecast_fimloggarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_fimloggarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_fimloggarch11_ged_var_es.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / ged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimloggarch11_ged": {
+    "meta": "predict_fimloggarch11_ged_meta.json",
+    "h10": "predict_fimloggarch11_ged_h10.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / ged multi-step predict(n.ahead=10), same training fit as forecast_fimloggarch11_ged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimloggarch11_ald_roll": {
+    "params": "forecast_fimloggarch11_ald_params.json",
+    "sigma": "forecast_fimloggarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_fimloggarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_fimloggarch11_ald_var_es.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / ald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimloggarch11_ald": {
+    "meta": "predict_fimloggarch11_ald_meta.json",
+    "h10": "predict_fimloggarch11_ald_h10.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / ald multi-step predict(n.ahead=10), same training fit as forecast_fimloggarch11_ald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimloggarch11_snorm_roll": {
+    "params": "forecast_fimloggarch11_snorm_params.json",
+    "sigma": "forecast_fimloggarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_fimloggarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_fimloggarch11_snorm_var_es.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / snorm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimloggarch11_snorm": {
+    "meta": "predict_fimloggarch11_snorm_meta.json",
+    "h10": "predict_fimloggarch11_snorm_h10.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / snorm multi-step predict(n.ahead=10), same training fit as forecast_fimloggarch11_snorm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimloggarch11_sged_roll": {
+    "params": "forecast_fimloggarch11_sged_params.json",
+    "sigma": "forecast_fimloggarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_fimloggarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_fimloggarch11_sged_var_es.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / sged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimloggarch11_sged": {
+    "meta": "predict_fimloggarch11_sged_meta.json",
+    "h10": "predict_fimloggarch11_sged_h10.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / sged multi-step predict(n.ahead=10), same training fit as forecast_fimloggarch11_sged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_fimloggarch11_sald_roll": {
+    "params": "forecast_fimloggarch11_sald_params.json",
+    "sigma": "forecast_fimloggarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_fimloggarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_fimloggarch11_sald_var_es.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / sald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_fimloggarch11_sald": {
+    "meta": "predict_fimloggarch11_sald_meta.json",
+    "h10": "predict_fimloggarch11_sald_h10.csv",
+    "note": "Forecast family 3: FIMLog-GARCH (Type-I FI; §34 theta convolution) / sald multi-step predict(n.ahead=10), same training fit as forecast_fimloggarch11_sald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_filoggarch11_norm_roll": {
+    "params": "forecast_filoggarch11_norm_params.json",
+    "sigma": "forecast_filoggarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_filoggarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_filoggarch11_norm_var_es.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / norm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_filoggarch11_norm": {
+    "meta": "predict_filoggarch11_norm_meta.json",
+    "h10": "predict_filoggarch11_norm_h10.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / norm multi-step predict(n.ahead=10), same training fit as forecast_filoggarch11_norm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_filoggarch11_ged_roll": {
+    "params": "forecast_filoggarch11_ged_params.json",
+    "sigma": "forecast_filoggarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_filoggarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_filoggarch11_ged_var_es.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / ged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_filoggarch11_ged": {
+    "meta": "predict_filoggarch11_ged_meta.json",
+    "h10": "predict_filoggarch11_ged_h10.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / ged multi-step predict(n.ahead=10), same training fit as forecast_filoggarch11_ged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_filoggarch11_ald_roll": {
+    "params": "forecast_filoggarch11_ald_params.json",
+    "sigma": "forecast_filoggarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_filoggarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_filoggarch11_ald_var_es.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / ald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_filoggarch11_ald": {
+    "meta": "predict_filoggarch11_ald_meta.json",
+    "h10": "predict_filoggarch11_ald_h10.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / ald multi-step predict(n.ahead=10), same training fit as forecast_filoggarch11_ald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_filoggarch11_snorm_roll": {
+    "params": "forecast_filoggarch11_snorm_params.json",
+    "sigma": "forecast_filoggarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_filoggarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_filoggarch11_snorm_var_es.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / snorm, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_filoggarch11_snorm": {
+    "meta": "predict_filoggarch11_snorm_meta.json",
+    "h10": "predict_filoggarch11_snorm_h10.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / snorm multi-step predict(n.ahead=10), same training fit as forecast_filoggarch11_snorm; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_filoggarch11_sged_roll": {
+    "params": "forecast_filoggarch11_sged_params.json",
+    "sigma": "forecast_filoggarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_filoggarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_filoggarch11_sged_var_es.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / sged, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_filoggarch11_sged": {
+    "meta": "predict_filoggarch11_sged_meta.json",
+    "h10": "predict_filoggarch11_sged_h10.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / sged multi-step predict(n.ahead=10), same training fit as forecast_filoggarch11_sged; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_filoggarch11_sald_roll": {
+    "params": "forecast_filoggarch11_sald_params.json",
+    "sigma": "forecast_filoggarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_filoggarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_filoggarch11_sald_var_es.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / sald, n_test=250, predict_roll + measure_risk VaR/ES. Rolling sigma = the model recursion continued (seam-exact; §35.3)."
+  },
+  "predict_filoggarch11_sald": {
+    "meta": "predict_filoggarch11_sald_meta.json",
+    "h10": "predict_filoggarch11_sald_h10.csv",
+    "note": "Forecast family 3: FILog-GARCH (Type-II FI; gamma-coefficient MA(inf), index h+k) / sald multi-step predict(n.ahead=10), same training fit as forecast_filoggarch11_sald; covers h=1,5,10. Iterate ln sigma^2 future-news-0; sigma=exp(lnsigma^2/2) Jensen plug-in (spec-notes §35)."
+  },
+  "forecast_egarch11_norm_roll": {
+    "params": "forecast_egarch11_norm_params.json",
+    "sigma": "forecast_egarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_egarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_egarch11_norm_var_es.csv",
+    "note": "Forecast family 3: EGARCH(1,1)/norm ROLLING (predict_roll + VaR/ES) -- newly added; the Phase-6 predict_egarch11_norm multi-step is separate. Rolling sigma = the EGARCH recursion continued (seam-exact)."
+  },
+  "forecast_egarch11_ged_roll": {
+    "params": "forecast_egarch11_ged_params.json",
+    "sigma": "forecast_egarch11_ged_roll_sigma.csv",
+    "cmeans": "forecast_egarch11_ged_roll_cmeans.csv",
+    "var_es": "forecast_egarch11_ged_var_es.csv",
+    "note": "Forecast family 3: EGARCH(1,1)/ged ROLLING (predict_roll + VaR/ES) -- newly added; the Phase-6 predict_egarch11_ged multi-step is separate. Rolling sigma = the EGARCH recursion continued (seam-exact)."
+  },
+  "forecast_egarch11_ald_roll": {
+    "params": "forecast_egarch11_ald_params.json",
+    "sigma": "forecast_egarch11_ald_roll_sigma.csv",
+    "cmeans": "forecast_egarch11_ald_roll_cmeans.csv",
+    "var_es": "forecast_egarch11_ald_var_es.csv",
+    "note": "Forecast family 3: EGARCH(1,1)/ald ROLLING (predict_roll + VaR/ES) -- newly added; the Phase-6 predict_egarch11_ald multi-step is separate. Rolling sigma = the EGARCH recursion continued (seam-exact)."
+  },
+  "forecast_egarch11_snorm_roll": {
+    "params": "forecast_egarch11_snorm_params.json",
+    "sigma": "forecast_egarch11_snorm_roll_sigma.csv",
+    "cmeans": "forecast_egarch11_snorm_roll_cmeans.csv",
+    "var_es": "forecast_egarch11_snorm_var_es.csv",
+    "note": "Forecast family 3: EGARCH(1,1)/snorm ROLLING (predict_roll + VaR/ES) -- newly added; the Phase-6 predict_egarch11_snorm multi-step is separate. Rolling sigma = the EGARCH recursion continued (seam-exact)."
+  },
+  "forecast_egarch11_sged_roll": {
+    "params": "forecast_egarch11_sged_params.json",
+    "sigma": "forecast_egarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_egarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_egarch11_sged_var_es.csv",
+    "note": "Forecast family 3: EGARCH(1,1)/sged ROLLING (predict_roll + VaR/ES) -- newly added; the Phase-6 predict_egarch11_sged multi-step is separate. Rolling sigma = the EGARCH recursion continued (seam-exact)."
+  },
+  "forecast_egarch11_sald_roll": {
+    "params": "forecast_egarch11_sald_params.json",
+    "sigma": "forecast_egarch11_sald_roll_sigma.csv",
+    "cmeans": "forecast_egarch11_sald_roll_cmeans.csv",
+    "var_es": "forecast_egarch11_sald_var_es.csv",
+    "note": "Forecast family 3: EGARCH(1,1)/sald ROLLING (predict_roll + VaR/ES) -- newly added; the Phase-6 predict_egarch11_sald multi-step is separate. Rolling sigma = the EGARCH recursion continued (seam-exact)."
+  },
   "smooth_gsmooth": {
     "meta": "smooth_gsmooth_meta.json",
     "files": "smooth_gsmooth_p{1,3}_mu{0,1,2,3}_bb{0,1}.csv (16 files, one column m_hat)",

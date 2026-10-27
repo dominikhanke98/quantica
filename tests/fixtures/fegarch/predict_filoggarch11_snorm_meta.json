@@ -1,0 +1,20 @@
+{
+  "model": "filoggarch",
+  "cond_dist": "snorm",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": -0.000499765460685565,
+    "omega_sig": -8.8997544393132735,
+    "phi1": 0.30179948300837672,
+    "psi1": -0.50214396999295585,
+    "d": 0.25550646000605459,
+    "skew": 0.97361872170047947
+  },
+  "note": "predict(n.ahead=h) multi-step EGF sibling filoggarch/snorm; same training fit as forecast_filoggarch11_snorm. Iterate ln sigma^2 with future news=0; short memory AR(1), FI the §34 weight convolution; link+centering per spec-notes §35; exp(lnsigma^2/2) Jensen plug-in.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
