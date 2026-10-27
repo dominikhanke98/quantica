@@ -1,0 +1,28 @@
+{
+  "model": "fimloggarch",
+  "cond_dist": "snorm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "n-1",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00040193400900890387,
+    "omega_sig": -9.1205014665252335,
+    "phi1": 0.46747068702839262,
+    "kappa": -0.03412414788514468,
+    "gamma": 0.3445590913811008,
+    "d": 0.66263426128905278,
+    "skew": 0.96791728311180547
+  },
+  "loglikelihood": 6800.5123274994521,
+  "aic": -6.0386776244439577,
+  "bic": -6.0208861584588957,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

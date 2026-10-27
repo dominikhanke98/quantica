@@ -1,0 +1,22 @@
+{
+  "model": "fimloggarch",
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00040176880576173126,
+    "omega_sig": -9.1314894352561531,
+    "phi1": 0.83731320639289608,
+    "kappa": -0.030513953590519539,
+    "gamma": 0.25191021115211826,
+    "d": 0.42116159688627269,
+    "P": 5,
+    "skew": 0.96322767669193632
+  },
+  "note": "predict(n.ahead=h) multi-step EGF sibling fimloggarch/sald; same training fit as forecast_fimloggarch11_sald. Iterate ln sigma^2 with future news=0; short memory AR(1), FI the §34 weight convolution; link+centering per spec-notes §35; exp(lnsigma^2/2) Jensen plug-in.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

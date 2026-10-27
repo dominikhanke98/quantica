@@ -2203,9 +2203,78 @@ else the variance-recursion FI path (`γ = params.get("gamma", 0)`, `δ = params
 the fit for the whole FI-power family so FIGJR/FITGARCH, whose key sets are identical, are
 distinguishable). Reuses `figarch_coefficients` / `theta_coefficients` / the §33 `news_moment`; GJR/TGARCH/APARCH-FI do **not** fork. `predict_roll` (one-step) is the deterministic filter continued over
 the test window — seam-exact (the forecast pre-sample-`0` + observed-news convolution needs no seed).
-Family 2 completes the FI versions of every short-memory base already forecastable; the MEGARCH/MLog
-and FI-EGF-modulus multi-step (FIMEGARCH/FIMLog-GARCH) stay deferred until their short-memory forecast
-and fixtures exist.
+Family 2 completes the FI versions of every short-memory base already forecastable; the EGF
+log-family siblings (MEGARCH/MLog-GARCH/Log-GARCH + FI) are **family 3** (§35).
+
+---
+
+## 35. EGF log-family siblings' multi-step `predict` + rolling (MEGARCH/MLog/Log + FI; EGARCH rolling) — RESOLVED (forecast family 3)
+
+**The EGF log-variance siblings — MEGARCH, MLog-GARCH, Log-GARCH, short and FI — plus the missing
+EGARCH rolling.** All are the *same* log-variance forecast as EGARCH (§29.2) / FIEGARCH (§34.1); only
+the **news-impact link `g` and its centering moment** differ per model. No new forecast structure —
+the siblings inherit the EGF path, swapping the centering moment. Clean-room from the model
+definitions (WP 2026-04 Eqs. 7–9, the generalized Type-I `g`; the John-Draper 1980 modulus-log; the
+Type-II Log-GARCH link) + §29.2/§34; gated against committed fEGarch output before engine code.
+
+### 35.1 The shared structure and the per-sibling link → centering-moment mapping
+
+Every EGF model's log-variance is `ln σ_t² = ω + (news)_{t-1} + φ₁ ln σ_{t-1}²` (short) or the MA(∞)
+`ln σ_t² = ω_σ + Σ_i w_i (news)_{t-1-i}` (FI), with the **news centered to `E[news] = 0`**. So the
+multi-step forecast replaces every *future* news by 0 and iterates: short memory is the AR(1)
+`ln σ_{n+h}² = ω + φ₁ ln σ_{n+h-1}²` (h≥2) with the realized news at h=1; FI is the §34
+weight-propagation convolution (weights extended by the horizon, observed news only, pre-sample 0).
+`σ̂ = exp(ln σ̂²/2)` — the **Jensen-biased plug-in** (reproduced-not-corrected, §29.2). The *only*
+per-sibling difference is the news/link and which of the four EGF centering moments it subtracts:
+
+| model | news `g` / link | magnitude centering | asymmetry centering |
+| --- | --- | --- | --- |
+| **EGARCH** | `κη + γ(\|η\|−E\|η\|)` | `abs_moment` (`E\|η\|`) | 0 (`g_asy = η`, `E[η]=0`) |
+| **MEGARCH** | `κ(ζ(η)−E[ζ]) + γ(\|η\|−E\|η\|)` | `abs_moment` | `mean_signed_log_modulus` |
+| **MLog-GARCH** | `κ(ζ(η)−E[ζ]) + γ(ln(\|η\|+1)−E[ln(\|η\|+1)])` | `mean_log_modulus` | `mean_signed_log_modulus` |
+| **Log-GARCH** (II) | `(ψ₁+φ₁)·ξ`, `ξ = ln η² − E[ln η²]` | `mean_log_sq` (`E[ln η²]`) | — |
+
+with `ζ(η) = sgn(η)ln(\|η\|+1)` (John-Draper). The Type-I trio (EGARCH/MEGARCH/MLog + FI) share the
+parameter vector `{mu, omega_sig, phi1, kappa, gamma}[+d]` **exactly**, so the fit records a `model`
+tag (`GarchFit.model`) for the forecaster to pick the constant-set — the §33 GJR-vs-TGARCH pattern on
+the EGF axis. Log-GARCH / FILog use `{mu, omega_sig, phi1, psi1}[+d]` (the `psi1` marker distinguishes
+them). The FI siblings reuse §34's window extension; Log-GARCH's FILog uses its own
+`filoggarch_gamma_coefficients` (= `theta ⊛ (1+ψ₁B)`, `γ_0 = 0`) with the **index `h+k`** (vs the
+Type-I `θ` index `h-1+k`, since `θ_0 = 1` but `γ_0 = 0`).
+
+### 35.2 The reconstruction gate — per-sibling moment, machine-exact
+
+Reconstructed one forecast per sibling from the fitted params + the candidate centering moment, vs
+fEGarch `predict(n.ahead=10)` (`norm`, `n_test=250`):
+
+| model | structure | centering that reproduces | max \|recon − fEGarch\| |
+| --- | --- | --- | --- |
+| **MEGARCH** | Type-I AR(1) | `abs_moment` mag + `mean_signed_log_modulus` asy | **0.0** (exact) |
+| **MLog-GARCH** | Type-I AR(1) | `mean_log_modulus` mag + `mean_signed_log_modulus` asy | **1.7e-18** |
+| **Log-GARCH** | Type-II AR(1), loading `ψ₁+φ₁` | `mean_log_sq` | **1.7e-17** |
+| **FIMEGARCH** | Type-I MA(∞) `θ` (h-1+k) | as MEGARCH | **3.9e-16** |
+| **FIMLog-GARCH** | Type-I MA(∞) `θ` (h-1+k) | as MLog-GARCH | **2.8e-16** |
+| **FILog-GARCH** | Type-II MA(∞) `γ` (h+k) | `mean_log_sq` | **2.6e-15** |
+
+**Every sibling reproduces machine-exact — the siblings inherit the EGF path cleanly** (no model
+needed a new structure). **Two subtleties the gate forced out:** (a) short Log-GARCH loads `ξ` by
+**`ψ₁ + φ₁`** (the combined ARMA loading `xi_loading`), not `ψ₁` — using `ψ₁` misses at `5e-4`; (b)
+FILog-GARCH's `γ`-convolution is indexed at **`h+k`** (`γ_0 = 0`), not the FIEGARCH `h-1+k` — the
+wrong index misses at `2.8e-4`. The `exp(ln σ̂²/2)` log→level convention reproduces fEGarch (the Jensen
+gap is the same left-in `E[exp(g/2)]` term as §29.2, approached hyperbolically for the FI tail).
+
+### 35.3 EGARCH rolling + scope
+
+`predict_roll` did **not** support EGARCH before this (it fell through to the GARCH branch and raised
+`KeyError`); Phase-6 shipped EGARCH multi-step only. This family adds the EGF rolling sweep
+(`predict_roll` continues the model's own 0-seeded recursion over the test window — seam-exact, the
+`ln Var` intercept seed decays), covering EGARCH + all six siblings. **finding-3 law drops** follow
+the documented Type-I-fails / Type-II-converges split (§20/§21/§22.2): the Type-I log-variance trio
+(EGARCH/MEGARCH/MLog-GARCH + FI) drop `std`/`sstd` (6 laws); **Log-GARCH drops only `std`** (7 laws,
+`sstd` converges); **FILog-GARCH drops nothing** (all 8). Implemented by extending `predict` /
+`predict_roll` with a single EGF path (`_egf_multistep` / `_egf_variance`), the model/link selected by
+`fit.model` + the parameter keys — no fork; the EGF forecast now spans EGARCH, MEGARCH, MLog-GARCH,
+Log-GARCH and their four FI variants.
 
 ---
 

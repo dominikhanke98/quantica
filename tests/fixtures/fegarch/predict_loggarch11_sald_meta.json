@@ -1,0 +1,20 @@
+{
+  "model": "loggarch",
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00022362094286372663,
+    "omega_sig": -8.9720290322734542,
+    "phi1": 0.98135861241525757,
+    "psi1": -0.94267976214908922,
+    "P": 3,
+    "skew": 0.9495577679020385
+  },
+  "note": "predict(n.ahead=h) multi-step EGF sibling loggarch/sald; same training fit as forecast_loggarch11_sald. Iterate ln sigma^2 with future news=0; short memory AR(1), FI the §34 weight convolution; link+centering per spec-notes §35; exp(lnsigma^2/2) Jensen plug-in.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

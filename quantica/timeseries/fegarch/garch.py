@@ -148,6 +148,14 @@ class GarchFit:
         Only for the ALD (whose degree ``P`` is profiled over an integer grid, not optimized): the
         ``(P, log-likelihood)`` pairs from the grid search, so the profile shape and the selected
         ``P`` are inspectable. ``None`` for continuous-shape distributions.
+    model : str or None
+        The model short name (``"egarch"``, ``"megarch"``, ``"mloggarch"``, ``"fiegarch"``, ...),
+        set by the model's ``fit_*`` for the EGF siblings whose parameter *keys* are identical
+        (EGARCH / MEGARCH / MLog-GARCH and their FI variants all carry ``mu, omega_sig, phi1, kappa,
+        gamma``), so the forecaster can pick the right news-impact ``g`` and centering moment
+        (spec-notes §35). ``None`` for models whose key set already identifies them (the forecaster
+        then falls back to the EGARCH constant-set for a bare Type-I signature, keeping the Phase-6
+        EGARCH fixtures — fit without this field — reproducible).
     """
 
     cond_dist: str
@@ -160,6 +168,7 @@ class GarchFit:
     n_obs: int
     converged: bool
     profile: tuple[tuple[int, float], ...] | None = None
+    model: str | None = None
 
 
 def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:

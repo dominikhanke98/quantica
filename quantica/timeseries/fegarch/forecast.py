@@ -67,9 +67,28 @@ from quantica.timeseries.fegarch.distributions import (
     FernandezSteelSkew,
     get_distribution,
 )
-from quantica.timeseries.fegarch.fiegarch import fiegarch_recursion, theta_coefficients
+from quantica.timeseries.fegarch.egarch import (
+    EGARCH_CONSTANTS,
+    MEGARCH_CONSTANTS,
+    MLOGGARCH_CONSTANTS,
+    egarch_recursion,
+    megarch_recursion,
+    mloggarch_recursion,
+    type1_news_impact,
+)
+from quantica.timeseries.fegarch.fiegarch import (
+    fiegarch_recursion,
+    fimegarch_recursion,
+    fimloggarch_recursion,
+    theta_coefficients,
+)
 from quantica.timeseries.fegarch.figarch import figarch_coefficients, figarch_variance_filter
+from quantica.timeseries.fegarch.filoggarch import (
+    filoggarch_gamma_coefficients,
+    filoggarch_recursion,
+)
 from quantica.timeseries.fegarch.garch import GarchFit, garch_recursion
+from quantica.timeseries.fegarch.loggarch import loggarch_recursion
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -179,30 +198,154 @@ def _fi_variance(fit: GarchFit, y: FloatArray) -> FloatArray:
     return np.asarray(sig_delta ** (2.0 / delta), dtype=np.float64)
 
 
-def _fiegarch_multistep(fit: GarchFit, returns: FloatArray, n_ahead: int) -> FloatArray:
-    r"""FIEGARCH multi-step forecast -- the shifted-``theta`` convolution (spec-notes §34.1).
+# Type-I EGF model -> (constant-set, magnitude centering moment, asymmetry uses signed-log-modulus).
+# The FI variants map to their short-memory base (same g; only the weight propagation differs).
+_TYPE1_EGF: dict[str, tuple[tuple[float, float, float, float], str, bool]] = {
+    "egarch": (EGARCH_CONSTANTS, "abs_moment", False),
+    "megarch": (MEGARCH_CONSTANTS, "abs_moment", True),
+    "mloggarch": (MLOGGARCH_CONSTANTS, "mean_log_modulus", True),
+}
+_FI_TYPE1_BASE = {"fiegarch": "egarch", "fimegarch": "megarch", "fimloggarch": "mloggarch"}
 
-    ``ln sigma_{n+h}^2 = omega_sig + sum_{k>=0} theta_{h-1+k} g(eta_{n-k})`` (future ``g = 0``, no
-    recursion); the ``theta`` window is **extended by the horizon** and the observed ``g``-history
-    kept whole (§34.2). ``sigma = exp(ln sigma^2 / 2)``, the Jensen-biased plug-in
-    (reproduced-not-corrected, §29.2).
+
+def _egf_type1_news(
+    base_model: str,
+    kappa: float,
+    gamma: float,
+    eta: FloatArray,
+    dist: ConditionalDistribution,
+    shape: Sequence[float] | None,
+) -> FloatArray:
+    r"""The Type-I EGF news impact :math:`g(\eta_t)` over an array, for one short-memory base model.
+
+    Reuses the fit-layer :func:`~quantica.timeseries.fegarch.type1_news_impact` with the model's
+    constant-set and the distribution's centering moments (spec-notes §35): magnitude centering is
+    ``abs_moment`` (EGARCH/MEGARCH) or ``mean_log_modulus`` (MLog-GARCH), asymmetry centering is
+    ``mean_signed_log_modulus`` for the modulus-log-asymmetry models (0 for EGARCH's ``g_asy=eta``).
+    """
+    constants, mag_attr, asy_slm = _TYPE1_EGF[base_model]
+    mean_mag = float(getattr(dist, mag_attr)(shape))
+    mean_asy = float(dist.mean_signed_log_modulus(shape)) if asy_slm else 0.0
+    return np.array(
+        [
+            type1_news_impact(
+                float(e), kappa, gamma, constants=constants, mean_asy=mean_asy, mean_mag=mean_mag
+            )
+            for e in np.asarray(eta, dtype=np.float64)
+        ],
+        dtype=np.float64,
+    )
+
+
+def _egf_variance(fit: GarchFit, y: FloatArray) -> FloatArray:
+    r"""Conditional variance for an EGF fit over ``y`` -- the model's own in-sample recursion.
+
+    Dispatches the EGF family (spec-notes §35): Type-II (``psi1``) -> Log/FILog-GARCH; Type-I
+    (``kappa``/``gamma`` + model tag) -> EGARCH / MEGARCH / MLog-GARCH + FI. The EGF recursion
+    is 0-seeded in the news/``xi`` history in-sample, so continuing it over the test window is
+    seam-exact (the ``ln Var`` intercept seed decays), giving the rolling one-step forecast.
     """
     p = fit.params
-    mu, omega_sig, phi1 = p["mu"], p["omega_sig"], p["phi1"]
-    kappa_e, gamma, d = p["kappa"], p["gamma"], p["d"]
-    n = fit.n_obs
-    eta = (np.asarray(returns, dtype=np.float64)[:n] - mu) / np.asarray(fit.conditional_volatility)
+    keys = set(p)
     dist, shape = _distribution_for_fit(fit)
-    e_abs = dist.abs_moment(shape)
-    g = kappa_e * eta + gamma * (np.abs(eta) - e_abs)  # g(eta_t), t = 1..n
-    g_rev = g[::-1]  # g_rev[k] = g(eta_{n-k})
-    theta = theta_coefficients(phi1, d, n + n_ahead)  # theta[0] = 1; window extended by h
+    if "psi1" in keys:  # Type-II (Log-GARCH / FILog-GARCH)
+        e_lsq = float(dist.mean_log_sq(shape))
+        if "d" in keys:
+            vec = [p["mu"], p["omega_sig"], p["phi1"], p["psi1"], p["d"]]
+            return filoggarch_recursion(np.array(vec, dtype=np.float64), y, mean_log_sq=e_lsq)
+        vec = [p["mu"], p["omega_sig"], p["phi1"], p["psi1"]]
+        return loggarch_recursion(np.array(vec, dtype=np.float64), y, mean_log_sq=e_lsq)
+    # Type-I: pick the recursion by the model tag (default EGARCH for a bare Type-I signature).
+    model = fit.model or "egarch"
+    base = _FI_TYPE1_BASE.get(model, model)
+    vec = [p["mu"], p["omega_sig"], p["phi1"], p["kappa"], p["gamma"]]
+    if "d" in keys:
+        vec.append(p["d"])
+        v = np.array(vec, dtype=np.float64)
+        if base == "egarch":
+            return fiegarch_recursion(v, y, abs_moment=dist.abs_moment(shape))
+        if base == "megarch":
+            return fimegarch_recursion(
+                v,
+                y,
+                abs_moment=dist.abs_moment(shape),
+                mean_signed_log_modulus=dist.mean_signed_log_modulus(shape),
+            )
+        return fimloggarch_recursion(
+            v,
+            y,
+            mean_log_modulus=dist.mean_log_modulus(shape),
+            mean_signed_log_modulus=dist.mean_signed_log_modulus(shape),
+        )
+    v = np.array(vec, dtype=np.float64)
+    if base == "egarch":
+        return egarch_recursion(v, y, abs_moment=dist.abs_moment(shape))
+    if base == "megarch":
+        return megarch_recursion(
+            v,
+            y,
+            abs_moment=dist.abs_moment(shape),
+            mean_signed_log_modulus=dist.mean_signed_log_modulus(shape),
+        )
+    return mloggarch_recursion(
+        v,
+        y,
+        mean_log_modulus=dist.mean_log_modulus(shape),
+        mean_signed_log_modulus=dist.mean_signed_log_modulus(shape),
+    )
+
+
+def _egf_multistep(fit: GarchFit, returns: FloatArray, n_ahead: int) -> FloatArray:
+    r"""EGF multi-step forecast of the log-variance (spec-notes §35) -- Type-I/II, short or FI.
+
+    All four cases iterate ``ln sigma^2`` with the *future* news centered to 0, so the
+    forecast is the model's news on the observed history only. Short memory is the AR(1)
+    ``ln sigma^2_{n+h} = omega + phi1 ln sigma^2_{n+h-1}`` (h>=2), realized news at h=1; FI is
+    the §34 weight-propagation convolution (window extended by the horizon, pre-sample 0). Report
+    ``sigma = exp(ln sigma^2 / 2)``, the Jensen-biased plug-in (reproduced-not-corrected, §29.2).
+    """
+    p = fit.params
+    keys = set(p)
+    n = fit.n_obs
+    mu, omega_sig, phi1 = p["mu"], p["omega_sig"], p["phi1"]
+    sigma_n = float(fit.conditional_volatility[-1])
+    dist, shape = _distribution_for_fit(fit)
+    eta = (np.asarray(returns, dtype=np.float64)[:n] - mu) / np.asarray(fit.conditional_volatility)
+    is_fi = "d" in keys
     k = np.arange(n)
-    sigma = np.empty(n_ahead, dtype=np.float64)
-    for h in range(1, n_ahead + 1):
-        log_var = omega_sig + float(np.sum(theta[(h - 1) + k] * g_rev))
-        sigma[h - 1] = np.exp(log_var / 2.0)
-    return sigma
+    if "psi1" in keys:  # Type-II (Log-GARCH / FILog-GARCH): news xi = ln eta^2 - E[ln eta^2]
+        xi = np.log(eta * eta) - float(dist.mean_log_sq(shape))
+        if is_fi:  # FILog: gamma-coefficient MA(inf), index h+k (gamma_0 = 0)
+            gam = filoggarch_gamma_coefficients(phi1, p["psi1"], p["d"], n + n_ahead + 1)
+            xi_rev = xi[::-1]
+            log_var = np.array(
+                [omega_sig + float(np.sum(gam[h + k] * xi_rev)) for h in range(1, n_ahead + 1)]
+            )
+        else:  # short Log-GARCH: AR(1), news loading psi1 + phi1
+            omega = omega_sig * (1.0 - phi1)
+            log_var = np.empty(n_ahead, dtype=np.float64)
+            log_var[0] = omega + phi1 * np.log(sigma_n**2) + (p["psi1"] + phi1) * xi[-1]
+            for h in range(1, n_ahead):
+                log_var[h] = omega + phi1 * log_var[h - 1]
+    else:  # Type-I (EGARCH / MEGARCH / MLog-GARCH + FI)
+        base = _FI_TYPE1_BASE.get(fit.model or "egarch", fit.model or "egarch")
+        news = _egf_type1_news(base, p["kappa"], p["gamma"], eta, dist, shape)
+        if is_fi:  # §34 theta convolution, index h-1+k (theta_0 = 1)
+            theta = theta_coefficients(phi1, p["d"], n + n_ahead)
+            news_rev = news[::-1]
+            log_var = np.array(
+                [
+                    omega_sig + float(np.sum(theta[(h - 1) + k] * news_rev))
+                    for h in range(1, n_ahead + 1)
+                ]
+            )
+        else:  # short-memory AR(1), realized g(eta_n) at h=1
+            omega = omega_sig * (1.0 - phi1)
+            log_var = np.empty(n_ahead, dtype=np.float64)
+            log_var[0] = omega + float(news[-1]) + phi1 * np.log(sigma_n**2)
+            for h in range(1, n_ahead):
+                log_var[h] = omega + phi1 * log_var[h - 1]
+    return np.asarray(np.exp(log_var / 2.0), dtype=np.float64)
 
 
 def _fi_power_multistep(fit: GarchFit, returns: FloatArray, n_ahead: int) -> FloatArray:
@@ -280,7 +423,9 @@ def predict_roll(
         raise ValueError(f"n_test must satisfy 0 < n_test <= {y.size}, got {n_test}")
 
     keys = set(fit.params)
-    if "d" in keys:  # long-memory FI family (FIGARCH / FIEGARCH / FIGJR / FITGARCH / FIAPARCH)
+    if {"omega_sig", "phi1"} <= keys:  # EGF family (EGARCH/MEGARCH/MLog/Log-GARCH + FI variants)
+        sigma2 = _egf_variance(fit, y)
+    elif "d" in keys:  # long-memory variance-recursion FI (FIGARCH / FIGJR / FITGARCH / FIAPARCH)
         sigma2 = _fi_variance(fit, y)
     elif {"phi1", "beta1", "gamma1"} <= keys:  # APARCH family (GJR / TGARCH / APARCH)
         sigma2 = _aparch_family_variance(fit, y)
@@ -451,29 +596,15 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
     sigma_n = float(fit.conditional_volatility[-1])
     keys = set(fit.params)
 
-    if "d" in keys:
-        # Long-memory FI family (spec-notes §34): the fractional weight series is extended by the
-        # horizon and conditioned on the observed sample with pre-sample 0. FIEGARCH is the EGF
-        # MA(inf) convolution (no recursion); the FI-power family (FIGARCH/FIGJR/FITGARCH/FIAPARCH)
-        # is the ARCH(inf) iterate reusing the §33 kappa. Both delegate to the dedicated helpers.
-        if "omega_sig" in keys:
-            sigma = _fiegarch_multistep(fit, returns, n_ahead)
-        else:
-            sigma = _fi_power_multistep(fit, returns, n_ahead)
-    elif {"omega_sig", "phi1", "kappa", "gamma"} <= keys:
-        # Type-I EGF (EGARCH): iterate ln sigma^2 forward with future g(eta) = 0.
-        omega = fit.params["omega_sig"] * (1.0 - fit.params["phi1"])
-        phi1, kappa, gamma = fit.params["phi1"], fit.params["kappa"], fit.params["gamma"]
-        dist, shape = _distribution_for_fit(fit)
-        e_abs = dist.abs_moment(shape)
-        eta_n = (y[-1] - mu) / sigma_n
-        log_var = np.empty(n_ahead, dtype=np.float64)
-        log_var[0] = (
-            omega + kappa * eta_n + gamma * (abs(eta_n) - e_abs) + phi1 * 2.0 * np.log(sigma_n)
-        )
-        for h in range(1, n_ahead):
-            log_var[h] = omega + phi1 * log_var[h - 1]
-        sigma = np.exp(log_var / 2.0)
+    if {"omega_sig", "phi1"} <= keys:
+        # EGF family (spec-notes §35): EGARCH / MEGARCH / MLog-GARCH / Log-GARCH + FI variants. All
+        # iterate ln sigma^2 with future news = 0; short memory AR(1), FI the §34 weight
+        # convolution. The model tag + param keys select the link g and centering moment.
+        sigma = _egf_multistep(fit, returns, n_ahead)
+    elif "d" in keys:
+        # Long-memory variance-recursion FI (FIGARCH / FIGJR / FITGARCH / FIAPARCH, spec-notes §34):
+        # the ARCH(inf) iterate reusing the §33 kappa; weights extended by h, pre-sample 0.
+        sigma = _fi_power_multistep(fit, returns, n_ahead)
     elif {"omega", "alpha", "beta"} <= keys and not (keys & {"gamma", "delta", "d"}):
         # Variance-recursion GARCH(1,1): iterate sigma^2 with future eps^2 -> its expectation.
         omega, alpha, beta = fit.params["omega"], fit.params["alpha"], fit.params["beta"]

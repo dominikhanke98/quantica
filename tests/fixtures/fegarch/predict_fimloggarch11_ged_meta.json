@@ -1,0 +1,21 @@
+{
+  "model": "fimloggarch",
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.0003741074166061241,
+    "omega_sig": -9.0131357781238481,
+    "phi1": 0.45910410750121622,
+    "kappa": -0.033537671288809974,
+    "gamma": 0.3446718773096053,
+    "d": 0.66445158893890244,
+    "shape": 2.1359466638377969
+  },
+  "note": "predict(n.ahead=h) multi-step EGF sibling fimloggarch/ged; same training fit as forecast_fimloggarch11_ged. Iterate ln sigma^2 with future news=0; short memory AR(1), FI the §34 weight convolution; link+centering per spec-notes §35; exp(lnsigma^2/2) Jensen plug-in.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

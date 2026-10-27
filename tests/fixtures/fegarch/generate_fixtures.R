@@ -903,6 +903,100 @@ for (model in names(fi_models)) {
   }
 }
 
+# --- Forecast family 3: the EGF log-family siblings + EGARCH rolling --------------------------------
+# MEGARCH / MLog-GARCH / Log-GARCH (short) and FIMEGARCH / FIMLog-GARCH / FILog-GARCH (FI). All are the
+# SAME log-variance forecast as EGARCH/FIEGARCH (§29.2/§34): iterate ln sigma^2 with the future news
+# centered to 0; short memory AR(1), FI the §34 weight convolution. Only the news link g and its
+# centering moment differ per model (spec-notes §35; the Type-I trio share the parameter keys, so the
+# quantica fit records a model tag). sigma=exp(lnsigma^2/2) is the Jensen-biased plug-in. EGARCH rolling
+# is added here (Phase 6 shipped EGARCH multi-step only). finding-3 law drops (Type-I-fails/Type-II-
+# converges split, §20/§21/§22.2): the Type-I log-variance trio (EGARCH/MEGARCH/MLog + FI) drop
+# std/sstd; Log-GARCH drops std only; FILog-GARCH on the forecast window ALSO drops std/sstd (they
+# converge on the full sample but the n_test=250 training-window fit errors -- a §35.3 finding). Each
+# (model,law) is tryCatch-wrapped; a failure writes NO fixture (documented gap).
+L6 <- c("norm", "ged", "ald", "snorm", "sged", "sald")  # Type-I log-variance: no std/sstd (finding 3)
+L7 <- c("norm", "ged", "ald", "snorm", "sstd", "sged", "sald")  # Log-GARCH: + sstd (std-fails split)
+egf_models <- list(
+  megarch = L6, mloggarch = L6, loggarch = L7, fimegarch = L6, fimloggarch = L6, filoggarch = L6
+)
+for (model in names(egf_models)) {
+  trunc_pol <- if (startsWith(model, "fi")) "n-1" else "none"
+  for (dist in egf_models[[model]]) {
+    tag <- sprintf("%s11_%s", model, dist)
+    tryCatch({
+      fc_fit <- fEGarch(match.fun(paste0(model, "_spec"))(orders = c(1, 1), cond_dist = dist),
+                        returns, n_test = N_TEST_FC, parallel = FALSE)
+      p <- pars(fc_fit); ic <- inf_criteria(fc_fit)
+      params <- as.list(as.numeric(p)); names(params) <- names(p)
+      fcast <- predict_roll(fc_fit, refit_after = NULL, parallel = FALSE)
+      meta <- list(
+        model = model, cond_dist = dist, orders = c(1L, 1L), presample = 50L, trunc = trunc_pol,
+        mean_included = TRUE, n_obs = length(returns) - N_TEST_FC, n_forecast = N_TEST_FC,
+        refit_after = "none", input = "synthetic_returns.csv", parallel = FALSE, seed = SIM_SEED,
+        params = params, loglikelihood = as.numeric(llhood(fc_fit)),
+        aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
+        fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+      write_json(meta, file.path(OUTDIR, sprintf("forecast_%s_params.json", tag)))
+      write_series_csv(as.numeric(fcast@sigt),
+                       file.path(OUTDIR, sprintf("forecast_%s_roll_sigma.csv", tag)), "sigma")
+      write_series_csv(as.numeric(fcast@cmeans),
+                       file.path(OUTDIR, sprintf("forecast_%s_roll_cmeans.csv", tag)), "cmeans")
+      risk <- measure_risk(fcast, measure = c("VaR", "ES"), level = c(0.975, 0.99)); mm <- risk@measures
+      write_matrix_csv(
+        list(as.numeric(mm$VaR[["VaR0.975"]]), as.numeric(mm$VaR[["VaR0.99"]]),
+             as.numeric(mm$ES[["ES0.975"]]), as.numeric(mm$ES[["ES0.99"]])),
+        file.path(OUTDIR, sprintf("forecast_%s_var_es.csv", tag)),
+        c("var_0.975", "var_0.99", "es_0.975", "es_0.99"))
+      pred <- predict(fc_fit, n.ahead = H_MULTI)
+      write_matrix_csv(
+        list(seq_len(H_MULTI), as.numeric(pred@sigt), as.numeric(pred@cmeans)),
+        file.path(OUTDIR, sprintf("predict_%s_h%d.csv", tag, H_MULTI)), c("h", "sigma", "cmeans"))
+      pmeta <- list(
+        model = model, cond_dist = dist, orders = c(1L, 1L),
+        n_obs_train = length(returns) - N_TEST_FC, n_test = N_TEST_FC,
+        input = "synthetic_returns.csv", seed = SIM_SEED, fit_params = params,
+        note = paste0("predict(n.ahead=h) multi-step EGF sibling ", model, "/", dist,
+                      "; same training fit as forecast_", tag, ". Iterate ln sigma^2 with future ",
+                      "news=0; short memory AR(1), FI the §34 weight convolution; link + centering ",
+                      "moment per spec-notes §35; exp(lnsigma^2/2) Jensen-biased plug-in."),
+        fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+      write_json(pmeta, file.path(OUTDIR, sprintf("predict_%s_meta.json", tag)))
+      cat(sprintf("  forecast+predict %-16s predict h1=%.7g h%d=%.7g\n",
+                  tag, as.numeric(pred@sigt)[1], H_MULTI, as.numeric(pred@sigt)[H_MULTI]))
+    }, error = function(e) cat(sprintf("  ERROR forecast %s:", tag), conditionMessage(e), "\n"))
+  }
+}
+# EGARCH rolling only (predict is already on main from Phase 6)
+for (dist in L6) {
+  tag <- sprintf("egarch11_%s", dist)
+  tryCatch({
+    fc_fit <- fEGarch(egarch_spec(orders = c(1, 1), cond_dist = dist),
+                      returns, n_test = N_TEST_FC, parallel = FALSE)
+    p <- pars(fc_fit); ic <- inf_criteria(fc_fit)
+    params <- as.list(as.numeric(p)); names(params) <- names(p)
+    fcast <- predict_roll(fc_fit, refit_after = NULL, parallel = FALSE)
+    meta <- list(
+      model = "egarch", cond_dist = dist, orders = c(1L, 1L), presample = 50L, trunc = "none",
+      mean_included = TRUE, n_obs = length(returns) - N_TEST_FC, n_forecast = N_TEST_FC,
+      refit_after = "none", input = "synthetic_returns.csv", parallel = FALSE, seed = SIM_SEED,
+      params = params, loglikelihood = as.numeric(llhood(fc_fit)),
+      aic = as.numeric(ic[["aic"]]), bic = as.numeric(ic[["bic"]]),
+      fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+    write_json(meta, file.path(OUTDIR, sprintf("forecast_%s_params.json", tag)))
+    write_series_csv(as.numeric(fcast@sigt),
+                     file.path(OUTDIR, sprintf("forecast_%s_roll_sigma.csv", tag)), "sigma")
+    write_series_csv(as.numeric(fcast@cmeans),
+                     file.path(OUTDIR, sprintf("forecast_%s_roll_cmeans.csv", tag)), "cmeans")
+    risk <- measure_risk(fcast, measure = c("VaR", "ES"), level = c(0.975, 0.99)); mm <- risk@measures
+    write_matrix_csv(
+      list(as.numeric(mm$VaR[["VaR0.975"]]), as.numeric(mm$VaR[["VaR0.99"]]),
+           as.numeric(mm$ES[["ES0.975"]]), as.numeric(mm$ES[["ES0.99"]])),
+      file.path(OUTDIR, sprintf("forecast_%s_var_es.csv", tag)),
+      c("var_0.975", "var_0.99", "es_0.975", "es_0.99"))
+    cat(sprintf("  egarch rolling %-16s roll1=%.7g\n", tag, as.numeric(fcast@sigt)[1]))
+  }, error = function(e) cat(sprintf("  ERROR forecast %s:", tag), conditionMessage(e), "\n"))
+}
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -1605,6 +1699,252 @@ manifest <- list(
                           note = "Forecast family 2: FI FIEGARCH(1,d,1)/sald (EGF log-variance), n_test=250, predict_roll + VaR/ES. (1-L)^d weights, pre-sample 0 (§34)."),
       predict_fiegarch11_sald = list(meta = "predict_fiegarch11_sald_meta.json", h10 = "predict_fiegarch11_sald_h10.csv",
                           note = "Forecast family 2: FI FIEGARCH(1,d,1)/sald multi-step predict(n.ahead=10), h=1,5,10. Weights extended by horizon, pre-sample 0, reuse §33 kappa; (m_h)^(1/delta) plug-in (spec-notes §34)."),
+      forecast_megarch11_norm_roll = list(params = "forecast_megarch11_norm_params.json",
+                          sigma = "forecast_megarch11_norm_roll_sigma.csv", cmeans = "forecast_megarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_megarch11_norm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/norm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_megarch11_norm = list(meta = "predict_megarch11_norm_meta.json", h10 = "predict_megarch11_norm_h10.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/norm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_megarch11_ged_roll = list(params = "forecast_megarch11_ged_params.json",
+                          sigma = "forecast_megarch11_ged_roll_sigma.csv", cmeans = "forecast_megarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_megarch11_ged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/ged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_megarch11_ged = list(meta = "predict_megarch11_ged_meta.json", h10 = "predict_megarch11_ged_h10.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/ged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_megarch11_ald_roll = list(params = "forecast_megarch11_ald_params.json",
+                          sigma = "forecast_megarch11_ald_roll_sigma.csv", cmeans = "forecast_megarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_megarch11_ald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/ald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_megarch11_ald = list(meta = "predict_megarch11_ald_meta.json", h10 = "predict_megarch11_ald_h10.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/ald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_megarch11_snorm_roll = list(params = "forecast_megarch11_snorm_params.json",
+                          sigma = "forecast_megarch11_snorm_roll_sigma.csv", cmeans = "forecast_megarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_megarch11_snorm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/snorm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_megarch11_snorm = list(meta = "predict_megarch11_snorm_meta.json", h10 = "predict_megarch11_snorm_h10.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/snorm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_megarch11_sged_roll = list(params = "forecast_megarch11_sged_params.json",
+                          sigma = "forecast_megarch11_sged_roll_sigma.csv", cmeans = "forecast_megarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_megarch11_sged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/sged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_megarch11_sged = list(meta = "predict_megarch11_sged_meta.json", h10 = "predict_megarch11_sged_h10.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/sged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_megarch11_sald_roll = list(params = "forecast_megarch11_sald_params.json",
+                          sigma = "forecast_megarch11_sald_roll_sigma.csv", cmeans = "forecast_megarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_megarch11_sald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/sald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_megarch11_sald = list(meta = "predict_megarch11_sald_meta.json", h10 = "predict_megarch11_sald_h10.csv",
+                          note = "Forecast family 3: EGF sibling MEGARCH(1,1)/sald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_mloggarch11_norm_roll = list(params = "forecast_mloggarch11_norm_params.json",
+                          sigma = "forecast_mloggarch11_norm_roll_sigma.csv", cmeans = "forecast_mloggarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_mloggarch11_norm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/norm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_mloggarch11_norm = list(meta = "predict_mloggarch11_norm_meta.json", h10 = "predict_mloggarch11_norm_h10.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/norm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_mloggarch11_ged_roll = list(params = "forecast_mloggarch11_ged_params.json",
+                          sigma = "forecast_mloggarch11_ged_roll_sigma.csv", cmeans = "forecast_mloggarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_mloggarch11_ged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/ged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_mloggarch11_ged = list(meta = "predict_mloggarch11_ged_meta.json", h10 = "predict_mloggarch11_ged_h10.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/ged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_mloggarch11_ald_roll = list(params = "forecast_mloggarch11_ald_params.json",
+                          sigma = "forecast_mloggarch11_ald_roll_sigma.csv", cmeans = "forecast_mloggarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_mloggarch11_ald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/ald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_mloggarch11_ald = list(meta = "predict_mloggarch11_ald_meta.json", h10 = "predict_mloggarch11_ald_h10.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/ald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_mloggarch11_snorm_roll = list(params = "forecast_mloggarch11_snorm_params.json",
+                          sigma = "forecast_mloggarch11_snorm_roll_sigma.csv", cmeans = "forecast_mloggarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_mloggarch11_snorm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/snorm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_mloggarch11_snorm = list(meta = "predict_mloggarch11_snorm_meta.json", h10 = "predict_mloggarch11_snorm_h10.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/snorm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_mloggarch11_sged_roll = list(params = "forecast_mloggarch11_sged_params.json",
+                          sigma = "forecast_mloggarch11_sged_roll_sigma.csv", cmeans = "forecast_mloggarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_mloggarch11_sged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/sged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_mloggarch11_sged = list(meta = "predict_mloggarch11_sged_meta.json", h10 = "predict_mloggarch11_sged_h10.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/sged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_mloggarch11_sald_roll = list(params = "forecast_mloggarch11_sald_params.json",
+                          sigma = "forecast_mloggarch11_sald_roll_sigma.csv", cmeans = "forecast_mloggarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_mloggarch11_sald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/sald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_mloggarch11_sald = list(meta = "predict_mloggarch11_sald_meta.json", h10 = "predict_mloggarch11_sald_h10.csv",
+                          note = "Forecast family 3: EGF sibling MLOGGARCH(1,1)/sald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_loggarch11_norm_roll = list(params = "forecast_loggarch11_norm_params.json",
+                          sigma = "forecast_loggarch11_norm_roll_sigma.csv", cmeans = "forecast_loggarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_loggarch11_norm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/norm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_loggarch11_norm = list(meta = "predict_loggarch11_norm_meta.json", h10 = "predict_loggarch11_norm_h10.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/norm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_loggarch11_ged_roll = list(params = "forecast_loggarch11_ged_params.json",
+                          sigma = "forecast_loggarch11_ged_roll_sigma.csv", cmeans = "forecast_loggarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_loggarch11_ged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/ged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_loggarch11_ged = list(meta = "predict_loggarch11_ged_meta.json", h10 = "predict_loggarch11_ged_h10.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/ged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_loggarch11_ald_roll = list(params = "forecast_loggarch11_ald_params.json",
+                          sigma = "forecast_loggarch11_ald_roll_sigma.csv", cmeans = "forecast_loggarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_loggarch11_ald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/ald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_loggarch11_ald = list(meta = "predict_loggarch11_ald_meta.json", h10 = "predict_loggarch11_ald_h10.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/ald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_loggarch11_snorm_roll = list(params = "forecast_loggarch11_snorm_params.json",
+                          sigma = "forecast_loggarch11_snorm_roll_sigma.csv", cmeans = "forecast_loggarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_loggarch11_snorm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/snorm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_loggarch11_snorm = list(meta = "predict_loggarch11_snorm_meta.json", h10 = "predict_loggarch11_snorm_h10.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/snorm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_loggarch11_sstd_roll = list(params = "forecast_loggarch11_sstd_params.json",
+                          sigma = "forecast_loggarch11_sstd_roll_sigma.csv", cmeans = "forecast_loggarch11_sstd_roll_cmeans.csv",
+                          var_es = "forecast_loggarch11_sstd_var_es.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/sstd, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_loggarch11_sstd = list(meta = "predict_loggarch11_sstd_meta.json", h10 = "predict_loggarch11_sstd_h10.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/sstd multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_loggarch11_sged_roll = list(params = "forecast_loggarch11_sged_params.json",
+                          sigma = "forecast_loggarch11_sged_roll_sigma.csv", cmeans = "forecast_loggarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_loggarch11_sged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/sged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_loggarch11_sged = list(meta = "predict_loggarch11_sged_meta.json", h10 = "predict_loggarch11_sged_h10.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/sged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_loggarch11_sald_roll = list(params = "forecast_loggarch11_sald_params.json",
+                          sigma = "forecast_loggarch11_sald_roll_sigma.csv", cmeans = "forecast_loggarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_loggarch11_sald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/sald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_loggarch11_sald = list(meta = "predict_loggarch11_sald_meta.json", h10 = "predict_loggarch11_sald_h10.csv",
+                          note = "Forecast family 3: EGF sibling LOGGARCH(1,1)/sald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimegarch11_norm_roll = list(params = "forecast_fimegarch11_norm_params.json",
+                          sigma = "forecast_fimegarch11_norm_roll_sigma.csv", cmeans = "forecast_fimegarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_fimegarch11_norm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/norm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimegarch11_norm = list(meta = "predict_fimegarch11_norm_meta.json", h10 = "predict_fimegarch11_norm_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/norm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimegarch11_ged_roll = list(params = "forecast_fimegarch11_ged_params.json",
+                          sigma = "forecast_fimegarch11_ged_roll_sigma.csv", cmeans = "forecast_fimegarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_fimegarch11_ged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/ged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimegarch11_ged = list(meta = "predict_fimegarch11_ged_meta.json", h10 = "predict_fimegarch11_ged_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/ged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimegarch11_ald_roll = list(params = "forecast_fimegarch11_ald_params.json",
+                          sigma = "forecast_fimegarch11_ald_roll_sigma.csv", cmeans = "forecast_fimegarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_fimegarch11_ald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/ald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimegarch11_ald = list(meta = "predict_fimegarch11_ald_meta.json", h10 = "predict_fimegarch11_ald_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/ald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimegarch11_snorm_roll = list(params = "forecast_fimegarch11_snorm_params.json",
+                          sigma = "forecast_fimegarch11_snorm_roll_sigma.csv", cmeans = "forecast_fimegarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_fimegarch11_snorm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/snorm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimegarch11_snorm = list(meta = "predict_fimegarch11_snorm_meta.json", h10 = "predict_fimegarch11_snorm_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/snorm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimegarch11_sged_roll = list(params = "forecast_fimegarch11_sged_params.json",
+                          sigma = "forecast_fimegarch11_sged_roll_sigma.csv", cmeans = "forecast_fimegarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_fimegarch11_sged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/sged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimegarch11_sged = list(meta = "predict_fimegarch11_sged_meta.json", h10 = "predict_fimegarch11_sged_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/sged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimegarch11_sald_roll = list(params = "forecast_fimegarch11_sald_params.json",
+                          sigma = "forecast_fimegarch11_sald_roll_sigma.csv", cmeans = "forecast_fimegarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_fimegarch11_sald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/sald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimegarch11_sald = list(meta = "predict_fimegarch11_sald_meta.json", h10 = "predict_fimegarch11_sald_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMEGARCH(1,1)/sald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimloggarch11_norm_roll = list(params = "forecast_fimloggarch11_norm_params.json",
+                          sigma = "forecast_fimloggarch11_norm_roll_sigma.csv", cmeans = "forecast_fimloggarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_fimloggarch11_norm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/norm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimloggarch11_norm = list(meta = "predict_fimloggarch11_norm_meta.json", h10 = "predict_fimloggarch11_norm_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/norm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimloggarch11_ged_roll = list(params = "forecast_fimloggarch11_ged_params.json",
+                          sigma = "forecast_fimloggarch11_ged_roll_sigma.csv", cmeans = "forecast_fimloggarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_fimloggarch11_ged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/ged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimloggarch11_ged = list(meta = "predict_fimloggarch11_ged_meta.json", h10 = "predict_fimloggarch11_ged_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/ged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimloggarch11_ald_roll = list(params = "forecast_fimloggarch11_ald_params.json",
+                          sigma = "forecast_fimloggarch11_ald_roll_sigma.csv", cmeans = "forecast_fimloggarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_fimloggarch11_ald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/ald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimloggarch11_ald = list(meta = "predict_fimloggarch11_ald_meta.json", h10 = "predict_fimloggarch11_ald_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/ald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimloggarch11_snorm_roll = list(params = "forecast_fimloggarch11_snorm_params.json",
+                          sigma = "forecast_fimloggarch11_snorm_roll_sigma.csv", cmeans = "forecast_fimloggarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_fimloggarch11_snorm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/snorm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimloggarch11_snorm = list(meta = "predict_fimloggarch11_snorm_meta.json", h10 = "predict_fimloggarch11_snorm_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/snorm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimloggarch11_sged_roll = list(params = "forecast_fimloggarch11_sged_params.json",
+                          sigma = "forecast_fimloggarch11_sged_roll_sigma.csv", cmeans = "forecast_fimloggarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_fimloggarch11_sged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/sged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimloggarch11_sged = list(meta = "predict_fimloggarch11_sged_meta.json", h10 = "predict_fimloggarch11_sged_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/sged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_fimloggarch11_sald_roll = list(params = "forecast_fimloggarch11_sald_params.json",
+                          sigma = "forecast_fimloggarch11_sald_roll_sigma.csv", cmeans = "forecast_fimloggarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_fimloggarch11_sald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/sald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_fimloggarch11_sald = list(meta = "predict_fimloggarch11_sald_meta.json", h10 = "predict_fimloggarch11_sald_h10.csv",
+                          note = "Forecast family 3: EGF sibling FIMLOGGARCH(1,1)/sald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_filoggarch11_norm_roll = list(params = "forecast_filoggarch11_norm_params.json",
+                          sigma = "forecast_filoggarch11_norm_roll_sigma.csv", cmeans = "forecast_filoggarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_filoggarch11_norm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/norm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_filoggarch11_norm = list(meta = "predict_filoggarch11_norm_meta.json", h10 = "predict_filoggarch11_norm_h10.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/norm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_filoggarch11_ged_roll = list(params = "forecast_filoggarch11_ged_params.json",
+                          sigma = "forecast_filoggarch11_ged_roll_sigma.csv", cmeans = "forecast_filoggarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_filoggarch11_ged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/ged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_filoggarch11_ged = list(meta = "predict_filoggarch11_ged_meta.json", h10 = "predict_filoggarch11_ged_h10.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/ged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_filoggarch11_ald_roll = list(params = "forecast_filoggarch11_ald_params.json",
+                          sigma = "forecast_filoggarch11_ald_roll_sigma.csv", cmeans = "forecast_filoggarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_filoggarch11_ald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/ald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_filoggarch11_ald = list(meta = "predict_filoggarch11_ald_meta.json", h10 = "predict_filoggarch11_ald_h10.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/ald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_filoggarch11_snorm_roll = list(params = "forecast_filoggarch11_snorm_params.json",
+                          sigma = "forecast_filoggarch11_snorm_roll_sigma.csv", cmeans = "forecast_filoggarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_filoggarch11_snorm_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/snorm, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_filoggarch11_snorm = list(meta = "predict_filoggarch11_snorm_meta.json", h10 = "predict_filoggarch11_snorm_h10.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/snorm multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_filoggarch11_sged_roll = list(params = "forecast_filoggarch11_sged_params.json",
+                          sigma = "forecast_filoggarch11_sged_roll_sigma.csv", cmeans = "forecast_filoggarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_filoggarch11_sged_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/sged, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_filoggarch11_sged = list(meta = "predict_filoggarch11_sged_meta.json", h10 = "predict_filoggarch11_sged_h10.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/sged multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_filoggarch11_sald_roll = list(params = "forecast_filoggarch11_sald_params.json",
+                          sigma = "forecast_filoggarch11_sald_roll_sigma.csv", cmeans = "forecast_filoggarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_filoggarch11_sald_var_es.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/sald, n_test=250, predict_roll + VaR/ES (spec-notes §35)."),
+      predict_filoggarch11_sald = list(meta = "predict_filoggarch11_sald_meta.json", h10 = "predict_filoggarch11_sald_h10.csv",
+                          note = "Forecast family 3: EGF sibling FILOGGARCH(1,1)/sald multi-step predict(n.ahead=10), h=1,5,10. Link+centering per §35; exp(lnsigma^2/2) Jensen plug-in."),
+      forecast_egarch11_norm_roll = list(params = "forecast_egarch11_norm_params.json",
+                          sigma = "forecast_egarch11_norm_roll_sigma.csv", cmeans = "forecast_egarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_egarch11_norm_var_es.csv",
+                          note = "Forecast family 3: EGARCH(1,1)/norm ROLLING (predict_roll + VaR/ES), newly added; predict_egarch11_norm multi-step is Phase 6."),
+      forecast_egarch11_ged_roll = list(params = "forecast_egarch11_ged_params.json",
+                          sigma = "forecast_egarch11_ged_roll_sigma.csv", cmeans = "forecast_egarch11_ged_roll_cmeans.csv",
+                          var_es = "forecast_egarch11_ged_var_es.csv",
+                          note = "Forecast family 3: EGARCH(1,1)/ged ROLLING (predict_roll + VaR/ES), newly added; predict_egarch11_ged multi-step is Phase 6."),
+      forecast_egarch11_ald_roll = list(params = "forecast_egarch11_ald_params.json",
+                          sigma = "forecast_egarch11_ald_roll_sigma.csv", cmeans = "forecast_egarch11_ald_roll_cmeans.csv",
+                          var_es = "forecast_egarch11_ald_var_es.csv",
+                          note = "Forecast family 3: EGARCH(1,1)/ald ROLLING (predict_roll + VaR/ES), newly added; predict_egarch11_ald multi-step is Phase 6."),
+      forecast_egarch11_snorm_roll = list(params = "forecast_egarch11_snorm_params.json",
+                          sigma = "forecast_egarch11_snorm_roll_sigma.csv", cmeans = "forecast_egarch11_snorm_roll_cmeans.csv",
+                          var_es = "forecast_egarch11_snorm_var_es.csv",
+                          note = "Forecast family 3: EGARCH(1,1)/snorm ROLLING (predict_roll + VaR/ES), newly added; predict_egarch11_snorm multi-step is Phase 6."),
+      forecast_egarch11_sged_roll = list(params = "forecast_egarch11_sged_params.json",
+                          sigma = "forecast_egarch11_sged_roll_sigma.csv", cmeans = "forecast_egarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_egarch11_sged_var_es.csv",
+                          note = "Forecast family 3: EGARCH(1,1)/sged ROLLING (predict_roll + VaR/ES), newly added; predict_egarch11_sged multi-step is Phase 6."),
+      forecast_egarch11_sald_roll = list(params = "forecast_egarch11_sald_params.json",
+                          sigma = "forecast_egarch11_sald_roll_sigma.csv", cmeans = "forecast_egarch11_sald_roll_cmeans.csv",
+                          var_es = "forecast_egarch11_sald_var_es.csv",
+                          note = "Forecast family 3: EGARCH(1,1)/sald ROLLING (predict_roll + VaR/ES), newly added; predict_egarch11_sald multi-step is Phase 6."),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",

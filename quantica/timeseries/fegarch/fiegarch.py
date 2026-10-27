@@ -297,6 +297,7 @@ def _fit_fiegarch(
     *,
     constants: tuple[float, float, float, float],
     log_modulus_magnitude: bool,
+    model: str,
 ) -> GarchFit:
     """Shared fractionally-integrated Type-I QMLE fit for a constant-set (norm-only validated).
 
@@ -320,11 +321,12 @@ def _fit_fiegarch(
             log_modulus_magnitude,
             var_start,
             skewed=cond_dist == "sald",
+            model=model,
         )
 
     distribution = get_distribution(cond_dist)
     result = _run_fiegarch_fit(scaled, distribution, constants, log_modulus_magnitude, var_start)
-    return _build_fiegarch_fit(result, cond_dist, scale, n, k=result.params.size)
+    return _build_fiegarch_fit(result, cond_dist, scale, n, k=result.params.size, model=model)
 
 
 _FIEGARCH_BOUNDS = (
@@ -437,6 +439,7 @@ def _build_fiegarch_fit(
     n: int,
     *,
     k: int,
+    model: str | None = None,
     extra_params: dict[str, float] | None = None,
     profile: tuple[tuple[int, float], ...] | None = None,
 ) -> GarchFit:
@@ -493,6 +496,7 @@ def _build_fiegarch_fit(
         n_obs=n,
         converged=result.converged,
         profile=profile,
+        model=model,
     )
 
 
@@ -505,6 +509,7 @@ def _fit_fiegarch_ald(
     var_start: tuple[float, ...],
     *,
     skewed: bool,
+    model: str,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for an FI-EGF model (ald / sald).
 
@@ -531,6 +536,7 @@ def _fit_fiegarch_ald(
         scale,
         n,
         k=best.params.size + 1,
+        model=model,
         extra_params={"P": float(best_p)},
         profile=tuple(profile),
     )
@@ -553,7 +559,11 @@ def fit_fiegarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         and the conditional-volatility series (original return units).
     """
     return _fit_fiegarch(
-        returns, cond_dist, constants=EGARCH_CONSTANTS, log_modulus_magnitude=False
+        returns,
+        cond_dist,
+        constants=EGARCH_CONSTANTS,
+        log_modulus_magnitude=False,
+        model="fiegarch",
     )
 
 
@@ -574,7 +584,11 @@ def fit_fimegarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         SD).
     """
     return _fit_fiegarch(
-        returns, cond_dist, constants=MEGARCH_CONSTANTS, log_modulus_magnitude=False
+        returns,
+        cond_dist,
+        constants=MEGARCH_CONSTANTS,
+        log_modulus_magnitude=False,
+        model="fimegarch",
     )
 
 
@@ -596,7 +610,11 @@ def fit_fimloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit
         SD).
     """
     return _fit_fiegarch(
-        returns, cond_dist, constants=MLOGGARCH_CONSTANTS, log_modulus_magnitude=True
+        returns,
+        cond_dist,
+        constants=MLOGGARCH_CONSTANTS,
+        log_modulus_magnitude=True,
+        model="fimloggarch",
     )
 
 
