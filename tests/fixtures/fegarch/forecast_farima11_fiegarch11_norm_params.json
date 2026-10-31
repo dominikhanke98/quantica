@@ -1,0 +1,33 @@
+{
+  "model": "fiegarch",
+  "mean_model": "farima11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": true,
+  "cond_dist": "norm",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "n-1",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00038861840968539658,
+    "ar1": -0.19139166491656587,
+    "ma1": 0.22516223536999286,
+    "D": 3.2457899509774171e-13,
+    "omega_sig": -9.0981412167865745,
+    "phi1": 0.4799890779508954,
+    "kappa": -0.01936858298476488,
+    "gamma": 0.18462846863782223,
+    "d": 0.66396466352799732
+  },
+  "loglikelihood": 6806.8389561985578,
+  "aic": -6.0425235166209399,
+  "bic": -6.0196487746401459,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

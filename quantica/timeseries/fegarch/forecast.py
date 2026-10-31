@@ -87,8 +87,10 @@ from quantica.timeseries.fegarch.filoggarch import (
     filoggarch_gamma_coefficients,
     filoggarch_recursion,
 )
+from quantica.timeseries.fegarch.fracdiff import fracdiff_coeffs
 from quantica.timeseries.fegarch.garch import GarchFit, garch_recursion
 from quantica.timeseries.fegarch.loggarch import loggarch_recursion
+from quantica.timeseries.fegarch.mean import arma_mean_residuals, farima_mean_residuals
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -381,6 +383,112 @@ def _fi_power_multistep(fit: GarchFit, returns: FloatArray, n_ahead: int) -> Flo
     return np.asarray(m ** (1.0 / delta), dtype=np.float64)
 
 
+#: The dual-mean ARMA/FARIMA coefficient names (any present => an ARMA/FARIMA-in-mean fit).
+_MEAN_KEYS = frozenset({"ar1", "ma1", "D"})
+
+
+def _is_dual_mean(fit: GarchFit) -> bool:
+    """True if the fit carries an ARMA/FARIMA-in-mean block (``ar1`` / ``ma1`` / ``D``)."""
+    return bool(_MEAN_KEYS & set(fit.params))
+
+
+def _conditional_variance(fit: GarchFit, y: FloatArray) -> FloatArray:
+    r"""The fitted model's conditional variance :math:`\sigma_t^2` over ``y`` (the family dispatch).
+
+    The shared variance-recursion dispatch used by :func:`predict_roll` and by the dual-mean
+    composition (where ``y`` is the mean-residual series). Covers the EGF family, the FI
+    variance-recursion family, the APARCH family and plain GARCH.
+    """
+    keys = set(fit.params)
+    if {"omega_sig", "phi1"} <= keys:  # EGF family (EGARCH/MEGARCH/MLog/Log-GARCH + FI variants)
+        return _egf_variance(fit, y)
+    if "d" in keys:  # long-memory variance-recursion FI (FIGARCH / FIGJR / FITGARCH / FIAPARCH)
+        return _fi_variance(fit, y)
+    if {"phi1", "beta1", "gamma1"} <= keys:  # APARCH family (GJR / TGARCH / APARCH)
+        return _aparch_family_variance(fit, y)
+    params = np.array(  # plain GARCH
+        [fit.params["mu"], fit.params["omega"], fit.params["alpha"], fit.params["beta"]],
+        dtype=np.float64,
+    )
+    return garch_recursion(params, y)
+
+
+def _mean_residuals(fit: GarchFit, y: FloatArray) -> FloatArray:
+    r"""Mean-residuals :math:`r_t = y_t - \mu_t` of the fit's ARMA/FARIMA-in-mean recursion.
+
+    ARMA(1,1) when there is no fractional mean order ``D``; FARIMA(1,d,1) (demean, fractionally
+    difference by ``D``, then the ARMA recursion) when ``D`` is present (spec-notes §36).
+    """
+    mu = fit.params["mu"]
+    ar1 = fit.params.get("ar1", 0.0)
+    ma1 = fit.params.get("ma1", 0.0)
+    if "D" in fit.params:
+        return farima_mean_residuals(y, mu, ar1, ma1, fit.params["D"])
+    return arma_mean_residuals(y, mu, ar1, ma1)
+
+
+def _variance_subfit(fit: GarchFit) -> GarchFit:
+    """A variance-only view of a dual-mean fit: the mean block stripped and ``mu`` set to 0.
+
+    The mean-residuals already have the conditional mean removed, so the variance forecast runs on
+    them as a zero-mean series. The variance parameters, ``model`` tag and fitted conditional
+    volatility (the residual recursion's :math:`\\sigma`) are kept.
+    """
+    var_params = {k: v for k, v in fit.params.items() if k not in _MEAN_KEYS}
+    var_params["mu"] = 0.0
+    return GarchFit(
+        cond_dist=fit.cond_dist,
+        params=var_params,
+        std_errors={},
+        loglikelihood=fit.loglikelihood,
+        aic=fit.aic,
+        bic=fit.bic,
+        conditional_volatility=fit.conditional_volatility,
+        n_obs=fit.n_obs,
+        converged=fit.converged,
+        model=fit.model,
+    )
+
+
+def _mean_forecast(fit: GarchFit, returns: FloatArray, n_ahead: int) -> FloatArray:
+    r"""Multi-step conditional-mean forecast of an ARMA/FARIMA-in-mean fit (spec-notes §36).
+
+    Future mean-residuals have expectation 0, so the forecast iterates the mean recursion with the
+    realized residual only at :math:`h = 1`. ARMA(1,1):
+    :math:`\hat\mu_{n+1} = \mu + \beta_1(y_n - \mu) + \alpha_1 r_n`, then
+    :math:`\hat\mu_{n+h} = \mu + \beta_1(\hat\mu_{n+h-1} - \mu)`. FARIMA(1,d,1) forecasts the
+    fractionally-differenced :math:`x = (1-B)^D(y-\mu)` by its ARMA iterate and inverts
+    :math:`(1-B)^D` (the same operator the FI variance uses, at ``+D``; ``d_mean`` is independent of
+    any variance-side ``d``).
+    """
+    y = np.asarray(returns, dtype=np.float64)
+    n = fit.n_obs
+    mu = fit.params["mu"]
+    ar1 = fit.params.get("ar1", 0.0)
+    ma1 = fit.params.get("ma1", 0.0)
+    r = _mean_residuals(fit, y[:n])
+    mfc = np.empty(n_ahead, dtype=np.float64)
+    if "D" not in fit.params:  # ARMA(1,1)-in-mean
+        mfc[0] = mu + ar1 * (y[n - 1] - mu) + ma1 * r[-1]
+        for h in range(1, n_ahead):
+            mfc[h] = mu + ar1 * (mfc[h - 1] - mu)
+        return mfc
+    # FARIMA(1,d,1)-in-mean: forecast x = (1-B)^D (y-mu) by its ARMA iterate, then invert (1-B)^D.
+    d_mean = fit.params["D"]
+    w = y[:n] - mu
+    x = np.convolve(fracdiff_coeffs(d_mean, n), w)[:n]  # x_t = (1-B)^D (y_t - mu)
+    xf = np.empty(n_ahead, dtype=np.float64)
+    xf[0] = ar1 * x[-1] + ma1 * r[-1]
+    for h in range(1, n_ahead):
+        xf[h] = ar1 * xf[h - 1]
+    b = fracdiff_coeffs(d_mean, n + n_ahead)  # invert: (y-mu) = x - sum_{k>=1} b_k (y-mu)_{.-k}
+    w_ext = np.concatenate([w, np.zeros(n_ahead, dtype=np.float64)])
+    for h in range(n_ahead):
+        tail = float(np.sum(b[1 : n + h + 1] * w_ext[n + h - 1 :: -1]))
+        w_ext[n + h] = xf[h] - tail
+    return np.asarray(mu + w_ext[n:], dtype=np.float64)
+
+
 def predict_roll(
     fit: GarchFit, returns: FloatArray, *, n_test: int | None = None
 ) -> RollingForecast:
@@ -422,21 +530,17 @@ def predict_roll(
     if not 0 < n_test <= y.size:
         raise ValueError(f"n_test must satisfy 0 < n_test <= {y.size}, got {n_test}")
 
-    keys = set(fit.params)
-    if {"omega_sig", "phi1"} <= keys:  # EGF family (EGARCH/MEGARCH/MLog/Log-GARCH + FI variants)
-        sigma2 = _egf_variance(fit, y)
-    elif "d" in keys:  # long-memory variance-recursion FI (FIGARCH / FIGJR / FITGARCH / FIAPARCH)
-        sigma2 = _fi_variance(fit, y)
-    elif {"phi1", "beta1", "gamma1"} <= keys:  # APARCH family (GJR / TGARCH / APARCH)
-        sigma2 = _aparch_family_variance(fit, y)
-    else:  # plain GARCH
-        params = np.array(
-            [fit.params["mu"], fit.params["omega"], fit.params["alpha"], fit.params["beta"]],
-            dtype=np.float64,
-        )
-        sigma2 = garch_recursion(params, y)
-    sigma = np.sqrt(sigma2[y.size - n_test :])
-    cmeans = np.full(n_test, fit.params["mu"], dtype=np.float64)
+    if _is_dual_mean(fit):
+        # ARMA/FARIMA-in-mean (spec-notes §36): the variance recursion runs on the mean-RESIDUALS
+        # (no sigma->mean feedback), and the rolling conditional mean at each test point is y - r.
+        resid = _mean_residuals(fit, y)
+        sigma2 = _conditional_variance(_variance_subfit(fit), resid)
+        sigma = np.sqrt(sigma2[y.size - n_test :])
+        cmeans = (y - resid)[y.size - n_test :]
+    else:  # constant mean
+        sigma2 = _conditional_variance(fit, y)
+        sigma = np.sqrt(sigma2[y.size - n_test :])
+        cmeans = np.full(n_test, fit.params["mu"], dtype=np.float64)
     return RollingForecast(sigma=sigma, cmeans=cmeans, n_test=n_test)
 
 
@@ -592,6 +696,13 @@ def predict(fit: GarchFit, returns: FloatArray, *, n_ahead: int = 10) -> MultiSt
     y = np.asarray(returns, dtype=np.float64)[: fit.n_obs]
     if y.size == 0:
         raise ValueError("fitted window returns[:fit.n_obs] is empty")
+    if _is_dual_mean(fit):
+        # ARMA/FARIMA-in-mean (spec-notes §36): compose the mean forecast with the variance forecast
+        # of the mean-residuals (no sigma->mean feedback; future residuals enter the variance as 0).
+        resid = _mean_residuals(fit, np.asarray(returns, dtype=np.float64))
+        sigma = predict(_variance_subfit(fit), resid, n_ahead=n_ahead).sigma
+        cmeans = _mean_forecast(fit, returns, n_ahead)
+        return MultiStepForecast(sigma=sigma, cmeans=cmeans, n_ahead=n_ahead)
     mu = fit.params["mu"]
     sigma_n = float(fit.conditional_volatility[-1])
     keys = set(fit.params)
