@@ -142,6 +142,19 @@ tool is silently wrong or simply absent, surfaced only by reimplementing indepen
   quantity (the APARCH and FIAPARCH pre-sample seeds), the port documents the exact residual
   as a *bounded limit* rather than reverse-engineering it from the forbidden source — the
   honest-boundary half of clean-room discipline → [fEGarch port](docs/fegarch-port.md).
+- **A forecast moment where faithful reproduction ≠ the mathematically-exact value.** The
+  APARCH forecast's leverage-kernel moment `κ = E[(|η|−γη)^δ]` has a closed form at the fitted
+  powers, but `fEGarch` evaluates it by numerical quadrature *even there* — so the exact closed
+  form *diverges* from its own integral by `~1e-13` (GJR×sald: closed form off by `2.2e-13`,
+  full quadrature matches to `1.7e-18`). Matching the reference means replicating its quadrature,
+  not the textbook value; the port chose that fidelity, and an asymmetry-dropped control is
+  rejected at `4.21e-05` → [fEGarch port](docs/fegarch-port.md).
+- **A long-memory forecast truncation convention the in-sample recursion gets wrong.** The
+  fractionally-integrated forecast **extends** the `(1−L)^d` weight window *with the horizon*
+  (the weights `θ_k ~ k^{d−1}` barely decay, so capping misses the FIEGARCH forecast by `2.8e-4`
+  vs `3.9e-16` extended) and **drops** the in-sample 50-term warm-up for a zero pre-sample
+  (re-applying it misses by `2.0e-6` vs `8.7e-18`) — two fit-vs-forecast seam differences caught
+  by reconstruction → [fEGarch port](docs/fegarch-port.md).
 
 ---
 
