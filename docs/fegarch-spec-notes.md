@@ -2278,6 +2278,67 @@ Log-GARCH and their four FI variants.
 
 ---
 
+## 36. Dual-mean multi-step `predict` + rolling (ARMA / FARIMA-in-mean) — RESOLVED (forecast family 4, the last)
+
+**The dual-mean forecast — an ARMA(p,q)- or FARIMA(p,d,q)-in-mean composed with the variance
+forecast.** The final engine family, and a pure **composition**: the mean and variance forecasts
+couple only through the residuals, because **fEGarch has no GARCH-in-mean** — there is no σ→mean
+feedback. Derived clean-room from the ARMA/FARIMA forecast mathematics + §29/§34; gated against
+committed fEGarch output before engine code. Reuses the existing `arma_mean_residuals` /
+`farima_mean_residuals` and the whole variance forecast engine (§29/§33/§34/§35) — compose, no fork.
+
+### 36.1 The composition (no σ→mean feedback)
+
+The dual model is `y_t = μ_t + ε_t`, `ε_t = σ_t η_t`, with `μ_t` an ARMA/FARIMA recursion on the
+**mean-residuals** `r_t = y_t − μ_t` and `σ_t` a variance recursion on *those residuals*. The forecast
+splits cleanly:
+
+- **Mean** `μ̂_{n+h} = E_t[y_{n+h}]`. Future residuals have `E_t[r_{n+h}] = 0`, so the ARMA(1,1)
+  iterate is `μ̂_{n+1} = μ + β₁(y_n − μ) + α₁ r_n`, then `μ̂_{n+h} = μ + β₁(μ̂_{n+h-1} − μ)` (h≥2). The
+  FARIMA(1,d,1) mean forecasts the fractionally-differenced `x = (1−B)^D(y−μ)` by its ARMA iterate
+  and inverts `(1−B)^D` (the §34 operator at **+D**; **`d_mean` is independent of any variance-side
+  `d_var`**).
+- **Variance** `σ̂_{n+h}`. The *future* residual enters as its expectation — **`E_t[r_{n+h}²] = σ̂²`,
+  i.e. the future residual is 0 *as a residual***, not a forecasted value. So the variance forecast
+  is the ordinary single-mean forecast (§29/§33/§34/§35) run on the mean-**residual** series `r_t`
+  (a zero-mean series): the in-sample residuals drive the seam, future residuals do not perturb the
+  path.
+- **VaR/ES** composes as `μ̂_{n+h} + σ̂_{n+h} q_η` — the mean and variance forecasts combine only
+  here (and in `measure_risk`, via the now h-varying `cmeans`).
+
+### 36.2 The reconstruction gate — machine-exact, both conventions confirmed
+
+Reconstructed one ARMA-mean and one FARIMA-mean forecast — the mean path, the variance path, and the
+VaR/ES composition — from the fitted params, vs fEGarch `predict`/`predict_roll` (`norm`, `n_test=250`):
+
+| config | predict σ | predict μ (cmeans) | roll σ | roll μ |
+| --- | --- | --- | --- | --- |
+| **ARMA(1,1) + GARCH** | 5.2e-18 | **0.0** | 5.2e-18 | 3.0e-18 |
+| **FARIMA(1,d,1) + FIEGARCH** | 1.9e-17 | 4.2e-18 | 4.2e-17 | 2.9e-17 |
+
+**Both convention points confirmed:** (a) the **future mean residual enters the variance forecast as
+zero** (not a forecasted residual) — the variance σ̂ reproduces machine-exact under the single-mean
+engine run on `r_t`; (b) **VaR/ES composes as `μ̂ + σ̂ q`** with fEGarch's quantile convention (the §27
+`measure_risk`, now fed the h-varying mean). The rolling conditional mean at each test point is
+`y − r` (the one-step mean), likewise machine-exact.
+
+### 36.3 ARMA and FARIMA both compose cleanly; scope
+
+**Both means composed cleanly with every variance family** across the representative cross
+(ARMA+{GARCH, EGARCH, APARCH}, FARIMA+{FIGARCH, FIEGARCH}, + skew `sged`): all reproduce machine-exact
+(predict/roll σ ≤ 4.9e-17, mean ≤ 2.9e-17). Because the composition is **orthogonal** (no σ→mean
+feedback), a representative cross exercising every structural axis proves it — the exhaustive
+mean×variance×law fixture sweep is deferred as optional #28-style breadth. **`d_mean`↔`d_var`
+interaction:** none — they enter independent operators (the mean's `(1−B)^{D}` vs the variance's
+`(1−B)^{d}`), and on the synthetic series `D` is estimated ≈0 (no mean long-memory — documented, §25),
+so the FARIMA mean forecast is numerically close to the ARMA one here while structurally exercising the
+fractional-mean inversion. Implemented by composing `_mean_forecast` + `_mean_residuals` +
+`_variance_subfit` with the extracted `_conditional_variance` dispatch in `predict` / `predict_roll` —
+no fork; the forecast engine now spans every fitted fEGarch model with a committed forecast fixture,
+and family 4 is the last.
+
+---
+
 *Add further specification derivations here if the auto-bandwidth gap is later closed (Bühlmann 1996 +
 Feng-Heiler 2009 added to `literature/`) or further forecasting breadth is implemented — always
 from the papers/manual, never the source.*

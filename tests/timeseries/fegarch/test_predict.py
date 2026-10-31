@@ -689,3 +689,134 @@ def test_egf_sibling_predict_h1_equals_roll_first(model: str, dist: str) -> None
     ph1 = predict(fit, _returns(), n_ahead=1).sigma[0]
     roll_first = predict_roll(fit, _returns()).sigma[0]
     assert abs(ph1 - roll_first) < 1e-13
+
+
+# --------------------------------------------------------------------------- #
+# Dual-mean (forecast family 4) -- ARMA/FARIMA-in-mean composed with a variance forecast
+# --------------------------------------------------------------------------- #
+#
+# fEGarch has no GARCH-in-mean, so the mean and variance forecasts couple only through the residuals
+# (spec-notes §36): the mean forecast mu_{t+h} (ARMA/FARIMA iterate, future resid=0) composes with
+# the variance forecast of the mean-RESIDUALS (future residual enters as E[r^2]=sigma^2, i.e. 0 as a
+# residual). cmeans is the h-varying conditional mean. A representative cross exercises every axis
+# (the composition is orthogonal); the exhaustive mean x variance x law sweep is deferred breadth.
+
+_DUAL_CROSS = [
+    ("arma11", "garch", "norm"),
+    ("arma11", "egarch", "norm"),
+    ("arma11", "aparch", "norm"),
+    ("farima11", "figarch", "norm"),
+    ("farima11", "fiegarch", "norm"),
+    ("arma11", "garch", "sged"),
+    ("farima11", "fiegarch", "sged"),
+]
+# Norm/symmetric reproduce ~1e-17; a skew law with an EGF-variance centering carries its quadrature
+# floor through the composition (max observed well under the band).
+_DUAL_TOL = 1e-9
+
+
+def _dual_params_from_json(p: dict, var_model: str, dist: str) -> tuple[dict, str | None]:  # type: ignore[type-arg]
+    """R dual-mean fit params -> (quantica params, model tag). Mean block + variance block."""
+    q: dict = {"mu": p["mu"]}
+    for k in ("ar1", "ma1"):
+        if k in p:
+            q[k] = p[k]
+    if "D" in p:
+        q["D"] = p["D"]
+    model: str | None = None
+    if var_model == "garch":
+        q.update(omega=p["omega"], alpha=p["phi1"], beta=p["beta1"])
+    elif var_model == "egarch":
+        q.update(omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"])
+        model = "egarch"
+    elif var_model == "aparch":
+        q.update(
+            omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], gamma1=p["gamma1"], delta=p["delta"]
+        )
+    elif var_model == "figarch":
+        q.update(omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], d=p["d"])
+    elif var_model == "fiegarch":
+        q.update(
+            omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"], d=p["d"]
+        )
+        model = "fiegarch"
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q, model
+
+
+def _dual_fit(mean_m: str, var_m: str, dist: str, meta_key: str) -> GarchFit:
+    """Build a dual-mean GarchFit from a fixture; cond vol via variance recursion on resid."""
+    from quantica.timeseries.fegarch.forecast import (
+        _conditional_variance,
+        _mean_residuals,
+        _variance_subfit,
+    )
+
+    tag = f"{mean_m}_{var_m}11_{dist}"
+    if meta_key == "predict":
+        meta = json.loads((_FIXTURE_DIR / f"predict_{tag}_meta.json").read_text(encoding="utf-8"))
+        q, model = _dual_params_from_json(meta["fit_params"], var_m, dist)
+        n = int(meta["n_obs_train"])
+    else:
+        meta = json.loads(
+            (_FIXTURE_DIR / f"forecast_{tag}_params.json").read_text(encoding="utf-8")
+        )
+        q, model = _dual_params_from_json(meta["params"], var_m, dist)
+        n = int(meta["n_obs"])
+    tmp = GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=np.array([1.0]),
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+    r = _mean_residuals(tmp, _returns()[:n])
+    cv = np.sqrt(_conditional_variance(_variance_subfit(tmp), r))
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=cv,
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+
+
+@pytest.mark.parametrize(("mean_m", "var_m", "dist"), _DUAL_CROSS)
+def test_dual_mean_predict_matches_fixture(mean_m: str, var_m: str, dist: str) -> None:
+    """Dual-mean multi-step sigma AND the h-varying mean forecast reproduce the fixture (§36)."""
+    fit = _dual_fit(mean_m, var_m, dist, "predict")
+    fc = predict(fit, _returns(), n_ahead=10)
+    fix = np.loadtxt(
+        _FIXTURE_DIR / f"predict_{mean_m}_{var_m}11_{dist}_h10.csv", delimiter=",", skiprows=1
+    )
+    assert np.max(np.abs(fc.sigma - fix[:, 1])) < _DUAL_TOL  # variance forecast on residuals
+    assert np.max(np.abs(fc.cmeans - fix[:, 2])) < _DUAL_TOL  # ARMA/FARIMA mean forecast
+    for h in _REQUESTED_HORIZONS:
+        assert abs(fc.sigma[h - 1] - fix[h - 1, 1]) < _DUAL_TOL
+
+
+@pytest.mark.parametrize(("mean_m", "var_m", "dist"), _DUAL_CROSS)
+def test_dual_mean_predict_h1_equals_roll_first(mean_m: str, var_m: str, dist: str) -> None:
+    """The dual-mean h=1 sigma and mean equal predict_roll's first values (the one-step seam)."""
+    fit = _dual_fit(mean_m, var_m, dist, "predict")
+    fc = predict(fit, _returns(), n_ahead=1)
+    roll = predict_roll(fit, _returns())
+    assert abs(fc.sigma[0] - roll.sigma[0]) < 1e-12
+    assert abs(fc.cmeans[0] - roll.cmeans[0]) < 1e-12

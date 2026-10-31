@@ -2017,6 +2017,91 @@
     "var_es": "forecast_egarch11_sald_var_es.csv",
     "note": "Forecast family 3: EGARCH(1,1)/sald ROLLING (predict_roll + VaR/ES) -- newly added; the Phase-6 predict_egarch11_sald multi-step is separate. Rolling sigma = the EGARCH recursion continued (seam-exact)."
   },
+  "_forecast_dual_mean": "Forecast family 4 (branch feat/fegarch-forecast-dualmean, the LAST engine family): the dual-mean forecast -- ARMA/FARIMA-in-mean composed with a variance forecast. fEGarch has NO GARCH-in-mean, so the mean and variance forecasts couple only through the residuals (spec-notes §36): the mean forecast (ARMA/FARIMA iterate, future residuals=0) composes with the variance forecast of the mean-RESIDUALS (future residual enters as E[r^2]=sigma^2, i.e. 0 as a residual); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q. Because the composition is orthogonal, a REPRESENTATIVE CROSS (7 configs) exercises every axis -- ARMA+{GARCH,EGARCH,APARCH}, FARIMA+{FIGARCH,FIEGARCH}, + 2 skew (sged); the exhaustive mean x variance x law sweep is deferred optional #28-style breadth. GATE machine-exact (predict/roll sigma<=5e-17, mean<=3e-17) for both ARMA and FARIMA across every variance family. d_mean and d_var are independent operators; D~0 on this synthetic series (no mean long-memory, §25), so the FARIMA mean ~ the ARMA mean numerically while exercising the fractional-mean inversion structurally.",
+  "forecast_arma11_garch11_norm_roll": {
+    "params": "forecast_arma11_garch11_norm_params.json",
+    "sigma": "forecast_arma11_garch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_arma11_garch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_arma11_garch11_norm_var_es.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + GARCH(1,1) variance / norm, n_test=250, predict_roll + measure_risk VaR/ES. Variance recursion on the mean-residuals; rolling conditional mean = y - r; VaR/ES = mu + sigma q (§36)."
+  },
+  "predict_arma11_garch11_norm": {
+    "meta": "predict_arma11_garch11_norm_meta.json",
+    "h10": "predict_arma11_garch11_norm_h10.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + GARCH(1,1) / norm multi-step predict(n.ahead=10), same training fit as forecast_arma11_garch11_norm; cols h,sigma,cmeans. sigma = variance forecast on residuals; cmeans = h-varying ARMA/FARIMA mean forecast (future residuals=0) (§36)."
+  },
+  "forecast_arma11_egarch11_norm_roll": {
+    "params": "forecast_arma11_egarch11_norm_params.json",
+    "sigma": "forecast_arma11_egarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_arma11_egarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_arma11_egarch11_norm_var_es.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + EGARCH(1,1) variance / norm, n_test=250, predict_roll + measure_risk VaR/ES. Variance recursion on the mean-residuals; rolling conditional mean = y - r; VaR/ES = mu + sigma q (§36)."
+  },
+  "predict_arma11_egarch11_norm": {
+    "meta": "predict_arma11_egarch11_norm_meta.json",
+    "h10": "predict_arma11_egarch11_norm_h10.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + EGARCH(1,1) / norm multi-step predict(n.ahead=10), same training fit as forecast_arma11_egarch11_norm; cols h,sigma,cmeans. sigma = variance forecast on residuals; cmeans = h-varying ARMA/FARIMA mean forecast (future residuals=0) (§36)."
+  },
+  "forecast_arma11_aparch11_norm_roll": {
+    "params": "forecast_arma11_aparch11_norm_params.json",
+    "sigma": "forecast_arma11_aparch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_arma11_aparch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_arma11_aparch11_norm_var_es.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + APARCH(1,1) variance / norm, n_test=250, predict_roll + measure_risk VaR/ES. Variance recursion on the mean-residuals; rolling conditional mean = y - r; VaR/ES = mu + sigma q (§36)."
+  },
+  "predict_arma11_aparch11_norm": {
+    "meta": "predict_arma11_aparch11_norm_meta.json",
+    "h10": "predict_arma11_aparch11_norm_h10.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + APARCH(1,1) / norm multi-step predict(n.ahead=10), same training fit as forecast_arma11_aparch11_norm; cols h,sigma,cmeans. sigma = variance forecast on residuals; cmeans = h-varying ARMA/FARIMA mean forecast (future residuals=0) (§36)."
+  },
+  "forecast_farima11_figarch11_norm_roll": {
+    "params": "forecast_farima11_figarch11_norm_params.json",
+    "sigma": "forecast_farima11_figarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_farima11_figarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_farima11_figarch11_norm_var_es.csv",
+    "note": "Forecast family 4: FARIMA(1,d,1)-in-mean + FIGARCH(1,1) variance / norm, n_test=250, predict_roll + measure_risk VaR/ES. Variance recursion on the mean-residuals; rolling conditional mean = y - r; VaR/ES = mu + sigma q (§36)."
+  },
+  "predict_farima11_figarch11_norm": {
+    "meta": "predict_farima11_figarch11_norm_meta.json",
+    "h10": "predict_farima11_figarch11_norm_h10.csv",
+    "note": "Forecast family 4: FARIMA(1,d,1)-in-mean + FIGARCH(1,1) / norm multi-step predict(n.ahead=10), same training fit as forecast_farima11_figarch11_norm; cols h,sigma,cmeans. sigma = variance forecast on residuals; cmeans = h-varying ARMA/FARIMA mean forecast (future residuals=0) (§36)."
+  },
+  "forecast_farima11_fiegarch11_norm_roll": {
+    "params": "forecast_farima11_fiegarch11_norm_params.json",
+    "sigma": "forecast_farima11_fiegarch11_norm_roll_sigma.csv",
+    "cmeans": "forecast_farima11_fiegarch11_norm_roll_cmeans.csv",
+    "var_es": "forecast_farima11_fiegarch11_norm_var_es.csv",
+    "note": "Forecast family 4: FARIMA(1,d,1)-in-mean + FIEGARCH(1,1) variance / norm, n_test=250, predict_roll + measure_risk VaR/ES. Variance recursion on the mean-residuals; rolling conditional mean = y - r; VaR/ES = mu + sigma q (§36)."
+  },
+  "predict_farima11_fiegarch11_norm": {
+    "meta": "predict_farima11_fiegarch11_norm_meta.json",
+    "h10": "predict_farima11_fiegarch11_norm_h10.csv",
+    "note": "Forecast family 4: FARIMA(1,d,1)-in-mean + FIEGARCH(1,1) / norm multi-step predict(n.ahead=10), same training fit as forecast_farima11_fiegarch11_norm; cols h,sigma,cmeans. sigma = variance forecast on residuals; cmeans = h-varying ARMA/FARIMA mean forecast (future residuals=0) (§36)."
+  },
+  "forecast_arma11_garch11_sged_roll": {
+    "params": "forecast_arma11_garch11_sged_params.json",
+    "sigma": "forecast_arma11_garch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_arma11_garch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_arma11_garch11_sged_var_es.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + GARCH(1,1) variance / sged, n_test=250, predict_roll + measure_risk VaR/ES. Variance recursion on the mean-residuals; rolling conditional mean = y - r; VaR/ES = mu + sigma q (§36)."
+  },
+  "predict_arma11_garch11_sged": {
+    "meta": "predict_arma11_garch11_sged_meta.json",
+    "h10": "predict_arma11_garch11_sged_h10.csv",
+    "note": "Forecast family 4: ARMA(1,1)-in-mean + GARCH(1,1) / sged multi-step predict(n.ahead=10), same training fit as forecast_arma11_garch11_sged; cols h,sigma,cmeans. sigma = variance forecast on residuals; cmeans = h-varying ARMA/FARIMA mean forecast (future residuals=0) (§36)."
+  },
+  "forecast_farima11_fiegarch11_sged_roll": {
+    "params": "forecast_farima11_fiegarch11_sged_params.json",
+    "sigma": "forecast_farima11_fiegarch11_sged_roll_sigma.csv",
+    "cmeans": "forecast_farima11_fiegarch11_sged_roll_cmeans.csv",
+    "var_es": "forecast_farima11_fiegarch11_sged_var_es.csv",
+    "note": "Forecast family 4: FARIMA(1,d,1)-in-mean + FIEGARCH(1,1) variance / sged, n_test=250, predict_roll + measure_risk VaR/ES. Variance recursion on the mean-residuals; rolling conditional mean = y - r; VaR/ES = mu + sigma q (§36)."
+  },
+  "predict_farima11_fiegarch11_sged": {
+    "meta": "predict_farima11_fiegarch11_sged_meta.json",
+    "h10": "predict_farima11_fiegarch11_sged_h10.csv",
+    "note": "Forecast family 4: FARIMA(1,d,1)-in-mean + FIEGARCH(1,1) / sged multi-step predict(n.ahead=10), same training fit as forecast_farima11_fiegarch11_sged; cols h,sigma,cmeans. sigma = variance forecast on residuals; cmeans = h-varying ARMA/FARIMA mean forecast (future residuals=0) (§36)."
+  },
   "smooth_gsmooth": {
     "meta": "smooth_gsmooth_meta.json",
     "files": "smooth_gsmooth_p{1,3}_mu{0,1,2,3}_bb{0,1}.csv (16 files, one column m_hat)",

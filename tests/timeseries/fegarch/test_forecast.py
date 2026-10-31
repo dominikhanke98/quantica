@@ -728,3 +728,127 @@ def test_egf_measure_risk_matches_fixture(model: str, dist: str) -> None:
     for alpha in (0.975, 0.99):
         assert np.all(risk.es[alpha] <= risk.var[alpha])
         assert np.all(risk.var[alpha] < 0.0)
+
+
+# --------------------------------------------------------------------------- #
+# 9. Dual-mean (forecast family 4) -- rolling + VaR/ES, ARMA/FARIMA-in-mean x variance family
+# --------------------------------------------------------------------------- #
+#
+# The mean and variance forecasts couple only through the residuals (no sigma->mean feedback; §36).
+# predict_roll: the variance recursion runs on the mean-residuals, the rolling conditional mean at
+# each test point is y - r; VaR/ES = mu_{t+h} + sigma_{t+h} q (measure_risk fed h-varying cmeans).
+
+_DUAL_CROSS_F = [
+    ("arma11", "garch", "norm"),
+    ("arma11", "egarch", "norm"),
+    ("arma11", "aparch", "norm"),
+    ("farima11", "figarch", "norm"),
+    ("farima11", "fiegarch", "norm"),
+    ("arma11", "garch", "sged"),
+    ("farima11", "fiegarch", "sged"),
+]
+_DUAL_ROLL_TOL = 1e-9
+
+
+def _dual_params_from_json_fc(p: dict, var_model: str, dist: str) -> tuple[dict, str | None]:  # type: ignore[type-arg]
+    """R dual-mean fit params -> (quantica params, model tag): mean block + variance block."""
+    q: dict = {"mu": p["mu"]}
+    for k in ("ar1", "ma1"):
+        if k in p:
+            q[k] = p[k]
+    if "D" in p:
+        q["D"] = p["D"]
+    model: str | None = None
+    if var_model == "garch":
+        q.update(omega=p["omega"], alpha=p["phi1"], beta=p["beta1"])
+    elif var_model == "egarch":
+        q.update(omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"])
+        model = "egarch"
+    elif var_model == "aparch":
+        q.update(
+            omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], gamma1=p["gamma1"], delta=p["delta"]
+        )
+    elif var_model == "figarch":
+        q.update(omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], d=p["d"])
+    elif var_model == "fiegarch":
+        q.update(
+            omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"], d=p["d"]
+        )
+        model = "fiegarch"
+    if dist in ("std", "sstd"):
+        q["nu"] = p["df"]
+    elif dist in ("ged", "sged"):
+        q["nu"] = p["shape"]
+    if dist in ("ald", "sald"):
+        q["P"] = p["P"]
+    if dist in ("snorm", "sstd", "sged", "sald"):
+        q["skew"] = p["skew"]
+    return q, model
+
+
+def _dual_forecast_fit(mean_m: str, var_m: str, dist: str, returns: np.ndarray) -> GarchFit:  # type: ignore[type-arg]
+    """Dual-mean training fit from the forecast fixture; conditional vol via the variance recur."""
+    from quantica.timeseries.fegarch.forecast import (
+        _conditional_variance,
+        _mean_residuals,
+        _variance_subfit,
+    )
+
+    stem = f"forecast_{mean_m}_{var_m}11_{dist}"
+    meta = json.loads((_FIXTURE_DIR / f"{stem}_params.json").read_text(encoding="utf-8"))
+    q, model = _dual_params_from_json_fc(meta["params"], var_m, dist)
+    n = int(meta["n_obs"])
+    tmp = GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=0.0,
+        aic=0.0,
+        bic=0.0,
+        conditional_volatility=np.array([1.0]),
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+    r = _mean_residuals(tmp, returns[:n])
+    cv = np.sqrt(_conditional_variance(_variance_subfit(tmp), r))
+    return GarchFit(
+        cond_dist=dist,
+        params=q,
+        std_errors=dict.fromkeys(q, 0.0),
+        loglikelihood=float(meta["loglikelihood"]),
+        aic=float(meta["aic"]),
+        bic=float(meta["bic"]),
+        conditional_volatility=cv,
+        n_obs=n,
+        converged=True,
+        model=model,
+    )
+
+
+@pytest.mark.parametrize(("mean_m", "var_m", "dist"), _DUAL_CROSS_F)
+def test_dual_mean_predict_roll_matches_fixture(mean_m: str, var_m: str, dist: str) -> None:
+    """Rolling sigma AND the rolling conditional mean (y-r) reproduce the dual fixture (§36)."""
+    returns = _returns()
+    fit = _dual_forecast_fit(mean_m, var_m, dist, returns)
+    stem = f"forecast_{mean_m}_{var_m}11_{dist}"
+    sig_fix = np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_sigma.csv", skiprows=1)
+    cm_fix = np.loadtxt(_FIXTURE_DIR / f"{stem}_roll_cmeans.csv", skiprows=1)
+    forecast = predict_roll(fit, returns)
+    assert forecast.n_test == sig_fix.size == 250
+    assert np.max(np.abs(forecast.sigma - sig_fix)) < _DUAL_ROLL_TOL
+    assert np.max(np.abs(forecast.cmeans - cm_fix)) < _DUAL_ROLL_TOL  # h-varying rolling mean
+
+
+@pytest.mark.parametrize(("mean_m", "var_m", "dist"), _DUAL_CROSS_F)
+def test_dual_mean_measure_risk_matches_fixture(mean_m: str, var_m: str, dist: str) -> None:
+    """VaR/ES composes as mu_{t+h} + sigma_{t+h} q for the dual-mean forecast (§36)."""
+    returns = _returns()
+    fit = _dual_forecast_fit(mean_m, var_m, dist, returns)
+    stem = f"forecast_{mean_m}_{var_m}11_{dist}"
+    ve = np.loadtxt(_FIXTURE_DIR / f"{stem}_var_es.csv", delimiter=",", skiprows=1)
+    risk = measure_risk(predict_roll(fit, returns), fit, levels=(0.975, 0.99))
+    assert np.max(np.abs(risk.var[0.975] - ve[:, 0])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.var[0.99] - ve[:, 1])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.975] - ve[:, 2])) < _VAR_ES_DIST_TOL
+    assert np.max(np.abs(risk.es[0.99] - ve[:, 3])) < _VAR_ES_DIST_TOL

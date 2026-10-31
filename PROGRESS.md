@@ -401,7 +401,33 @@ drops** follow the Type-I-fails/Type-II-converges split (§20/§21/§22.2): the 
 (EGARCH/MEGARCH/MLog + FI) drop std/sstd (6 laws); **Log-GARCH drops std only** (7); **FILog-GARCH
 converges std/sstd on the full sample but ERRORS on the n_test=250 forecast-window fit** → forecasts cover
 6 laws (a new §35.3 finding). Symmetric laws ~1e-16; FS-skew laws at the centering-moment quadrature floor
-(max ~1.9e-10, loggarch×sstd, amplified by φ₁≈0.987). PR open, not merged.
+(max ~1.9e-10, loggarch×sstd, amplified by φ₁≈0.987). PR open, not merged. **MERGED** (PR #31 → `main` `55ecd9e`).
+
+**Forecast family 4 — dual-mean (ARMA/FARIMA-in-mean) — on `feat/fegarch-forecast-dualmean`** (the LAST
+engine family). Spec-notes **§36**: a pure **composition** — fEGarch has **no GARCH-in-mean**, so the mean
+and variance forecasts couple only through the residuals. The mean forecast `μ̂_{n+h}` (ARMA(1,1) iterate
+`μ̂_{n+1}=μ+β₁(y_n−μ)+α₁r_n`, `μ̂_{n+h}=μ+β₁(μ̂_{n+h-1}−μ)`; FARIMA inverts `(1−B)^D` on the ARMA-forecast of
+the differenced series) composes with the variance forecast of the mean-**residuals** `r_t` (future
+residual enters as `E[r²]=σ̂²`, i.e. 0 *as a residual*); `cmeans` is the h-varying conditional mean;
+VaR/ES `= μ̂_{n+h} + σ̂_{n+h}q`. Engine: `forecast.py` grew `_mean_forecast` / `_mean_residuals` /
+`_variance_subfit` + the extracted `_conditional_variance` dispatch; `predict`/`predict_roll` compose the
+mean forecast with the existing variance engine run on the residuals — **no fork**. **14 fixture-sets** (a
+representative cross of 7 (model,law) × {predict_roll, predict}, 42 files): ARMA+{GARCH,EGARCH,APARCH},
+FARIMA+{FIGARCH,FIEGARCH}, + 2 skew (sged); the exhaustive mean×variance×law sweep is deferred optional
+#28-style breadth. 503 forecast+predict tests pass.
+**Findings:** (a) **the mean↔variance composition convention** (headline) — the gate confirmed both points
+machine-exact: **future mean residuals enter the variance forecast as zero** (the single-mean variance
+engine run on `r_t` reproduces σ̂ to ~1e-17), and **VaR/ES composes as `μ̂+σ̂q`** with fEGarch's quantile
+convention (measure_risk fed the h-varying cmeans; ARMA+GARCH predict mean 0.0, FARIMA+FIEGARCH 4.2e-18).
+(b) **both ARMA and FARIMA composed cleanly** with every variance family (GARCH/EGARCH/APARCH/FIGARCH/
+FIEGARCH), predict/roll σ ≤4.9e-17, mean ≤2.9e-17. (c) **`d_mean`↔`d_var` — no interaction** (independent
+operators); `D`≈0 on the synthetic series (no mean long-memory, §25), so the FARIMA mean ≈ the ARMA mean
+numerically while structurally exercising the fractional-mean inversion. PR open, not merged.
+
+**The forecast engine is complete** — `predict` / `predict_roll` now span every fitted fEGarch model with a
+committed forecast fixture: GARCH, the full EGF family (EGARCH/MEGARCH/MLog/Log-GARCH + 4 FI variants), the
+APARCH family (GJR/TGARCH/APARCH), the variance-recursion FI family (FIGARCH/FIGJR/FITGARCH/FIAPARCH), and
+the dual mean (ARMA/FARIMA-in-mean) composed with any of them. Forecast families 1–4: spec-notes §33–§36.
 
 ## Completed
 

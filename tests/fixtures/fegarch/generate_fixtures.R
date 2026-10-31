@@ -997,6 +997,72 @@ for (dist in L6) {
   }, error = function(e) cat(sprintf("  ERROR forecast %s:", tag), conditionMessage(e), "\n"))
 }
 
+# --- Forecast family 4 (the last): the dual-mean forecast ------------------------------------------
+# ARMA/FARIMA-in-mean composed with a variance forecast. fEGarch has NO GARCH-in-mean, so the mean
+# and variance forecasts couple only through the residuals (spec-notes §36): the mean forecast
+# (ARMA/FARIMA iterate, future residuals=0) composes with the variance forecast of the mean-RESIDUALS
+# (future residual enters as E[r^2]=sigma^2); cmeans is the h-varying conditional mean; VaR/ES =
+# mu_{t+h} + sigma_{t+h} q. Because the composition is orthogonal, a REPRESENTATIVE CROSS exercising
+# every structural axis proves it (the exhaustive mean x variance x law sweep is deferred optional
+# #28-style breadth). The mean is set via meanspec=mean_spec(orders, long_memo). Each config is
+# tryCatch-wrapped; a failure writes NO fixture.
+fit_dual <- function(vmodel, law, lm) {
+  ms <- mean_spec(orders = c(1, 1), long_memo = lm)
+  if (vmodel == "garch") garch(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  else if (vmodel == "aparch") aparch(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  else if (vmodel == "figarch") figarch(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  else if (vmodel == "egarch") fEGarch(egarch_spec(orders = c(1, 1), cond_dist = law), returns, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  else fEGarch(fiegarch_spec(orders = c(1, 1), cond_dist = law), returns, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+}
+dual_cross <- list(
+  list("arma11", "garch", "norm", FALSE, "none"), list("arma11", "egarch", "norm", FALSE, "none"),
+  list("arma11", "aparch", "norm", FALSE, "none"), list("farima11", "figarch", "norm", TRUE, "none"),
+  list("farima11", "fiegarch", "norm", TRUE, "n-1"), list("arma11", "garch", "sged", FALSE, "none"),
+  list("farima11", "fiegarch", "sged", TRUE, "n-1")
+)
+for (cfg in dual_cross) {
+  mean_m <- cfg[[1]]; vmodel <- cfg[[2]]; law <- cfg[[3]]; lm <- cfg[[4]]; trunc_pol <- cfg[[5]]
+  tag <- sprintf("%s_%s11_%s", mean_m, vmodel, law)
+  tryCatch({
+    fc_fit <- fit_dual(vmodel, law, lm)
+    p <- pars(fc_fit); ic <- inf_criteria(fc_fit); params <- as.list(as.numeric(p)); names(params) <- names(p)
+    fcast <- predict_roll(fc_fit, refit_after = NULL, parallel = FALSE)
+    meta <- list(
+      model = vmodel, mean_model = mean_m, mean_orders = c(1L, 1L), mean_long_memo = lm,
+      cond_dist = law, orders = c(1L, 1L), presample = 50L, trunc = trunc_pol, mean_included = TRUE,
+      n_obs = length(returns) - N_TEST_FC, n_forecast = N_TEST_FC, refit_after = "none",
+      input = "synthetic_returns.csv", parallel = FALSE, seed = SIM_SEED, params = params,
+      loglikelihood = as.numeric(llhood(fc_fit)), aic = as.numeric(ic[["aic"]]),
+      bic = as.numeric(ic[["bic"]]), fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+    write_json(meta, file.path(OUTDIR, sprintf("forecast_%s_params.json", tag)))
+    write_series_csv(as.numeric(fcast@sigt), file.path(OUTDIR, sprintf("forecast_%s_roll_sigma.csv", tag)), "sigma")
+    write_series_csv(as.numeric(fcast@cmeans), file.path(OUTDIR, sprintf("forecast_%s_roll_cmeans.csv", tag)), "cmeans")
+    risk <- measure_risk(fcast, measure = c("VaR", "ES"), level = c(0.975, 0.99)); mm <- risk@measures
+    write_matrix_csv(
+      list(as.numeric(mm$VaR[["VaR0.975"]]), as.numeric(mm$VaR[["VaR0.99"]]),
+           as.numeric(mm$ES[["ES0.975"]]), as.numeric(mm$ES[["ES0.99"]])),
+      file.path(OUTDIR, sprintf("forecast_%s_var_es.csv", tag)),
+      c("var_0.975", "var_0.99", "es_0.975", "es_0.99"))
+    pred <- predict(fc_fit, n.ahead = H_MULTI)
+    write_matrix_csv(
+      list(seq_len(H_MULTI), as.numeric(pred@sigt), as.numeric(pred@cmeans)),
+      file.path(OUTDIR, sprintf("predict_%s_h%d.csv", tag, H_MULTI)), c("h", "sigma", "cmeans"))
+    pmeta <- list(
+      model = vmodel, mean_model = mean_m, mean_orders = c(1L, 1L), mean_long_memo = lm,
+      cond_dist = law, orders = c(1L, 1L), n_obs_train = length(returns) - N_TEST_FC,
+      n_test = N_TEST_FC, input = "synthetic_returns.csv", seed = SIM_SEED, fit_params = params,
+      note = paste0("predict(n.ahead=h) multi-step dual-mean ", mean_m, "-in-mean + ", vmodel,
+                    " variance / ", law, "; same training fit as forecast_", tag, ". Mean forecast ",
+                    "(ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of ",
+                    "the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional ",
+                    "mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36)."),
+      fegarch_version = FEGARCH_VERSION, r_version = R_VERSION)
+    write_json(pmeta, file.path(OUTDIR, sprintf("predict_%s_meta.json", tag)))
+    cat(sprintf("  dual %-24s cmeans h1=%.7g h%d=%.7g\n", tag,
+                as.numeric(pred@cmeans)[1], H_MULTI, as.numeric(pred@cmeans)[H_MULTI]))
+  }, error = function(e) cat(sprintf("  ERROR forecast %s:", tag), conditionMessage(e), "\n"))
+}
+
 # =============================================================================
 # 3. Manifest — full provenance for every fixture.
 # =============================================================================
@@ -1945,6 +2011,48 @@ manifest <- list(
                           sigma = "forecast_egarch11_sald_roll_sigma.csv", cmeans = "forecast_egarch11_sald_roll_cmeans.csv",
                           var_es = "forecast_egarch11_sald_var_es.csv",
                           note = "Forecast family 3: EGARCH(1,1)/sald ROLLING (predict_roll + VaR/ES), newly added; predict_egarch11_sald multi-step is Phase 6."),
+      forecast_arma11_garch11_norm_roll = list(params = "forecast_arma11_garch11_norm_params.json",
+                          sigma = "forecast_arma11_garch11_norm_roll_sigma.csv", cmeans = "forecast_arma11_garch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_arma11_garch11_norm_var_es.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + GARCH variance / norm, n_test=250, predict_roll + VaR/ES (spec-notes §36)."),
+      predict_arma11_garch11_norm = list(meta = "predict_arma11_garch11_norm_meta.json", h10 = "predict_arma11_garch11_norm_h10.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + GARCH / norm multi-step predict(n.ahead=10); cmeans h-varying (§36)."),
+      forecast_arma11_egarch11_norm_roll = list(params = "forecast_arma11_egarch11_norm_params.json",
+                          sigma = "forecast_arma11_egarch11_norm_roll_sigma.csv", cmeans = "forecast_arma11_egarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_arma11_egarch11_norm_var_es.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + EGARCH variance / norm, n_test=250, predict_roll + VaR/ES (spec-notes §36)."),
+      predict_arma11_egarch11_norm = list(meta = "predict_arma11_egarch11_norm_meta.json", h10 = "predict_arma11_egarch11_norm_h10.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + EGARCH / norm multi-step predict(n.ahead=10); cmeans h-varying (§36)."),
+      forecast_arma11_aparch11_norm_roll = list(params = "forecast_arma11_aparch11_norm_params.json",
+                          sigma = "forecast_arma11_aparch11_norm_roll_sigma.csv", cmeans = "forecast_arma11_aparch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_arma11_aparch11_norm_var_es.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + APARCH variance / norm, n_test=250, predict_roll + VaR/ES (spec-notes §36)."),
+      predict_arma11_aparch11_norm = list(meta = "predict_arma11_aparch11_norm_meta.json", h10 = "predict_arma11_aparch11_norm_h10.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + APARCH / norm multi-step predict(n.ahead=10); cmeans h-varying (§36)."),
+      forecast_farima11_figarch11_norm_roll = list(params = "forecast_farima11_figarch11_norm_params.json",
+                          sigma = "forecast_farima11_figarch11_norm_roll_sigma.csv", cmeans = "forecast_farima11_figarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_farima11_figarch11_norm_var_es.csv",
+                          note = "Forecast family 4: dual-mean FARIMA(1,d,1)-in-mean + FIGARCH variance / norm, n_test=250, predict_roll + VaR/ES (spec-notes §36)."),
+      predict_farima11_figarch11_norm = list(meta = "predict_farima11_figarch11_norm_meta.json", h10 = "predict_farima11_figarch11_norm_h10.csv",
+                          note = "Forecast family 4: dual-mean FARIMA(1,d,1)-in-mean + FIGARCH / norm multi-step predict(n.ahead=10); cmeans h-varying (§36)."),
+      forecast_farima11_fiegarch11_norm_roll = list(params = "forecast_farima11_fiegarch11_norm_params.json",
+                          sigma = "forecast_farima11_fiegarch11_norm_roll_sigma.csv", cmeans = "forecast_farima11_fiegarch11_norm_roll_cmeans.csv",
+                          var_es = "forecast_farima11_fiegarch11_norm_var_es.csv",
+                          note = "Forecast family 4: dual-mean FARIMA(1,d,1)-in-mean + FIEGARCH variance / norm, n_test=250, predict_roll + VaR/ES (spec-notes §36)."),
+      predict_farima11_fiegarch11_norm = list(meta = "predict_farima11_fiegarch11_norm_meta.json", h10 = "predict_farima11_fiegarch11_norm_h10.csv",
+                          note = "Forecast family 4: dual-mean FARIMA(1,d,1)-in-mean + FIEGARCH / norm multi-step predict(n.ahead=10); cmeans h-varying (§36)."),
+      forecast_arma11_garch11_sged_roll = list(params = "forecast_arma11_garch11_sged_params.json",
+                          sigma = "forecast_arma11_garch11_sged_roll_sigma.csv", cmeans = "forecast_arma11_garch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_arma11_garch11_sged_var_es.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + GARCH variance / sged, n_test=250, predict_roll + VaR/ES (spec-notes §36)."),
+      predict_arma11_garch11_sged = list(meta = "predict_arma11_garch11_sged_meta.json", h10 = "predict_arma11_garch11_sged_h10.csv",
+                          note = "Forecast family 4: dual-mean ARMA(1,1)-in-mean + GARCH / sged multi-step predict(n.ahead=10); cmeans h-varying (§36)."),
+      forecast_farima11_fiegarch11_sged_roll = list(params = "forecast_farima11_fiegarch11_sged_params.json",
+                          sigma = "forecast_farima11_fiegarch11_sged_roll_sigma.csv", cmeans = "forecast_farima11_fiegarch11_sged_roll_cmeans.csv",
+                          var_es = "forecast_farima11_fiegarch11_sged_var_es.csv",
+                          note = "Forecast family 4: dual-mean FARIMA(1,d,1)-in-mean + FIEGARCH variance / sged, n_test=250, predict_roll + VaR/ES (spec-notes §36)."),
+      predict_farima11_fiegarch11_sged = list(meta = "predict_farima11_fiegarch11_sged_meta.json", h10 = "predict_farima11_fiegarch11_sged_h10.csv",
+                          note = "Forecast family 4: dual-mean FARIMA(1,d,1)-in-mean + FIEGARCH / sged multi-step predict(n.ahead=10); cmeans h-varying (§36)."),
   pending_fixtures = paste(
     "Phase-2 EGARCH-family (1,1)/norm fits are complete; ALL Phase-4 (1,d,1)/norm long-memory fits are",
     "done — the Type-I FI models (FIEGARCH/FIMEGARCH/FIMLog-GARCH), the variance-recursion FI family",
