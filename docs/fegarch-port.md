@@ -29,11 +29,25 @@ A reimplementation of the whole `fEGarch` model family, in
   skewed variants `snorm` / `sstd` / `sged` / `sald`, each standardized to mean 0 / variance 1.
 - **Dual mean** — ARMA-in-mean and FARIMA-in-mean fits coupled to the variance in one joint QMLE
   (`fEGarch` has no GARCH-in-mean; the dual mean is ARMA + FARIMA only — spec-notes §25).
-- **Forecasting** — `predict_roll` (no-refit rolling one-step) and `predict` (multi-step), validated
-  across the conditional-distribution surface (PR #28): GARCH across **all eight** laws (rolling *and*
-  multi-step), and EGARCH multi-step across **six of the eight** — all but `std` / `sstd`, because
-  `fEGarch`'s optimizer errors on `egarch×{std, sstd}` (the continuous-df Type-I EGF cases of finding 3
-  below / spec-notes §20), so there is no reference forecast output to reproduce for those two.
+- **Forecasting — the complete engine.** `predict` (multi-step `h`-ahead) and `predict_roll`
+  (no-refit rolling one-step) now span **every fitted `fEGarch` model with a committed forecast
+  fixture**, built as four families (spec-notes §33–§36, PRs #28–#32): the **variance-recursion**
+  short-memory models (GARCH / GJR / TGARCH / APARCH), the **EGF log family** (EGARCH / MEGARCH /
+  MLog-GARCH / Log-GARCH), **all eight fractionally-integrated** long-memory variants (FIGARCH /
+  FIGJR / FITGARCH / FIAPARCH and FIEGARCH / FIMEGARCH / FIMLog-GARCH / FILog-GARCH), each across the
+  conditional-distribution surface, **composed with ARMA- and FARIMA-in-mean**, and feeding the
+  conditional VaR/ES. Reproduction is validated per family against committed fixtures
+  ([`test_predict.py`](../tests/timeseries/fegarch/test_predict.py) /
+  [`test_forecast.py`](../tests/timeseries/fegarch/test_forecast.py)), seam-exact (~1e-16) where the
+  recursion is deterministic and at a documented quadrature/`κ` floor (~1e-13 to 1e-10) where a
+  distribution moment is integrated. **finding-3 forecast gaps** (which laws each model drops, and
+  why): the variance-recursion models (short and FI) forecast under **all eight** laws; the Type-I
+  EGF log-variance models (EGARCH / MEGARCH / MLog-GARCH and their FI variants) drop `std` / `sstd`
+  (**six** laws — `fEGarch`'s optimizer errors on those continuous-df cases, spec-notes §20/§35.3);
+  **Log-GARCH** drops only `std` (**seven** laws, `sstd` converges); and **FILog-GARCH** — which
+  converges on `std`/`sstd` on the full sample — nonetheless errors on the `n_test=250`
+  forecast-window fit, so its *forecasts* cover **six** laws (a distinct forecast-window fragility,
+  §35.3).
 - **Risk** — conditional VaR/ES (WP171 Eqs. 61–62) that **feed the repository's existing risk-pillar
   backtests**.
 - **Diagnostics** — the weighted Ljung-Box, Engle–Ng sign-bias, and PIT goodness-of-fit fit-tests.
@@ -184,6 +198,63 @@ convention probe. Two conventions came out that the obvious implementation gets 
 Because the residuals are reconstructed machine-exact, the p-value match tests the null-distribution
 computation itself; the scipy Gamma/χ²/Student-t CDFs agree with R's to machine precision.
 ([`test_diagnostics.py`](../tests/timeseries/fegarch/test_diagnostics.py); spec-notes §28.)
+
+### 8. The leverage-kernel forecast moment: faithful ≠ exact — `fEGarch` integrates numerically where a closed form exists
+
+The APARCH-family multi-step forecast propagates a news moment `κ = E[(|η|−γη)^δ]` (the leverage
+kernel's expectation). It has an elementary closed form at the fitted powers — `E|η|` at `δ=1`,
+`(1+γ²)−2γE[η|η|]` at `δ=2` — yet the reconstruction gate showed **`fEGarch` evaluates the whole
+kernel by numerical quadrature even there**: the mathematically-equal closed form *diverges* from
+`fEGarch`'s own integral by `~1e-13` (GJR×sald: the closed form misses the fixture by `2.2e-13`, while
+the full `E[(|η|−γη)²]` quadrature matches to `1.7e-18`). So **faithful reproduction means matching the
+reference's quadrature, not the exact value** — the port computes `κ` by the same full quadrature and
+reproduces the APARCH forecast machine-exact (`1.74e-17`), where the "obvious" closed-form
+implementation would sit `~1e-13` off. That the correction is genuinely present, not a numerical
+artifact, is pinned by an asymmetry-dropped control (`κ = E|η|^δ`, i.e. `γ=0`), which is rejected at
+`4.21e-05` — four orders coarser. The port chose fidelity to the reference's numerics over textbook
+exactness, and documents the choice. (spec-notes §33;
+[`test_predict.py`](../tests/timeseries/fegarch/test_predict.py).)
+
+### 9. The long-memory forecast truncation convention — extend the window, drop the warm-up
+
+The fractionally-integrated forecast has to decide how to truncate the `(1−L)^d` weight series as the
+horizon grows — and the answer is **not** the in-sample convention. Two points, both forced out by the
+reconstruction gate: (i) the forecast **extends the weight window *with the horizon*** rather than
+capping it at the fit length, because the long-memory weights `θ_k ~ k^{d−1}` barely decay — capping
+misses the FIEGARCH forecast by `2.8e-4`, while extending reproduces it to `3.9e-16`; (ii) the forecast
+**drops the in-sample 50-term `Var(r)` pre-sample warm-up** and conditions on the observed sample with
+a zero pre-sample — re-applying the in-sample seed misses by `2.0e-6`, while the zero pre-sample
+reproduces the FIGARCH forecast to `8.7e-18`. Both are fit-vs-forecast seam differences a naïve "reuse
+the in-sample recursion" port would get wrong. (spec-notes §34;
+[`test_predict.py`](../tests/timeseries/fegarch/test_predict.py) /
+[`test_forecast.py`](../tests/timeseries/fegarch/test_forecast.py).)
+
+### 10. The dual-mean composition is orthogonal — proven machine-exact, boundary stated
+
+Because `fEGarch` has **no GARCH-in-mean**, the ARMA/FARIMA-in-mean forecast and the variance forecast
+couple only through the residuals, and the composition is *orthogonal* — provable by a representative
+cross rather than the full mean×variance×law product. The gate confirms it machine-exact across that
+cross (ARMA+GARCH mean reproduced to `0.0`, FARIMA+FIEGARCH to `4.2e-18`; `σ` ≤ `4.9e-17`): the **future
+mean residual enters the variance forecast as zero** (`E_t[r_{n+h}²] = σ̂²`, not a forecasted residual),
+and the risk composes as `μ̂_{n+h} + σ̂_{n+h}·q`. The honest boundary is stated precisely: the mean's
+`(1−B)^{D}` and the variance's `(1−B)^{d}` are **independent** operators, and on this synthetic series
+`D` is estimated `≈0` (no mean long-memory — spec-notes §25), so the FARIMA mean forecast is numerically
+close to the ARMA one while still exercising the fractional-mean inversion structurally. (spec-notes
+§36; [`test_predict.py`](../tests/timeseries/fegarch/test_predict.py).)
+
+**Further forecast findings (recorded compactly).** *finding-5 is fit-only — invisible to the
+forecast:* the FIAPARCH pre-sample seed irreducible from output (§5 above) never enters the forecast,
+which is built from observed news + `ω` + the `θ`-weights and never touches `σ_n`, so the FIAPARCH
+forecast is seam-exact despite the bounded *fit* limit (spec-notes §34.3). *The EGF link→centering-moment
+mapping is machine-exact per sibling* — EGARCH/MEGARCH use `E|η|`, MLog-GARCH `E[ln(|η|+1)]`, Log-GARCH
+`E[ln η²]`, with `E[sgn(η)ln(|η|+1)]` the modulus-log asymmetry — and reconstruction caught two
+structural subtleties the obvious port would miss: short Log-GARCH loads its news by `ψ₁+φ₁` (not `ψ₁`;
+misses `5e-4`), and FILog-GARCH's `γ`-convolution is indexed at `h+k` (not the FIEGARCH `h−1+k`; misses
+`2.8e-4`) (spec-notes §35). *A latent bug the completeness sweep closed:* `EGARCH` `predict_roll` had
+never existed (Phase 6 shipped EGARCH multi-step only) and raised `KeyError` — the EGF rolling sweep
+added it (§35.3). *A distinct forecast-window fragility:* FILog-GARCH×`std`/`sstd` converge on the full
+sample but error on the `n_test=250` training-window fit — a sharper continuous-df fragility than
+finding 3, so those two laws drop from the FILog forecasts (§35.3).
 
 ## The coherence payoff
 
