@@ -429,6 +429,21 @@ committed forecast fixture: GARCH, the full EGF family (EGARCH/MEGARCH/MLog/Log-
 APARCH family (GJR/TGARCH/APARCH), the variance-recursion FI family (FIGARCH/FIGJR/FITGARCH/FIAPARCH), and
 the dual mean (ARMA/FARIMA-in-mean) composed with any of them. Forecast families 1–4: spec-notes §33–§36.
 
+**Exhaustive dual-mean fixture sweep — on `feat/fegarch-forecast-dualmean-sweep`** (breadth over the proven
+#32 engine; **NO new derivation or engine change**). The #32 representative 7-config cross is extended to the
+**full dual-mean product**: both means (ARMA/FARIMA) × all 16 variance models × each model's supported
+forecast-law surface (finding-3 drops inherited: 8 laws for the variance-recursion family, 6 for the Type-I
+EGF family + FILog-GARCH, 7 for Log-GARCH) × {`predict`, `predict_roll`} = **226 configs**, **219 new** beyond
+#32. Fixtures generated once in R (fEGarch 1.0.6, same seed/synthetic_returns.csv convention) via a targeted
+driver — `generate_fixtures.R`'s `fit_dual`/`dual_cross` generalised to the full product; `manifest.json`
+hand-extended (+438 entries); the 7 committed configs reproduce byte-for-byte (regression check; only the
+CRLF→LF and a pre-existing documentary `note` reword differ). Tests: the existing dual-mean helpers
+(`_dual_params_from_json(_fc)`) generalised to all 16 variance models, `_DUAL_CROSS(_F)` parametrised over
+the full product — **904 dual-mean cases pass** (within the existing 1e-9 floor). **Finding: uniform clean
+inheritance — all 226 configs fit (0 optimizer-fragility gaps on the dual-mean axis), every cell seam-exact
+or at the documented quadrature floor, no seam miss** (a miss would contradict #32's orthogonality claim).
+PR open, not merged.
+
 ## Completed
 
 - **Project skeleton** — packaging (`pyproject.toml`), ruff + mypy + pytest
