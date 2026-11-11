@@ -1,0 +1,28 @@
+{
+  "model": "fiaparch",
+  "mean_model": "farima11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": true,
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00034887122883346357,
+    "ar1": 0.0039944757024287323,
+    "ma1": 0.028961206633949091,
+    "D": 8.4394846740706047e-16,
+    "omega": 6.6679456768760527e-05,
+    "phi1": 0.18332520439673858,
+    "beta1": 0.68211071398060441,
+    "gamma": 0.082991145011776082,
+    "delta": 1.7043202091199314,
+    "d": 0.59584821328504334,
+    "shape": 2.2230712371781443
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean farima11-in-mean + fiaparch variance / ged; same training fit as forecast_farima11_fiaparch11_ged. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

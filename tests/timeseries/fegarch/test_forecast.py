@@ -737,21 +737,248 @@ def test_egf_measure_risk_matches_fixture(model: str, dist: str) -> None:
 # The mean and variance forecasts couple only through the residuals (no sigma->mean feedback; §36).
 # predict_roll: the variance recursion runs on the mean-residuals, the rolling conditional mean at
 # each test point is y - r; VaR/ES = mu_{t+h} + sigma_{t+h} q (measure_risk fed h-varying cmeans).
+# _DUAL_CROSS_F is the EXHAUSTIVE product (both means x all 16 variance models x each model's
+# forecast-law surface); the orthogonal composition inherits uniformly across every cell.
 
 _DUAL_CROSS_F = [
     ("arma11", "garch", "norm"),
-    ("arma11", "egarch", "norm"),
-    ("arma11", "aparch", "norm"),
-    ("farima11", "figarch", "norm"),
-    ("farima11", "fiegarch", "norm"),
+    ("arma11", "garch", "std"),
+    ("arma11", "garch", "ged"),
+    ("arma11", "garch", "ald"),
+    ("arma11", "garch", "snorm"),
+    ("arma11", "garch", "sstd"),
     ("arma11", "garch", "sged"),
+    ("arma11", "garch", "sald"),
+    ("arma11", "gjrgarch", "norm"),
+    ("arma11", "gjrgarch", "std"),
+    ("arma11", "gjrgarch", "ged"),
+    ("arma11", "gjrgarch", "ald"),
+    ("arma11", "gjrgarch", "snorm"),
+    ("arma11", "gjrgarch", "sstd"),
+    ("arma11", "gjrgarch", "sged"),
+    ("arma11", "gjrgarch", "sald"),
+    ("arma11", "tgarch", "norm"),
+    ("arma11", "tgarch", "std"),
+    ("arma11", "tgarch", "ged"),
+    ("arma11", "tgarch", "ald"),
+    ("arma11", "tgarch", "snorm"),
+    ("arma11", "tgarch", "sstd"),
+    ("arma11", "tgarch", "sged"),
+    ("arma11", "tgarch", "sald"),
+    ("arma11", "aparch", "norm"),
+    ("arma11", "aparch", "std"),
+    ("arma11", "aparch", "ged"),
+    ("arma11", "aparch", "ald"),
+    ("arma11", "aparch", "snorm"),
+    ("arma11", "aparch", "sstd"),
+    ("arma11", "aparch", "sged"),
+    ("arma11", "aparch", "sald"),
+    ("arma11", "figarch", "norm"),
+    ("arma11", "figarch", "std"),
+    ("arma11", "figarch", "ged"),
+    ("arma11", "figarch", "ald"),
+    ("arma11", "figarch", "snorm"),
+    ("arma11", "figarch", "sstd"),
+    ("arma11", "figarch", "sged"),
+    ("arma11", "figarch", "sald"),
+    ("arma11", "figjr", "norm"),
+    ("arma11", "figjr", "std"),
+    ("arma11", "figjr", "ged"),
+    ("arma11", "figjr", "ald"),
+    ("arma11", "figjr", "snorm"),
+    ("arma11", "figjr", "sstd"),
+    ("arma11", "figjr", "sged"),
+    ("arma11", "figjr", "sald"),
+    ("arma11", "fitgarch", "norm"),
+    ("arma11", "fitgarch", "std"),
+    ("arma11", "fitgarch", "ged"),
+    ("arma11", "fitgarch", "ald"),
+    ("arma11", "fitgarch", "snorm"),
+    ("arma11", "fitgarch", "sstd"),
+    ("arma11", "fitgarch", "sged"),
+    ("arma11", "fitgarch", "sald"),
+    ("arma11", "fiaparch", "norm"),
+    ("arma11", "fiaparch", "std"),
+    ("arma11", "fiaparch", "ged"),
+    ("arma11", "fiaparch", "ald"),
+    ("arma11", "fiaparch", "snorm"),
+    ("arma11", "fiaparch", "sstd"),
+    ("arma11", "fiaparch", "sged"),
+    ("arma11", "fiaparch", "sald"),
+    ("arma11", "egarch", "norm"),
+    ("arma11", "egarch", "ged"),
+    ("arma11", "egarch", "ald"),
+    ("arma11", "egarch", "snorm"),
+    ("arma11", "egarch", "sged"),
+    ("arma11", "egarch", "sald"),
+    ("arma11", "megarch", "norm"),
+    ("arma11", "megarch", "ged"),
+    ("arma11", "megarch", "ald"),
+    ("arma11", "megarch", "snorm"),
+    ("arma11", "megarch", "sged"),
+    ("arma11", "megarch", "sald"),
+    ("arma11", "mloggarch", "norm"),
+    ("arma11", "mloggarch", "ged"),
+    ("arma11", "mloggarch", "ald"),
+    ("arma11", "mloggarch", "snorm"),
+    ("arma11", "mloggarch", "sged"),
+    ("arma11", "mloggarch", "sald"),
+    ("arma11", "loggarch", "norm"),
+    ("arma11", "loggarch", "ged"),
+    ("arma11", "loggarch", "ald"),
+    ("arma11", "loggarch", "snorm"),
+    ("arma11", "loggarch", "sstd"),
+    ("arma11", "loggarch", "sged"),
+    ("arma11", "loggarch", "sald"),
+    ("arma11", "fiegarch", "norm"),
+    ("arma11", "fiegarch", "ged"),
+    ("arma11", "fiegarch", "ald"),
+    ("arma11", "fiegarch", "snorm"),
+    ("arma11", "fiegarch", "sged"),
+    ("arma11", "fiegarch", "sald"),
+    ("arma11", "fimegarch", "norm"),
+    ("arma11", "fimegarch", "ged"),
+    ("arma11", "fimegarch", "ald"),
+    ("arma11", "fimegarch", "snorm"),
+    ("arma11", "fimegarch", "sged"),
+    ("arma11", "fimegarch", "sald"),
+    ("arma11", "fimloggarch", "norm"),
+    ("arma11", "fimloggarch", "ged"),
+    ("arma11", "fimloggarch", "ald"),
+    ("arma11", "fimloggarch", "snorm"),
+    ("arma11", "fimloggarch", "sged"),
+    ("arma11", "fimloggarch", "sald"),
+    ("arma11", "filoggarch", "norm"),
+    ("arma11", "filoggarch", "ged"),
+    ("arma11", "filoggarch", "ald"),
+    ("arma11", "filoggarch", "snorm"),
+    ("arma11", "filoggarch", "sged"),
+    ("arma11", "filoggarch", "sald"),
+    ("farima11", "garch", "norm"),
+    ("farima11", "garch", "std"),
+    ("farima11", "garch", "ged"),
+    ("farima11", "garch", "ald"),
+    ("farima11", "garch", "snorm"),
+    ("farima11", "garch", "sstd"),
+    ("farima11", "garch", "sged"),
+    ("farima11", "garch", "sald"),
+    ("farima11", "gjrgarch", "norm"),
+    ("farima11", "gjrgarch", "std"),
+    ("farima11", "gjrgarch", "ged"),
+    ("farima11", "gjrgarch", "ald"),
+    ("farima11", "gjrgarch", "snorm"),
+    ("farima11", "gjrgarch", "sstd"),
+    ("farima11", "gjrgarch", "sged"),
+    ("farima11", "gjrgarch", "sald"),
+    ("farima11", "tgarch", "norm"),
+    ("farima11", "tgarch", "std"),
+    ("farima11", "tgarch", "ged"),
+    ("farima11", "tgarch", "ald"),
+    ("farima11", "tgarch", "snorm"),
+    ("farima11", "tgarch", "sstd"),
+    ("farima11", "tgarch", "sged"),
+    ("farima11", "tgarch", "sald"),
+    ("farima11", "aparch", "norm"),
+    ("farima11", "aparch", "std"),
+    ("farima11", "aparch", "ged"),
+    ("farima11", "aparch", "ald"),
+    ("farima11", "aparch", "snorm"),
+    ("farima11", "aparch", "sstd"),
+    ("farima11", "aparch", "sged"),
+    ("farima11", "aparch", "sald"),
+    ("farima11", "figarch", "norm"),
+    ("farima11", "figarch", "std"),
+    ("farima11", "figarch", "ged"),
+    ("farima11", "figarch", "ald"),
+    ("farima11", "figarch", "snorm"),
+    ("farima11", "figarch", "sstd"),
+    ("farima11", "figarch", "sged"),
+    ("farima11", "figarch", "sald"),
+    ("farima11", "figjr", "norm"),
+    ("farima11", "figjr", "std"),
+    ("farima11", "figjr", "ged"),
+    ("farima11", "figjr", "ald"),
+    ("farima11", "figjr", "snorm"),
+    ("farima11", "figjr", "sstd"),
+    ("farima11", "figjr", "sged"),
+    ("farima11", "figjr", "sald"),
+    ("farima11", "fitgarch", "norm"),
+    ("farima11", "fitgarch", "std"),
+    ("farima11", "fitgarch", "ged"),
+    ("farima11", "fitgarch", "ald"),
+    ("farima11", "fitgarch", "snorm"),
+    ("farima11", "fitgarch", "sstd"),
+    ("farima11", "fitgarch", "sged"),
+    ("farima11", "fitgarch", "sald"),
+    ("farima11", "fiaparch", "norm"),
+    ("farima11", "fiaparch", "std"),
+    ("farima11", "fiaparch", "ged"),
+    ("farima11", "fiaparch", "ald"),
+    ("farima11", "fiaparch", "snorm"),
+    ("farima11", "fiaparch", "sstd"),
+    ("farima11", "fiaparch", "sged"),
+    ("farima11", "fiaparch", "sald"),
+    ("farima11", "egarch", "norm"),
+    ("farima11", "egarch", "ged"),
+    ("farima11", "egarch", "ald"),
+    ("farima11", "egarch", "snorm"),
+    ("farima11", "egarch", "sged"),
+    ("farima11", "egarch", "sald"),
+    ("farima11", "megarch", "norm"),
+    ("farima11", "megarch", "ged"),
+    ("farima11", "megarch", "ald"),
+    ("farima11", "megarch", "snorm"),
+    ("farima11", "megarch", "sged"),
+    ("farima11", "megarch", "sald"),
+    ("farima11", "mloggarch", "norm"),
+    ("farima11", "mloggarch", "ged"),
+    ("farima11", "mloggarch", "ald"),
+    ("farima11", "mloggarch", "snorm"),
+    ("farima11", "mloggarch", "sged"),
+    ("farima11", "mloggarch", "sald"),
+    ("farima11", "loggarch", "norm"),
+    ("farima11", "loggarch", "ged"),
+    ("farima11", "loggarch", "ald"),
+    ("farima11", "loggarch", "snorm"),
+    ("farima11", "loggarch", "sstd"),
+    ("farima11", "loggarch", "sged"),
+    ("farima11", "loggarch", "sald"),
+    ("farima11", "fiegarch", "norm"),
+    ("farima11", "fiegarch", "ged"),
+    ("farima11", "fiegarch", "ald"),
+    ("farima11", "fiegarch", "snorm"),
     ("farima11", "fiegarch", "sged"),
+    ("farima11", "fiegarch", "sald"),
+    ("farima11", "fimegarch", "norm"),
+    ("farima11", "fimegarch", "ged"),
+    ("farima11", "fimegarch", "ald"),
+    ("farima11", "fimegarch", "snorm"),
+    ("farima11", "fimegarch", "sged"),
+    ("farima11", "fimegarch", "sald"),
+    ("farima11", "fimloggarch", "norm"),
+    ("farima11", "fimloggarch", "ged"),
+    ("farima11", "fimloggarch", "ald"),
+    ("farima11", "fimloggarch", "snorm"),
+    ("farima11", "fimloggarch", "sged"),
+    ("farima11", "fimloggarch", "sald"),
+    ("farima11", "filoggarch", "norm"),
+    ("farima11", "filoggarch", "ged"),
+    ("farima11", "filoggarch", "ald"),
+    ("farima11", "filoggarch", "snorm"),
+    ("farima11", "filoggarch", "sged"),
+    ("farima11", "filoggarch", "sald"),
 ]
 _DUAL_ROLL_TOL = 1e-9
 
 
 def _dual_params_from_json_fc(p: dict, var_model: str, dist: str) -> tuple[dict, str | None]:  # type: ignore[type-arg]
-    """R dual-mean fit params -> (quantica params, model tag): mean block + variance block."""
+    """R dual-mean fit params -> (quantica params, model tag): mean block + variance block.
+
+    Covers every fEGarch variance model (the exhaustive dual-mean sweep). The variance block
+    mirrors the single-mean mappers; the mean block prepends the ARMA (``ar1``/``ma1``) and
+    FARIMA fractional-mean (``D``) terms. The EGF log-variance family carries a ``model`` tag
+    (its siblings share parameter keys); the variance-recursion family does not.
+    """
     q: dict = {"mu": p["mu"]}
     for k in ("ar1", "ma1"):
         if k in p:
@@ -761,20 +988,32 @@ def _dual_params_from_json_fc(p: dict, var_model: str, dist: str) -> tuple[dict,
     model: str | None = None
     if var_model == "garch":
         q.update(omega=p["omega"], alpha=p["phi1"], beta=p["beta1"])
+    elif var_model in ("aparch", "gjrgarch", "tgarch"):  # APARCH-power family (+ power delta)
+        q.update(omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], gamma1=p["gamma1"])
+        q["delta"] = p.get("delta", 2.0 if var_model == "gjrgarch" else 1.0)
+    elif var_model in ("figarch", "figjr", "fitgarch", "fiaparch"):  # variance-recursion FI
+        q.update(omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], d=p["d"])
+        if var_model in ("fitgarch", "figjr", "fiaparch"):
+            q["gamma"] = p["gamma"]
+            q["delta"] = p.get("delta", 1.0 if var_model == "fitgarch" else 2.0)
     elif var_model == "egarch":
         q.update(omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"])
         model = "egarch"
-    elif var_model == "aparch":
-        q.update(
-            omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], gamma1=p["gamma1"], delta=p["delta"]
-        )
-    elif var_model == "figarch":
-        q.update(omega=p["omega"], phi1=p["phi1"], beta1=p["beta1"], d=p["d"])
     elif var_model == "fiegarch":
         q.update(
             omega_sig=p["omega_sig"], phi1=p["phi1"], kappa=p["kappa"], gamma=p["gamma"], d=p["d"]
         )
         model = "fiegarch"
+    else:  # EGF siblings: megarch/mloggarch/loggarch + fimegarch/fimloggarch/filoggarch
+        q.update(omega_sig=p["omega_sig"], phi1=p["phi1"])
+        if "psi1" in p:  # Type-II (Log-GARCH / FILog-GARCH)
+            q["psi1"] = p["psi1"]
+        else:  # Type-I (MEGARCH / MLog-GARCH + FI)
+            q["kappa"] = p["kappa"]
+            q["gamma"] = p["gamma"]
+        if "d" in p:
+            q["d"] = p["d"]
+        model = var_model
     if dist in ("std", "sstd"):
         q["nu"] = p["df"]
     elif dist in ("ged", "sged"):

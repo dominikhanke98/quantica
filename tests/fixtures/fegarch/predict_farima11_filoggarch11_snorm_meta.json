@@ -1,0 +1,26 @@
+{
+  "model": "filoggarch",
+  "mean_model": "farima11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": true,
+  "cond_dist": "snorm",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": -0.0026788952201074337,
+    "ar1": 0.051399825438683655,
+    "ma1": -0.35536244924326671,
+    "D": 0.33729076174489409,
+    "omega_sig": -8.7988757339965016,
+    "phi1": 0.30060867265477631,
+    "psi1": -0.56092368291964445,
+    "d": 0.30275694574525813,
+    "skew": 0.98623455950924177
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean farima11-in-mean + filoggarch variance / snorm; same training fit as forecast_farima11_filoggarch11_snorm. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

@@ -1002,24 +1002,44 @@ for (dist in L6) {
 # and variance forecasts couple only through the residuals (spec-notes §36): the mean forecast
 # (ARMA/FARIMA iterate, future residuals=0) composes with the variance forecast of the mean-RESIDUALS
 # (future residual enters as E[r^2]=sigma^2); cmeans is the h-varying conditional mean; VaR/ES =
-# mu_{t+h} + sigma_{t+h} q. Because the composition is orthogonal, a REPRESENTATIVE CROSS exercising
-# every structural axis proves it (the exhaustive mean x variance x law sweep is deferred optional
-# #28-style breadth). The mean is set via meanspec=mean_spec(orders, long_memo). Each config is
-# tryCatch-wrapped; a failure writes NO fixture.
+# mu_{t+h} + sigma_{t+h} q. The composition is orthogonal, so the EXHAUSTIVE mean x variance x law
+# product (2 means x all 16 variance models x each model's supported forecast-law surface) is the
+# breadth artifact: it confirms uniform inheritance across every variance family and both mean types.
+# The mean is set via meanspec=mean_spec(orders, long_memo). Each (mean, variance, law) config is
+# tryCatch-wrapped; a failure (an optimizer-fragility gap, the §35.3 pattern on the dual-mean axis)
+# writes NO fixture and is a documented gap. The per-model law surface inherits the finding-3 forecast
+# drops already established by the single-mean sweeps (variance-recursion: all 8; Type-I EGF: 6, no
+# std/sstd; Log-GARCH: 7, no std; FILog-GARCH: 6 on the forecast window, §35.3).
 fit_dual <- function(vmodel, law, lm) {
   ms <- mean_spec(orders = c(1, 1), long_memo = lm)
-  if (vmodel == "garch") garch(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
-  else if (vmodel == "aparch") aparch(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
-  else if (vmodel == "figarch") figarch(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
-  else if (vmodel == "egarch") fEGarch(egarch_spec(orders = c(1, 1), cond_dist = law), returns, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
-  else fEGarch(fiegarch_spec(orders = c(1, 1), cond_dist = law), returns, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  if (vmodel %in% c("garch", "gjrgarch", "tgarch", "aparch")) {
+    match.fun(vmodel)(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  } else if (vmodel %in% c("figarch", "figjr", "fitgarch", "fiaparch")) {
+    rfn <- if (vmodel == "figjr") "figjrgarch" else vmodel  # fEGarch's FIGJR function is figjrgarch
+    match.fun(rfn)(returns, orders = c(1, 1), cond_dist = law, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  } else {  # EGF log-variance family (egarch/megarch/mloggarch/loggarch + FI): spec + fEGarch()
+    fEGarch(match.fun(paste0(vmodel, "_spec"))(orders = c(1, 1), cond_dist = law), returns, meanspec = ms, n_test = N_TEST_FC, parallel = FALSE)
+  }
 }
-dual_cross <- list(
-  list("arma11", "garch", "norm", FALSE, "none"), list("arma11", "egarch", "norm", FALSE, "none"),
-  list("arma11", "aparch", "norm", FALSE, "none"), list("farima11", "figarch", "norm", TRUE, "none"),
-  list("farima11", "fiegarch", "norm", TRUE, "n-1"), list("arma11", "garch", "sged", FALSE, "none"),
-  list("farima11", "fiegarch", "sged", TRUE, "n-1")
-)
+# Build the full product programmatically. Law surface per model = the finding-3 forecast drops.
+DUAL_L8 <- c("norm", "std", "ged", "ald", "snorm", "sstd", "sged", "sald")  # variance-recursion
+DUAL_L6 <- c("norm", "ged", "ald", "snorm", "sged", "sald")                 # Type-I EGF: no std/sstd
+DUAL_L7 <- c("norm", "ged", "ald", "snorm", "sstd", "sged", "sald")         # Log-GARCH: no std
+dual_laws_of <- function(v) {
+  if (v %in% c("garch", "gjrgarch", "tgarch", "aparch", "figarch", "figjr", "fitgarch", "fiaparch")) DUAL_L8
+  else if (v == "loggarch") DUAL_L7
+  else DUAL_L6  # egarch/megarch/mloggarch + fiegarch/fimegarch/fimloggarch + filoggarch (§35.3)
+}
+dual_cross <- list()
+for (mean_m in c("arma11", "farima11")) {
+  lm <- (mean_m == "farima11")
+  for (v in c("garch", "gjrgarch", "tgarch", "aparch", "figarch", "figjr", "fitgarch", "fiaparch",
+              "egarch", "megarch", "mloggarch", "loggarch",
+              "fiegarch", "fimegarch", "fimloggarch", "filoggarch")) {
+    tp <- if (v %in% c("fiegarch", "fimegarch", "fimloggarch", "filoggarch")) "n-1" else "none"
+    for (law in dual_laws_of(v)) dual_cross[[length(dual_cross) + 1L]] <- list(mean_m, v, law, lm, tp)
+  }
+}
 for (cfg in dual_cross) {
   mean_m <- cfg[[1]]; vmodel <- cfg[[2]]; law <- cfg[[3]]; lm <- cfg[[4]]; trunc_pol <- cfg[[5]]
   tag <- sprintf("%s_%s11_%s", mean_m, vmodel, law)

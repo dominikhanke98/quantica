@@ -1,0 +1,26 @@
+{
+  "model": "fimloggarch",
+  "mean_model": "arma11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": false,
+  "cond_dist": "ged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00035673773848715151,
+    "ar1": -0.28295419126200227,
+    "ma1": 0.31936790035595608,
+    "omega_sig": -9.0214843677099665,
+    "phi1": 0.46434721433541348,
+    "kappa": -0.031568859935034319,
+    "gamma": 0.34580697969579682,
+    "d": 0.66538607507487535,
+    "shape": 2.1448260567062856
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean arma11-in-mean + fimloggarch variance / ged; same training fit as forecast_arma11_fimloggarch11_ged. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

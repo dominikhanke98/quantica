@@ -1,0 +1,33 @@
+{
+  "model": "gjrgarch",
+  "mean_model": "arma11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": false,
+  "cond_dist": "sged",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00035780672369198124,
+    "ar1": 0.049821243975743799,
+    "ma1": -0.01885911954722189,
+    "omega": 3.5415723633246249e-06,
+    "phi1": 0.085191707048180007,
+    "beta1": 0.8910253006893506,
+    "gamma1": 0.094349758049263488,
+    "shape": 2.2252353310897139,
+    "skew": 0.97814403734228561
+  },
+  "loglikelihood": 6817.0585293258337,
+  "aic": -6.0516075816229629,
+  "bic": -6.0287328396421698,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

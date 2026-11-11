@@ -1,0 +1,32 @@
+{
+  "model": "loggarch",
+  "mean_model": "arma11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": false,
+  "cond_dist": "sstd",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00050331567623328969,
+    "ar1": 0.050581627277288758,
+    "ma1": -0.0095978949096120498,
+    "omega_sig": -8.8589336540167931,
+    "phi1": 0.98647071531428643,
+    "psi1": -0.9542631872724574,
+    "df": 17.624477896707013,
+    "skew": 0.92573813687262263
+  },
+  "loglikelihood": 6776.7841591718552,
+  "aic": -6.0166970303749823,
+  "bic": -5.9963639263920543,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

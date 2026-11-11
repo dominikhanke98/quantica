@@ -1,0 +1,27 @@
+{
+  "model": "mloggarch",
+  "mean_model": "farima11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": true,
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00044706807410557016,
+    "ar1": -4.0940180004792048e-09,
+    "ma1": 0.024964863169940104,
+    "D": 8.9255475491751029e-09,
+    "omega_sig": -9.0250288811438768,
+    "phi1": 0.98013565495149402,
+    "kappa": -0.033789185361520514,
+    "gamma": 0.30504682756335577,
+    "P": 5,
+    "skew": 0.95887781762387669
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean farima11-in-mean + mloggarch variance / sald; same training fit as forecast_farima11_mloggarch11_sald. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
