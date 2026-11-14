@@ -65,8 +65,8 @@ from quantica.timeseries.fegarch.distributions import (
     get_distribution,
 )
 from quantica.timeseries.fegarch.fiegarch import theta_coefficients
-from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit, build_zero_mean_fit
+from quantica.timeseries.fegarch.qmle import prepend_zero_mean, quasi_max_likelihood
 
 # Nelder-Mead options + restart controls for the shape-parameter fits (near-common-root ridge +
 # shape-dependent centering + fractional d) — norm keeps the gradient path, bit-identical.
@@ -171,7 +171,9 @@ def filoggarch_recursion(
     return np.exp(log_var)
 
 
-def fit_filoggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_filoggarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit FILog-GARCH(1,d,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -180,6 +182,9 @@ def fit_filoggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes :math:`\\mu = 0`, drops it, and
+        skips rescaling — the zero-mean semiparametric path on the de-scaled returns.
 
     Returns
     -------
@@ -189,42 +194,63 @@ def fit_filoggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
+    scale = float(np.std(y)) if include_mean else 1.0  # 1 on the already-unit de-scaled returns
     scaled = y / scale
-    var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), 0.3, -0.3, 0.3)
+    var_start: tuple[float, ...] = (
+        float(np.mean(scaled)),
+        float(np.log(np.var(scaled, ddof=1))),
+        0.3,
+        -0.3,
+        0.3,
+    )
+    if not include_mean:  # drop mu (fixed at 0 inside the recursion)
+        var_start = var_start[1:]
 
     if cond_dist in ("ald", "sald"):
-        return _fit_filoggarch_ald(scaled, scale, n, var_start, skewed=cond_dist == "sald")
+        return _fit_filoggarch_ald(
+            scaled, scale, n, var_start, skewed=cond_dist == "sald", include_mean=include_mean
+        )
 
     distribution = get_distribution(cond_dist)
-    result = _run_filoggarch_fit(scaled, distribution, var_start)
+    result = _run_filoggarch_fit(scaled, distribution, var_start, include_mean)
+    if not include_mean:
+        return build_zero_mean_fit(result, cond_dist, n, k=result.params.size)
     return _build_filoggarch_fit(result, cond_dist, scale, n, k=result.params.size)
 
 
 def _run_filoggarch_fit(
-    scaled: FloatArray, distribution: object, var_start: tuple[float, ...]
+    scaled: FloatArray,
+    distribution: object,
+    var_start: tuple[float, ...],
+    include_mean: bool = True,
 ) -> QMLEResult:
     """Fit FILog-GARCH under one distribution; per-iteration ``mean_log_sq`` centering for a shape.
 
     ``norm`` / fixed-``P`` ALD capture a precomputed ``mean_log_sq`` and use the gradient path
     (bit-identical). A continuous shape recomputes it from the *current* shape each iteration, using
     Nelder-Mead + a restart (the near-common-root ridge + a shape-dependent centering can stall).
+    With ``include_mean=False`` the mean is fixed at 0 and dropped (zero-mean semiparametric path).
     """
+    bounds = _FILOGGARCH_BOUNDS if include_mean else _FILOGGARCH_BOUNDS[1:]
+    names = _VAR_NAMES if include_mean else _VAR_NAMES[1:]
     if distribution.param_names:  # type: ignore[attr-defined]
 
         def per_iter(
             params: FloatArray, returns: FloatArray, dist_params: tuple[float, ...]
         ) -> FloatArray:
+            full = (
+                params if include_mean else np.concatenate(([0.0], np.asarray(params, np.float64)))
+            )
             return filoggarch_recursion(
-                params,
+                full,
                 returns,
                 mean_log_sq=distribution.mean_log_sq(dist_params),  # type: ignore[attr-defined]
             )
 
         kw: dict[str, object] = {
-            "var_bounds": _FILOGGARCH_BOUNDS,
-            "var_names": _VAR_NAMES,
-            "mean": True,
+            "var_bounds": bounds,
+            "var_names": names,
+            "mean": include_mean,
             "method": "Nelder-Mead",
             "options": _SHAPE_OPTIONS,
             "recursion_uses_dist_params": True,
@@ -262,12 +288,12 @@ def _run_filoggarch_fit(
 
     return quasi_max_likelihood(
         scaled,
-        constant,
+        constant if include_mean else prepend_zero_mean(constant),
         distribution,  # type: ignore[arg-type]
         var_start=var_start,
-        var_bounds=_FILOGGARCH_BOUNDS,
-        var_names=_VAR_NAMES,
-        mean=True,
+        var_bounds=bounds,
+        var_names=names,
+        mean=include_mean,
     )
 
 
@@ -338,12 +364,19 @@ def _build_filoggarch_fit(
 
 
 def _fit_filoggarch_ald(
-    scaled: FloatArray, scale: float, n: int, var_start: tuple[float, ...], *, skewed: bool
+    scaled: FloatArray,
+    scale: float,
+    n: int,
+    var_start: tuple[float, ...],
+    *,
+    skewed: bool,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for FILog-GARCH (ald / sald).
 
     Selects the ``P`` with the highest log-likelihood -- for FILog-GARCH x sald the **interior
     P = 3**, not the boundary. ``P`` never enters the optimizer but counts in the AIC/BIC penalty.
+    With ``include_mean=False`` the mean is fixed at 0 (zero-mean semiparametric path).
     """
     best: QMLEResult | None = None
     best_p = 0
@@ -351,12 +384,21 @@ def _fit_filoggarch_ald(
     for p in _ALD_PRANGE:
         base = AverageLaplace(p=p)
         distribution = FernandezSteelSkew(base) if skewed else base
-        result = _run_filoggarch_fit(scaled, distribution, var_start)
+        result = _run_filoggarch_fit(scaled, distribution, var_start, include_mean)
         profile.append((p, float(result.loglikelihood - n * np.log(scale))))
         if best is None or result.loglikelihood > best.loglikelihood:
             best, best_p = result, p
 
     assert best is not None  # _ALD_PRANGE is non-empty
+    if not include_mean:
+        return build_zero_mean_fit(
+            best,
+            "sald" if skewed else "ald",
+            n,
+            k=best.params.size + 1,
+            extra_params={"P": float(best_p)},
+            profile=tuple(profile),
+        )
     return _build_filoggarch_fit(
         best,
         "sald" if skewed else "ald",

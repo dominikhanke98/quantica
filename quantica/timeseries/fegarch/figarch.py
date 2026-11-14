@@ -66,12 +66,12 @@ from quantica.timeseries.fegarch.distributions import (
     get_distribution,
 )
 from quantica.timeseries.fegarch.fracdiff import fracdiff_coeffs
-from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit, build_zero_mean_fit
+from quantica.timeseries.fegarch.qmle import prepend_zero_mean, quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
-    from quantica.timeseries.fegarch.qmle import QMLEResult
+    from quantica.timeseries.fegarch.qmle import QMLEResult, VarianceRecursion
 
 # Optimizer options for the derivative-free Nelder-Mead used on near-flat shape/skew ridges
 # (Student-t df -> inf, FS skew -> 1 on near-symmetric data), matching the GARCH shape-fit path.
@@ -211,7 +211,9 @@ def figarch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
     return figarch_variance_filter(eps2, theta, omega, presample_value)
 
 
-def fit_figarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_figarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit FIGARCH(1,d,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -220,6 +222,9 @@ def fit_figarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes :math:`\\mu = 0`, drops it, and
+        skips rescaling — the zero-mean semiparametric path on the de-scaled returns.
 
     Returns
     -------
@@ -229,22 +234,37 @@ def fit_figarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean/omega
+    scale = float(np.std(y)) if include_mean else 1.0  # 1 on the already-unit de-scaled returns
     scaled = y / scale
 
-    var_start = (float(np.mean(scaled)), 0.05, 0.2, 0.5, 0.3)
-    var_bounds = (
+    var_start: tuple[float, ...] = (float(np.mean(scaled)), 0.05, 0.2, 0.5, 0.3)
+    var_bounds: tuple[tuple[float, float], ...] = (
         (-10.0, 10.0),
         (1e-8, 100.0),  # omega > 0 (variance intercept)
         (1e-6, 0.9999),
         (1e-6, 0.9999),
         (1e-6, 0.9999),  # d in (0, 1) -- figarch's drange, NOT clamped at 0.5
     )
+    var_names: tuple[str, ...] = _VAR_NAMES
+    recursion: VarianceRecursion = figarch_recursion
+    if not include_mean:  # drop mu; fix it at 0 inside the recursion
+        var_start, var_bounds, var_names = var_start[1:], var_bounds[1:], var_names[1:]
+        recursion = prepend_zero_mean(figarch_recursion)
 
     # The ALD (and sALD) profiles its integer degree P over the grid (as GARCH); every other
     # distribution's shape/skew parameters are estimated jointly by the engine.
     if cond_dist in ("ald", "sald"):
-        return _fit_figarch_ald(scaled, scale, n, var_start, var_bounds, skewed=cond_dist == "sald")
+        return _fit_figarch_ald(
+            scaled,
+            scale,
+            n,
+            var_start,
+            var_bounds,
+            var_names,
+            recursion,
+            skewed=cond_dist == "sald",
+            include_mean=include_mean,
+        )
 
     distribution = get_distribution(cond_dist)
     # Near-flat shape/skew ridges stall L-BFGS-B, so shape-parameter fits use Nelder-Mead; the norm
@@ -257,15 +277,17 @@ def fit_figarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
 
     result = quasi_max_likelihood(
         scaled,
-        figarch_recursion,
+        recursion,
         distribution,
         var_start=var_start,
         var_bounds=var_bounds,
-        var_names=_VAR_NAMES,
-        mean=True,
+        var_names=var_names,
+        mean=include_mean,
         method=method,
         options=options,
     )
+    if not include_mean:
+        return build_zero_mean_fit(result, cond_dist, n, k=result.params.size)
     return _figarch_fit_from_result(result, cond_dist, scale, n, k=result.params.size)
 
 
@@ -343,8 +365,11 @@ def _fit_figarch_ald(
     n: int,
     var_start: tuple[float, ...],
     var_bounds: tuple[tuple[float, float], ...],
+    var_names: tuple[str, ...],
+    recursion: object,
     *,
     skewed: bool,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for FIGARCH (``ald`` / ``sald``).
 
@@ -362,12 +387,12 @@ def _fit_figarch_ald(
         distribution = FernandezSteelSkew(base) if skewed else base
         result = quasi_max_likelihood(
             scaled,
-            figarch_recursion,
+            recursion,  # type: ignore[arg-type]
             distribution,
             var_start=var_start,
             var_bounds=var_bounds,
-            var_names=_VAR_NAMES,
-            mean=True,
+            var_names=var_names,
+            mean=include_mean,
             method=method,
             options=options,
         )
@@ -376,6 +401,15 @@ def _fit_figarch_ald(
             best, best_p = result, p
 
     assert best is not None  # _ALD_PRANGE is non-empty
+    if not include_mean:
+        return build_zero_mean_fit(
+            best,
+            "sald" if skewed else "ald",
+            n,
+            k=best.params.size + 1,
+            extra_params={"P": float(best_p)},
+            profile=tuple(profile),
+        )
     return _figarch_fit_from_result(
         best,
         "sald" if skewed else "ald",

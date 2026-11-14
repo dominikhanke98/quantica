@@ -85,8 +85,8 @@ from quantica.timeseries.fegarch.distributions import (
     FernandezSteelSkew,
     get_distribution,
 )
-from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit, build_zero_mean_fit
+from quantica.timeseries.fegarch.qmle import prepend_zero_mean, quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
@@ -342,6 +342,7 @@ def _type1_centered_recursion(
     distribution: ConditionalDistribution,
     constants: tuple[float, float, float, float],
     log_modulus_magnitude: bool,
+    include_mean: bool = True,
 ) -> tuple[object, bool, str, dict[str, object] | None]:
     """Build the Type-I recursion with the right E[g(eta)] magnitude centering for a distribution.
 
@@ -371,8 +372,11 @@ def _type1_centered_recursion(
             params: FloatArray, returns: FloatArray, dist_params: tuple[float, ...]
         ) -> FloatArray:
             mean_mag = moment(dist_params)
+            full = (
+                params if include_mean else np.concatenate(([0.0], np.asarray(params, np.float64)))
+            )
             return _type1_variance(
-                params,
+                full,
                 returns,
                 constants=constants,
                 mean_asy=_mean_asy(dist_params),
@@ -389,7 +393,13 @@ def _type1_centered_recursion(
             params, returns, constants=constants, mean_asy=mean_asy_const, mean_mag=mean_mag
         )
 
-    return constant, False, "L-BFGS-B", None
+    # L-BFGS-B is bit-identical on the mean-included surface, but on the zero-mean
+    # (semiparametric) surface the modulus-log-asymmetry models (MEGARCH) can present a near-flat
+    # gradient at the start that stalls it, so the zero-mean path uses derivative-free Nelder-Mead.
+    recursion = constant if include_mean else prepend_zero_mean(constant)
+    if include_mean:
+        return recursion, False, "L-BFGS-B", None
+    return recursion, False, "Nelder-Mead", _SHAPE_OPTIONS
 
 
 def _run_type1_fit(
@@ -398,20 +408,22 @@ def _run_type1_fit(
     constants: tuple[float, float, float, float],
     log_modulus_magnitude: bool,
     var_start: tuple[float, ...],
+    include_mean: bool = True,
 ) -> QMLEResult:
     """Fit a Type-I EGF model under one distribution, restarting Nelder-Mead if its simplex stalls.
 
     The shape-parameter fits (Nelder-Mead over a flat shape ridge with a shape-dependent centering)
     can converge prematurely on a collapsed simplex; restarting from the solution escapes that. The
-    ``norm`` / fixed-``P`` ALD path is gradient-based (L-BFGS-B) and needs no restart.
+    ``norm`` / fixed-``P`` ALD path is gradient-based (L-BFGS-B) and needs no restart. With
+    ``include_mean=False`` the mean is fixed at 0 and dropped (zero-mean semiparametric path).
     """
     recursion, uses_dist, method, options = _type1_centered_recursion(
-        distribution, constants, log_modulus_magnitude
+        distribution, constants, log_modulus_magnitude, include_mean
     )
     kw: dict[str, object] = {
-        "var_bounds": _TYPE1_VAR_BOUNDS,
-        "var_names": _VAR_NAMES,
-        "mean": True,
+        "var_bounds": _TYPE1_VAR_BOUNDS if include_mean else _TYPE1_VAR_BOUNDS[1:],
+        "var_names": _VAR_NAMES if include_mean else _VAR_NAMES[1:],
+        "mean": include_mean,
         "method": method,
         "options": options,
         "recursion_uses_dist_params": uses_dist,
@@ -520,20 +532,28 @@ def _fit_type1(
     constants: tuple[float, float, float, float],
     log_modulus_magnitude: bool,
     model: str,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Shared Type-I EGF QMLE fit under any conditional distribution (the EGF infrastructure).
 
     The magnitude term is centered by the distribution's ``E[g(eta)]`` (``E|eta|`` for
     EGARCH/MEGARCH, ``E[ln(|eta|+1)]`` for MLog-GARCH). For a continuous shape (std df, ged shape)
     that centering is re-computed each optimizer iteration from the current shape; the ALD profiles
-    ``P`` over the grid;
-    norm keeps the precomputed constant, bit-identical.
+    ``P`` over the grid; norm keeps the precomputed constant, bit-identical. With
+    ``include_mean=False`` the mean is fixed at 0 and dropped (the zero-mean semiparametric path on
+    the already-unit de-scaled returns, no rescaling).
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
+    scale = float(np.std(y)) if include_mean else 1.0  # 1 on the already-unit de-scaled returns
     scaled = y / scale
-    var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), *_TYPE1_VAR_START)
+    var_start: tuple[float, ...] = (
+        float(np.mean(scaled)),
+        float(np.log(np.var(scaled, ddof=1))),
+        *_TYPE1_VAR_START,
+    )
+    if not include_mean:  # drop mu (fixed at 0 inside the centered recursion)
+        var_start = var_start[1:]
 
     if cond_dist in ("ald", "sald"):
         return _fit_type1_ald(
@@ -545,10 +565,15 @@ def _fit_type1(
             var_start,
             skewed=cond_dist == "sald",
             model=model,
+            include_mean=include_mean,
         )
 
     distribution = get_distribution(cond_dist)
-    result = _run_type1_fit(scaled, distribution, constants, log_modulus_magnitude, var_start)
+    result = _run_type1_fit(
+        scaled, distribution, constants, log_modulus_magnitude, var_start, include_mean
+    )
+    if not include_mean:
+        return build_zero_mean_fit(result, cond_dist, n, k=result.params.size, model=model)
     return _build_type1_fit(result, cond_dist, scale, n, k=result.params.size, model=model)
 
 
@@ -562,12 +587,13 @@ def _fit_type1_ald(
     *,
     skewed: bool,
     model: str,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for a Type-I EGF model (ald / sald).
 
     Each fixed-``P`` ALD has a constant magnitude centering (no continuous shape); ``sald`` adds the
     FS ``skew`` (per-iteration centering, Nelder-Mead). ``P`` never enters the optimizer but counts
-    in the AIC/BIC penalty.
+    in the AIC/BIC penalty. With ``include_mean=False`` the mean is fixed at 0 (zero-mean path).
     """
     best: QMLEResult | None = None
     best_p = 0
@@ -575,12 +601,24 @@ def _fit_type1_ald(
     for p in _ALD_PRANGE:
         base = AverageLaplace(p=p)
         distribution = FernandezSteelSkew(base) if skewed else base
-        result = _run_type1_fit(scaled, distribution, constants, log_modulus_magnitude, var_start)
+        result = _run_type1_fit(
+            scaled, distribution, constants, log_modulus_magnitude, var_start, include_mean
+        )
         profile.append((p, float(result.loglikelihood - n * np.log(scale))))
         if best is None or result.loglikelihood > best.loglikelihood:
             best, best_p = result, p
 
     assert best is not None  # _ALD_PRANGE is non-empty
+    if not include_mean:
+        return build_zero_mean_fit(
+            best,
+            "sald" if skewed else "ald",
+            n,
+            k=best.params.size + 1,
+            model=model,
+            extra_params={"P": float(best_p)},
+            profile=tuple(profile),
+        )
     return _build_type1_fit(
         best,
         "sald" if skewed else "ald",
@@ -593,7 +631,9 @@ def _fit_type1_ald(
     )
 
 
-def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_egarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit EGARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -602,6 +642,10 @@ def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -610,11 +654,18 @@ def fit_egarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         and the conditional-volatility series (original return units).
     """
     return _fit_type1(
-        returns, cond_dist, constants=EGARCH_CONSTANTS, log_modulus_magnitude=False, model="egarch"
+        returns,
+        cond_dist,
+        constants=EGARCH_CONSTANTS,
+        log_modulus_magnitude=False,
+        model="egarch",
+        include_mean=include_mean,
     )
 
 
-def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_megarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit MEGARCH(1,1) (modulus-log asymmetry, EGARCH magnitude) by QMLE.
 
     Parameters
@@ -623,6 +674,10 @@ def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -635,10 +690,13 @@ def fit_megarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         constants=MEGARCH_CONSTANTS,
         log_modulus_magnitude=False,
         model="megarch",
+        include_mean=include_mean,
     )
 
 
-def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_mloggarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit MLog-GARCH(1,1) (modulus-log asymmetry and magnitude) by QMLE.
 
     Parameters
@@ -647,6 +705,10 @@ def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -659,6 +721,7 @@ def fit_mloggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         constants=MLOGGARCH_CONSTANTS,
         log_modulus_magnitude=True,
         model="mloggarch",
+        include_mean=include_mean,
     )
 
 

@@ -1,0 +1,29 @@
+{
+  "model": "fitgarch(1,1)/snorm semiparametric (use_nonpar=TRUE, fixed bandwidth)",
+  "package": "fEGarch",
+  "n": 2500,
+  "input": "synthetic_returns.csv",
+  "nonparspec": {
+    "poly_order": 1,
+    "kernel_order": 1,
+    "boundary_method": "extend",
+    "bwidth": 0.14999999999999999
+  },
+  "ybar": 0.00048375227856886096,
+  "pars": {
+    "omega": 0.19925895547413194,
+    "phi1": 5.1134034444320778e-08,
+    "beta1": 0.92006290902008958,
+    "gamma": 0.13668077399802919,
+    "d": 0.9999999994280212,
+    "skew": 0.98496918728928906
+  },
+  "llhood": -3413.8729118449533,
+  "scale_head": [0.013984587481878918, 0.013977480645311938, 0.013970377504599464, 0.01396327805815327, 0.013956182304387393, 0.013949090241718035, 0.01394200186856427, 0.01393491718334842, 0.013927836184493891, 0.013920758870426901],
+  "sigt_head": [0.013512336390214767, 0.013276249952183076, 0.012667688950482743, 0.013058391485707489, 0.013121504749096782, 0.013233060842204856, 0.013563437125388374, 0.013485901953741362, 0.014494736404079007, 0.014846219235294708],
+  "lambda_hat_mean": 0.97847700903066015,
+  "sigt_is": "total volatility Omega_hat = scale_fun * lambda_hat",
+  "note": "Family-wide semiparametric breadth (fit-only, fixed bwidth). 6-step WP171 2.2.1: scale from ln((y-ybar)^2) local-poly (p=1,k=1,extend,b=0.15) + empirical C_T retransform (config-independent, machine-exact), then a ZERO-MEAN fitgarch fit on rhat=(y-ybar)/shat; Omega=shat*lambda. Inner pars at fit-tolerance.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

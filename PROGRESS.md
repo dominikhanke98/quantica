@@ -444,6 +444,24 @@ inheritance — all 226 configs fit (0 optimizer-fragility gaps on the dual-mean
 or at the documented quadrature floor, no seam miss** (a miss would contradict #32's orthogonality claim).
 PR open, not merged.
 
+**Semiparametric extension — FAMILY-WIDE (Phase 7 breadth) — on `feat/fegarch-semiparam-family`**
+(fit-only, fixed bandwidth; auto-bandwidth stays the one documented gap, §32.3). The §32 EGARCH/FIEGARCH
+fixed-bw POC generalises to **all 16 inner models**: `semiparametric_fit` dispatches the step-6 inner fit
+via a shared **zero-mean** toggle `fit_*(..., include_mean=False)` (`qmle.prepend_zero_mean` +
+`garch.build_zero_mean_fit`; `include_mean=True` default → single-mean fits byte-identical, 88-test
+regression green). **Recon (spec-notes §37):** fEGarch produces a fixed-bw nonparametric-scale fit for
+every model; the scale is model- AND distribution-agnostic (empirical `Ĉ_T` → `scale_fun` byte-identical
+across all models/laws), so fixtures are lean params.json only (no per-config scale.csv), scale validated
+once. **Fixtures:** 115 configs (16 models × finding-3 fit-law surface), 113 new, generated in R with 0
+errors. **Validation tiers:** TIER 1 = 80 configs reproduce fEGarch's semiparametric pars to fit-tolerance;
+TIER 2 = 35 land in a different optimizer basin on the near-normal de-scaled residuals (floor = scale-exact
+⊕ validated fitter) — 30 DOMINATE fEGarch's ll (continuous-df std/sstd → df→∞; FI Type-I d≈0 basin beating
+fEGarch's d≈0.72 by ~5 ll; FIAPARCH multimodal δ), 5 honest worse-basin (figarch/figjr×ged, figarch/std).
+Fix: MEGARCH zero-mean norm L-BFGS-B stall → Nelder-Mead (zero-mean EGF constant branch). Tests:
+`test_semiparam.py` — per-push fast subset + scale-independence + guards (41 pass, 65s); full tier-1 (80) +
+tier-2 (35) under `-m slow`. Full fegarch module green (1066 passed on this branch); slow tier 115 passed; ruff + mypy +
+interrogate clean. PR #35 open, not merged (stacked on #34).
+
 ## Completed
 
 - **Project skeleton** — packaging (`pyproject.toml`), ruff + mypy + pytest

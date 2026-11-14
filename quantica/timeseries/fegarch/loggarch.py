@@ -62,8 +62,8 @@ from quantica.timeseries.fegarch.distributions import (
     FernandezSteelSkew,
     get_distribution,
 )
-from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit, build_zero_mean_fit
+from quantica.timeseries.fegarch.qmle import prepend_zero_mean, quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
@@ -127,7 +127,9 @@ def loggarch_recursion(
     return np.exp(log_var)
 
 
-def fit_loggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_loggarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit Log-GARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -137,6 +139,9 @@ def fit_loggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``). Only ``"norm"`` is
         validated in this phase (see the module note on the distribution seam).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes :math:`\\mu = 0`, drops it, and
+        skips rescaling — the zero-mean semiparametric path on the de-scaled returns.
 
     Returns
     -------
@@ -146,34 +151,49 @@ def fit_loggarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean
+    scale = float(np.std(y)) if include_mean else 1.0  # 1 on the already-unit de-scaled returns
     scaled = y / scale
     # Start near the flat phi1 ~ -psi1 ridge (high AR persistence, strong negative MA — the regime
     # Log-GARCH typically occupies) to land the optimizer in fEGarch's basin on this stiff surface.
-    var_start = (float(np.mean(scaled)), float(np.log(np.var(scaled, ddof=1))), 0.95, -0.9)
+    var_start: tuple[float, ...] = (
+        float(np.mean(scaled)),
+        float(np.log(np.var(scaled, ddof=1))),
+        0.95,
+        -0.9,
+    )
+    if not include_mean:  # drop mu (fixed at 0 inside the centered recursion)
+        var_start = var_start[1:]
 
     if cond_dist in ("ald", "sald"):
-        return _fit_loggarch_ald(scaled, scale, n, var_start, skewed=cond_dist == "sald")
+        return _fit_loggarch_ald(
+            scaled, scale, n, var_start, skewed=cond_dist == "sald", include_mean=include_mean
+        )
 
     distribution = get_distribution(cond_dist)
-    result = _run_loggarch_fit(scaled, distribution, var_start)
+    result = _run_loggarch_fit(scaled, distribution, var_start, include_mean)
+    if not include_mean:
+        return build_zero_mean_fit(result, cond_dist, n, k=result.params.size)
     return _build_loggarch_fit(result, cond_dist, scale, n, k=result.params.size)
 
 
-def _loggarch_recursion_for(distribution: object) -> tuple[object, bool]:
+def _loggarch_recursion_for(distribution: object, include_mean: bool = True) -> tuple[object, bool]:
     """The Log-GARCH recursion for a distribution + whether it needs per-iteration ``dist_params``.
 
     A distribution with shape parameters re-computes ``E[ln eta^2]`` from the *current* shape each
     iteration (per-iteration centering); a shapeless distribution (``norm``, or a fixed-``P`` ALD)
-    captures a precomputed constant, keeping the norm path bit-identical.
+    captures a precomputed constant, keeping the norm path bit-identical. With ``include_mean``
+    false the mean is fixed at 0 (prepended inside the recursion).
     """
     if distribution.param_names:  # type: ignore[attr-defined]
 
         def per_iter(
             params: FloatArray, returns: FloatArray, dist_params: tuple[float, ...]
         ) -> FloatArray:
+            full = (
+                params if include_mean else np.concatenate(([0.0], np.asarray(params, np.float64)))
+            )
             return loggarch_recursion(
-                params,
+                full,
                 returns,
                 mean_log_sq=distribution.mean_log_sq(dist_params),  # type: ignore[attr-defined]
             )
@@ -185,23 +205,27 @@ def _loggarch_recursion_for(distribution: object) -> tuple[object, bool]:
     def constant(params: FloatArray, returns: FloatArray) -> FloatArray:
         return loggarch_recursion(params, returns, mean_log_sq=mean_log_sq)
 
-    return constant, False
+    return (constant if include_mean else prepend_zero_mean(constant)), False
 
 
 def _run_loggarch_fit(
-    scaled: FloatArray, distribution: object, var_start: tuple[float, ...]
+    scaled: FloatArray,
+    distribution: object,
+    var_start: tuple[float, ...],
+    include_mean: bool = True,
 ) -> QMLEResult:
     """Fit Log-GARCH under one distribution (Nelder-Mead), restarting if the simplex stalls.
 
     The near-common-root ``phi1 ~ -psi1`` surface stalls the gradient-based default, so Log-GARCH
     uses Nelder-Mead; a shape-dependent centering can collapse the simplex, so shape fits restart
-    from the solution until the log-likelihood stops improving.
+    from the solution until the log-likelihood stops improving. With ``include_mean=False`` the mean
+    is fixed at 0 and dropped (zero-mean semiparametric path).
     """
-    recursion, uses_dist = _loggarch_recursion_for(distribution)
+    recursion, uses_dist = _loggarch_recursion_for(distribution, include_mean)
     kw: dict[str, object] = {
-        "var_bounds": _LOGGARCH_BOUNDS,
-        "var_names": _VAR_NAMES,
-        "mean": True,
+        "var_bounds": _LOGGARCH_BOUNDS if include_mean else _LOGGARCH_BOUNDS[1:],
+        "var_names": _VAR_NAMES if include_mean else _VAR_NAMES[1:],
+        "mean": include_mean,
         "method": "Nelder-Mead",
         "options": _LOGGARCH_OPTIONS,
         "recursion_uses_dist_params": uses_dist,
@@ -296,12 +320,19 @@ def _build_loggarch_fit(
 
 
 def _fit_loggarch_ald(
-    scaled: FloatArray, scale: float, n: int, var_start: tuple[float, ...], *, skewed: bool
+    scaled: FloatArray,
+    scale: float,
+    n: int,
+    var_start: tuple[float, ...],
+    *,
+    skewed: bool,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for Log-GARCH (ald / sald).
 
     Each fixed-``P`` ALD has a constant ``mean_log_sq`` centering; ``sald`` adds the FS ``skew``
-    (per-iteration). ``P`` never enters the optimizer but counts in the AIC/BIC penalty.
+    (per-iteration). ``P`` never enters the optimizer but counts in the AIC/BIC penalty. With
+    ``include_mean=False`` the mean is fixed at 0 (zero-mean semiparametric path).
     """
     best: QMLEResult | None = None
     best_p = 0
@@ -309,12 +340,21 @@ def _fit_loggarch_ald(
     for p in _ALD_PRANGE:
         base = AverageLaplace(p=p)
         distribution = FernandezSteelSkew(base) if skewed else base
-        result = _run_loggarch_fit(scaled, distribution, var_start)
+        result = _run_loggarch_fit(scaled, distribution, var_start, include_mean)
         profile.append((p, float(result.loglikelihood - n * np.log(scale))))
         if best is None or result.loglikelihood > best.loglikelihood:
             best, best_p = result, p
 
     assert best is not None  # _ALD_PRANGE is non-empty
+    if not include_mean:
+        return build_zero_mean_fit(
+            best,
+            "sald" if skewed else "ald",
+            n,
+            k=best.params.size + 1,
+            extra_params={"P": float(best_p)},
+            profile=tuple(profile),
+        )
     return _build_loggarch_fit(
         best,
         "sald" if skewed else "ald",

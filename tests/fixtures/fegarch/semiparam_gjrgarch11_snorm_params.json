@@ -1,0 +1,28 @@
+{
+  "model": "gjrgarch(1,1)/snorm semiparametric (use_nonpar=TRUE, fixed bandwidth)",
+  "package": "fEGarch",
+  "n": 2500,
+  "input": "synthetic_returns.csv",
+  "nonparspec": {
+    "poly_order": 1,
+    "kernel_order": 1,
+    "boundary_method": "extend",
+    "bwidth": 0.14999999999999999
+  },
+  "ybar": 0.00048375227856886096,
+  "pars": {
+    "omega": 0.021266345257417881,
+    "phi1": 0.079765324655833428,
+    "beta1": 0.8985599392713759,
+    "gamma1": 0.108368121407309,
+    "skew": 0.98658204482838396
+  },
+  "llhood": -3408.7094969591762,
+  "scale_head": [0.013984587481878918, 0.013977480645311938, 0.013970377504599464, 0.01396327805815327, 0.013956182304387393, 0.013949090241718035, 0.01394200186856427, 0.01393491718334842, 0.013927836184493891, 0.013920758870426901],
+  "sigt_head": [0.013984181002442139, 0.013578406477297012, 0.013050508528683192, 0.013181347982392939, 0.013064137343699446, 0.012958650768761737, 0.013159466014892674, 0.012957969066183942, 0.014194212452569559, 0.014313822235467118],
+  "lambda_hat_mean": 0.97264172681004624,
+  "sigt_is": "total volatility Omega_hat = scale_fun * lambda_hat",
+  "note": "Family-wide semiparametric breadth (fit-only, fixed bwidth). 6-step WP171 2.2.1: scale from ln((y-ybar)^2) local-poly (p=1,k=1,extend,b=0.15) + empirical C_T retransform (config-independent, machine-exact), then a ZERO-MEAN gjrgarch fit on rhat=(y-ybar)/shat; Omega=shat*lambda. Inner pars at fit-tolerance.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
