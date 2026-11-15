@@ -75,8 +75,8 @@ from quantica.timeseries.fegarch.distributions import (
     FernandezSteelSkew,
     get_distribution,
 )
-from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit, build_zero_mean_fit
+from quantica.timeseries.fegarch.qmle import prepend_zero_mean, quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
@@ -299,18 +299,20 @@ def _build_asym_fit(
 
 
 def _fit_aparch_family(
-    returns: FloatArray, cond_dist: str, *, delta_fixed: float | None
+    returns: FloatArray, cond_dist: str, *, delta_fixed: float | None, include_mean: bool = True
 ) -> GarchFit:
     """Shared QMLE fit (``delta_fixed`` set for GJR/TGARCH, ``None`` for the free-delta APARCH).
 
     Inherits the GARCH distribution machinery wholesale: the shape parameters ride in the fitted
     vector, near-flat shape/skew ridges use derivative-free Nelder-Mead, and the ALD's degree ``P``
     is profiled over :data:`_ALD_PRANGE` (an outer grid, counted in the AIC/BIC penalty). APARCH
-    additionally carries a jointly-estimated ``delta`` (the 7/8-parameter compounds).
+    additionally carries a jointly-estimated ``delta`` (the 7/8-parameter compounds). With
+    ``include_mean=False`` the mean is fixed at 0 and dropped (the zero-mean semiparametric path,
+    fitting the already-unit-magnitude de-scaled returns with no rescaling).
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude omega
+    scale = float(np.std(y)) if include_mean else 1.0  # 1 on the already-unit de-scaled returns
     scaled = y / scale
 
     variance = float(np.var(scaled, ddof=1))
@@ -333,6 +335,9 @@ def _fit_aparch_family(
         omega_start = variance ** (delta_fixed / 2.0) * 0.05
         var_start = (mean_start, omega_start, 0.05, 0.90, 0.0)
         var_bounds = _shared_bounds
+    if not include_mean:  # drop mu; fix it at 0 inside the recursion
+        var_start, var_bounds, var_names = var_start[1:], var_bounds[1:], var_names[1:]
+        recursion = prepend_zero_mean(recursion)
 
     # The ALD (and sALD) profiles its integer degree P over the grid, exactly as GARCH; every other
     # distribution's shape/skew parameters are estimated jointly by the engine.
@@ -347,6 +352,7 @@ def _fit_aparch_family(
             var_bounds,
             delta_fixed,
             skewed=cond_dist == "sald",
+            include_mean=include_mean,
         )
 
     distribution = get_distribution(cond_dist)
@@ -365,10 +371,13 @@ def _fit_aparch_family(
         var_start=var_start,
         var_bounds=var_bounds,
         var_names=var_names,
-        mean=True,
+        mean=include_mean,
         method=method,
         options=options,
     )
+    if not include_mean:
+        extra = None if delta_fixed is None else {"delta": float(delta_fixed)}
+        return build_zero_mean_fit(result, cond_dist, n, k=result.params.size, extra_params=extra)
     return _build_asym_fit(
         result, cond_dist, scale, n, delta_fixed, var_names, k=result.params.size
     )
@@ -385,12 +394,14 @@ def _fit_aparch_ald(
     delta_fixed: float | None,
     *,
     skewed: bool,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for a GJR/TGARCH/APARCH recursion.
 
     Mirrors the GARCH ``_fit_garch_ald`` fork: fit the continuous parameters at each fixed ``P``
     (plus the FS ``skew`` for ``sald``), select the best log-likelihood, and count ``P`` in the
-    AIC/BIC penalty. ``P`` never enters the continuous optimizer.
+    AIC/BIC penalty. ``P`` never enters the continuous optimizer. With ``include_mean=False`` the
+    mean is fixed at 0 (zero-mean semiparametric path).
     """
     method = "Nelder-Mead" if skewed else "L-BFGS-B"
     options = _SHAPE_OPTIONS if skewed else None
@@ -407,7 +418,7 @@ def _fit_aparch_ald(
             var_start=var_start,
             var_bounds=var_bounds,
             var_names=var_names,
-            mean=True,
+            mean=include_mean,
             method=method,
             options=options,
         )
@@ -416,6 +427,18 @@ def _fit_aparch_ald(
             best, best_p = result, p
 
     assert best is not None  # _ALD_PRANGE is non-empty
+    if not include_mean:
+        extra = {"P": float(best_p)}
+        if delta_fixed is not None:
+            extra["delta"] = float(delta_fixed)
+        return build_zero_mean_fit(
+            best,
+            "sald" if skewed else "ald",
+            n,
+            k=best.params.size + 1,
+            extra_params=extra,
+            profile=tuple(profile),
+        )
     return _build_asym_fit(
         best,
         "sald" if skewed else "ald",
@@ -429,7 +452,7 @@ def _fit_aparch_ald(
     )
 
 
-def fit_gjr(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_gjr(returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True) -> GarchFit:
     """Fit GJR-GARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -438,6 +461,10 @@ def fit_gjr(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -445,10 +472,12 @@ def fit_gjr(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega, phi1, beta1, gamma1`` (+ shape parameters), log-likelihood,
         per-observation AIC/BIC, and the conditional-volatility series.
     """
-    return _fit_aparch_family(returns, cond_dist, delta_fixed=2.0)
+    return _fit_aparch_family(returns, cond_dist, delta_fixed=2.0, include_mean=include_mean)
 
 
-def fit_tgarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_tgarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit TGARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -457,6 +486,10 @@ def fit_tgarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -464,10 +497,12 @@ def fit_tgarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega, phi1, beta1, gamma1`` (+ shape parameters), log-likelihood,
         per-observation AIC/BIC, and the conditional-volatility series.
     """
-    return _fit_aparch_family(returns, cond_dist, delta_fixed=1.0)
+    return _fit_aparch_family(returns, cond_dist, delta_fixed=1.0, include_mean=include_mean)
 
 
-def fit_aparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_aparch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     r"""Fit APARCH(1,1) with a free power :math:`\delta` and a constant mean by QMLE.
 
     Parameters
@@ -476,6 +511,10 @@ def fit_aparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -483,7 +522,7 @@ def fit_aparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega, phi1, beta1, gamma1, delta`` (+ shape parameters), log-likelihood,
         per-observation AIC/BIC, and the conditional-volatility series.
     """
-    return _fit_aparch_family(returns, cond_dist, delta_fixed=None)
+    return _fit_aparch_family(returns, cond_dist, delta_fixed=None, include_mean=include_mean)
 
 
 def _aparch_family_sim(

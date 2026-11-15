@@ -2339,6 +2339,97 @@ and family 4 is the last.
 
 ---
 
+## 37. Family-wide semiparametric fit (all 16 inner models at a fixed bandwidth) — RESOLVED (Phase 7 breadth)
+
+**The fixed-bandwidth semiparametric scale wrapper (§32, EGARCH/FIEGARCH POC) generalises to every
+one of the 16 fEGarch inner models.** `quantica/timeseries/fegarch/semiparam.py::semiparametric_fit`
+now dispatches the step-6 inner fit across all models via a shared **zero-mean** toggle
+(`fit_*(..., include_mean=False)`), composing it with the model-agnostic scale. Clean-room (§12):
+derived from WP171 §2.2.1 + the smoots/esemifar mathematics, validated against committed fEGarch
+`use_nonpar=TRUE` OUTPUT (`semiparam_{model}11_{law}_params.json`), never the source. **Fixed
+bandwidth only** — the data-driven auto-bandwidth stays the single documented gap (§32.3, Bühlmann
+1996 + Feng-Heiler 2009). **Fit-only** — forecasting-with-scale and dual-mean composition deferred.
+
+### 37.1 Reconnaissance (fEGarch's semiparametric API, OUTPUT-only)
+
+Black-box probe of `fEGarch(spec, use_nonpar=TRUE, nonparspec=locpol_spec(...))` at a fixed
+bandwidth: **all 16 inner models produce a nonparametric-scale fit** (the variance-recursion family
+`garch`/`gjrgarch`/`tgarch`/`aparch`/`figarch`/`figjrgarch`/`fitgarch`/`fiaparch` via the dedicated
+functions' `use_nonpar` argument; the EGF family via `fEGarch(<model>_spec(...), use_nonpar=TRUE)`).
+Each returns a `scale_fun`, `sigt` (total vol) and inner `pars`. **The `Ĉ_T` retransform — hence the
+scale — is data-driven and both model- and distribution-agnostic**: `scale_fun` is **byte-identical**
+(`max|Δ| = 0`) across all 16 models AND across laws (norm/ged/sged probed), because
+`Ĉ_T = −ln[n⁻¹ Σ exp(w̃−m̂)]` depends only on the returns and the local-poly trend. So the law axis is
+free for the scale; only the inner QMLE (`sigt`, `pars`) varies by (model, law). The committed POC
+`semiparam_{egarch,fiegarch}11_norm_scale.csv` are already byte-identical, confirming this.
+
+### 37.2 Generalisation + per-model validation strategy
+
+**Scale (steps 1–5)** is model-agnostic (`semiparametric_scale`), validated machine-exact **once**
+(config-independent) — the fixtures therefore store no per-config `scale.csv` (lean `params.json`
+only). **Inner fit (step 6)** reuses each model's exact validated fitter with the mean fixed at 0
+(`qmle.prepend_zero_mean` + a shared `garch.build_zero_mean_fit`; `include_mean=True` stays the
+default, so the single-mean fits are byte-identical). Two validation tiers:
+
+- **Tier 1 — end-to-end**: quantica's zero-mean inner fit reproduces fEGarch's semiparametric `pars`
+  to fit-tolerance (`~1e-3`). **80 of 115 configs.**
+- **Tier 2 — composition (the floor)**: where the inner QMLE lands in a different optimizer basin on
+  the near-normal de-scaled residuals, the fit is still **scale (machine-exact) ⊕ the fit_*-validated
+  fitter**, documented honestly. **35 of 115 configs.**
+
+### 37.3 Gap matrix (inner × finding-3 fit-law surface, minus the §32 POC)
+
+Variance-recursion family (8 models) × 8 laws = 64; Type-I EGF (`egarch`/`megarch`/`mloggarch` +
+`fiegarch`/`fimegarch`/`fimloggarch`, 6 models) × 6 laws (no `std`/`sstd`) = 36; Log-GARCH × 7 (no
+`std`) = 7; FILog-GARCH × 8 = 8 → **115 configs**; minus the committed EGARCH/FIEGARCH-norm POC = 113
+new. All 115 generate in R with **0 errors** (no new optimizer-fragility gap beyond the finding-3
+drops already excluded from the attempt set).
+
+### 37.4 Tier-2 findings (optimizer-basin divergence on the de-scaled residuals)
+
+The de-scaled residuals `r̂ = (y−ȳ)/ŝ` are **more normal** than the raw returns (the scale removed
+the volatility trend), so weakly-identified parameters diverge between fEGarch's and quantica's
+optimizers. **30 of the 35 tier-2 configs reach a log-likelihood at or above fEGarch's** — but the
+*mechanism* splits into two kinds, a genuine flat-ridge domination and a semiparametric-identification
+collapse (the FI Type-I case), distinguished below:
+
+- **Continuous-`df` Student-t flat ridge** (`std`/`sstd` on the variance-recursion family +
+  `loggarch`/`filoggarch`): `df` is even more weakly identified on `r̂`, so quantica climbs to
+  `df → ∞` (the normal limit), dominating fEGarch's finite-`df` stall by `0.1–1.8` ll. (The Type-I
+  EGF family already drops `std`/`sstd` — finding 3.)
+- **FI Type-I `d≈0` collapse — a semiparametric-identification finding, NOT a clean domination**
+  (`fiegarch`/`fimegarch`/`fimloggarch` × norm/ged/snorm/sged): quantica's inner fit lands at `d ≈ 0`
+  with a log-likelihood `~5` above fEGarch's `d ≈ 0.72`, but the mechanism matters and is not the
+  FILog-GARCH +120 kind (which is a strictly-dominated local optimum of the *same* model on the
+  *same* data). **Residual-identity check (confirmed in R):** quantica's de-scaled residual
+  `ξ̂ = (y−ȳ)/ŝ` — the series the inner fit consumes — is **machine-identical** to fEGarch's for
+  every one of these configs (`max|ξ̂_quantica − ξ̂_fEGarch| = 1.1e-13`; `scale_fun` byte-identical,
+  `d_hat` 0.70–0.73 all five). So both optimizers fit the *same* residuals. The nonparametric scale
+  `s(x_t)` has already absorbed the low-frequency variation that the fractional `d` was capturing in
+  a pure-parametric fit, so **after scale-adjustment the long memory is largely gone**: the inner
+  FI likelihood in `d` is a near-flat ridge near `d = 0`, and quantica's optimizer collapses to it
+  while fEGarch's retains `d ≈ 0.72`. This is an *identification* statement about semiparametric FI
+  models (the scale and the fractional operator compete for the same low-frequency signal), with the
+  optimizer divergence as the mechanism — not a reference defect. (Residual-identity check:
+  `scratchpad` R extraction vs `semiparametric_scale`; the composition floor still holds either way.)
+- **FIAPARCH free power `δ`** (multimodal, the Phase-4 weak identification): quantica's `δ` differs
+  by `~0.05`, ll higher by `0.2–1.8`.
+
+**5 of the 35 are honest *worse*-basin divergences** (quantica's optimizer below fEGarch): `figarch`
+and `figjr` × `ged` (fractional `d` basin, `~0.3` ll below), `figarch` × `std` (`5.3` below),
+`figjr` × `std` / `fiaparch` × `ald` (marginal). These are documented as basin divergences, not
+composition failures — the scale is machine-exact and the fitter is the validated `fit_*`.
+
+### 37.5 One quantica fix surfaced
+
+The modulus-log-asymmetry MEGARCH's **zero-mean** norm surface presents a near-flat gradient at the
+start that stalled the gradient-based L-BFGS-B (it reported "converged" at the start, `47` ll short);
+the zero-mean EGF *constant* (norm / fixed-`P`) branch now uses derivative-free Nelder-Mead (the
+mean-included path keeps L-BFGS-B, bit-identical to the committed parametric fixtures). This is a
+quantica optimizer robustness fix, not a reference discrepancy.
+
+---
+
 *Add further specification derivations here if the auto-bandwidth gap is later closed (Bühlmann 1996 +
 Feng-Heiler 2009 added to `literature/`) or further forecasting breadth is implemented — always
 from the papers/manual, never the source.*

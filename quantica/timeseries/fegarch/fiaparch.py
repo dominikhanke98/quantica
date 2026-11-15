@@ -74,8 +74,8 @@ from quantica.timeseries.fegarch.figarch import (
     figarch_coefficients,
     figarch_variance_filter,
 )
-from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.garch import _ALD_PRANGE, GarchFit, build_zero_mean_fit
+from quantica.timeseries.fegarch.qmle import prepend_zero_mean, quasi_max_likelihood
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
@@ -158,17 +158,21 @@ def fiaparch_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
     )  # sigma^2 = (sigma^delta)^(2/d)
 
 
-def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | None) -> GarchFit:
+def _fit_fi_power(
+    returns: FloatArray, cond_dist: str, *, delta_fixed: float | None, include_mean: bool = True
+) -> GarchFit:
     """Shared QMLE fit for the variance-recursion FI-power family (FIAPARCH / FITGARCH / FIGJR).
 
     ``delta_fixed=None`` estimates ``delta`` (FIAPARCH, 7 params); a fixed value drops it from
     the parameter vector (FITGARCH ``delta=1`` the Zakoian sigma-recursion, FIGJR ``delta=2``) and
     inserts it into the recursion. Scale-equivariant: ``mu`` scales by ``scale``, the ``omega``
-    intercept by ``scale**delta`` (it is a sigma^delta intercept), the rest are invariant.
+    intercept by ``scale**delta`` (it is a sigma^delta intercept), the rest are invariant. With
+    ``include_mean=False`` the mean is fixed at 0 and dropped (the zero-mean semiparametric path on
+    the already-unit de-scaled returns, no rescaling).
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude mean/omega
+    scale = float(np.std(y)) if include_mean else 1.0  # 1 on the already-unit de-scaled returns
     scaled = y / scale
 
     # d-bound (1e-7, 0.9999999) must permit the boundary d approx 1 (high-beta1 series).
@@ -207,6 +211,9 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
             return fiaparch_recursion(full, returns)
 
         recursion = _delta_fixed_recursion
+    if not include_mean:  # drop mu; fix it at 0 inside the recursion (closure still takes mu first)
+        var_start, var_bounds, var_names = var_start[1:], var_bounds[1:], var_names[1:]
+        recursion = prepend_zero_mean(recursion)
 
     # The ALD (and sALD) profiles its integer degree P over the grid; every other distribution's
     # shape/skew parameters are estimated jointly by the engine.
@@ -221,6 +228,7 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
             var_bounds,
             delta_fixed,
             skewed=cond_dist == "sald",
+            include_mean=include_mean,
         )
 
     distribution = get_distribution(cond_dist)
@@ -239,10 +247,13 @@ def _fit_fi_power(returns: FloatArray, cond_dist: str, *, delta_fixed: float | N
         var_start=var_start,
         var_bounds=var_bounds,
         var_names=var_names,
-        mean=True,
+        mean=include_mean,
         method=method,
         options=options,
     )
+    if not include_mean:
+        extra = None if delta_fixed is None else {"delta": float(delta_fixed)}
+        return build_zero_mean_fit(result, cond_dist, n, k=result.params.size, extra_params=extra)
     return _build_fi_power_fit(result, cond_dist, scale, n, delta_fixed, k=result.params.size)
 
 
@@ -333,12 +344,13 @@ def _fit_fi_power_ald(
     delta_fixed: float | None,
     *,
     skewed: bool,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Profile the ALD degree ``P`` over :data:`_ALD_PRANGE` for the FI-power family (ald / sald).
 
     Fit the continuous parameters at each fixed ``P`` (plus the FS ``skew`` for ``sald``), select
     the best log-likelihood, and count ``P`` in the AIC/BIC penalty (``P`` never enters the
-    optimizer).
+    optimizer). With ``include_mean=False`` the mean is fixed at 0 (zero-mean semiparametric path).
     """
     method = "Nelder-Mead" if skewed else "L-BFGS-B"
     options = _SHAPE_OPTIONS if skewed else None
@@ -355,7 +367,7 @@ def _fit_fi_power_ald(
             var_start=var_start,
             var_bounds=var_bounds,
             var_names=var_names,
-            mean=True,
+            mean=include_mean,
             method=method,
             options=options,
         )
@@ -364,6 +376,18 @@ def _fit_fi_power_ald(
             best, best_p = result, p
 
     assert best is not None  # _ALD_PRANGE is non-empty
+    if not include_mean:
+        extra = {"P": float(best_p)}
+        if delta_fixed is not None:
+            extra["delta"] = float(delta_fixed)
+        return build_zero_mean_fit(
+            best,
+            "sald" if skewed else "ald",
+            n,
+            k=best.params.size + 1,
+            extra_params=extra,
+            profile=tuple(profile),
+        )
     return _build_fi_power_fit(
         best,
         "sald" if skewed else "ald",
@@ -376,7 +400,9 @@ def _fit_fi_power_ald(
     )
 
 
-def fit_fiaparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_fiaparch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit FIAPARCH(1,d,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -385,6 +411,10 @@ def fit_fiaparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -392,7 +422,7 @@ def fit_fiaparch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega, phi1, beta1, gamma, delta, d``, log-likelihood, per-observation
         AIC/BIC, and the conditional-volatility series (original return units).
     """
-    return _fit_fi_power(returns, cond_dist, delta_fixed=None)
+    return _fit_fi_power(returns, cond_dist, delta_fixed=None, include_mean=include_mean)
 
 
 def fiaparch_sim(
@@ -538,7 +568,9 @@ def figjr_recursion(params: FloatArray, returns: FloatArray) -> FloatArray:
     return fiaparch_recursion(full, returns)
 
 
-def fit_fitgarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_fitgarch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit FITGARCH(1,d,1) (FIAPARCH at delta=1, the Zakoian sigma-recursion) by QMLE.
 
     Parameters
@@ -547,6 +579,10 @@ def fit_fitgarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -554,10 +590,12 @@ def fit_fitgarch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega, phi1, beta1, gamma, d`` (delta fixed at 1), + log-likelihood, AIC/BIC
         and the conditional-SD series.
     """
-    return _fit_fi_power(returns, cond_dist, delta_fixed=1.0)
+    return _fit_fi_power(returns, cond_dist, delta_fixed=1.0, include_mean=include_mean)
 
 
-def fit_figjr(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_figjr(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit FIGJR(1,d,1) (FIAPARCH at delta=2, the (|eps|-gamma eps)^2 GJR kernel) by QMLE.
 
     Parameters
@@ -566,6 +604,10 @@ def fit_figjr(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``, the only validated one).
+    include_mean : bool, optional
+        Fit a constant mean (default ``True``). ``False`` fixes the mean at 0 and drops it
+        from the parameter vector — the zero-mean path the semiparametric scale stage runs
+        on the de-scaled returns.
 
     Returns
     -------
@@ -573,7 +615,7 @@ def fit_figjr(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         Estimates ``mu, omega, phi1, beta1, gamma, d`` (delta fixed at 2), + log-likelihood, AIC/BIC
         and the conditional-SD series.
     """
-    return _fit_fi_power(returns, cond_dist, delta_fixed=2.0)
+    return _fit_fi_power(returns, cond_dist, delta_fixed=2.0, include_mean=include_mean)
 
 
 def fitgarch_sim(

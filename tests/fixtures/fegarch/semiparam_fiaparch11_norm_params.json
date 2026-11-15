@@ -1,0 +1,29 @@
+{
+  "model": "fiaparch(1,1)/norm semiparametric (use_nonpar=TRUE, fixed bandwidth)",
+  "package": "fEGarch",
+  "n": 2500,
+  "input": "synthetic_returns.csv",
+  "nonparspec": {
+    "poly_order": 1,
+    "kernel_order": 1,
+    "boundary_method": "extend",
+    "bwidth": 0.14999999999999999
+  },
+  "ybar": 0.00048375227856886096,
+  "pars": {
+    "omega": 0.144862385309182,
+    "phi1": 0.0017216390834643993,
+    "beta1": 0.91274904194330742,
+    "gamma": 0.099696953300201882,
+    "delta": 1.5583759241023349,
+    "d": 0.99999988697646891
+  },
+  "llhood": -3411.9537489616505,
+  "scale_head": [0.013984587481878918, 0.013977480645311938, 0.013970377504599464, 0.01396327805815327, 0.013956182304387393, 0.013949090241718035, 0.01394200186856427, 0.01393491718334842, 0.013927836184493891, 0.013920758870426901],
+  "sigt_head": [0.015669390759324078, 0.015160720388486645, 0.014462756672033512, 0.014572796748368777, 0.014429191656509216, 0.014286845148488431, 0.014486945555645291, 0.01424877993326913, 0.015403266081553449, 0.015509128679776888],
+  "lambda_hat_mean": 0.98613420554958087,
+  "sigt_is": "total volatility Omega_hat = scale_fun * lambda_hat",
+  "note": "Family-wide semiparametric breadth (fit-only, fixed bwidth). 6-step WP171 2.2.1: scale from ln((y-ybar)^2) local-poly (p=1,k=1,extend,b=0.15) + empirical C_T retransform (config-independent, machine-exact), then a ZERO-MEAN fiaparch fit on rhat=(y-ybar)/shat; Omega=shat*lambda. Inner pars at fit-tolerance.",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
