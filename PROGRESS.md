@@ -455,8 +455,10 @@ across all models/laws), so fixtures are lean params.json only (no per-config sc
 once. **Fixtures:** 115 configs (16 models × finding-3 fit-law surface), 113 new, generated in R with 0
 errors. **Validation tiers:** TIER 1 = 80 configs reproduce fEGarch's semiparametric pars to fit-tolerance;
 TIER 2 = 35 land in a different optimizer basin on the near-normal de-scaled residuals (floor = scale-exact
-⊕ validated fitter) — 30 DOMINATE fEGarch's ll (continuous-df std/sstd → df→∞; FI Type-I d≈0 basin beating
-fEGarch's d≈0.72 by ~5 ll; FIAPARCH multimodal δ), 5 honest worse-basin (figarch/figjr×ged, figarch/std).
+⊕ validated fitter) — 30 reach ll ≥ fEGarch's: flat-ridge dominations (continuous-df std/sstd → df→∞;
+FIAPARCH multimodal δ) AND the FI Type-I d≈0 collapse (the nonparametric scale absorbs the long memory —
+an identification finding, ξ̂ machine-identical to fEGarch's at 1.1e-13, §37.4, NOT a FILog-+120 domination);
+5 honest worse-basin (figarch/figjr×ged, figarch/std).
 Fix: MEGARCH zero-mean norm L-BFGS-B stall → Nelder-Mead (zero-mean EGF constant branch). Tests:
 `test_semiparam.py` — per-push fast subset + scale-independence + guards (41 pass, 65s); full tier-1 (80) +
 tier-2 (35) under `-m slow`. Full fegarch module green (1066 passed on this branch); slow tier 115 passed; ruff + mypy +

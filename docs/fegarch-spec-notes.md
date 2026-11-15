@@ -2389,16 +2389,29 @@ drops already excluded from the attempt set).
 
 The de-scaled residuals `r̂ = (y−ȳ)/ŝ` are **more normal** than the raw returns (the scale removed
 the volatility trend), so weakly-identified parameters diverge between fEGarch's and quantica's
-optimizers. **30 of the 35 tier-2 configs DOMINATE fEGarch's log-likelihood** (quantica finds the
-better optimum — the effective-challenge pattern):
+optimizers. **30 of the 35 tier-2 configs reach a log-likelihood at or above fEGarch's** — but the
+*mechanism* splits into two kinds, a genuine flat-ridge domination and a semiparametric-identification
+collapse (the FI Type-I case), distinguished below:
 
 - **Continuous-`df` Student-t flat ridge** (`std`/`sstd` on the variance-recursion family +
   `loggarch`/`filoggarch`): `df` is even more weakly identified on `r̂`, so quantica climbs to
   `df → ∞` (the normal limit), dominating fEGarch's finite-`df` stall by `0.1–1.8` ll. (The Type-I
   EGF family already drops `std`/`sstd` — finding 3.)
-- **FI Type-I `d≈0` basin** (`fiegarch`/`fimegarch`/`fimloggarch` × several laws): quantica's fit
-  lands at `d ≈ 0` with a log-likelihood **~5 above** fEGarch's committed `d ≈ 0.72` basin — the same
-  class of finding as the FILog-GARCH +120 fit (§ the port's effective-challenge record).
+- **FI Type-I `d≈0` collapse — a semiparametric-identification finding, NOT a clean domination**
+  (`fiegarch`/`fimegarch`/`fimloggarch` × norm/ged/snorm/sged): quantica's inner fit lands at `d ≈ 0`
+  with a log-likelihood `~5` above fEGarch's `d ≈ 0.72`, but the mechanism matters and is not the
+  FILog-GARCH +120 kind (which is a strictly-dominated local optimum of the *same* model on the
+  *same* data). **Residual-identity check (confirmed in R):** quantica's de-scaled residual
+  `ξ̂ = (y−ȳ)/ŝ` — the series the inner fit consumes — is **machine-identical** to fEGarch's for
+  every one of these configs (`max|ξ̂_quantica − ξ̂_fEGarch| = 1.1e-13`; `scale_fun` byte-identical,
+  `d_hat` 0.70–0.73 all five). So both optimizers fit the *same* residuals. The nonparametric scale
+  `s(x_t)` has already absorbed the low-frequency variation that the fractional `d` was capturing in
+  a pure-parametric fit, so **after scale-adjustment the long memory is largely gone**: the inner
+  FI likelihood in `d` is a near-flat ridge near `d = 0`, and quantica's optimizer collapses to it
+  while fEGarch's retains `d ≈ 0.72`. This is an *identification* statement about semiparametric FI
+  models (the scale and the fractional operator compete for the same low-frequency signal), with the
+  optimizer divergence as the mechanism — not a reference defect. (Residual-identity check:
+  `scratchpad` R extraction vs `semiparametric_scale`; the composition floor still holds either way.)
 - **FIAPARCH free power `δ`** (multimodal, the Phase-4 weak identification): quantica's `δ` differs
   by `~0.05`, ll higher by `0.2–1.8`.
 

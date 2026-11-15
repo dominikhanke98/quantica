@@ -271,13 +271,14 @@ def test_semiparametric_fit_egarch_matches_fixture() -> None:
     assert np.max(np.abs(fit.total_vol - sigt_fix)) < 1e-6  # Omega = scale * lambda = sigt
 
 
-def test_semiparametric_fit_fiegarch_dominates_basin() -> None:
-    """FIEGARCH/norm: scale machine-exact; the zero-mean fractional EGF finds a BETTER basin.
+def test_semiparametric_fit_fiegarch_d_collapses_after_scale() -> None:
+    """FIEGARCH/norm: scale machine-exact; the fractional ``d`` collapses to ~0 after scale-adjust.
 
-    On the near-normal de-scaled residuals the fractional ``d`` is weakly identified: quantica's
-    optimizer lands in a ``d ~ 0`` basin whose log-likelihood *dominates* fEGarch's committed
-    ``d ~ 0.72`` basin by ~5 (an effective-challenge finding, the §37 family-wide tier-2 pattern).
-    The scale step is machine-exact regardless; the inner QMLE is the validated ``fit_fiegarch``.
+    A semiparametric-identification finding (§37.4), NOT a FILog-+120-style domination: the
+    nonparametric scale ``s(x_t)`` absorbs the low-frequency variation the fractional ``d`` was
+    capturing, so on the (machine-identical) de-scaled residuals the inner FI likelihood in ``d`` is
+    a near-flat ridge near 0 — quantica's optimizer collapses to ``d ~ 0`` while fEGarch retains
+    ``d ~ 0.72``. The scale step is machine-exact; the inner QMLE is the validated ``fit_fiegarch``.
     """
     y = _returns()
     meta = _semi_meta("fiegarch")
@@ -285,12 +286,10 @@ def test_semiparametric_fit_fiegarch_dominates_basin() -> None:
     scale_fix = np.loadtxt(_FIXTURE_DIR / "semiparam_fiegarch11_norm_scale.csv", skiprows=1)
     assert np.max(np.abs(fit.scale - scale_fix)) < 1e-13  # scale machine-exact (route-independent)
     assert set(fit.pars) == {"omega_sig", "phi1", "kappa", "gamma", "d"}
-    # The two optimizers occupy different d-basins: fEGarch d ~ 0.72, quantica d ~ 0 (the higher-
-    # likelihood basin); the finding is the divergence itself, documented in §37.
+    # The two optimizers occupy different d-basins on the SAME de-scaled residuals: fEGarch retains
+    # the long-memory d ~ 0.72, quantica collapses to d ~ 0 once the scale has absorbed it (§37.4).
     assert meta["pars"]["d"] > 0.5  # fEGarch's committed long-memory basin
-    assert (
-        fit.pars["d"] < 0.1
-    )  # quantica's dominating short-memory basin on the de-scaled residuals
+    assert fit.pars["d"] < 0.1  # quantica's post-scale-adjustment short-memory collapse
 
 
 def test_semiparametric_fit_decoupling_vs_standalone() -> None:
