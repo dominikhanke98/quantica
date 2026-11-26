@@ -1,0 +1,32 @@
+{
+  "model": "figarch",
+  "mean_model": "arma11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": false,
+  "cond_dist": "std",
+  "orders": [1, 1],
+  "presample": 50,
+  "trunc": "none",
+  "mean_included": true,
+  "n_obs": 2250,
+  "n_forecast": 250,
+  "refit_after": "none",
+  "input": "synthetic_returns.csv",
+  "parallel": false,
+  "seed": 20240715,
+  "params": {
+    "mu": 0.00047217824179379301,
+    "ar1": 0.055502825085945146,
+    "ma1": -0.025490534056259093,
+    "omega": 1.0917128196762117e-05,
+    "phi1": 0.18557387636421144,
+    "beta1": 0.63987277427783684,
+    "d": 0.55309828743148881,
+    "df": 341.89216203341738
+  },
+  "loglikelihood": 6808.5673641196481,
+  "aic": -6.0449487681063543,
+  "bic": -6.0246156641234254,
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

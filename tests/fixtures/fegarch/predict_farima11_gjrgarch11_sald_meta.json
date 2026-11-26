@@ -1,0 +1,27 @@
+{
+  "model": "gjrgarch",
+  "mean_model": "farima11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": true,
+  "cond_dist": "sald",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00038586652597644822,
+    "ar1": -0.2310441870897865,
+    "ma1": 0.25918136236558137,
+    "D": 9.1654880027735419e-12,
+    "omega": 3.8211439075767658e-06,
+    "phi1": 0.087563929828587295,
+    "beta1": 0.88982402104989311,
+    "gamma1": 0.10053320033088628,
+    "P": 5,
+    "skew": 0.96728354407154538
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean farima11-in-mean + gjrgarch variance / sald; same training fit as forecast_farima11_gjrgarch11_sald. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

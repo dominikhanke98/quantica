@@ -1,0 +1,25 @@
+{
+  "model": "megarch",
+  "mean_model": "arma11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": false,
+  "cond_dist": "ald",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00043797026305426227,
+    "ar1": -0.25551008856674506,
+    "ma1": 0.28370987530769909,
+    "omega_sig": -8.9449030297799084,
+    "phi1": 0.97810373502253067,
+    "kappa": -0.030574151226735524,
+    "gamma": 0.17163727248470623,
+    "P": 5
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean arma11-in-mean + megarch variance / ald; same training fit as forecast_arma11_megarch11_ald. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

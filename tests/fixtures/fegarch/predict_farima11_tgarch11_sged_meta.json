@@ -1,0 +1,27 @@
+{
+  "model": "tgarch",
+  "mean_model": "farima11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": true,
+  "cond_dist": "sged",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00037660915292754506,
+    "ar1": 0.00871266889803291,
+    "ma1": 0.022865465394255064,
+    "D": 1.9821729048649908e-10,
+    "omega": 0.00028313879164163267,
+    "phi1": 0.086910151616737763,
+    "beta1": 0.90669232485460682,
+    "gamma1": 0.13107165543167826,
+    "shape": 2.189579043783775,
+    "skew": 0.96973857805349173
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean farima11-in-mean + tgarch variance / sged; same training fit as forecast_farima11_tgarch11_sged. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}

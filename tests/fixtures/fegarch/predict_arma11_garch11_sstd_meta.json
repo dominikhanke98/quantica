@@ -1,0 +1,25 @@
+{
+  "model": "garch",
+  "mean_model": "arma11",
+  "mean_orders": [1, 1],
+  "mean_long_memo": false,
+  "cond_dist": "sstd",
+  "orders": [1, 1],
+  "n_obs_train": 2250,
+  "n_test": 250,
+  "input": "synthetic_returns.csv",
+  "seed": 20240715,
+  "fit_params": {
+    "mu": 0.00046403862560730154,
+    "ar1": 0.055197509989182367,
+    "ma1": -0.026609323409462232,
+    "omega": 3.5530605393135276e-06,
+    "phi1": 0.086540026771477235,
+    "beta1": 0.8903410995468275,
+    "df": 340.75035190038835,
+    "skew": 0.97635502900207094
+  },
+  "note": "predict(n.ahead=h) multi-step dual-mean arma11-in-mean + garch variance / sstd; same training fit as forecast_arma11_garch11_sstd. Mean forecast (ARMA/FARIMA iterate, future residuals=0) composed with the variance forecast of the mean-residuals (no sigma->mean feedback); cmeans is the h-varying conditional mean; VaR/ES = mu_{t+h} + sigma_{t+h} q (spec-notes §36).",
+  "fegarch_version": "1.0.6",
+  "r_version": "R version 4.6.1 (2026-06-24 ucrt)"
+}
