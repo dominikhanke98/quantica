@@ -56,10 +56,39 @@ __all__ = [
     "QMLEResult",
     "VarianceRecursion",
     "initial_variance",
+    "prepend_zero_mean",
     "quasi_max_likelihood",
 ]
 
 _HESSIAN_STEP = 1e-4  # central-difference step for the numerical Hessian
+
+
+def prepend_zero_mean(variance_recursion: VarianceRecursion) -> VarianceRecursion:
+    r"""Wrap a variance recursion to fix :math:`\mu = 0` — the zero-mean (semiparametric) fit path.
+
+    The semiparametric inner stage fits a model to the de-scaled returns
+    :math:`\hat r_t = (y_t-\bar y)/\hat s_t`, whose mean is already removed as the sample mean
+    :math:`\bar y` in the scale step, so the mean is **not** re-estimated (:math:`\mu` fixed at 0).
+    The variance recursions take the mean as ``params[0]``; this wrapper prepends a ``0.0`` to the
+    mean-free optimizer vector before delegating, so the same recursion is reused unchanged under a
+    ``mean=False`` fit (:func:`quasi_max_likelihood`).
+
+    Parameters
+    ----------
+    variance_recursion : VarianceRecursion
+        A recursion taking ``params`` whose first entry is the constant mean :math:`\mu`.
+
+    Returns
+    -------
+    VarianceRecursion
+        The same recursion with :math:`\mu` fixed at 0 (its optimizer vector omits the mean).
+    """
+
+    def _wrapped(params: FloatArray, returns: FloatArray, /) -> FloatArray:
+        full = np.concatenate(([0.0], np.asarray(params, dtype=np.float64)))
+        return variance_recursion(full, returns)
+
+    return _wrapped
 
 
 def initial_variance(returns: FloatArray) -> float:

@@ -42,13 +42,19 @@ from quantica.timeseries.fegarch.distributions import (
     FernandezSteelSkew,
     get_distribution,
 )
-from quantica.timeseries.fegarch.qmle import QMLEResult, quasi_max_likelihood
+from quantica.timeseries.fegarch.qmle import (
+    QMLEResult,
+    prepend_zero_mean,
+    quasi_max_likelihood,
+)
 
 if TYPE_CHECKING:
     from quantica.core.types import FloatArray
+    from quantica.timeseries.fegarch.qmle import VarianceRecursion
 
 __all__ = [
     "GarchFit",
+    "build_zero_mean_fit",
     "fit_garch",
     "garch_recursion",
     "garch_sim",
@@ -171,7 +177,9 @@ class GarchFit:
     model: str | None = None
 
 
-def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
+def fit_garch(
+    returns: FloatArray, *, cond_dist: str = "norm", include_mean: bool = True
+) -> GarchFit:
     """Fit GARCH(1,1) with a constant mean by QMLE under a chosen conditional distribution.
 
     Parameters
@@ -180,6 +188,11 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
         The return series.
     cond_dist : str, optional
         One of the eight fEGarch distribution codes (default ``"norm"``).
+    include_mean : bool, optional
+        Fit a constant mean :math:`\\mu` (default ``True``). ``False`` fixes :math:`\\mu = 0` and
+        drops it from the parameter vector — the **zero-mean** fit the semiparametric scale stage
+        runs on the de-scaled returns (whose mean is already removed). No scaling is applied then
+        (the de-scaled returns are already unit-magnitude), so the estimates return in input units.
 
     Returns
     -------
@@ -189,19 +202,41 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
     """
     y = np.asarray(returns, dtype=np.float64)
     n = y.size
-    scale = float(np.std(y))  # scale-equivariant fit; conditions the small-magnitude omega
+    # scale-equivariant fit conditions the small-magnitude omega; the zero-mean (semiparametric)
+    # path fits the already-unit-magnitude de-scaled returns directly (scale = 1, no un-scaling).
+    scale = float(np.std(y)) if include_mean else 1.0
     scaled = y / scale
 
     variance = float(np.var(scaled, ddof=1))
-    var_start = (float(np.mean(scaled)), variance * 0.05, 0.05, 0.90)
-    var_bounds = ((-10.0, 10.0), (1e-8, 1e6), (0.0, 0.9999), (0.0, 0.9999))
+    var_start: tuple[float, ...] = (float(np.mean(scaled)), variance * 0.05, 0.05, 0.90)
+    var_bounds: tuple[tuple[float, float], ...] = (
+        (-10.0, 10.0),
+        (1e-8, 1e6),
+        (0.0, 0.9999),
+        (0.0, 0.9999),
+    )
+    var_names: tuple[str, ...] = _VAR_NAMES
+    recursion: VarianceRecursion = garch_recursion
+    if not include_mean:  # drop mu; fix it at 0 inside the recursion
+        var_start, var_bounds, var_names = var_start[1:], var_bounds[1:], var_names[1:]
+        recursion = prepend_zero_mean(garch_recursion)
 
     # The ALD's degree P is a discrete construction parameter that fEGarch *profiles* over an
     # integer grid (it never enters the continuous optimizer); every other distribution's shape
     # parameters are estimated jointly by the QMLE engine. These are structurally different fits.
     # ``sald`` is the compound case: the same P-grid, with the FS ``skew`` fit jointly at each P.
     if cond_dist in ("ald", "sald"):
-        return _fit_garch_ald(scaled, scale, n, var_start, var_bounds, skewed=cond_dist == "sald")
+        return _fit_garch_ald(
+            scaled,
+            scale,
+            n,
+            var_start,
+            var_bounds,
+            var_names,
+            recursion,
+            skewed=cond_dist == "sald",
+            include_mean=include_mean,
+        )
 
     distribution = get_distribution(cond_dist)
 
@@ -218,15 +253,17 @@ def fit_garch(returns: FloatArray, *, cond_dist: str = "norm") -> GarchFit:
 
     result = quasi_max_likelihood(
         scaled,
-        garch_recursion,
+        recursion,
         distribution,
         var_start=var_start,
         var_bounds=var_bounds,
-        var_names=_VAR_NAMES,
-        mean=True,
+        var_names=var_names,
+        mean=include_mean,
         method=method,
         options=options,
     )
+    if not include_mean:
+        return build_zero_mean_fit(result, cond_dist, n, k=result.params.size)
     return _garch_fit_from_result(result, cond_dist, scale, n, k=result.params.size)
 
 
@@ -302,14 +339,80 @@ def _garch_fit_from_result(
     )
 
 
+def build_zero_mean_fit(
+    result: QMLEResult,
+    cond_dist: str,
+    n: int,
+    *,
+    k: int,
+    model: str | None = None,
+    extra_params: dict[str, float] | None = None,
+    profile: tuple[tuple[int, float], ...] | None = None,
+) -> GarchFit:
+    """Assemble a :class:`GarchFit` from a **zero-mean, unscaled** QMLE result (any inner model).
+
+    The semiparametric inner stage fits the already-unit-magnitude de-scaled returns with no scale
+    division and :math:`\\mu` fixed at 0, so there is no un-scaling to undo — the engine estimates
+    are returned directly. Shared by every inner model's ``include_mean=False`` path, it sidesteps
+    the per-model un-scaling builders (whose factor layout and parameter indexing assume the mean is
+    present).
+
+    Parameters
+    ----------
+    result : QMLEResult
+        The fitted engine result on the de-scaled returns.
+    cond_dist : str
+        The conditional-distribution code.
+    n : int
+        Number of observations.
+    k : int
+        Parameter count for the AIC/BIC penalty (includes a profiled degree where one applies).
+    model : str or None, optional
+        The EGF model tag carried on the fit (``None`` for the variance-recursion family).
+    extra_params : dict of str to float, optional
+        Parameters not produced by the optimizer (the ALD's profiled ``P``; a fixed ``delta``).
+    profile : tuple of (int, float) or None, optional
+        The ALD ``(P, log-likelihood)`` grid.
+
+    Returns
+    -------
+    GarchFit
+        The zero-mean fit (estimates in the de-scaled-return units).
+    """
+    names = result.param_names
+    params = {nm: float(v) for nm, v in zip(names, result.params, strict=True)}
+    std_errors = {nm: float(s) for nm, s in zip(names, result.std_errors, strict=True)}
+    if extra_params:
+        params.update(extra_params)
+    loglik = float(result.loglikelihood)  # scale = 1, so no rescaling Jacobian
+    aic = (2.0 * k - 2.0 * loglik) / n
+    bic = (k * np.log(n) - 2.0 * loglik) / n
+    return GarchFit(
+        cond_dist=cond_dist,
+        params=params,
+        std_errors=std_errors,
+        loglikelihood=loglik,
+        aic=float(aic),
+        bic=float(bic),
+        conditional_volatility=np.sqrt(np.asarray(result.conditional_variance, dtype=np.float64)),
+        n_obs=n,
+        converged=result.converged,
+        profile=profile,
+        model=model,
+    )
+
+
 def _fit_garch_ald(
     scaled: FloatArray,
     scale: float,
     n: int,
     var_start: tuple[float, ...],
     var_bounds: tuple[tuple[float, float], ...],
+    var_names: tuple[str, ...],
+    recursion: object,
     *,
     skewed: bool = False,
+    include_mean: bool = True,
 ) -> GarchFit:
     """Fit GARCH(1,1)/ALD (or /sALD) by profiling the degree ``P`` over fEGarch's grid ``Prange``.
 
@@ -350,12 +453,12 @@ def _fit_garch_ald(
         distribution = FernandezSteelSkew(base) if skewed else base
         result = quasi_max_likelihood(
             scaled,
-            garch_recursion,
+            recursion,  # type: ignore[arg-type]
             distribution,
             var_start=var_start,
             var_bounds=var_bounds,
-            var_names=_VAR_NAMES,
-            mean=True,
+            var_names=var_names,
+            mean=include_mean,
             method=method,
             options=options,
         )
@@ -365,6 +468,15 @@ def _fit_garch_ald(
 
     assert best is not None  # _ALD_PRANGE is non-empty
     # P is profiled, not optimized, but fEGarch counts it in the penalty: k = continuous_params + 1.
+    if not include_mean:
+        return build_zero_mean_fit(
+            best,
+            "sald" if skewed else "ald",
+            n,
+            k=best.params.size + 1,
+            extra_params={"P": float(best_p)},
+            profile=tuple(profile),
+        )
     return _garch_fit_from_result(
         best,
         "sald" if skewed else "ald",

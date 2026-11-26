@@ -84,18 +84,41 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
-from quantica.timeseries.fegarch.distributions import get_distribution
-from quantica.timeseries.fegarch.egarch import (
-    EGARCH_CONSTANTS,
-    _type1_variance,
-)
-from quantica.timeseries.fegarch.fiegarch import fiegarch_recursion
-from quantica.timeseries.fegarch.qmle import quasi_max_likelihood
+from quantica.timeseries.fegarch.asymmetric import fit_aparch, fit_gjr, fit_tgarch
+from quantica.timeseries.fegarch.egarch import fit_egarch, fit_megarch, fit_mloggarch
+from quantica.timeseries.fegarch.fiaparch import fit_fiaparch, fit_figjr, fit_fitgarch
+from quantica.timeseries.fegarch.fiegarch import fit_fiegarch, fit_fimegarch, fit_fimloggarch
+from quantica.timeseries.fegarch.figarch import fit_figarch
+from quantica.timeseries.fegarch.filoggarch import fit_filoggarch
+from quantica.timeseries.fegarch.garch import GarchFit, fit_garch
+from quantica.timeseries.fegarch.loggarch import fit_loggarch
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable
 
     from quantica.core.types import FloatArray
+
+#: The 16 fEGarch inner models, keyed by their fit tag, each as a zero-mean-capable fitter. The
+#: semiparametric scale is model-agnostic (steps 1-5); the inner model only enters step 6 (the
+#: zero-mean QMLE on the de-scaled returns), so every fitted model composes with the same scale.
+_INNER_FITTERS: dict[str, Callable[..., GarchFit]] = {
+    "garch": fit_garch,
+    "gjrgarch": fit_gjr,
+    "tgarch": fit_tgarch,
+    "aparch": fit_aparch,
+    "figarch": fit_figarch,
+    "figjr": fit_figjr,
+    "fitgarch": fit_fitgarch,
+    "fiaparch": fit_fiaparch,
+    "egarch": fit_egarch,
+    "megarch": fit_megarch,
+    "mloggarch": fit_mloggarch,
+    "loggarch": fit_loggarch,
+    "fiegarch": fit_fiegarch,
+    "fimegarch": fit_fimegarch,
+    "fimloggarch": fit_fimloggarch,
+    "filoggarch": fit_filoggarch,
+}
 
 __all__ = [
     "KERNELS",
@@ -109,23 +132,6 @@ __all__ = [
 
 #: locpol_spec boundary_method -> the gsmooth boundary rule (extend=knn/bb1, shorten=fixed/bb0).
 _BOUNDARY_MAP: dict[str, Literal["fixed", "knn"]] = {"extend": "knn", "shorten": "fixed"}
-
-#: Parameter names of the zero-mean EGF parametric stage, per model (no mu — the mean is ybar).
-_PARAMETRIC_NAMES: dict[str, tuple[str, ...]] = {
-    "egarch": ("omega_sig", "phi1", "kappa", "gamma"),
-    "fiegarch": ("omega_sig", "phi1", "kappa", "gamma", "d"),
-}
-#: Optimization bounds for the zero-mean EGF parametric stage, per model (aligned with the names).
-_PARAMETRIC_BOUNDS: dict[str, tuple[tuple[float, float], ...]] = {
-    "egarch": ((-50.0, 50.0), (-0.9999, 0.9999), (-10.0, 10.0), (-10.0, 10.0)),
-    "fiegarch": (
-        (-50.0, 50.0),
-        (-0.9999, 0.9999),
-        (-10.0, 10.0),
-        (-10.0, 10.0),
-        (0.0, 0.9999),
-    ),
-}
 
 #: The four second-order kernels ``locpol_spec`` exposes, keyed by the ``mu`` smoothness order.
 KERNELS: dict[int, str] = {0: "uniform", 1: "epanechnikov", 2: "bisquare", 3: "triweight"}
@@ -449,74 +455,73 @@ def semiparametric_scale(
 def semiparametric_fit(
     returns: FloatArray,
     *,
-    model: Literal["egarch", "fiegarch"] = "egarch",
+    model: str = "egarch",
     cond_dist: str = "norm",
     poly_order: int = 1,
     kernel_order: int = 1,
     boundary_method: Literal["extend", "shorten"] = "extend",
     bwidth: float | None,
-    start_pars: Sequence[float] | None = None,
 ) -> SemiparametricFit:
-    r"""Fixed-bandwidth semiparametric EGF fit (WP171 §2.2.1, all six steps).
+    r"""Fixed-bandwidth semiparametric fit for **any** fEGarch inner model (WP171 §2.2.1, 6 steps).
 
-    Estimates the nonparametric scale (:func:`semiparametric_scale`, steps 1--5, machine-exact),
-    then fits a **zero-mean** EGF model (``"egarch"``/``"fiegarch"``) to the de-scaled returns
-    :math:`\hat r_t` (step 6), returning the total volatility
-    :math:`\hat\Omega = \hat s\,\tilde\sigma` (fEGarch's ``sigt``). The parametric stage reuses the
-    existing EGF recursions with the mean fixed at 0 (the mean is already :math:`\bar y`), so its
-    fit vector is ``(omega_sig, phi1, kappa, gamma)`` for EGARCH (``+ d`` for FIEGARCH), **no**
-    :math:`\mu`. The scale is reproduced machine-exactly; the parametric fit matches fEGarch to the
-    port's established fit tolerance.
+    Estimates the nonparametric scale (:func:`semiparametric_scale`, steps 1--5, machine-exact and
+    **model-/distribution-agnostic** — the empirical :math:`\hat C_T` depends only on the returns
+    and the local-poly trend), then fits a **zero-mean** inner model to the de-scaled returns
+    :math:`\hat r_t = (y_t-\bar y)/\hat s_t` (step 6) by dispatching to that model's validated
+    ``fit_*(..., include_mean=False)``, returning the total volatility
+    :math:`\hat\Omega = \hat s\,\tilde\sigma` (fEGarch's ``sigt``). The inner stage reuses the exact
+    parametric fitter with the mean fixed at 0 (the mean is already :math:`\bar y`), so it inherits
+    that model's ALD ``P``-profiling, per-iteration centering and restart logic — the semiparametric
+    fit is **scale (machine-exact) ⊕ the already-validated parametric fit**. Any of the 16 inner
+    models (:data:`_INNER_FITTERS`) is accepted.
 
     .. note::
 
         **Automatic bandwidth is not implemented** (``bwidth=None`` raises): it needs the Bühlmann
         (1996) + Feng-Heiler (2009) machinery, unavailable in ``literature/``. Supply a fixed
-        ``bwidth`` in ``(0, 0.5)``. **FIEGARCH is multimodal** (Phase-4 weak-identification): from
-        the default start the fit may land in a :math:`d \approx 0` basin; pass ``start_pars`` to
-        target a specific basin. EGARCH is well-identified.
+        ``bwidth`` in ``(0, 0.5)``. The supported conditional-distribution surface per model
+        inherits the parametric fits' finding-3 drops (e.g. the Type-I EGF family drops the
+        continuous-``df`` ``std``/``sstd``); on the near-normal de-scaled residuals the
+        ``df`` is even more weakly identified, so the variance-recursion family's ``std``/``sstd``
+        fits can climb the flat ``df`` ridge past fEGarch's finite-``df`` stall — an optimizer
+        divergence, not a defect (see ``docs/fegarch-spec-notes.md``). Forecasting-with-scale and
+        dual-mean composition are deferred follow-ons.
 
     Parameters
     ----------
     returns : ndarray, shape (n,)
         The return series.
-    model : {"egarch", "fiegarch"}, optional
-        The parametric EGF model for the de-scaled returns. Default ``"egarch"``.
+    model : str, optional
+        The inner model fit to the de-scaled returns — a key of :data:`_INNER_FITTERS` (one of the
+        16 fEGarch models). Default ``"egarch"``.
     cond_dist : str, optional
-        The conditional distribution; only ``"norm"`` is supported (the committed fixtures).
+        The conditional distribution (any the inner model's fitter accepts). Default ``"norm"``.
     poly_order, kernel_order : int, optional
         The local-polynomial order and kernel smoothness for the scale (default 1, 1).
     boundary_method : {"extend", "shorten"}, optional
         The scale boundary method (default ``"extend"``).
     bwidth : float or None
         The fixed relative bandwidth in ``(0, 0.5)``; ``None`` raises ``NotImplementedError``.
-    start_pars : sequence of float or None, optional
-        Optional start for the parametric stage; defaults to a data-driven start.
 
     Returns
     -------
     SemiparametricFit
-        The scale, parametric and total volatilities, and the zero-mean EGF parameters.
+        The scale, parametric and total volatilities, and the zero-mean inner-model parameters.
 
     Raises
     ------
     NotImplementedError
-        If ``bwidth`` is ``None`` or ``cond_dist`` is not ``"norm"``.
+        If ``bwidth`` is ``None`` (automatic bandwidth selection is out of scope).
     ValueError
-        If ``model`` is not supported.
+        If ``model`` is not one of the 16 supported inner models.
     """
     if bwidth is None:
         raise NotImplementedError(
             "automatic bandwidth selection is not implemented (needs Bühlmann 1996 + "
             "Feng-Heiler 2009, unavailable); supply a fixed bwidth in (0, 0.5)"
         )
-    if cond_dist != "norm":
-        raise NotImplementedError(
-            f"semiparametric_fit currently supports cond_dist='norm' only, got {cond_dist!r} "
-            "(non-normal reuses the Phase-2/4 per-iteration centering — deferred)"
-        )
-    if model not in _PARAMETRIC_NAMES:
-        raise ValueError(f"model must be 'egarch' or 'fiegarch', got {model!r}")
+    if model not in _INNER_FITTERS:
+        raise ValueError(f"model must be one of {sorted(_INNER_FITTERS)}, got {model!r}")
 
     mu, c_t, scale, r_hat = semiparametric_scale(
         returns,
@@ -525,56 +530,22 @@ def semiparametric_fit(
         boundary_method=boundary_method,
         bwidth=bwidth,
     )
-    e_abs = get_distribution("norm").abs_moment(None)  # E|z| = sqrt(2/pi)
-    names = _PARAMETRIC_NAMES[model]
-    bounds = _PARAMETRIC_BOUNDS[model]
-    log_var0 = float(np.log(np.var(r_hat, ddof=1)))
-
-    if model == "egarch":
-
-        def recursion(params: FloatArray, series: FloatArray) -> FloatArray:
-            full = np.concatenate(([0.0], np.asarray(params, dtype=np.float64)))
-            return _type1_variance(
-                full, series, constants=EGARCH_CONSTANTS, mean_asy=0.0, mean_mag=e_abs
-            )
-
-        default_start: tuple[float, ...] = (log_var0, 0.9, 0.0, 0.1)
-        method: str = "L-BFGS-B"
-        options: dict[str, object] | None = None
-    else:  # fiegarch
-
-        def recursion(params: FloatArray, series: FloatArray) -> FloatArray:
-            full = np.concatenate(([0.0], np.asarray(params, dtype=np.float64)))
-            return fiegarch_recursion(full, series, abs_moment=e_abs)
-
-        default_start = (log_var0, 0.5, 0.0, 0.1, 0.3)
-        method = "Nelder-Mead"
-        options = {"maxiter": 20000, "maxfev": 20000, "fatol": 1e-10}
-
-    start = tuple(float(p) for p in start_pars) if start_pars is not None else default_start
-    with np.errstate(over="ignore", invalid="ignore"):  # exp overflow in bad optimizer regions
-        result = quasi_max_likelihood(
-            r_hat,
-            recursion,
-            get_distribution("norm"),
-            var_start=start,
-            var_bounds=bounds,
-            var_names=names,
-            mean=False,
-            method=method,
-            options=options,
-        )
-    pars = {name: float(v) for name, v in zip(names, result.params, strict=True)}
-    parametric_vol = np.sqrt(result.conditional_variance)
+    # Step 6: the zero-mean inner fit on the de-scaled returns (the exact validated parametric
+    # fitter, mean fixed at 0). exp overflow can occur in bad optimizer regions of the EGF models.
+    with np.errstate(over="ignore", invalid="ignore"):
+        inner = _INNER_FITTERS[model](r_hat, cond_dist=cond_dist, include_mean=False)
+    parametric_vol = np.asarray(
+        inner.conditional_volatility, dtype=np.float64
+    )  # lambda_hat on rhat
     total_vol = scale * parametric_vol
     return SemiparametricFit(
         mu=mu,
         c_t=c_t,
         scale=scale,
-        parametric_vol=np.asarray(parametric_vol, dtype=np.float64),
+        parametric_vol=parametric_vol,
         total_vol=np.asarray(total_vol, dtype=np.float64),
-        pars=pars,
-        loglikelihood=float(result.loglikelihood),
+        pars=dict(inner.params),
+        loglikelihood=float(inner.loglikelihood),
         model=model,
         bwidth=float(bwidth),
     )
